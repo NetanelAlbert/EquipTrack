@@ -15,12 +15,13 @@ EquipTrack is an internal application designed to monitor the supply and locatio
 1. Add or remove items from inventory.
 2. Track the inventory.
 3. Generate a check-out form for specific equipment for a specific user and obtain their signature.
-4. Check in items returned by users.
-5. Notify users with daily reports.
-6. Generate reports on equipment status.
-7. Look up a specific item to see who checked it out.
-8. View the check-out history of an item.
-9. View the report history of an item.
+4. Use a pre defined check-out forms.
+5. Check in items returned by users.
+6. Notify users with daily reports.
+7. Generate reports on equipment status.
+8. Look up a specific item to see who checked it out.
+9. View the check-out history of an item.
+10. View the report history of an item.
 
 ### From admin prespective:
 
