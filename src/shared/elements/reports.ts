@@ -3,12 +3,13 @@ export interface ItemReport {
     upi: string;
     location: string;
     repotedBy: string;
+    // image?
 }
 
 /** DynamoDB table */
 export interface InventoryReport {
-    organizationID: string;
-    date: string;
+    organizationID: string;  // partition key
+    date: string; // sort key -- YYYY-MM-DD
     items: ItemReport[];
     lastUpdatedTimeStamp: number;
 }

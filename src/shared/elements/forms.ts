@@ -3,9 +3,16 @@ import { InventoryItem } from "./inventory";
 export interface InventoryForm {
     formID: string;
     items: InventoryItem[];
-    status: 'pending' | 'approved' | 'supplied' | 'rejected';
+    status: 'pending' | 'approved' | 'rejected'; 
     approvedAtTimestamp?: number;
+    approvedByUserID?: string;
     signatureURI?: string;
+}
+
+export interface PredefinedForm {
+    formID: string;
+    description: string;
+    items: InventoryItem[];
 }
 
 /** DynamoDB table */
@@ -14,6 +21,5 @@ export interface Forms {
     userID: string;
     checkInForms: InventoryForm[];
     checkOutForms: InventoryForm[];
-    checkOutRequests: InventoryForm[];
     lastUpdatedTimeStamp: number;
 }

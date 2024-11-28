@@ -1,0 +1,34 @@
+General:
+
+- organizationID - needed? 
+    or should I create a different table for each organization?
+- add report famage items feature?
+
+Backend:
+- create node server
+- create tables
+- implement apis
+- authenticate users
+- authorize users
+
+
+Frontend
+- create app 
+- create user screens:
+    - my items
+    - report
+    - my forms
+    - check in
+- create warehouse screens:
+    - edit products
+    - see all inventory
+        - edit
+    - see inventory by users
+    - checkouts:
+        - see predefined
+            -edit
+        -create form
+    - see open forms
+    - approve check in
+    - trace specific product by reports
+
