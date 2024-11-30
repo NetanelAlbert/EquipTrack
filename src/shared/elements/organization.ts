@@ -1,15 +1,5 @@
 import { InventoryItem } from "./inventory";
 
-export interface User {
-    id: string;
-    name: string;
-    email: string; // needed?
-    phone: string;
-    organizationRole: string;
-    role: 'admin' | 'user' | 'warehouse';
-    state: 'active' | 'invited' | 'disabled';
-}
-
 export interface Product {
     id: string;
     name: string;
@@ -18,11 +8,10 @@ export interface Product {
 
 /** DynamoDB table */
 export interface Organization {
-    id: string;
+    id: string; // partition key
     name: string;
     imageURI: string;
-    users: string[]; // needed? or sabed in IAM? or users table?
-    products: string[];
+    products: string[]; // consider moving to a separate table
     inventory: InventoryItem[];
     lastUpdatedTimeStamp: number;
 }

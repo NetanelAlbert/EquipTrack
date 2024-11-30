@@ -17,8 +17,8 @@ export interface PredefinedForm {
 
 /** DynamoDB table */
 export interface Forms {
-    organizationID: string;
-    userID: string;
+    organizationID: string; // partition key
+    userID: string; // sort key
     checkInForms: InventoryForm[];
     checkOutForms: InventoryForm[];
     lastUpdatedTimeStamp: number;

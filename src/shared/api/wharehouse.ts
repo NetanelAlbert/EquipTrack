@@ -4,8 +4,9 @@
 
 import { InventoryForm, PredefinedForm } from "../elements/forms";
 import { InventoryItem } from "../elements/inventory";
-import { Product, User } from "../elements/organization";
+import { Product } from "../elements/organization";
 import { ItemReport } from "../elements/reports";
+import { User } from "../elements/users";
 
 // PRODUCTS
 

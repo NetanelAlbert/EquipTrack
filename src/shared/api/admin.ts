@@ -2,7 +2,7 @@
 
 // USERS
 
-import { User } from "../elements/organization";
+import { User } from "../elements/users";
 
 /**
  * GET /api/admin/users
@@ -23,11 +23,4 @@ export interface AddUser {
  */
 export interface UpdateUser {
     user: User;
-}
-
-/**
- * DELETE /api/admin/users/delete
- */
-export interface DeleteUser {
-    userID: string;
 }
