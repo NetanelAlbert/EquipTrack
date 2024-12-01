@@ -2,7 +2,9 @@
   "name": "@equip-track/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "fullstack": "nx run-many --parallel --target=serve --projects=backend,frontend"
+  },
   "private": true,
   "dependencies": {
     "@angular/animations": "~18.2.0",
