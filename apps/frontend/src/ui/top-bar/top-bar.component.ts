@@ -10,7 +10,7 @@ import { User } from '@equip-track/shared';
   styleUrl: './top-bar.component.scss',
 })
 export class TopBarComponent {
-  appName = input('AppName');
+  orgName = input('AppName');
   user = input<User>();
   userInitials = computed(() => {
     return this.user()

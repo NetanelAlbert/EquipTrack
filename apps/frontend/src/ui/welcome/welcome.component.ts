@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TopBarComponent } from '../top-bar/top-bar.component';
+import { TopBarComponent } from '..';
 import { User } from '@equip-track/shared';
 
 @Component({
