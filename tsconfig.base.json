@@ -15,7 +15,8 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@equip/shared": ["libs/shared/src/index.ts"]
+      "@equip-track/shared": ["libs/shared/src/index.ts"],
+      "@equip-track/ui": ["libs/ui/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
