@@ -1,6 +1,6 @@
-import { Component, input, computed } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { User } from '@equip-track/shared';
+import { UserStore } from '../../store';
 
 @Component({
   selector: 'top-bar',
@@ -10,13 +10,5 @@ import { User } from '@equip-track/shared';
   styleUrl: './top-bar.component.scss',
 })
 export class TopBarComponent {
-  orgName = input('AppName');
-  user = input<User>();
-  userInitials = computed(() => {
-    return this.user()
-      ?.name.split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase();
-  });
+  userStore = inject(UserStore);
 }

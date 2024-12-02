@@ -10,13 +10,4 @@ import { User } from '@equip-track/shared';
   templateUrl: './welcome.component.html',
   styleUrl: './welcome.component.scss',
 })
-export class WelcomeComponent {
-  mockedUser: User = {
-    name: 'Harry Potter',
-    email: 'bla@shtut.x',
-    id: '123',
-    phone: '123456789',
-    organizations: [],
-    state: 'active',
-  };
-}
+export class WelcomeComponent {}

@@ -1,4 +1,4 @@
-<H1>{{orgName()}}</H1>
-@if(userInitials()) {
-<button class="user-info">{{userInitials()}}</button>
+<H1>{{userStore.currentOrg()?.name}}</H1>
+@if(userStore.userInitials()) {
+<button class="user-info">{{userStore.userInitials()}}</button>
 }
