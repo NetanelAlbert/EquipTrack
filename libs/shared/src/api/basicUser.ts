@@ -1,5 +1,4 @@
-import { InventoryItem } from '../elements/inventory';
-import { ItemReport } from '../elements/reports';
+import { InventoryItem, ItemReport } from '../elements';
 import { BasicResponse } from './basic';
 
 /*
@@ -22,6 +21,7 @@ export interface StartResponse extends BasicResponse {
     * - forms data
     * - reports data
     */
+   dummyData: string; // todo remove this. only for lint
 }
 
 /**

@@ -2,11 +2,14 @@
  * To use these APIs, user must have the role 'warehouse'
  */
 
-import { InventoryForm, PredefinedForm } from "../elements/forms";
-import { InventoryItem } from "../elements/inventory";
-import { Product } from "../elements/organization";
-import { ItemReport } from "../elements/reports";
-import { User } from "../elements/users";
+import {
+  InventoryForm,
+  PredefinedForm,
+  InventoryItem,
+  Product,
+  ItemReport,
+  User,
+} from '../elements';
 
 // PRODUCTS
 
@@ -14,7 +17,7 @@ import { User } from "../elements/users";
  * POST /api/warehouse/products/set
  */
 export interface SertProducts {
-    products: Product[];
+  products: Product[];
 }
 
 // INVENTORY
@@ -23,21 +26,21 @@ export interface SertProducts {
  * POST /api/warehouse/inventory/add
  */
 export interface AddInventory {
-    items: InventoryItem[];
+  items: InventoryItem[];
 }
 
 /**
  * POST /api/warehouse/inventory/remove
  */
 export interface RemoveInventory {
-    items: InventoryItem[];
+  items: InventoryItem[];
 }
 
 /**
  * GET /api/warehouse/inventory/get
  */
 export interface GetInventoryResponse {
-    items: InventoryItem[];
+  items: InventoryItem[];
 }
 
 // CHECK OUT
@@ -46,23 +49,23 @@ export interface GetInventoryResponse {
  * POST /api/warehouse/forms/checkOut
  */
 export interface CreateCheckOutForm {
-    items: InventoryItem[];
-    forUserID: string;
+  items: InventoryItem[];
+  forUserID: string;
 }
 
 /**
  * DELETE /api/warehouse/forms/checkOut
  */
 export interface DeleteCheckOutForm {
-    formID: string;
-    userID: string;
+  formID: string;
+  userID: string;
 }
 
 /**
  * GET /api/warehouse/forms/checkOut/pendings
  */
 export interface GetCheckOutFormsResponse {
-    formsPerUser: Map<string, InventoryForm[]>;
+  formsPerUser: Map<string, InventoryForm[]>;
 }
 
 // PREDEFINED FORMS
@@ -71,21 +74,21 @@ export interface GetCheckOutFormsResponse {
  * GET /api/warehouse/forms/checkOut/predefined
  */
 export interface GetPredefinedCheckOutFormResponse {
-    forms: PredefinedForm[];
+  forms: PredefinedForm[];
 }
 
 /**
  * POST /api/warehouse/forms/checkOut/predefined
  */
 export interface AddPredefinedCheckOutForm {
-    form: PredefinedForm;
+  form: PredefinedForm;
 }
 
 /**
  * DELETE /api/warehouse/forms/checkOut/predefined
  */
 export interface DeletePredefinedCheckOutForm {
-    formID: string;
+  formID: string;
 }
 
 // CHECK IN
@@ -94,22 +97,22 @@ export interface DeletePredefinedCheckOutForm {
  * GET /api/warehouse/forms/checkIn/pendings
  */
 export interface GetCheckInFormsResponse {
-    formsPerUser: Map<string, InventoryForm[]>;
+  formsPerUser: Map<string, InventoryForm[]>;
 }
 
 /**
  * POST /api/warehouse/forms/checkIn/approve
  */
 export interface ApproveCheckInForm {
-    formID: string;
+  formID: string;
 }
 
 /**
  * POST /api/warehouse/forms/checkIn/reject
  */
 export interface RejectCheckInForm {
-    formID: string;
-    reason: string;
+  formID: string;
+  reason: string;
 }
 
 // REPORTS
@@ -119,19 +122,19 @@ export interface RejectCheckInForm {
  * GET /api/warehouse/reports/<date>
  */
 export interface GetTodayReportResponse {
-    completed: boolean;
-    items: ItemReport[];
-    usersWithMissingItems: User[];
+  completed: boolean;
+  items: ItemReport[];
+  usersWithMissingItems: User[];
 }
 
 /**
  * GET /api/warehouse/reports/trace/<upi>?goBack=<number>
  */
 export interface DayTrace {
-    date: string;
-    userID: string;
-    location: string;
+  date: string;
+  userID: string;
+  location: string;
 }
 export interface GetUPITraceResponse {
-    trace: DayTrace[];
+  trace: DayTrace[];
 }

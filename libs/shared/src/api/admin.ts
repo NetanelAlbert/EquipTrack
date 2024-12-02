@@ -2,7 +2,7 @@
 
 // USERS
 
-import { User } from "../elements/users";
+import { User } from "../elements";
 
 /**
  * GET /api/admin/users

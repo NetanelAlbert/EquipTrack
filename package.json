@@ -29,6 +29,8 @@
     "@angular/compiler-cli": "~18.2.0",
     "@angular/language-service": "~18.2.0",
     "@eslint/js": "^9.8.0",
+    "@nrwl/js": "^19.8.4",
+    "@nrwl/workspace": "^19.8.4",
     "@nx/angular": "20.1.4",
     "@nx/devkit": "20.1.4",
     "@nx/esbuild": "20.1.4",
