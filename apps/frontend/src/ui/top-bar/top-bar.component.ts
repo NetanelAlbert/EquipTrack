@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { UserStore } from '../../store';
+import { UserStore, OrganizationStore } from '../../store';
 
 @Component({
   selector: 'top-bar',
@@ -11,4 +11,5 @@ import { UserStore } from '../../store';
 })
 export class TopBarComponent {
   userStore = inject(UserStore);
+  organizationStore = inject(OrganizationStore);
 }

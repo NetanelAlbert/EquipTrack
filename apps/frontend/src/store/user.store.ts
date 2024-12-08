@@ -5,12 +5,11 @@ import {
   withMethods,
   withState,
 } from '@ngrx/signals';
-import { Organization, User } from '@equip-track/shared';
-import { computed, inject } from '@angular/core';
-import { OrganizationStore } from '.';
+import { User, InventoryItem } from '@equip-track/shared';
+import { computed } from '@angular/core';
 
 type UserState = User & {
-  currentOrganizationID: string;
+  checkedOut: InventoryItem[];
 };
 
 const mockedUser: UserState = {
@@ -25,14 +24,23 @@ const mockedUser: UserState = {
     },
   ],
   state: 'active',
-  currentOrganizationID: '123',
+  checkedOut: [
+    {
+      productID: '1',
+      quantity: 14,
+    },
+    {
+      productID: '2',
+      quantity: 3,
+      upis: ['123', '456', '789'],
+    },
+  ],
 };
 
 export const UserStore = signalStore(
   { providedIn: 'root' },
   withState(mockedUser), // todo - replace with real data / empty state
   withComputed((state) => {
-    const organizationStore = inject(OrganizationStore);
     return {
       isUserActive: computed(() => state.state() === 'active'),
       userInitials: computed(() =>
@@ -42,10 +50,6 @@ export const UserStore = signalStore(
           .map((n) => n[0])
           .join('')
       ),
-      currentOrg: computed<Organization | undefined>(() => {
-        console.log('currentOrganizationID', state.currentOrganizationID());
-        return organizationStore.get(state.currentOrganizationID());
-      }),
     };
   }),
   withMethods((store) => ({
