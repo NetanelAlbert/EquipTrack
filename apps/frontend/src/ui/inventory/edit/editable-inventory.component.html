@@ -1,0 +1,40 @@
+<form [formGroup]="form">
+  <ng-container formArrayName="items">
+    <mat-list>
+      @for (itemControl of items.controls; track $index; let i = $index){
+      <mat-list-item>
+        <div class="item" [formGroupName]="i">
+          <div class="main-row">
+          <mat-select formControlName="productID">
+            @for (p of products(); track p.id) {
+            <mat-option [value]="p.id">{{ p.name }}</mat-option>
+            }
+          </mat-select>
+          <input
+            matInput
+            [formControl]="$any(itemControl).get('quantity')"
+            type="number"
+            placeholder="Quantity"
+          />
+        </div>
+          <!-- todo translate -->
+          @let upis = $any(itemControl).get('upis'); 
+          @if (upis) {
+          <div class="upis">
+            @for (upi of upis.controls; track $index; let upiIndex = $index) {
+            <input
+              matInput
+              [formControl]="$any(upi)[upiIndex]"
+              type="text"
+              placeholder="צ"
+            />
+            <!-- todo translate -->
+            }
+          </div>
+          }
+        </div>
+      </mat-list-item>
+      }
+    </mat-list>
+  </ng-container>
+</form>

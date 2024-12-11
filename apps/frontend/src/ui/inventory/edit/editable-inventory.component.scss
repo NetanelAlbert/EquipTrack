@@ -1,0 +1,17 @@
+:host {
+    .item {
+        display: flex;
+        flex-direction: column;
+        .main-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .upis {
+            display: flex;
+            flex-direction: column;
+        }
+    }
+}

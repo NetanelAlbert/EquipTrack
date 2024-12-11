@@ -6,7 +6,7 @@ import {
   patchState,
 } from '@ngrx/signals';
 import { Organization, Product } from '@equip-track/shared';
-import { computed } from '@angular/core';
+import { computed, Signal } from '@angular/core';
 
 type MinimalOrganization = Pick<Organization, 'id' | 'name' | 'imageURI'>;
 
@@ -15,19 +15,22 @@ type OrganizationState = {
   currentOrganization?: Organization;
 };
 
-const mockedOrganization = {
+const mockedOrganization: Organization = {
   id: '123',
   name: 'Hogwarts',
   imageURI: 'https://via.placeholder.com/150',
-  products: [{
-    id: '1',
-    name: 'Broomstick',
-    upi: false,
-  }, {
-    id: '2',
-    name: 'Wand',
-    upi: true,
-  }],
+  products: [
+    {
+      id: '1',
+      name: 'Broomstick',
+      upi: false,
+    },
+    {
+      id: '2',
+      name: 'Wand',
+      upi: true,
+    },
+  ],
   lastUpdatedTimeStamp: Date.now(),
 };
 const mockedOrganizations: OrganizationState = {
@@ -39,6 +42,13 @@ export const OrganizationStore = signalStore(
   { providedIn: 'root' },
   withState(mockedOrganizations), // todo - replace with real data / empty state
   withComputed((store) => {
+    const productsMap: Signal<Map<string, Product>> = computed(() => {
+      return new Map(
+        store.currentOrganization?.()?.products.map((p) => {
+          return [p.id, p] as const;
+        })
+      );
+    });
     return {
       minimalOrganizations: computed<MinimalOrganization[]>(() => {
         return store.organizations().map((o) => {
@@ -46,6 +56,8 @@ export const OrganizationStore = signalStore(
           return { id, name, imageURI };
         });
       }),
+      products: computed<Product[]>(() => Array.from(productsMap().values())),
+      productsMap,
     };
   }),
   withMethods((store) => {
@@ -79,7 +91,7 @@ export const OrganizationStore = signalStore(
         });
       },
       getProduct(id: string): Product | undefined {
-        return store.currentOrganization?.()?.products.find((p) => p.id === id);
+        return store.productsMap().get(id);
       },
     };
   })
