@@ -24,7 +24,7 @@
             @for (upi of upis.controls; track $index; let upiIndex = $index) {
             <input
               matInput
-              [formControl]="$any(upi)[upiIndex]"
+              [formControl]="upi"
               type="text"
               placeholder="צ"
             />
