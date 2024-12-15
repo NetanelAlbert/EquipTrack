@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
 import { MatListModule } from '@angular/material/list';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { InventoryItem, Product } from '@equip-track/shared';
+import { Product } from '@equip-track/shared';
 import { OrganizationStore } from '../../../store';
 import {
   FormBuilder,
@@ -16,8 +16,9 @@ import {
   FormArray,
   ReactiveFormsModule,
   Validators,
-  FormControl,
 } from '@angular/forms';
+import { EditableItemComponent } from "./item/editable-item.component";
+import { FormInventoryItem } from './form.mudels';
 
 @Component({
   selector: 'editable-inventory',
@@ -28,7 +29,8 @@ import {
     MatFormFieldModule,
     MatSelectModule,
     ReactiveFormsModule,
-  ],
+    EditableItemComponent
+],
   templateUrl: './editable-inventory.component.html',
   styleUrl: './editable-inventory.component.scss',
 })
@@ -38,7 +40,7 @@ export class EditableInventoryComponent implements OnInit {
   fb = inject(FormBuilder);
   form: FormGroup = this.fb.group({
     // TODO - add form validation
-    items: this.fb.array<FormControl<InventoryItem>>([]),
+    items: this.fb.array<FormGroup<FormInventoryItem>>([]),
   });
 
   ngOnInit(): void {
@@ -52,15 +54,15 @@ export class EditableInventoryComponent implements OnInit {
     console.log('NA:: ', when, this.items.value);
   }
 
-  private get emptyItem() {
+  private get emptyItem(): FormGroup<FormInventoryItem> {
     return this.fb.group({
       productID: ['', Validators.required],
       quantity: [0, Validators.required],
-      upis: this.fb.array<string>(['', '']),
+      upis: this.fb.array<string>(['']),
     });
   }
 
-  get items(): FormArray {
+  get items(): FormArray<FormGroup<FormInventoryItem>> {
     return this.form.controls['items'] as FormArray;
   }
 
