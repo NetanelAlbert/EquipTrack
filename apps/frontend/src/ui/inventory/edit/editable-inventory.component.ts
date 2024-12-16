@@ -15,10 +15,9 @@ import {
   FormGroup,
   FormArray,
   ReactiveFormsModule,
-  Validators,
 } from '@angular/forms';
 import { EditableItemComponent } from "./item/editable-item.component";
-import { FormInventoryItem } from './form.mudels';
+import { FormInventoryItem, emptyItem } from './form.mudels';
 
 @Component({
   selector: 'editable-inventory',
@@ -54,20 +53,12 @@ export class EditableInventoryComponent implements OnInit {
     console.log('NA:: ', when, this.items.value);
   }
 
-  private get emptyItem(): FormGroup<FormInventoryItem> {
-    return this.fb.group({
-      productID: ['', Validators.required],
-      quantity: [0, Validators.required],
-      upis: this.fb.array<string>(['']),
-    });
-  }
-
   get items(): FormArray<FormGroup<FormInventoryItem>> {
     return this.form.controls['items'] as FormArray;
   }
 
   addItem() {
-    this.items.push(this.emptyItem);
+    this.items.push(emptyItem(this.fb));
   }
 
   removeItem(index: number) {

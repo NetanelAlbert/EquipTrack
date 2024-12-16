@@ -1,16 +1,19 @@
 import {
   Component,
+  computed,
   effect,
   inject,
   input,
+  signal,
   Signal,
+  WritableSignal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Product } from '@equip-track/shared';
 import { MatSelectModule } from '@angular/material/select';
 import { OrganizationStore } from '../../../../store';
-import { FormInventoryItem } from '../form.mudels';
+import { FormInventoryItem, emptyItem } from '../form.mudels';
 
 @Component({
   selector: 'editable-item',
@@ -20,14 +23,22 @@ import { FormInventoryItem } from '../form.mudels';
   styleUrl: './editable-item.component.scss',
 })
 export class EditableItemComponent {
-  control = input<FormGroup<FormInventoryItem>>();
-
+  fb = inject(FormBuilder);
   organizationStore = inject(OrganizationStore);
+  control = input<FormGroup<FormInventoryItem>>(emptyItem(this.fb));
+
   products: Signal<Product[]> = this.organizationStore.products;
 
   constructor() {
     this.initialResizeUPIs();
+    this.initialIsUPI();
   }
+
+  productControl: Signal<FormControl<Product | null>> = computed(() => this.control().controls['product']);
+  quantityControl: Signal<FormControl<number | null>> = computed(() => this.control().controls['quantity']);
+  upisControl: Signal<FormArray<FormControl<string | null>>> = computed(() => this.control().controls['upis']);
+  isUPI: WritableSignal<boolean> = signal(false)
+
 
   private initialResizeUPIs() {
     effect(() => {
@@ -56,5 +67,9 @@ export class EditableItemComponent {
         }
       });
     });
+  }
+
+  private initialIsUPI() {
+    effect(() => this.productControl().valueChanges.subscribe(value => this.isUPI.set(!!value?.upi)));
   }
 }

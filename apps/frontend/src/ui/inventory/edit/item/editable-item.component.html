@@ -1,20 +1,20 @@
 <div class="main-row">
-  <mat-select [formControl]="$any(control()).get('productID')">
+  <mat-select [formControl]="productControl()">
     @for (p of products(); track p.id) {
-    <mat-option [value]="p.id">{{ p.name }}</mat-option>
+    <mat-option [value]="p">{{ p.name }}</mat-option>
     }
   </mat-select>
   <input
     matInput
-    [formControl]="$any(control()).get('quantity')"
+    [formControl]="quantityControl()"
     type="number"
     placeholder="Quantity"
   />
 </div>
 <!-- todo translate -->
-@let upis = $any(control()).get('upis'); @if (upis) {
-<div class="upis">
-  @for (upi of upis.controls; track $index; let upiIndex = $index) {
+@if (isUPI()) {
+  <div class="upis">
+  @for (upi of upisControl().controls; track $index; let upiIndex = $index) {
   <input matInput [formControl]="upi" type="text" placeholder="צ" />
   <!-- todo translate -->
   }
