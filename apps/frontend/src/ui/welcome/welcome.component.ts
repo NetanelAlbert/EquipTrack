@@ -1,9 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TopBarComponent } from '..';
-import { InventoryListComponent } from '..';
+import { TopBarComponent, EditableInventoryComponent, InventoryListComponent } from '..';
 import { UserStore } from '../../store';
-import { EditableInventoryComponent } from "../inventory/edit/editable-inventory.component";
+
 @Component({
   selector: 'welcome',
   standalone: true,

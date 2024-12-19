@@ -2,8 +2,10 @@ import {
   Component,
   computed,
   effect,
+  EventEmitter,
   inject,
   input,
+  Output,
   signal,
   Signal,
   WritableSignal,
@@ -14,11 +16,13 @@ import { Product } from '@equip-track/shared';
 import { MatSelectModule } from '@angular/material/select';
 import { OrganizationStore } from '../../../../store';
 import { FormInventoryItem, emptyItem } from '../form.mudels';
+import {MatButtonModule} from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'editable-item',
   standalone: true,
-  imports: [CommonModule, MatSelectModule, ReactiveFormsModule],
+  imports: [CommonModule, MatSelectModule, ReactiveFormsModule, MatIconModule, MatButtonModule],
   templateUrl: './editable-item.component.html',
   styleUrl: './editable-item.component.scss',
 })
@@ -26,6 +30,7 @@ export class EditableItemComponent {
   fb = inject(FormBuilder);
   organizationStore = inject(OrganizationStore);
   control = input<FormGroup<FormInventoryItem>>(emptyItem(this.fb));
+  @Output() remove = new EventEmitter<void>();
 
   products: Signal<Product[]> = this.organizationStore.products;
 

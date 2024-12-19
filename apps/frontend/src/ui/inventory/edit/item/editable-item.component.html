@@ -10,6 +10,9 @@
     type="number"
     placeholder="Quantity"
   />
+  <button mat-mini-fab aria-label (click)="remove.emit()">
+    <mat-icon svgIcon="delete"></mat-icon>
+  </button>
 </div>
 <!-- todo translate -->
 @if (isUPI()) {

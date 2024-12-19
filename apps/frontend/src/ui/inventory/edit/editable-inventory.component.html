@@ -3,9 +3,11 @@
     <mat-list>
       @for (itemControl of items.controls; track $index; let i = $index){
       <mat-list-item>
-        <editable-item [control]="itemControl"></editable-item>
+        <editable-item [control]="itemControl" (remove)="removeItem(i)"></editable-item>
       </mat-list-item>
       }
     </mat-list>
   </ng-container>
 </form>
+<button mat-stroked-button (click)="addItem()">Add Item</button>
+<!-- todo translate -->
