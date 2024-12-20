@@ -17,7 +17,7 @@ export const FormInventoryItemMapper = (formItem: FormInventoryItem): InventoryI
 export const emptyItem: (fb: FormBuilder) => FormGroup<FormInventoryItem> = (fb) => {
     return fb.group({
       product: [null as Product | null, Validators.required],
-      quantity: [0, Validators.required],
+      quantity: [1, Validators.required],
       upis: fb.array<string>(['']),
     });
   }

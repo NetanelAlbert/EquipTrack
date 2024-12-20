@@ -47,8 +47,8 @@ export class EditableItemComponent {
 
   private initialResizeUPIs() {
     effect(() => {
-      const quantityControl = this.control()?.controls['quantity'];
-      const upisControl = this.control()?.controls['upis'];
+      const quantityControl = this.quantityControl();
+      const upisControl = this.upisControl();
       if (!quantityControl || !upisControl) {
         console.error(
           'EditableItemComponent: missing quantity or upis control'
@@ -56,11 +56,11 @@ export class EditableItemComponent {
         return;
       }
       quantityControl.valueChanges.subscribe((value) => {
-        if (!value) return;
+        if (value === null) return;
 
         if (value < 0) {
-          quantityControl.setValue(0);
-          return;
+          quantityControl.setValue(0, { emitEvent: false });
+          value = 0;
         }
 
         while (upisControl.length < value) {
