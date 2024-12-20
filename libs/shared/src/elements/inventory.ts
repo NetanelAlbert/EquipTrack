@@ -4,15 +4,10 @@ export interface InventoryItem {
     upis?: string[];
 }
 
-export interface UserItems {
-    userID: string;
-    items: InventoryItem[];
-}
-
 /** DynamoDB table */
 export interface Inventory {
-    organizationID: string;
-    inWarehouse: InventoryItem[];
-    checkedOut: UserItems[];
+    organizationID: string; // Partition key
+    userID: string; // Sort key
+    items: InventoryItem[];
     lastUpdatedTimeStamp: number;
 }
