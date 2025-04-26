@@ -4,6 +4,8 @@ export interface User {
     name: string;
     email: string; // needed?
     phone: string;
+    department: string;
+    departmentRole: string;
     organizations: UserInOrganization[];
     state: 'active' | 'invited' | 'disabled';
 }

@@ -17,6 +17,8 @@ const mockedUser: UserState = {
   email: 'bla@shtut.x',
   id: '123',
   phone: '123456789',
+  department: 'Magic',
+  departmentRole: 'Wizard',
   organizations: [
     {
       organizationID: '123',
