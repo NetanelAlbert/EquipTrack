@@ -1,25 +1,36 @@
 <div class="main-row">
-  <mat-select [formControl]="productControl()">
-    @for (p of products(); track p.id) {
-    <mat-option [value]="p">{{ p.name }}</mat-option>
-    }
-  </mat-select>
-  <input
-    matInput
-    [formControl]="quantityControl()"
-    type="number"
-    placeholder="Quantity"
-  />
-  <button mat-mini-fab aria-label (click)="remove.emit()">
+  <mat-form-field class="product-field">
+    <mat-select [formControl]="productControl()">
+      @for (p of products(); track p.id) {
+      <mat-option [value]="p">{{ p.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+  
+  <mat-form-field class="quantity-field">
+    <input
+      matInput
+      [formControl]="quantityControl()"
+      type="number"
+      placeholder="{{ 'inventory.form.quantity' | translate }}"
+    />
+  </mat-form-field>
+  
+  <button class="delete-button" mat-mini-fab aria-label="Delete" (click)="remove.emit()">
     <mat-icon svgIcon="delete"></mat-icon>
   </button>
 </div>
-<!-- todo translate -->
 @if (isUPI()) {
   <div class="upis">
-  @for (upi of upisControl().controls; track $index; let upiIndex = $index) {
-  <input matInput [formControl]="upi" type="text" placeholder="צ" />
-  <!-- todo translate -->
-  }
-</div>
+    @for (upi of upisControl().controls; track $index; let upiIndex = $index) {
+      <mat-form-field>
+        <input 
+          matInput 
+          [formControl]="upi" 
+          type="text" 
+          placeholder="{{ 'inventory.form.upi-placeholder' | translate }}" 
+        />
+      </mat-form-field>
+    }
+  </div>
 }

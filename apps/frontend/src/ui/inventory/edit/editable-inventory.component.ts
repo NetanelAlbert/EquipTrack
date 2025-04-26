@@ -1,14 +1,10 @@
-import {
-  Component,
-  inject,
-  OnInit,
-  Signal,
-} from '@angular/core';
+import { Component, inject, OnInit, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatListModule } from '@angular/material/list';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { Product } from '@equip-track/shared';
 import { OrganizationStore } from '../../../store';
 import {
@@ -17,8 +13,9 @@ import {
   FormArray,
   ReactiveFormsModule,
 } from '@angular/forms';
-import { EditableItemComponent } from "./item/editable-item.component";
+import { EditableItemComponent } from './item/editable-item.component';
 import { FormInventoryItem, emptyItem } from './form.mudels';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'editable-inventory',
@@ -30,8 +27,10 @@ import { FormInventoryItem, emptyItem } from './form.mudels';
     MatSelectModule,
     ReactiveFormsModule,
     EditableItemComponent,
-    MatButtonModule
-],
+    MatButtonModule,
+    MatIconModule,
+    TranslateModule,
+  ],
   templateUrl: './editable-inventory.component.html',
   styleUrl: './editable-inventory.component.scss',
 })

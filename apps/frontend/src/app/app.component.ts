@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   standalone: true,
-  imports: [RouterModule],
+  imports: [RouterModule, TranslateModule],
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
@@ -11,6 +12,15 @@ import { RouterModule } from '@angular/router';
 export class AppComponent implements OnInit {
   title = 'frontend';
   backendMessage = '';
+  supportedLanguages = ['en'];
+
+  constructor(private translate: TranslateService) {
+    translate.setDefaultLang('en');
+    const browserLang = translate.getBrowserLang() || 'en';
+    if (this.supportedLanguages.includes(browserLang)) {
+      translate.use(browserLang);
+    }
+  }
 
   ngOnInit(): void {
     fetch('http://localhost:3000/')

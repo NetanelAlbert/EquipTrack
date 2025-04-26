@@ -1,8 +1,10 @@
-<div class="header">
-    <span>{{'inventory.name'}}</span>
-    <span>{{'inventory.pid'}}</span>
-</div>
 <mat-accordion>
+    <mat-expansion-panel disabled="true">
+        <mat-expansion-panel-header>
+            <mat-panel-title>{{'inventory.name' | translate}}</mat-panel-title>
+            <mat-panel-description>{{'inventory.pid' | translate}}</mat-panel-description>
+        </mat-expansion-panel-header>
+    </mat-expansion-panel>
     @for (item of inventoryItems(); track item.productID) {
         @let hasItems = !!item.upis?.length;
         @let product = organizationStore.getProduct(item.productID);
@@ -16,8 +18,7 @@
                 </mat-panel-description>
             </mat-expansion-panel-header>
             @if (hasItems) {
-                <p>{{'inventory.upi.title'}}</p>
-                <!-- todo translate -->
+                <p>{{'inventory.upi.title' | translate}}</p>
                 <mat-list>
                     @for (upi of item.upis; track upi) {
                         <mat-list-item>{{upi}}</mat-list-item>

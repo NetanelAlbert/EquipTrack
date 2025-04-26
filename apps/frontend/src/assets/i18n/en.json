@@ -1,0 +1,22 @@
+{
+  "inventory": {
+    "name": "Name",
+    "pid": "Product ID",
+    "upi": {
+      "title": "UPIs:"
+    },
+    "button": {
+      "add-item": "Add Item"
+    },
+    "form": {
+      "quantity": "Quantity",
+      "upi-placeholder": "UPI"
+    },
+    "list": {
+      "items": "Items"
+    }
+  },
+  "buttons": {
+    "delete": "Delete"
+  }
+} 

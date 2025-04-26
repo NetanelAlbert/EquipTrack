@@ -3,6 +3,7 @@ import {
   computed,
   effect,
   EventEmitter,
+  HostBinding,
   inject,
   input,
   Output,
@@ -11,18 +12,36 @@ import {
   WritableSignal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import {
+  FormArray,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { Product } from '@equip-track/shared';
 import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { OrganizationStore } from '../../../../store';
 import { FormInventoryItem, emptyItem } from '../form.mudels';
-import {MatButtonModule} from '@angular/material/button';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'editable-item',
   standalone: true,
-  imports: [CommonModule, MatSelectModule, ReactiveFormsModule, MatIconModule, MatButtonModule],
+  imports: [
+    CommonModule,
+    MatSelectModule,
+    MatFormFieldModule,
+    MatInputModule,
+    ReactiveFormsModule,
+    MatIconModule,
+    MatButtonModule,
+    TranslateModule,
+  ],
   templateUrl: './editable-item.component.html',
   styleUrl: './editable-item.component.scss',
 })
@@ -34,16 +53,25 @@ export class EditableItemComponent {
 
   products: Signal<Product[]> = this.organizationStore.products;
 
+  @HostBinding('class.upi-item') get isUpiItem() {
+    return this.isUPI();
+  }
+
   constructor() {
     this.initialResizeUPIs();
     this.initialIsUPI();
   }
 
-  productControl: Signal<FormControl<Product | null>> = computed(() => this.control().controls['product']);
-  quantityControl: Signal<FormControl<number | null>> = computed(() => this.control().controls['quantity']);
-  upisControl: Signal<FormArray<FormControl<string | null>>> = computed(() => this.control().controls['upis']);
-  isUPI: WritableSignal<boolean> = signal(false)
-
+  productControl: Signal<FormControl<Product | null>> = computed(
+    () => this.control().controls['product']
+  );
+  quantityControl: Signal<FormControl<number | null>> = computed(
+    () => this.control().controls['quantity']
+  );
+  upisControl: Signal<FormArray<FormControl<string | null>>> = computed(
+    () => this.control().controls['upis']
+  );
+  isUPI: WritableSignal<boolean> = signal(false);
 
   private initialResizeUPIs() {
     effect(() => {
@@ -75,6 +103,10 @@ export class EditableItemComponent {
   }
 
   private initialIsUPI() {
-    effect(() => this.productControl().valueChanges.subscribe(value => this.isUPI.set(!!value?.upi)));
+    effect(() =>
+      this.productControl().valueChanges.subscribe((value) =>
+        this.isUPI.set(!!value?.upi)
+      )
+    );
   }
 }

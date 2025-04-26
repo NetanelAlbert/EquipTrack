@@ -1,13 +1,18 @@
 <form [formGroup]="form">
   <ng-container formArrayName="items">
-    <mat-list>
+    <mat-list class="dynamic-height-list">
       @for (itemControl of items.controls; track $index; let i = $index){
-      <mat-list-item>
+      <mat-list-item class="dynamic-height-item">
         <editable-item [control]="itemControl" (remove)="removeItem(i)"></editable-item>
       </mat-list-item>
       }
     </mat-list>
   </ng-container>
 </form>
-<button mat-stroked-button (click)="addItem()">Add Item</button>
-<!-- todo translate -->
+
+<div class="button-container">
+  <button mat-raised-button color="primary" class="add-item-button" (click)="addItem()">
+    <mat-icon svgIcon="add"></mat-icon>
+    {{ 'inventory.button.add-item' | translate }}
+  </button>
+</div>

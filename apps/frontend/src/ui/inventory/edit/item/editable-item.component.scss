@@ -1,16 +1,152 @@
 :host {
+    /* Color Variables */
+    --color-bg-primary: rgba(60, 60, 70, 0.5);
+    --color-bg-hover: rgba(70, 70, 80, 0.6);
+    --color-shadow-light: rgba(0, 0, 0, 0.3);
+    --color-shadow-medium: rgba(0, 0, 0, 0.4);
+    --color-border-light: rgba(150, 150, 150, 0.2);
+    
+    /* Theme Colors - Default to Purple Theme */
+    --color-accent: #bb86fc;
+    --color-gradient-light: rgba(187, 134, 252, 0.15);
+    --color-gradient-ultra-light: rgba(187, 134, 252, 0.05);
+    
     display: flex;
     flex-direction: column;
+    width: 100%;
+    background-color: var(--color-bg-primary);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 3px 6px var(--color-shadow-light);
+    border-left: 4px solid var(--color-accent); /* Material purple accent from the purple-green theme */
+    transition: all 0.2s ease-in-out;
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+
+    /* Apply yellow border for UPI items - override theme variables */
+    &.upi-item {
+        --color-accent: #dada5a; /* Yellow accent */
+        --color-gradient-light: rgba(218, 218, 90, 0.15);
+        --color-gradient-ultra-light: rgba(218, 218, 90, 0.05);
+    }
+    
+    /* Override Material CSS variables to use our accent color */
+    ::ng-deep {
+        /* Primary Material design variables for form controls */
+        --mdc-filled-text-field-caret-color: var(--color-accent);
+        --mdc-filled-text-field-focus-active-indicator-color: var(--color-accent);
+        --mdc-filled-text-field-focus-label-text-color: var(--color-accent);
+        
+        /* Outlined form field variables */
+        --mdc-outlined-text-field-caret-color: var(--color-accent);
+        --mdc-outlined-text-field-focus-outline-color: var(--color-accent);
+        --mdc-outlined-text-field-focus-label-text-color: var(--color-accent);
+        
+        /* Select dropdown arrow */
+        --mat-select-arrow-color: var(--color-accent);
+        --mat-select-focused-arrow-color: var(--color-accent);
+        
+        /* Other Material form field variables */
+        --mat-form-field-focus-color: var(--color-accent);
+    }
+    
+    /* Enhanced background gradient effect */
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 120px;
+        height: 120px;
+        background: radial-gradient(circle at top right, var(--color-gradient-light), transparent 70%);
+        pointer-events: none;
+    }
+    
+    /* Additional subtle pattern */
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(to bottom right, transparent 85%, var(--color-gradient-ultra-light) 100%);
+        pointer-events: none;
+    }
+    
+    &:hover {
+        box-shadow: 0 6px 12px var(--color-shadow-medium);
+        background-color: var(--color-bg-hover);
+        transform: translateY(-2px);
+    }
 
     .main-row {
         display: flex;
         flex-direction: row;
         justify-content: space-between;
+        align-items: center;
         gap: 1rem;
+        width: 100%;
+
+        mat-form-field {
+            ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+                display: none;
+            }
+        }
+
+        .product-field {
+            flex-grow: 3;
+        }
+
+        .quantity-field {
+            flex-grow: 1;
+            max-width: 100px;
+        }
+
+        .delete-button {
+            flex-grow: 0;
+            transition: all 0.2s ease;
+            
+            &:hover {
+                transform: rotate(5deg);
+                box-shadow: 0 3px 5px var(--color-shadow-light);
+            }
+        }
     }
 
     .upis {
         display: flex;
         flex-direction: column;
+        gap: 1rem;
+        margin-top: 0.5rem;
+        width: 100%;
+        padding-top: 10px;
+        border-top: 1px solid var(--color-border-light);
+        animation: fadeIn 0.3s ease-in-out;
+        
+        mat-form-field {
+            width: 100%;
+        }
+
+        &::before {
+            content: 'UPI Codes';
+            font-size: 0.85em;
+            color: var(--color-accent);
+            margin-bottom: 5px;
+            display: block;
+        }
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }

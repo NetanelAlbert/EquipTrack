@@ -1,0 +1,54 @@
+:host {
+  ::ng-deep {
+    // Target only our specific classes inside the component
+    .dynamic-height-list.mat-mdc-list {
+      .dynamic-height-item.mat-mdc-list-item {
+        height: auto;
+        align-items: flex-start;
+        
+        .mdc-list-item__content {
+          height: auto;
+          min-height: 48px;
+        }
+        
+        .mat-mdc-list-item-content {
+          display: flex;
+          height: auto;
+          width: 100%;
+          padding: 12px 0;
+        }
+      }
+    }
+  }
+  
+  // No need for ng-deep on our own component selectors
+  editable-item {
+    width: 100%;
+    display: block;
+  }
+  
+  .button-container {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .add-item-button {
+    border-radius: 24px;
+    padding: 0 24px;
+    font-weight: 500;
+    
+    mat-icon {
+      margin-right: 8px;
+    }
+    
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
