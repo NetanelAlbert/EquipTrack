@@ -1,19 +1,33 @@
 <div class="main-row">
   <mat-form-field class="product-field">
+    <mat-label>{{ 'inventory.form.product' | translate }}</mat-label>
     <mat-select [formControl]="productControl()">
       @for (p of products(); track p.id) {
       <mat-option [value]="p">{{ p.name }}</mat-option>
       }
     </mat-select>
+    @if (productErrors()['required']) {
+      <mat-error>{{ 'inventory.validation.product-required' | translate }}</mat-error>
+    }
   </mat-form-field>
   
   <mat-form-field class="quantity-field">
+    <mat-label>{{ 'inventory.form.quantity' | translate }}</mat-label>
     <input
       matInput
       [formControl]="quantityControl()"
       type="number"
-      placeholder="{{ 'inventory.form.quantity' | translate }}"
+      min="1"
     />
+    @if (quantityErrors()['required']) {
+      <mat-error>{{ 'inventory.validation.quantity-required' | translate }}</mat-error>
+    }
+    @else if (quantityErrors()['min']) {
+      <mat-error>{{ 'inventory.validation.quantity-min' | translate }}</mat-error>
+    }
+    @else if (quantityErrors()['pattern']) {
+      <mat-error>{{ 'inventory.validation.quantity-pattern' | translate }}</mat-error>
+    }
   </mat-form-field>
   
   <button class="delete-button" mat-mini-fab aria-label="Delete" (click)="remove.emit()">
@@ -24,12 +38,16 @@
   <div class="upis">
     @for (upi of upisControl().controls; track $index; let upiIndex = $index) {
       <mat-form-field>
+        <mat-label>{{ 'inventory.form.upi' | translate }} #{{upiIndex + 1}}</mat-label>
         <input 
           matInput 
           [formControl]="upi" 
           type="text" 
           placeholder="{{ 'inventory.form.upi-placeholder' | translate }}" 
         />
+        @if (getUpiErrors(upiIndex)['required']) {
+          <mat-error>{{ 'inventory.validation.upi-required' | translate }}</mat-error>
+        }
       </mat-form-field>
     }
   </div>

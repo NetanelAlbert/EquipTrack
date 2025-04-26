@@ -11,6 +11,10 @@
     --color-gradient-light: rgba(187, 134, 252, 0.15);
     --color-gradient-ultra-light: rgba(187, 134, 252, 0.05);
     
+    /* Error Colors */
+    --color-error: #f44336;
+    --color-error-light: rgba(244, 67, 54, 0.1);
+    
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -50,6 +54,25 @@
         
         /* Other Material form field variables */
         --mat-form-field-focus-color: var(--color-accent);
+        
+        /* Error styles */
+        .mat-mdc-form-field.mat-form-field-invalid {
+            --mdc-filled-text-field-error-active-indicator-color: var(--color-error);
+            --mdc-filled-text-field-error-label-text-color: var(--color-error);
+            --mdc-outlined-text-field-error-outline-color: var(--color-error);
+            --mdc-outlined-text-field-error-label-text-color: var(--color-error);
+            
+            .mat-mdc-form-field-flex {
+                background-color: var(--color-error-light);
+            }
+            
+            .mat-error {
+                color: var(--color-error);
+                font-size: 0.75rem;
+                margin-top: 0.25rem;
+                animation: errorShake 0.3s ease-in-out;
+            }
+        }
     }
     
     /* Enhanced background gradient effect */
@@ -92,22 +115,23 @@
 
         mat-form-field {
             ::ng-deep .mat-mdc-form-field-subscript-wrapper {
-                display: none;
+                display: block !important; /* Force display of error messages */
+                min-height: 20px;
             }
         }
 
         .product-field {
-            flex-grow: 3;
+            flex-grow: 1;
         }
 
         .quantity-field {
-            flex-grow: 1;
             max-width: 100px;
         }
 
         .delete-button {
-            flex-grow: 0;
             transition: all 0.2s ease;
+            // align with the bottom of the quantity field, due to mat-error margin-top: 0.25rem;
+            margin-bottom: 22px; 
             
             &:hover {
                 transform: rotate(5deg);
@@ -128,6 +152,11 @@
         
         mat-form-field {
             width: 100%;
+            
+            ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+                display: block !important; /* Force display of error messages */
+                min-height: 20px;
+            }
         }
 
         &::before {
@@ -149,4 +178,28 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+@keyframes errorShake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-5px);
+    }
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+/* Add specific styling for error messages */
+::ng-deep .mat-mdc-form-field-error {
+    display: block !important;
+    position: relative;
+    margin-top: 2px;
+}
+
+::ng-deep .mat-mdc-form-field.mat-mdc-form-field-invalid .mat-mdc-form-field-error {
+    color: var(--color-error, #f44336);
+    font-size: 12px;
 }

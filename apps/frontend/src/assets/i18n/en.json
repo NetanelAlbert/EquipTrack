@@ -9,11 +9,20 @@
       "add-item": "Add Item"
     },
     "form": {
+      "product": "Product",
       "quantity": "Quantity",
+      "upi": "UPI",
       "upi-placeholder": "UPI"
     },
     "list": {
       "items": "Items"
+    },
+    "validation": {
+      "product-required": "Product is required",
+      "quantity-required": "Quantity is required",
+      "quantity-min": "Quantity must be at least 1",
+      "quantity-pattern": "Quantity must be a positive number",
+      "upi-required": "UPI is required"
     }
   },
   "buttons": {

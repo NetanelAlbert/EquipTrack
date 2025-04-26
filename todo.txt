@@ -12,8 +12,7 @@ Backend:
 - authorize users
 
 
-Frontend
-- create app 
+Frontend 
 - create user screens:
     - my items
     - report
@@ -31,4 +30,6 @@ Frontend
     - see open forms
     - approve check in
     - trace specific product by reports
+
+- add validation to UPI
 

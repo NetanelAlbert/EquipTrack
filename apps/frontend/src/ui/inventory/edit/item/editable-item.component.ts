@@ -18,6 +18,7 @@ import {
   FormControl,
   FormGroup,
   ReactiveFormsModule,
+  Validators,
 } from '@angular/forms';
 import { Product } from '@equip-track/shared';
 import { MatSelectModule } from '@angular/material/select';
@@ -73,6 +74,43 @@ export class EditableItemComponent {
   );
   isUPI: WritableSignal<boolean> = signal(false);
 
+  // Updated validation error signals
+  productErrors: Signal<{ [key: string]: boolean }> = computed(() => {
+    const control = this.productControl();
+    return control.errors || {};
+  });
+
+  quantityErrors: Signal<{ [key: string]: boolean }> = computed(() => {
+    const control = this.quantityControl();
+    // Always return errors object, regardless of touched state for debugging
+    return control.errors || {};
+  });
+
+  getUpiErrors(index: number): { [key: string]: boolean } {
+    const control = this.upisControl().at(index);
+    // Always return errors object, regardless of touched state for debugging
+    return control.errors || {};
+  }
+
+  isValid(): boolean {
+    const form = this.control();
+
+    // Mark all fields as touched to trigger validation messages
+    this.markAllAsTouched();
+
+    // Check if the form is valid
+    return form.valid;
+  }
+
+  markAllAsTouched(): void {
+    const form = this.control();
+    form.markAllAsTouched();
+
+    // Also mark all UPI controls as touched
+    const upisArray = this.upisControl();
+    upisArray.controls.forEach((control) => control.markAsTouched());
+  }
+
   private initialResizeUPIs() {
     effect(() => {
       const quantityControl = this.quantityControl();
@@ -92,7 +130,9 @@ export class EditableItemComponent {
         }
 
         while (upisControl.length < value) {
-          upisControl.push(new FormControl(''));
+          const newControl = new FormControl('');
+          this.setUPIValidations(newControl);
+          upisControl.push(newControl);
         }
 
         while (upisControl.length > value) {
@@ -104,9 +144,24 @@ export class EditableItemComponent {
 
   private initialIsUPI() {
     effect(() =>
-      this.productControl().valueChanges.subscribe((value) =>
-        this.isUPI.set(!!value?.upi)
-      )
+      this.productControl().valueChanges.subscribe((value) => {
+        this.isUPI.set(!!value?.upi);
+        this.upisControl().controls.forEach((control) =>
+          this.setUPIValidations(control)
+        );
+      })
     );
+  }
+
+  private setUPIValidations(control: FormControl<string | null>) {
+    if (this.isUPI()) {
+      control.addValidators([
+        Validators.required,
+        // TODO: Add custom UPI format validation to check this UPI available in the database
+      ]);
+    } else {
+      control.clearValidators();
+    }
+    control.updateValueAndValidity();
   }
 }
