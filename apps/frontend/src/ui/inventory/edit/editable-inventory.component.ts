@@ -19,8 +19,10 @@ import {
   FormGroup,
   FormArray,
   ReactiveFormsModule,
+  AbstractControl,
+  ValidatorFn,
+  Validators,
 } from '@angular/forms';
-import { EditableItemComponent } from './item/editable-item.component';
 import {
   FormInventoryItem,
   FormInventoryItemMapper,
@@ -28,7 +30,26 @@ import {
   emptyItem,
 } from './form.mudels';
 import { TranslateModule } from '@ngx-translate/core';
+import { EditableItemComponent } from './item/editable-item.component';
 
+const formDuplicateValidator: ValidatorFn = (formArray: AbstractControl) => {
+  if (!(formArray instanceof FormArray)) {
+    return null;
+  }
+  const items = formArray.controls.map((item) => item.value);
+  const productIDs = new Set<string>();
+  const duplicateProductNames = new Set<string>();
+  items.forEach((item) => {
+    if (productIDs.has(item.product?.id ?? '')) {
+      duplicateProductNames.add(item.product?.name ?? '');
+    } else {
+      productIDs.add(item.product?.id ?? '');
+    }
+  });
+  return duplicateProductNames.size > 0
+    ? { duplicate: [...duplicateProductNames] }
+    : null;
+};
 @Component({
   selector: 'editable-inventory',
   standalone: true,
@@ -53,8 +74,10 @@ export class EditableInventoryComponent implements OnInit {
   products: Signal<Product[]> = this.organizationStore.products;
   fb = inject(FormBuilder);
   form: FormGroup = this.fb.group({
-    // TODO - add form validation
-    items: this.fb.array<FormGroup<FormInventoryItem>>([]),
+    items: this.fb.array<FormGroup<FormInventoryItem>>(
+      [],
+      [Validators.minLength(1), formDuplicateValidator]
+    ),
   });
   formChanged = false;
 
@@ -84,10 +107,12 @@ export class EditableInventoryComponent implements OnInit {
       ? FormInventoryItemMapperFromItem(this.fb, item, product)
       : emptyItem(this.fb);
     this.items.push(formItem);
+    this.items.updateValueAndValidity();
   }
 
   removeItem(index: number) {
     this.items.removeAt(index);
+    this.items.updateValueAndValidity();
   }
 
   save() {
