@@ -94,12 +94,9 @@ export class EditableInventoryComponent implements OnInit {
     this.formChanged = false;
     if (this.form.valid) {
       const items = this.items.controls.map(
-        (item: FormGroup<FormInventoryItem>) => {
-          console.log('save; item', item);
-          return FormInventoryItemMapper(item.controls);
-        }
+        (item: FormGroup<FormInventoryItem>) =>
+          FormInventoryItemMapper(item.controls)
       );
-      console.log('save; items', items);
       this.editedItems.emit(items);
     } else {
       this.form.markAllAsTouched();
