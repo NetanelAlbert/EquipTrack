@@ -6,6 +6,7 @@ import {
   HostBinding,
   inject,
   input,
+  OnInit,
   Output,
   signal,
   Signal,
@@ -46,7 +47,7 @@ import { TranslateModule } from '@ngx-translate/core';
   templateUrl: './editable-item.component.html',
   styleUrl: './editable-item.component.scss',
 })
-export class EditableItemComponent {
+export class EditableItemComponent implements OnInit {
   fb = inject(FormBuilder);
   organizationStore = inject(OrganizationStore);
   control = input<FormGroup<FormInventoryItem>>(emptyItem(this.fb));
@@ -63,6 +64,10 @@ export class EditableItemComponent {
     this.initialIsUPI();
   }
 
+  ngOnInit(): void {
+    this.isUPI.set(this.productControl().value?.upi ?? false);
+  }
+
   productControl: Signal<FormControl<Product | null>> = computed(
     () => this.control().controls['product']
   );
@@ -72,7 +77,7 @@ export class EditableItemComponent {
   upisControl: Signal<FormArray<FormControl<string | null>>> = computed(
     () => this.control().controls['upis']
   );
-  isUPI: Signal<boolean> = computed(() => this.productControl().value?.upi ?? false);
+  isUPI: WritableSignal<boolean> = signal(false);
 
   // Updated validation error signals
   productErrors: Signal<{ [key: string]: boolean }> = computed(() => {
@@ -135,6 +140,7 @@ export class EditableItemComponent {
   private initialIsUPI() {
     effect(() =>
       this.productControl().valueChanges.subscribe(() => {
+        this.isUPI.set(this.productControl().value?.upi ?? false);
         this.upisControl().controls.forEach((control) =>
           this.setUPIValidations(control)
         );
