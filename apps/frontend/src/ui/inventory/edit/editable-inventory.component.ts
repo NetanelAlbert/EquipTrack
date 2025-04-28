@@ -1,11 +1,18 @@
-import { Component, inject, OnInit, Signal } from '@angular/core';
+import {
+  Component,
+  inject,
+  input,
+  OnInit,
+  output,
+  Signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatListModule } from '@angular/material/list';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { Product } from '@equip-track/shared';
+import { InventoryItem, Product } from '@equip-track/shared';
 import { OrganizationStore } from '../../../store';
 import {
   FormBuilder,
@@ -14,7 +21,12 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { EditableItemComponent } from './item/editable-item.component';
-import { FormInventoryItem, emptyItem } from './form.mudels';
+import {
+  FormInventoryItem,
+  FormInventoryItemMapper,
+  FormInventoryItemMapperFromItem,
+  emptyItem,
+} from './form.mudels';
 import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
@@ -35,6 +47,8 @@ import { TranslateModule } from '@ngx-translate/core';
   styleUrl: './editable-inventory.component.scss',
 })
 export class EditableInventoryComponent implements OnInit {
+  originalItems = input<InventoryItem[]>([]);
+  editedItems = output<InventoryItem[]>();
   organizationStore = inject(OrganizationStore);
   products: Signal<Product[]> = this.organizationStore.products;
   fb = inject(FormBuilder);
@@ -42,8 +56,17 @@ export class EditableInventoryComponent implements OnInit {
     // TODO - add form validation
     items: this.fb.array<FormGroup<FormInventoryItem>>([]),
   });
+  formChanged = false;
+
+  constructor() {
+    this.form.valueChanges.subscribe(() => {
+      this.formChanged = true;
+    });
+  }
 
   ngOnInit(): void {
+    this.originalItems().forEach((item) => this.addItem(item));
+
     if (this.items.length === 0) {
       this.addItem();
     }
@@ -53,8 +76,14 @@ export class EditableInventoryComponent implements OnInit {
     return this.form.controls['items'] as FormArray;
   }
 
-  addItem() {
-    this.items.push(emptyItem(this.fb));
+  addItem(item?: InventoryItem) {
+    const product = item
+      ? this.organizationStore.getProduct(item.productID) ?? null
+      : null;
+    const formItem = item
+      ? FormInventoryItemMapperFromItem(this.fb, item, product)
+      : emptyItem(this.fb);
+    this.items.push(formItem);
   }
 
   removeItem(index: number) {
@@ -62,7 +91,18 @@ export class EditableInventoryComponent implements OnInit {
   }
 
   save() {
-    // TODO - implement save
-    console.log(this.form.value);
+    this.formChanged = false;
+    if (this.form.valid) {
+      const items = this.items.controls.map(
+        (item: FormGroup<FormInventoryItem>) => {
+          console.log('save; item', item);
+          return FormInventoryItemMapper(item.controls);
+        }
+      );
+      console.log('save; items', items);
+      this.editedItems.emit(items);
+    } else {
+      this.form.markAllAsTouched();
+    }
   }
 }

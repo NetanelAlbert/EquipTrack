@@ -15,23 +15,43 @@ export interface FormInventoryItem {
 export const FormInventoryItemMapper = (
   formItem: FormInventoryItem
 ): InventoryItem => {
+  const upis = formItem.product.value?.upi
+    ? formItem.upis.value.filter(
+        (upi): upi is string => upi !== null && upi !== ''
+      )
+    : undefined;
   return {
     productID: formItem.product.value?.id ?? '',
     quantity: formItem.quantity.value ?? 0,
-    upis: formItem.upis.value.filter((upi): upi is string => upi !== null),
+    upis,
   };
+};
+
+export const FormInventoryItemMapperFromItem = (
+  fb: FormBuilder,
+  item: InventoryItem,
+  product: Product | null
+): FormGroup<FormInventoryItem> => {
+  return fb.group({
+    product: [product, [Validators.required]],
+    quantity: [
+      item.quantity,
+      [Validators.required, Validators.min(1), Validators.pattern(/^[0-9]*$/)],
+    ],
+    upis: fb.array<string>(item.upis ?? ['']),
+  });
 };
 
 export const emptyItem: (fb: FormBuilder) => FormGroup<FormInventoryItem> = (
   fb
 ) => {
-  return fb.group({
-    product: [null as Product | null, [Validators.required]],
-    quantity: [
-      1,
-      [Validators.required, Validators.min(1), Validators.pattern(/^[0-9]*$/)],
-      // TODO: Add custom UPI format validation to check this UPI available in the database
-    ],
-    upis: fb.array<string>(['']),
-  });
+  return FormInventoryItemMapperFromItem(
+    fb,
+    {
+      productID: '',
+      quantity: 1,
+      upis: undefined,
+    },
+    null
+  );
 };

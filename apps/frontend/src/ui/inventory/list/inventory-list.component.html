@@ -1,31 +1,37 @@
-<mat-accordion>
-    <mat-expansion-panel disabled="true">
-        <mat-expansion-panel-header>
-            <mat-panel-title>{{'inventory.name' | translate}}</mat-panel-title>
-            <mat-panel-description>{{'inventory.pid' | translate}}</mat-panel-description>
-        </mat-expansion-panel-header>
-    </mat-expansion-panel>
+<mat-list class="dynamic-height-list">
     @for (item of inventoryItems(); track item.productID) {
-        @let hasItems = !!item.upis?.length;
         @let product = organizationStore.getProduct(item.productID);
-        <mat-expansion-panel [disabled]="!hasItems" [ngClass]="{upi: product?.upi}">
-            <mat-expansion-panel-header>
-                <mat-panel-title>
-                    {{ product?.name }}
-                </mat-panel-title>
-                <mat-panel-description>
-                    {{ item.productID }}
-                </mat-panel-description>
-            </mat-expansion-panel-header>
-            @if (hasItems) {
-                <p>{{'inventory.upi.title' | translate}}</p>
-                <mat-list>
-                    @for (upi of item.upis; track upi) {
-                        <mat-list-item>{{upi}}</mat-list-item>
-                    }
-                </mat-list>
+        @let hasUPIs = !!item.upis?.length;
+        <mat-list-item 
+            class="dynamic-height-item" 
+            [ngClass]="{upi: product?.upi, clickable: hasUPIs}"
+            (click)="hasUPIs && toggleExpand(item)">
+            <div class="main-row">
+                <div class="product-field">
+                    <span class="product-name">{{ product?.name }}</span>
+                    <span class="product-id">{{ item.productID }}</span>
+                </div>
+                <div class="quantity-field">
+                    <span class="quantity">{{ item.quantity }}</span>
+                </div>
+                @if (hasUPIs) {
+                    <div class="expand-indicator">
+                        <mat-icon [svgIcon]="isExpanded(item) ? 'expand_less' : 'expand_more'"></mat-icon>
+                    </div>
+                } @else {
+                    <div class="expand-indicator-placeholder"></div>
+                }
+            </div>
+            @if (hasUPIs && isExpanded(item)) {
+                <div class="upis">
+                    <p>{{'inventory.upi.title' | translate}}</p>
+                    <mat-list>
+                        @for (upi of item.upis; track upi) {
+                            <mat-list-item>{{upi}}</mat-list-item>
+                        }
+                    </mat-list>
+                </div>
             }
-                
-        </mat-expansion-panel>  
+        </mat-list-item>
     }
-</mat-accordion>
+</mat-list>

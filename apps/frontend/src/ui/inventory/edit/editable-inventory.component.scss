@@ -1,3 +1,5 @@
+@import '../../../styles/mixins.scss';
+
 :host {
   ::ng-deep {
     // Target only our specific classes inside the component
@@ -31,6 +33,7 @@
     margin-top: 16px;
     display: flex;
     justify-content: flex-end;
+    gap: 16px;
   }
   
   .add-item-button {
@@ -44,11 +47,34 @@
     
     &:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 8px var(--color-shadow-light);
     }
     
     &:active {
       transform: translateY(0);
+    }
+  }
+  
+  .save-button {
+    border-radius: 24px;
+    padding: 0 24px;
+    font-weight: 500;
+    
+    mat-icon {
+      margin-right: 8px;
+    }
+    
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px var(--color-shadow-light);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+    
+    &:disabled {
+      opacity: 0.7;
     }
   }
 }

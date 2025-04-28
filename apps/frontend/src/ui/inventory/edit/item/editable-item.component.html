@@ -36,6 +36,7 @@
 </div>
 @if (isUPI()) {
   <div class="upis">
+    <h4 class="upi-title">{{ 'inventory.upi.title' | translate }}</h4>
     @for (upi of upisControl().controls; track $index; let upiIndex = $index) {
       <mat-form-field>
         <mat-label>{{ 'inventory.form.upi' | translate }} #{{upiIndex + 1}}</mat-label>

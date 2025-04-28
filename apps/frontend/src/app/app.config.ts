@@ -17,6 +17,7 @@ import {
   TranslateStore,
 } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
+import { OrganizationStore, UserStore } from '../store';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -30,6 +31,8 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(),
     TranslateService,
     TranslateStore,
+    OrganizationStore,
+    UserStore,
     importProvidersFrom(
       TranslateModule.forRoot({
         loader: {

@@ -8,7 +8,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 export class AppInitService {
   iconRegistry = inject(MatIconRegistry);
   sanitizer = inject(DomSanitizer);
-  private icons = ['delete', 'add'];
+  private icons = ['delete', 'add', 'expand_more', 'expand_less', 'save'];
 
   initializeApp(): Promise<void> {
     return new Promise((resolve, reject) => {

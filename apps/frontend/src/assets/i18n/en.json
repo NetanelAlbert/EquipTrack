@@ -3,10 +3,11 @@
     "name": "Name",
     "pid": "Product ID",
     "upi": {
-      "title": "UPIs:"
+      "title": "UPIs"
     },
     "button": {
-      "add-item": "Add Item"
+      "add-item": "Add Item",
+      "save": "Save"
     },
     "form": {
       "product": "Product",

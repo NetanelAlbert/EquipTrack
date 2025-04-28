@@ -72,7 +72,7 @@ export class EditableItemComponent {
   upisControl: Signal<FormArray<FormControl<string | null>>> = computed(
     () => this.control().controls['upis']
   );
-  isUPI: WritableSignal<boolean> = signal(false);
+  isUPI: Signal<boolean> = computed(() => this.productControl().value?.upi ?? false);
 
   // Updated validation error signals
   productErrors: Signal<{ [key: string]: boolean }> = computed(() => {
@@ -90,16 +90,6 @@ export class EditableItemComponent {
     const control = this.upisControl().at(index);
     // Always return errors object, regardless of touched state for debugging
     return control.errors || {};
-  }
-
-  isValid(): boolean {
-    const form = this.control();
-
-    // Mark all fields as touched to trigger validation messages
-    this.markAllAsTouched();
-
-    // Check if the form is valid
-    return form.valid;
   }
 
   markAllAsTouched(): void {
@@ -144,8 +134,7 @@ export class EditableItemComponent {
 
   private initialIsUPI() {
     effect(() =>
-      this.productControl().valueChanges.subscribe((value) => {
-        this.isUPI.set(!!value?.upi);
+      this.productControl().valueChanges.subscribe(() => {
         this.upisControl().controls.forEach((control) =>
           this.setUPIValidations(control)
         );

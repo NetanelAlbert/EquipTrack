@@ -55,7 +55,7 @@ export const UserStore = signalStore(
     };
   }),
   withMethods((store) => ({
-    updateState(newState: Partial<User>) {
+    updateState(newState: Partial<UserState>) {
       patchState(store, (state) => {
         return {
           ...state,

@@ -1,11 +1,67 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import '@angular/material/prebuilt-themes/purple-green.css';
+@import 'styles/mixins.scss';
+
+/* Global CSS Variables */
+:root {
+  /* Color Variables */
+  --color-bg-primary: rgba(60, 60, 70, 0.5);
+  --color-bg-hover: rgba(70, 70, 80, 0.6);
+  --color-shadow-light: rgba(0, 0, 0, 0.3);
+  --color-shadow-medium: rgba(0, 0, 0, 0.4);
+  --color-border-light: rgba(150, 150, 150, 0.2);
+  
+  /* Theme Colors - Default to Purple Theme */
+  --color-accent: #bb86fc;
+  --color-gradient-light: rgba(187, 134, 252, 0.15);
+  --color-gradient-ultra-light: rgba(187, 134, 252, 0.05);
+  
+  /* Error Colors */
+  --color-error: #f44336;
+  --color-error-light: rgba(244, 67, 54, 0.1);
+}
+
+/* Global Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes errorShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
 
 /* Global dark background styles */
 html, body {
   background-color: #121212;
   color: #e0e0e0;
+}
+
+/* Global Material form field error styling */
+.mat-mdc-form-field-error {
+  display: block !important;
+  position: relative;
+  margin-top: 2px;
+}
+
+.mat-mdc-form-field.mat-mdc-form-field-invalid .mat-mdc-form-field-error {
+  color: var(--color-error, #f44336);
+  font-size: 12px;
 }
 
 

@@ -1,39 +1,14 @@
+@import '../../../../styles/mixins.scss';
+
 :host {
-    /* Color Variables */
-    --color-bg-primary: rgba(60, 60, 70, 0.5);
-    --color-bg-hover: rgba(70, 70, 80, 0.6);
-    --color-shadow-light: rgba(0, 0, 0, 0.3);
-    --color-shadow-medium: rgba(0, 0, 0, 0.4);
-    --color-border-light: rgba(150, 150, 150, 0.2);
-    
-    /* Theme Colors - Default to Purple Theme */
-    --color-accent: #bb86fc;
-    --color-gradient-light: rgba(187, 134, 252, 0.15);
-    --color-gradient-ultra-light: rgba(187, 134, 252, 0.05);
-    
-    /* Error Colors */
-    --color-error: #f44336;
-    --color-error-light: rgba(244, 67, 54, 0.1);
-    
+    @include card-base;
     display: flex;
     flex-direction: column;
     width: 100%;
-    background-color: var(--color-bg-primary);
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 16px;
-    box-shadow: 0 3px 6px var(--color-shadow-light);
-    border-left: 4px solid var(--color-accent); /* Material purple accent from the purple-green theme */
-    transition: all 0.2s ease-in-out;
-    position: relative;
-    overflow: hidden;
-    box-sizing: border-box;
 
     /* Apply yellow border for UPI items - override theme variables */
     &.upi-item {
-        --color-accent: #dada5a; /* Yellow accent */
-        --color-gradient-light: rgba(218, 218, 90, 0.15);
-        --color-gradient-ultra-light: rgba(218, 218, 90, 0.05);
+        @include upi-theme;
     }
     
     /* Override Material CSS variables to use our accent color */
@@ -75,36 +50,6 @@
         }
     }
     
-    /* Enhanced background gradient effect */
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 120px;
-        height: 120px;
-        background: radial-gradient(circle at top right, var(--color-gradient-light), transparent 70%);
-        pointer-events: none;
-    }
-    
-    /* Additional subtle pattern */
-    &::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(to bottom right, transparent 85%, var(--color-gradient-ultra-light) 100%);
-        pointer-events: none;
-    }
-    
-    &:hover {
-        box-shadow: 0 6px 12px var(--color-shadow-medium);
-        background-color: var(--color-bg-hover);
-        transform: translateY(-2px);
-    }
-
     .main-row {
         display: flex;
         flex-direction: row;
@@ -159,47 +104,12 @@
             }
         }
 
-        &::before {
-            content: 'UPI Codes';
+        .upi-title {
             font-size: 0.85em;
             color: var(--color-accent);
             margin-bottom: 5px;
-            display: block;
+            margin-top: 0;
+            font-weight: normal;
         }
     }
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes errorShake {
-    0%, 100% {
-        transform: translateX(0);
-    }
-    25% {
-        transform: translateX(-5px);
-    }
-    75% {
-        transform: translateX(5px);
-    }
-}
-
-/* Add specific styling for error messages */
-::ng-deep .mat-mdc-form-field-error {
-    display: block !important;
-    position: relative;
-    margin-top: 2px;
-}
-
-::ng-deep .mat-mdc-form-field.mat-mdc-form-field-invalid .mat-mdc-form-field-error {
-    color: var(--color-error, #f44336);
-    font-size: 12px;
 }
