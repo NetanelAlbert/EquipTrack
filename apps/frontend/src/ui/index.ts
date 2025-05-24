@@ -3,5 +3,5 @@ export * from './inventory/list/inventory-list.component';
 export * from './top-bar/top-bar.component';
 export * from './inventory/edit/editable-inventory.component';
 
-
-export * from './welcome/welcome.component';
+export * from './dummy/dummy.component';
+export * from './side-nav/side-nav.component';

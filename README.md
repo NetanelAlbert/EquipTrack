@@ -46,5 +46,5 @@ The app will manage two types of products:
 ## Develop stack
 - **Frontend:** Angular
 - **Backend:** Node.js
-- **Compute:** AWS Lambda
+- **Compute:** AWS EC2 / EKS
 - **Database:** DynamoDB

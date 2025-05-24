@@ -1,8 +1,0 @@
-<top-bar></top-bar>
-@if(editMode) {
-    <editable-inventory [originalItems]="userStore.checkedOut()" (editedItems)="onEditedItems($event)"></editable-inventory>
-}
-@else {
-    <inventory-list [inventoryItems]="userStore.checkedOut()"></inventory-list>
-    <button mat-raised-button color="primary" (click)="editMode = true">Edit</button>   
-}

@@ -1,17 +1,29 @@
-:host {
-    width: 100%;
-    height: 50px;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+.top-bar {
+  gap: 8px;
 
-    .user-info {
-        font-size: large;
-        padding: 8px;
-        border: 1px solid black;
-        border-radius: 50%;
-        text-align: center;
-        align-items: center;
+  .organization-name {
+    font-size: 1.25rem;
+    font-weight: 500;
+  }
+
+  .spacer {
+    flex: 1 1 auto;
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--color-gradient-light);
+    color: var(--color-accent);
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: var(--color-gradient-ultra-light);
     }
+  }
 }

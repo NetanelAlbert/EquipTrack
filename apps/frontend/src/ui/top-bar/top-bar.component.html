@@ -1,4 +1,19 @@
-<H1>{{organizationStore.currentOrganization?.()?.name}}</H1>
-@if(userStore.userInitials()) {
-<button class="user-info">{{userStore.userInitials()}}</button>
-}
+<mat-toolbar color="primary" class="top-bar">
+  <button mat-icon-button (click)="menuClicked.emit()">
+    <mat-icon>{{ menuOpen() ? 'menu_open' : 'menu' }}</mat-icon>
+  </button>
+  <span class="organization-name">{{organizationStore.currentOrganization?.()?.name}}</span>
+  @if (isRTL()) {
+    <span class="separator">\</span>
+  } @else {
+    <span class="separator">/</span>
+  }
+  <span class="page-title">{{ pageTitle }}</span>
+  <span class="spacer"></span>
+  @if(userStore.userInitials()) {
+    <!-- TODO: implement user info -->
+    <button mat-icon-button class="user-info">
+      <span>{{userStore.userInitials()}}</span>
+    </button>
+  }
+</mat-toolbar>

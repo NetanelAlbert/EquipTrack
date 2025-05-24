@@ -1,9 +1,10 @@
 import { Route } from '@angular/router';
-import { WelcomeComponent } from '../ui';
+import { DummyComponent } from '../ui';
 
 export const appRoutes: Route[] = [
   {
-    path: '',
-    component: WelcomeComponent,
+    path: '**',
+    component: DummyComponent,
+    title: 'Dummy Page',
   },
 ];

@@ -5,14 +5,14 @@ import {
   withMethods,
   withState,
 } from '@ngrx/signals';
-import { User, InventoryItem } from '@equip-track/shared';
+import { User, InventoryItem, UserRole, UserState } from '@equip-track/shared';
 import { computed } from '@angular/core';
 
-type UserState = User & {
+type UserStoreState = User & {
   checkedOut: InventoryItem[];
 };
 
-const mockedUser: UserState = {
+const mockedUser: UserStoreState = {
   name: 'Harry Potter',
   email: 'bla@shtut.x',
   id: '123',
@@ -22,10 +22,10 @@ const mockedUser: UserState = {
   organizations: [
     {
       organizationID: '123',
-      role: 'admin',
+      role: UserRole.Admin,
     },
   ],
-  state: 'active',
+  state: UserState.Active,
   checkedOut: [
     {
       productID: '1',
@@ -55,7 +55,7 @@ export const UserStore = signalStore(
     };
   }),
   withMethods((store) => ({
-    updateState(newState: Partial<UserState>) {
+    updateState(newState: Partial<UserStoreState>) {
       patchState(store, (state) => {
         return {
           ...state,

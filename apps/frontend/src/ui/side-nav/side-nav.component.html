@@ -1,0 +1,31 @@
+<mat-sidenav-container class="sidenav-container">
+  <mat-sidenav #sidenav
+               mode="side"
+               [opened]="isExpanded()"
+               (openedChange)="isExpanded.set($event)"
+               [fixedInViewport]="true"
+               class="sidenav"
+               [class.expanded]="isExpanded()"
+               [class.collapsed]="!isExpanded()">
+
+    <mat-nav-list>
+      @for (item of filteredNavItems; track item.route) {
+        <a mat-list-item [routerLink]="[item.route, item.labelKey | translate]" routerLinkActive="active">
+          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+          <!-- consider removing the if this as the bad dissapear -->
+          @if (isExpanded()) {
+            <span matListItemTitle>{{ item.labelKey | translate }}</span>
+          }
+        </a>
+      }
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <top-bar [menuOpen]="isExpanded()" (menuClicked)="toggleExpanded()"></top-bar>
+
+    <div class="content">
+      <router-outlet></router-outlet>
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container> 
