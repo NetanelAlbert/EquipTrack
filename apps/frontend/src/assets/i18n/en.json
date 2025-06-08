@@ -55,5 +55,12 @@
     "approve-check-in": "Approve Check In",
     "trace-product": "Trace Product",
     "admin-dashboard": "Admin Dashboard"
+  },
+  "errors": {
+    "not-allowed": {
+      "title": "Access Denied",
+      "message": "You don't have permission to access this page.",
+      "back-home": "Back to Home"
+    }
   }
 } 
