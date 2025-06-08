@@ -2,13 +2,15 @@ import { UserRole } from '@equip-track/shared';
 import { MyItemsComponent } from '../my-items/my-items.component';
 import { DummyComponent } from '../dummy/dummy.component';
 import { Type } from '@angular/core';
+import { CheckInComponent } from '../check-in/check-in.component';
+import { FormsComponent } from '../forms/forms.component';
 
 export interface NavItem {
   icon: string;
   labelKey: string;
   route: string;
   roles: UserRole[];
-  component: Type<any>;
+  component: Type<unknown>;
 }
 
 export const navItems: NavItem[] = [
@@ -31,14 +33,14 @@ export const navItems: NavItem[] = [
     labelKey: 'navigation.my-forms',
     route: 'my-forms',
     roles: [UserRole.Customer],
-    component: DummyComponent,
+    component: FormsComponent,
   },
   {
     icon: 'login',
     labelKey: 'navigation.check-in',
     route: 'check-in',
     roles: [UserRole.Customer],
-    component: DummyComponent,
+    component: CheckInComponent,
   },
   {
     icon: 'edit',

@@ -59,7 +59,7 @@ export class TopBarComponent implements AfterViewInit {
       const titleKey = this.titleService.getTitle();
       this.pageTitle = this.translateService.instant(titleKey);
       this.titleService.setTitle(this.pageTitle);
-    });
+    }, 100);
   }
 
   isRTL(): boolean {

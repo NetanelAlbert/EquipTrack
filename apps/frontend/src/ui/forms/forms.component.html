@@ -1,0 +1,33 @@
+<mat-tab-group>
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <span class="tab-label">{{ 'forms.check-in' | translate }}</span>
+    </ng-template>
+    
+    <div class="forms-container">
+      @if (formsStore.checkInForms().length > 0) {
+        @for (form of formsStore.checkInForms(); track form.formID) {
+          <app-form-card [form]="form"></app-form-card>
+        }
+      } @else {
+        <app-empty-state message="forms.empty-check-in"></app-empty-state>
+      }
+    </div>
+  </mat-tab>
+
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <span class="tab-label">{{ 'forms.check-out' | translate }}</span>
+    </ng-template>
+    
+    <div class="forms-container">
+      @if (formsStore.checkOutForms().length > 0) {
+        @for (form of formsStore.checkOutForms(); track form.formID) {
+          <app-form-card [form]="form"></app-form-card>
+        }
+      } @else {
+        <app-empty-state message="forms.empty-check-out"></app-empty-state>
+      }
+    </div>
+  </mat-tab>
+</mat-tab-group>
