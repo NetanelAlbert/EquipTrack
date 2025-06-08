@@ -5,3 +5,4 @@ export * from './inventory/edit/editable-inventory.component';
 
 export * from './dummy/dummy.component';
 export * from './side-nav/side-nav.component';
+export * from './my-items/my-items.component';

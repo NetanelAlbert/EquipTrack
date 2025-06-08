@@ -5,7 +5,7 @@
       "label": "Run Fullstack",
       "type": "npm",
       "script": "fullstack",
-      "group": {
+      "group": { 
         "kind": "build",
         "isDefault": true
       },
