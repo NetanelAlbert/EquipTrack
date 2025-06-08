@@ -119,12 +119,23 @@ export class ReportsComponent implements OnInit {
 
     this.sortedItems = [...reportedItems, ...itemsToReport].sort((a, b) => {
       if (this.sortBy === 'location') {
-        return (a.location || '').localeCompare(b.location || '');
+        return this.getItemLocationForSort(a).localeCompare(
+          this.getItemLocationForSort(b)
+        );
       } else {
         return this.getProductName(a.productID).localeCompare(
           this.getProductName(b.productID)
         );
       }
     });
+  }
+
+  private getItemLocationForSort(item: ItemReport): string {
+    if (item.location) {
+      return item.location;
+    }
+    const lastReport = this.reportsStore.lastReport();
+    const lastItem = lastReport?.items.find((i) => i.upi === item.upi);
+    return lastItem?.location || '';
   }
 }
