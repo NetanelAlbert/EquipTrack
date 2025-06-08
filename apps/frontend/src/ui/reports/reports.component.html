@@ -30,7 +30,8 @@
           <mat-panel-title>
             <span class="product-name">{{ getProductName(item.productID) }}</span>
             <span class="product-id">({{ item.productID }})</span>
-            <span class="upi">{{ 'reports.upiLabel' | translate }}: {{ item.upi }}</span>
+            <span class="upi-title">{{ 'reports.upiLabel' | translate }}:</span>
+            <span class="upi">{{ item.upi }}</span>
           </mat-panel-title>
           <mat-panel-description>
             @if (item.location) {
@@ -46,7 +47,7 @@
           @if (!item.location && getLastLocation(item)) {
             <div class="last-location">
               {{ 'reports.lastLocation' | translate }}: {{ getLastLocation(item) }}
-              <button mat-button color="primary" (click)="useLastLocation(item)">
+              <button matButton="filled" (click)="useLastLocation(item)">
                 {{ 'reports.useLastLocation' | translate }}
               </button>
             </div>
