@@ -27,6 +27,21 @@
       "duplicate": "Duplicate products: {{ duplicates }}"
     }
   },
+  "reports": {
+    "title": "Daily Inventory Report",
+    "sortBy": "Sort By",
+    "sortByLocation": "Location",
+    "sortByProduct": "Product",
+    "noLocation": "No Location Set",
+    "lastLocation": "Last Known Location",
+    "useLastLocation": "Use Last Location",
+    "enterLocation": "Enter Location",
+    "reported": "Reported",
+    "notReported": "Not Reported",
+    "loading": "Loading reports...",
+    "error": "Error loading reports",
+    "upiLabel": "UPI"
+  },
   "forms": {
     "check-in": "Check In",
     "check-out": "Check Out",

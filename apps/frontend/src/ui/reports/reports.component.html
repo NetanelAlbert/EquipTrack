@@ -1,0 +1,63 @@
+<div class="reports-container">
+  <h1>{{ 'reports.title' | translate }}</h1>
+  
+  <div class="reports-header">
+    <div class="sort-section">
+      <mat-label class="sort-label">{{ 'reports.sortBy' | translate }}</mat-label>
+      <mat-radio-group [(ngModel)]="sortBy" (change)="sortItems()" class="sort-options">
+        <mat-radio-button value="location">{{ 'reports.sortByLocation' | translate }}</mat-radio-button>
+        <mat-radio-button value="product">{{ 'reports.sortByProduct' | translate }}</mat-radio-button>
+      </mat-radio-group>
+    </div>
+  </div>
+
+  @if (reportsStore.loading()) {
+    <div class="loading-spinner">
+      <mat-spinner></mat-spinner>
+    </div>
+  }
+
+  @if (reportsStore.error()) {
+    <div class="error-message">
+      {{ reportsStore.error() }}
+    </div>
+  }
+
+  <mat-accordion>
+    @for (item of sortedItems; track item.upi) {
+      <mat-expansion-panel [expanded]="isExpanded(item)" [class.unreported]="!item.location">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <span class="product-name">{{ getProductName(item.productID) }}</span>
+            <span class="product-id">({{ item.productID }})</span>
+            <span class="upi">{{ 'reports.upiLabel' | translate }}: {{ item.upi }}</span>
+          </mat-panel-title>
+          <mat-panel-description>
+            @if (item.location) {
+              <span class="reported-status">{{ 'reports.reported' | translate }}</span>
+              {{ item.location }}
+            } @else {
+              <span class="unreported-status">{{ 'reports.notReported' | translate }}</span>
+            }
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <div class="item-details">
+          @if (!item.location && getLastLocation(item)) {
+            <div class="last-location">
+              {{ 'reports.lastLocation' | translate }}: {{ getLastLocation(item) }}
+              <button mat-button color="primary" (click)="useLastLocation(item)">
+                {{ 'reports.useLastLocation' | translate }}
+              </button>
+            </div>
+          }
+
+          <mat-form-field class="location-input">
+            <mat-label>{{ 'reports.enterLocation' | translate }}</mat-label>
+            <input matInput [(ngModel)]="item.location" (ngModelChange)="updateItemReport(item)">
+          </mat-form-field>
+        </div>
+      </mat-expansion-panel>
+    }
+  </mat-accordion>
+</div> 
