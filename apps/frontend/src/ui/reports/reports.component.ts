@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatExpansionModule } from '@angular/material/expansion';
+import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -21,7 +21,7 @@ import { OrganizationStore } from '../../store/organization.store';
   standalone: true,
   imports: [
     CommonModule,
-    MatExpansionModule,
+    MatCardModule,
     MatListModule,
     MatIconModule,
     MatButtonModule,
@@ -44,6 +44,7 @@ export class ReportsComponent implements OnInit {
   sortBy: 'location' | 'product' = 'product';
   sortedItems: ItemReport[] = [];
   private expandedItems = new Set<string>();
+  private focusedCardUpi: string | null = null;
 
   constructor() {
     this.initializeSortingEffect();
@@ -70,11 +71,11 @@ export class ReportsComponent implements OnInit {
     return lastItem?.location || null;
   }
 
-  useLastLocation(item: ItemReport) {
-    const lastLocation = this.getLastLocation(item);
+  useLastLocation(item: ItemReport, lastLocation: string) {
     if (lastLocation) {
       item.location = lastLocation;
       this.updateItemReport(item);
+      this.onCardBlur();
     }
   }
 
@@ -84,6 +85,25 @@ export class ReportsComponent implements OnInit {
 
   isExpanded(item: ItemReport): boolean {
     return this.expandedItems.has(item.upi);
+  }
+
+  isFocused(item: ItemReport): boolean {
+    return this.focusedCardUpi === item.upi;
+  }
+
+  onCardFocus(item: ItemReport) {
+    this.focusedCardUpi = item.upi;
+  }
+
+  onCardBlur(event?: FocusEvent) {
+    // Small delay to allow focus to move to input field
+    setTimeout(() => {
+      this.focusedCardUpi = null;
+    }, 100);
+  }
+
+  shouldShowInput(item: ItemReport): boolean {
+    return !item.location || this.isFocused(item);
   }
 
   private getItemsToReport(): ItemReport[] {

@@ -23,42 +23,76 @@
     </div>
   }
 
-  <mat-accordion>
+  <div class="cards-grid">
     @for (item of sortedItems; track item.upi) {
-      <mat-expansion-panel [expanded]="isExpanded(item)" [class.unreported]="!item.location">
-        <mat-expansion-panel-header>
-          <mat-panel-title>
-            <span class="product-name">{{ getProductName(item.productID) }}</span>
-            <span class="product-id">({{ item.productID }})</span>
-            <span class="upi-title">{{ 'reports.upiLabel' | translate }}:</span>
-            <span class="upi">{{ item.upi }}</span>
-          </mat-panel-title>
-          <mat-panel-description>
-            @if (item.location) {
-              <span class="reported-status">{{ 'reports.reported' | translate }}</span>
-              {{ item.location }}
-            } @else {
-              <span class="unreported-status">{{ 'reports.notReported' | translate }}</span>
-            }
-          </mat-panel-description>
-        </mat-expansion-panel-header>
-
-        <div class="item-details">
-          @if (!item.location && getLastLocation(item)) {
-            <div class="last-location">
-              {{ 'reports.lastLocation' | translate }}: {{ getLastLocation(item) }}
-              <button matButton="filled" (click)="useLastLocation(item)">
-                {{ 'reports.useLastLocation' | translate }}
-              </button>
+      <mat-card [class.unreported]="!item.location" class="item-card" 
+                (focusin)="onCardFocus(item)"
+                (click)="onCardFocus(item)" 
+                (keydown.enter)="onCardFocus(item)"
+                (keydown.space)="onCardFocus(item)"
+                >
+        <div class="card-main-content">
+          <div class="card-left-section">
+            <div class="product-info">
+              <span class="product-name">{{ getProductName(item.productID) }}</span>
+              <span class="product-id">{{ item.productID }}</span>
             </div>
-          }
+            <div class="upi-info">
+              <span class="upi-label">{{ 'reports.upiLabel' | translate }}:</span>
+              <span class="upi">{{ item.upi }}</span>
+            </div>
+          </div>
 
-          <mat-form-field class="location-input">
-            <mat-label>{{ 'reports.enterLocation' | translate }}</mat-label>
-            <input matInput [(ngModel)]="item.location" (ngModelChange)="updateItemReport(item)">
-          </mat-form-field>
+          <div class="card-center-section">
+            <div class="status-section">
+              @if (item.location) {
+                <div class="status reported">
+                  <mat-icon>check_circle</mat-icon>
+                  <span class="status-text">{{ 'reports.reported' | translate }}</span>
+                </div>
+              } @else {
+                <div class="status unreported">
+                  <mat-icon>error</mat-icon>
+                  <span class="status-text">{{ 'reports.notReported' | translate }}</span>
+                </div>
+              }
+            </div>
+            @let lastLocation = getLastLocation(item);
+
+            @if (!item.location && lastLocation) {
+              <div class="last-location">
+                <div class="last-location-info">
+                  <mat-icon>history</mat-icon>
+                  <span>{{ 'reports.lastLocation' | translate }}: {{ lastLocation }}</span>
+                </div>
+                <button mat-stroked-button color="primary" (click)="useLastLocation(item, lastLocation)" class="use-last-btn">
+                  {{ 'reports.useLastLocation' | translate }}
+                </button>
+              </div>
+            }
+          </div>
+
+          <div class="card-right-section">
+            @if (shouldShowInput(item)) {
+              <mat-form-field class="location-input" appearance="outline">
+                <mat-label>{{ 'reports.enterLocation' | translate }}</mat-label>
+                <input matInput [(ngModel)]="item.location" (ngModelChange)="updateItemReport(item)"
+                (keydown.enter)="onCardBlur()"
+                >
+                <mat-icon matSuffix>edit_location</mat-icon>
+              </mat-form-field>
+            } @else {
+              <div class="current-location">
+                <mat-icon>location_on</mat-icon>
+                <span>{{ item.location }}</span>
+                <mat-icon class="edit-location-icon">
+                  edit
+                </mat-icon>
+              </div>
+            }
+          </div>
         </div>
-      </mat-expansion-panel>
+      </mat-card>
     }
-  </mat-accordion>
+  </div>
 </div> 
