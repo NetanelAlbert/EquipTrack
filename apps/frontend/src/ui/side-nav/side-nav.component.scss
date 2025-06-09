@@ -1,3 +1,5 @@
+@use '../../shared' as shared;
+
 :host {
     .sidenav-container {
         height: 100vh;
@@ -60,6 +62,14 @@
     .content {
         height: 100%;
         overflow: auto;
-        margin: 16px;
+        margin: 24px;
+    }
+}
+
+@media (max-width: shared.$mobile-breakpoint) {
+    :host {
+        .content {
+            margin: 12px;
+        }
     }
 }

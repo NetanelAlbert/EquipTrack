@@ -1,3 +1,5 @@
+@use '../../shared' as shared;
+
 :host {
   .reports-container {
     padding: 20px;
@@ -348,9 +350,9 @@
     }
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: shared.$mobile-breakpoint) {
     .reports-container {
-      padding: 16px;
+      padding: 4px;
     }
 
     .reports-header {
@@ -411,9 +413,6 @@
   }
 
   @media (max-width: 480px) {
-    .reports-container {
-      padding: 12px;
-    }
 
     .cards-grid {
       gap: 12px;
