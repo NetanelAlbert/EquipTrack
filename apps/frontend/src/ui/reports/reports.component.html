@@ -79,6 +79,9 @@
                 <input matInput [(ngModel)]="item.location" (ngModelChange)="updateItemReport(item)"
                 (keydown.enter)="onCardBlur()"
                 >
+                <button mat-icon-button matSuffix (click)="clearLocation(item)" type="button">
+                  <mat-icon>close</mat-icon>
+                </button>
                 <mat-icon matSuffix>edit_location</mat-icon>
               </mat-form-field>
             } @else {

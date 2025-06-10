@@ -95,7 +95,7 @@ export class ReportsComponent implements OnInit {
     this.focusedCardUpi = item.upi;
   }
 
-  onCardBlur(event?: FocusEvent) {
+  onCardBlur() {
     // Small delay to allow focus to move to input field
     setTimeout(() => {
       this.focusedCardUpi = null;
@@ -157,5 +157,10 @@ export class ReportsComponent implements OnInit {
     const lastReport = this.reportsStore.lastReport();
     const lastItem = lastReport?.items.find((i) => i.upi === item.upi);
     return lastItem?.location || '';
+  }
+
+  clearLocation(item: ItemReport) {
+    item.location = '';
+    this.updateItemReport(item);
   }
 }
