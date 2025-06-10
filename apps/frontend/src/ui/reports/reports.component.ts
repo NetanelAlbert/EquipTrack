@@ -1,4 +1,8 @@
-import { Component, OnInit, inject, effect } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  inject
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
@@ -46,18 +50,9 @@ export class ReportsComponent implements OnInit {
   private expandedItems = new Set<string>();
   private focusedCardUpi: string | null = null;
 
-  constructor() {
-    this.initializeSortingEffect();
-  }
-
-  private initializeSortingEffect() {
-    effect(() => {
-      this.sortItems();
-    });
-  }
-
   ngOnInit() {
     this.reportsStore.fetcReports();
+    this.sortItems();
   }
 
   getProductName(productId: string): string {
@@ -80,6 +75,7 @@ export class ReportsComponent implements OnInit {
   }
 
   updateItemReport(item: ItemReport) {
+    item.location = item.location.trim();
     this.reportsStore.updateItemReport(item);
   }
 
@@ -96,10 +92,8 @@ export class ReportsComponent implements OnInit {
   }
 
   onCardBlur() {
-    // Small delay to allow focus to move to input field
-    setTimeout(() => {
-      this.focusedCardUpi = null;
-    }, 100);
+    this.focusedCardUpi = null;
+    this.sortItems();
   }
 
   shouldShowInput(item: ItemReport): boolean {

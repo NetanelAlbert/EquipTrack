@@ -1,4 +1,4 @@
-<div class="reports-container">
+<div #reportsContainer class="reports-container">
   <h1>{{ 'reports.title' | translate }}</h1>
   
   <div class="reports-header">
@@ -24,8 +24,8 @@
   }
 
   <div class="cards-grid">
-    @for (item of sortedItems; track item.upi) {
-      <mat-card [class.unreported]="!item.location" class="item-card" 
+    @for (item of sortedItems; track item.upi; let i = $index) {
+      <mat-card #cardRef [class.unreported]="!item.location" class="item-card" 
                 (focusin)="onCardFocus(item)"
                 (click)="onCardFocus(item)" 
                 (keydown.enter)="onCardFocus(item)"
@@ -76,10 +76,13 @@
             @if (shouldShowInput(item)) {
               <mat-form-field class="location-input" appearance="outline">
                 <mat-label>{{ 'reports.enterLocation' | translate }}</mat-label>
-                <input matInput [(ngModel)]="item.location" (ngModelChange)="updateItemReport(item)"
-                (keydown.enter)="onCardBlur()"
+                <input
+                 matInput 
+                [(ngModel)]="item.location" 
+                (ngModelChange)="updateItemReport(item)"
+                (focusout)="sortItems()"
                 >
-                <button mat-icon-button matSuffix (click)="clearLocation(item)" type="button">
+                <button tabindex="-1" mat-icon-button matSuffix (click)="clearLocation(item)" type="button">
                   <mat-icon>close</mat-icon>
                 </button>
                 <mat-icon matSuffix>edit_location</mat-icon>
