@@ -27,6 +27,7 @@
     @for (item of sortedItems; track item.upi; let i = $index) {
       <mat-card #cardRef [class.unreported]="!item.location" class="item-card" 
                 (focusin)="onCardFocus(item)"
+                (focusout)="onCardBlur()"
                 (click)="onCardFocus(item)" 
                 (keydown.enter)="onCardFocus(item)"
                 (keydown.space)="onCardFocus(item)"
