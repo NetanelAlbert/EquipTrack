@@ -1,8 +1,4 @@
-import {
-  Component,
-  OnInit,
-  inject
-} from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
@@ -21,7 +17,7 @@ import { ItemReport } from '@equip-track/shared';
 import { OrganizationStore } from '../../store/organization.store';
 
 @Component({
-  selector: 'app-reports',
+  selector: 'app-today-report',
   standalone: true,
   imports: [
     CommonModule,
@@ -37,10 +33,10 @@ import { OrganizationStore } from '../../store/organization.store';
     FormsModule,
     TranslateModule,
   ],
-  templateUrl: './reports.component.html',
-  styleUrls: ['./reports.component.scss'],
+  templateUrl: './today-report.component.html',
+  styleUrls: ['./today-report.component.scss'],
 })
-export class ReportsComponent implements OnInit {
+export class TodayReportComponent implements OnInit {
   reportsStore = inject(ReportsStore);
   userStore = inject(UserStore);
   organizationStore = inject(OrganizationStore);

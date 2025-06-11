@@ -4,7 +4,7 @@ import { DummyComponent } from '../dummy/dummy.component';
 import { Type } from '@angular/core';
 import { CheckInComponent } from '../check-in/check-in.component';
 import { FormsComponent } from '../forms/forms.component';
-import { ReportsComponent } from '../reports/reports.component';
+import { TodayReportComponent } from '../reports/today-report.component';
 
 export interface NavItem {
   icon: string;
@@ -24,10 +24,10 @@ export const navItems: NavItem[] = [
   },
   {
     icon: 'report',
-    labelKey: 'navigation.reports',
-    route: 'reports',
+    labelKey: 'navigation.today-report',
+    route: 'today-report',
     roles: [UserRole.Customer, UserRole.WarehouseManager, UserRole.Admin],
-    component: ReportsComponent,
+    component: TodayReportComponent,
   },
   {
     icon: 'description',
