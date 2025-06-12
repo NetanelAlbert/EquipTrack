@@ -1,0 +1,101 @@
+<div class="reports-container">
+  <h1>{{ 'reports.historyTitle' | translate }}</h1>
+  
+  <div class="reports-header">
+    <div class="date-selector-section">
+      <button mat-icon-button (click)="goToPreviousDay()" class="nav-button">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      
+      <mat-form-field appearance="outline" class="date-picker">
+        <mat-label>{{ 'reports.selectDate' | translate }}</mat-label>
+        <input matInput [matDatepicker]="picker" [(ngModel)]="selectedDate" (dateChange)="onDateChange($event.value)">
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+      
+      <button mat-icon-button (click)="goToNextDay()" class="nav-button">
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+    </div>
+
+    @if (hasReportForDate()) {
+      <div class="report-info">
+        <div class="report-summary">
+          <mat-icon>event</mat-icon>
+          <span class="report-date">{{ getReportDate() }}</span>
+          <mat-icon>inventory</mat-icon>
+          <span class="item-count">{{ getItemCount() }} {{ 'reports.items' | translate }}</span>
+        </div>
+      </div>
+
+      <div class="sort-section">
+        <mat-label class="sort-label">{{ 'reports.sortBy' | translate }}</mat-label>
+        <mat-radio-group [(ngModel)]="sortBy" (change)="sortItems()" class="sort-options">
+          <mat-radio-button value="location">{{ 'reports.sortByLocation' | translate }}</mat-radio-button>
+          <mat-radio-button value="product">{{ 'reports.sortByProduct' | translate }}</mat-radio-button>
+        </mat-radio-group>
+      </div>
+    }
+  </div>
+
+  @if (reportsStore.loading()) {
+    <div class="loading-spinner">
+      <mat-spinner></mat-spinner>
+    </div>
+  }
+
+  @if (reportsStore.error()) {
+    <div class="error-message">
+      {{ reportsStore.error() }}
+    </div>
+  }
+
+  @if (!hasReportForDate()) {
+    <div class="no-data-message">
+      <mat-icon>calendar_today</mat-icon>
+      <h3>{{ 'reports.noReportForDate' | translate }}</h3>
+      <p>{{ 'reports.noReportForDateDescription' | translate }}</p>
+    </div>
+  } @else {
+    <div class="cards-grid">
+      @for (item of sortedItems; track item.upi; let i = $index) {
+        <mat-card class="item-card history-card">
+          <div class="card-main-content">
+            <div class="card-left-section">
+              <div class="product-info">
+                <span class="product-name">{{ getProductName(item.productID) }}</span>
+                <span class="product-id">{{ item.productID }}</span>
+              </div>
+              <div class="upi-info">
+                <span class="upi-label">{{ 'reports.upiLabel' | translate }}:</span>
+                <span class="upi">{{ item.upi }}</span>
+              </div>
+            </div>
+
+            <div class="card-center-section">
+              <div class="status-section">
+                <div class="status reported">
+                  <mat-icon>check_circle</mat-icon>
+                  <span class="status-text">{{ 'reports.reported' | translate }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-right-section">
+              <div class="location-display">
+                <mat-icon>location_on</mat-icon>
+                <span class="location-text">{{ item.location }}</span>
+              </div>
+              
+              <div class="reported-by">
+                <mat-icon>person</mat-icon>
+                <span class="reporter-name">{{ item.repotedBy }}</span>
+              </div>
+            </div>
+          </div>
+        </mat-card>
+      }
+    </div>
+  }
+</div> 

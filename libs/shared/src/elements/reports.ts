@@ -9,7 +9,7 @@ export interface ItemReport {
 /** DynamoDB table */
 export interface InventoryReport {
     organizationID: string;  // partition key
-    date: string; // sort key -- YYYY-MM-DD
+    date: string; // sort key -- YYYY-MM-DD for sort
     items: ItemReport[];
     lastUpdatedTimeStamp: number;
 }

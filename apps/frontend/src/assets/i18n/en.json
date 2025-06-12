@@ -29,6 +29,7 @@
   },
   "reports": {
     "title": "Daily Inventory Report",
+    "historyTitle": "Reports History",
     "sortBy": "Sort By",
     "sortByLocation": "Location",
     "sortByProduct": "Product",
@@ -40,7 +41,11 @@
     "notReported": "Not Reported",
     "loading": "Loading reports...",
     "error": "Error loading reports",
-    "upiLabel": "UPI"
+    "upiLabel": "UPI",
+    "selectDate": "Select Date",
+    "items": "items",
+    "noReportForDate": "No Report Available",
+    "noReportForDateDescription": "No inventory report was found for the selected date. Please choose a different date."
   },
   "forms": {
     "check-in": "Check In",
@@ -60,6 +65,7 @@
   "navigation": {
     "my-items": "My Items",
     "today-report": "Today's Report",
+    "reports-history": "Reports History",
     "my-forms": "My Forms",
     "check-in": "Check In",
     "edit-products": "Edit Products",
