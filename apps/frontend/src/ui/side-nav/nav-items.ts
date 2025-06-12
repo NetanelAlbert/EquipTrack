@@ -4,8 +4,8 @@ import { DummyComponent } from '../dummy/dummy.component';
 import { Type } from '@angular/core';
 import { CheckInComponent } from '../check-in/check-in.component';
 import { FormsComponent } from '../forms/forms.component';
-import { TodayReportComponent } from '../reports/today-report.component';
-import { ReportsHistoryComponent } from '../reports/reports-history.component';
+import { TodayReportComponent } from '../reports/reporting/today-report.component';
+import { ReportsHistoryComponent } from '../reports/history/reports-history.component';
 
 export interface NavItem {
   icon: string;

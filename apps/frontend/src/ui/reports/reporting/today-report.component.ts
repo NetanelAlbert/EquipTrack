@@ -11,10 +11,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
-import { ReportsStore } from '../../store/reports.store';
-import { UserStore } from '../../store/user.store';
+import { ReportsStore } from '../../../store/reports.store';
+import { UserStore } from '../../../store/user.store';
 import { ItemReport } from '@equip-track/shared';
-import { OrganizationStore } from '../../store/organization.store';
+import { OrganizationStore } from '../../../store/organization.store';
 
 @Component({
   selector: 'app-today-report',

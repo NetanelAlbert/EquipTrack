@@ -13,10 +13,10 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
-import { ReportsStore } from '../../store/reports.store';
-import { UserStore } from '../../store/user.store';
+import { ReportsStore } from '../../../store/reports.store';
+import { UserStore } from '../../../store/user.store';
 import { ItemReport, InventoryReport } from '@equip-track/shared';
-import { OrganizationStore } from '../../store/organization.store';
+import { OrganizationStore } from '../../../store/organization.store';
 
 @Component({
   selector: 'app-reports-history',
