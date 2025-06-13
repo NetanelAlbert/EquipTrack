@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsStore } from '../../store/forms.store';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -19,6 +19,10 @@ import { EmptyStateComponent } from './empty-state/empty-state.component';
   templateUrl: './forms.component.html',
   styleUrl: './forms.component.scss',
 })
-export class FormsComponent {
+export class FormsComponent implements OnInit {
   formsStore = inject(FormsStore);
+
+  ngOnInit(): void {
+    this.formsStore.fetchForms();
+  }
 }

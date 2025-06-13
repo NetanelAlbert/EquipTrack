@@ -4,11 +4,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import {
-  ReactiveFormsModule,
-  FormBuilder,
-  Validators,
-} from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EditableInventoryComponent } from '../inventory/edit/editable-inventory.component';
 import {
@@ -52,7 +48,7 @@ export class CheckoutComponent {
   private snackBar = inject(MatSnackBar);
   private translate = inject(TranslateService);
   private userStore = inject(UserStore);
-  
+
   form = this.fb.group({
     userID: ['', Validators.required],
   });
@@ -61,7 +57,9 @@ export class CheckoutComponent {
   predefinedForms = this.organizationStore.predefinedForms;
   initialItems = signal<InventoryItem[]>([]);
   itemEdited = signal(false);
-  showPredefinedForms = computed(() => !this.itemEdited() && this.predefinedForms().length > 0);
+  showPredefinedForms = computed(
+    () => !this.itemEdited() && this.predefinedForms().length > 0
+  );
 
   constructor() {
     this.setEffects();
@@ -88,7 +86,7 @@ export class CheckoutComponent {
         type: FormType.CheckOut,
         formID: crypto.randomUUID(),
         items,
-        status: FormStatus.PENDING,
+        status: FormStatus.Pending,
         createdAtTimestamp: Date.now(),
         lastUpdated: Date.now(),
       };

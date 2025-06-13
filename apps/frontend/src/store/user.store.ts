@@ -46,7 +46,7 @@ const mockedUser: UserStoreState = {
   ],
   activeOrganization: {
     organizationID: '123',
-    role: UserRole.Customer,
+    role: UserRole.WarehouseManager,
   },
 };
 

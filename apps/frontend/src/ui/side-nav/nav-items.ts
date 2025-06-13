@@ -88,14 +88,7 @@ export const navItems: NavItem[] = [
     labelKey: 'navigation.forms',
     route: 'forms',
     roles: [UserRole.WarehouseManager, UserRole.Admin],
-    component: DummyComponent,
-  },
-  {
-    icon: 'check_circle',
-    labelKey: 'navigation.approve-check-in',
-    route: 'approve-check-in',
-    roles: [UserRole.WarehouseManager, UserRole.Admin],
-    component: DummyComponent,
+    component: FormsComponent,
   },
   {
     icon: 'track_changes',
