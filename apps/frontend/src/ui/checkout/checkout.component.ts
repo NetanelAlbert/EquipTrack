@@ -7,7 +7,6 @@ import { MatIconModule } from '@angular/material/icon';
 import {
   ReactiveFormsModule,
   FormBuilder,
-  FormGroup,
   Validators,
 } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -15,8 +14,8 @@ import { EditableInventoryComponent } from '../inventory/edit/editable-inventory
 import {
   InventoryForm,
   InventoryItem,
-  PredefinedForm,
   FormStatus,
+  FormType,
 } from '@equip-track/shared';
 import { OrganizationStore } from '../../store/organization.store';
 import { CheckoutStore } from './checkout.store';
@@ -25,6 +24,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { InventoryListComponent } from '../inventory/list/inventory-list.component';
 import { computedPrevious } from 'ngxtension/computed-previous';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { UserStore } from '../../store/user.store';
 
 @Component({
   selector: 'app-checkout',
@@ -51,7 +51,8 @@ export class CheckoutComponent {
   public checkoutStore = inject(CheckoutStore);
   private snackBar = inject(MatSnackBar);
   private translate = inject(TranslateService);
-
+  private userStore = inject(UserStore);
+  
   form = this.fb.group({
     userID: ['', Validators.required],
   });
@@ -82,6 +83,9 @@ export class CheckoutComponent {
       if (!userId) return;
 
       const formData: InventoryForm = {
+        userID: userId,
+        organizationID: this.userStore.activeOrganization.organizationID(),
+        type: FormType.CheckOut,
         formID: crypto.randomUUID(),
         items,
         status: FormStatus.PENDING,

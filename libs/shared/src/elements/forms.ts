@@ -6,9 +6,18 @@ export enum FormStatus {
     REJECTED = 'rejected',
 }
 
+export enum FormType {
+    CheckIn = 'check-in',
+    CheckOut = 'check-out',
+}
+
+/** DynamoDB table */
 export interface InventoryForm {
-    formID: string;
+    userID: string; // partition key
+    formID: string; // sort key
+    organizationID: string; // secondary index key
     items: InventoryItem[];
+    type: FormType;
     status: FormStatus; 
     createdAtTimestamp: number;
     approvedAtTimestamp?: number;
@@ -17,13 +26,14 @@ export interface InventoryForm {
     pdfURI?: string;
 }
 
+/** DynamoDB table */
 export interface PredefinedForm {
-    formID: string;
+    organizationID: string; // partition key
+    formID: string; // sort key
     description: string;
     items: InventoryItem[];
 }
 
-/** DynamoDB table */
 export interface Forms {
     organizationID: string; // partition key
     userID: string; // sort key

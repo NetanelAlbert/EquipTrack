@@ -2,9 +2,12 @@ import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import {
   Forms,
   FormStatus,
+  FormType,
   InventoryForm,
   InventoryItem,
 } from '@equip-track/shared';
+import { UserStore } from './user.store';
+import { inject } from '@angular/core';
 
 const initialState: Forms = {
   organizationID: '',
@@ -19,7 +22,10 @@ const mockedForms: Forms = {
   userID: '1',
   checkInForms: [
     {
+      userID: '1',
       formID: '1',
+      organizationID: '123',
+      type: FormType.CheckIn,
       items: [
         {
           productID: '1',
@@ -42,20 +48,26 @@ const mockedForms: Forms = {
 export const UserFormsStore = signalStore(
   { providedIn: 'root' },
   withState(mockedForms),
-  withMethods((state) => ({
-    addCheckInForm(items: InventoryItem[]) {
-      // TODO: API call to add check-in form
-      patchState(state, {
-        checkInForms: [
-          ...state.checkInForms(),
-          {
-            formID: '1',
-            items: items,
-            status: FormStatus.PENDING,
-            createdAtTimestamp: Date.now(),
-          },
-        ],
-      });
-    },
-  }))
+  withMethods((state) => {
+    const userStore = inject(UserStore);
+    return {
+      addCheckInForm(items: InventoryItem[]) {
+        // TODO: API call to add check-in form
+        patchState(state, {
+          checkInForms: [
+            ...state.checkInForms(),
+            {
+              userID: userStore.id(),
+              organizationID: userStore.activeOrganization.organizationID(),
+              type: FormType.CheckIn,
+              formID: '1',
+              items: items,
+              status: FormStatus.PENDING,
+              createdAtTimestamp: Date.now(),
+            },
+          ],
+        });
+      },
+    };
+  })
 );

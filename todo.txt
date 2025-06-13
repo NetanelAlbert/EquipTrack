@@ -15,10 +15,7 @@ Backend:
 Frontend 
 - create warehouse screens:
 
-    - checkout:
-        - see predefined
-            -edit
-        -create form
+    
     - see open forms
     - approve check in
     - trace specific product by reports
