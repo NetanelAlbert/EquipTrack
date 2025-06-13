@@ -80,7 +80,9 @@
     "empty-check-in": "No check-in forms available",
     "empty-check-out": "No check-out forms available",
     "created-at": "Created At",
-    "approved-at": "Approved At"
+    "approved-at": "Approved At",
+    "approve": "Approve",
+    "reject": "Reject"
   },
   "buttons": {
     "delete": "Delete"
