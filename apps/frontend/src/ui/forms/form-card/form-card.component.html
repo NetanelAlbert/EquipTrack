@@ -1,0 +1,18 @@
+<div class="form-card">
+  <h3>{{ 'forms.form-id' | translate }}: {{ form.formID }}</h3>
+  <p [ngClass]="[form.status]">
+    {{ 'forms.status' | translate }}:
+    {{ 'forms.status-' + form.status | translate }}
+  </p>
+  <p>
+    {{ 'forms.created-at' | translate }}:
+    {{ form.createdAtTimestamp | date : 'dd/MM/yyyy HH:mm' }}
+  </p>
+  @if (form.approvedAtTimestamp) {
+    <p>
+      {{ 'forms.approved-at' | translate }}:
+      {{ form.approvedAtTimestamp | date : 'dd/MM/yyyy HH:mm' }}
+    </p>
+  }
+  <inventory-list [inventoryItems]="form.items"></inventory-list>
+</div> 

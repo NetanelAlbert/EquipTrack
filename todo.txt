@@ -16,7 +16,7 @@ Frontend
 - create warehouse screens:
 
     
-    - see open forms
+    - see forms
     - approve check in
     - trace specific product by reports
 

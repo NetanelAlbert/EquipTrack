@@ -85,8 +85,8 @@ export const navItems: NavItem[] = [
   },
   {
     icon: 'assignment',
-    labelKey: 'navigation.open-forms',
-    route: 'open-forms',
+    labelKey: 'navigation.forms',
+    route: 'forms',
     roles: [UserRole.WarehouseManager, UserRole.Admin],
     component: DummyComponent,
   },

@@ -1,0 +1,37 @@
+.form-card {
+  padding: 16px;
+  border-radius: 8px;
+  background-color: var(--color-bg-primary);
+  box-shadow: 0 2px 4px var(--color-shadow-light);
+  border: 1px solid var(--color-border-light);
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    background-color: var(--color-bg-hover);
+    box-shadow: 0 4px 8px var(--color-shadow-medium);
+  }
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.1rem;
+    color: var(--color-accent);
+  }
+
+  p {
+    margin: 0 0 16px 0;
+    color: #e0e0e0;
+    opacity: 0.8;
+  }
+
+  .approved {
+    color: var(--color-success);
+  }
+
+  .rejected {
+    color: var(--color-error);
+  }
+
+  .pending {
+    color: var(--color-warning);
+  }
+} 

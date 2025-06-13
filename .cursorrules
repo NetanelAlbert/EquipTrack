@@ -1,0 +1,10 @@
+{
+  "rules": [
+    {
+      "name": "Angular Component Structure",
+      "description": "Separate component template and styles into their own files unless the component is very small (2-3 elements)",
+      "pattern": "*.component.ts",
+      "message": "Consider moving template and styles to separate files for better maintainability. Only keep them inline for very small components (2-3 elements)."
+    }
+  ]
+} 
