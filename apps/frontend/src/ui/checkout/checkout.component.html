@@ -1,0 +1,53 @@
+<div *ngIf="checkoutStore.sending()" class="checkout-spinner-overlay">
+  <mat-progress-spinner mode="indeterminate" color="primary"></mat-progress-spinner>
+</div>
+
+<div class="container">
+  <h1>{{ 'checkout.title' | translate }}</h1>
+  
+  <form [formGroup]="form">
+    <mat-form-field>
+      <mat-label>{{ 'checkout.select-user' | translate }}</mat-label>
+      <mat-select formControlName="userID">
+        <mat-option *ngFor="let user of users()" [value]="user.id">
+          {{ user.name }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="predefined-forms" *ngIf="showPredefinedForms()">
+      <h2>{{ 'checkout.predefined-forms' | translate }}</h2>
+      <mat-accordion>
+        <mat-expansion-panel *ngFor="let form of predefinedForms()">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              {{ form.description }}
+            </mat-panel-title>
+            <mat-panel-description class="panel-description-flex">
+              <span class="item-count">{{ form.items.length }} {{ 'checkout.items' | translate }}</span>
+              <button
+                mat-icon-button
+                color="primary"
+                class="add-form-header-btn"
+                (click)="addAllItems(form.items); $event.stopPropagation();"
+                matTooltip="Add all items from this form"
+                aria-label="Add Form"
+              >
+                <mat-icon>add</mat-icon>
+              </button>
+            </mat-panel-description>
+          </mat-expansion-panel-header>
+
+          <inventory-list [inventoryItems]="form.items"></inventory-list>
+        </mat-expansion-panel>
+      </mat-accordion>
+    </div>
+
+    <h2>{{ 'checkout.items' | translate }}</h2>
+    <editable-inventory
+      [originalItems]="initialItems()"
+      (submitItems)="onSubmit($event)"
+      (editedItems)="onItemsEdited()"
+    ></editable-inventory>
+  </form>
+</div> 

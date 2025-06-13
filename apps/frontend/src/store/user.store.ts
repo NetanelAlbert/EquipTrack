@@ -5,7 +5,13 @@ import {
   withMethods,
   withState,
 } from '@ngrx/signals';
-import { User, InventoryItem, UserRole, UserState, UserInOrganization } from '@equip-track/shared';
+import {
+  User,
+  InventoryItem,
+  UserRole,
+  UserState,
+  UserInOrganization,
+} from '@equip-track/shared';
 import { computed } from '@angular/core';
 
 type UserStoreState = User & {
@@ -40,7 +46,7 @@ const mockedUser: UserStoreState = {
   ],
   activeOrganization: {
     organizationID: '123',
-    role: UserRole.Customer,
+    role: UserRole.WarehouseManager,
   },
 };
 

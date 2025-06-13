@@ -1,8 +1,8 @@
 import {
   Component,
+  effect,
   inject,
   input,
-  OnInit,
   output,
   Signal,
 } from '@angular/core';
@@ -31,6 +31,7 @@ import {
 } from './form.mudels';
 import { TranslateModule } from '@ngx-translate/core';
 import { EditableItemComponent } from './item/editable-item.component';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 const formDuplicateValidator: ValidatorFn = (formArray: AbstractControl) => {
   if (!(formArray instanceof FormArray)) {
@@ -67,9 +68,10 @@ const formDuplicateValidator: ValidatorFn = (formArray: AbstractControl) => {
   templateUrl: './editable-inventory.component.html',
   styleUrl: './editable-inventory.component.scss',
 })
-export class EditableInventoryComponent implements OnInit {
+export class EditableInventoryComponent {
   originalItems = input<InventoryItem[]>([]);
   editedItems = output<InventoryItem[]>();
+  submitItems = output<InventoryItem[]>();
   organizationStore = inject(OrganizationStore);
   products: Signal<Product[]> = this.organizationStore.products;
   fb = inject(FormBuilder);
@@ -85,14 +87,12 @@ export class EditableInventoryComponent implements OnInit {
     this.form.valueChanges.subscribe(() => {
       this.formChanged = true;
     });
-  }
-
-  ngOnInit(): void {
-    this.originalItems().forEach((item) => this.addItem(item));
-
-    if (this.items.length === 0) {
-      this.addItem();
-    }
+    this.form.valueChanges
+      .pipe(debounceTime(100), distinctUntilChanged())
+      .subscribe(() => {
+        this.editedItems.emit(this.getItems());
+      });
+    this.setEffects();
   }
 
   get items(): FormArray<FormGroup<FormInventoryItem>> {
@@ -106,8 +106,7 @@ export class EditableInventoryComponent implements OnInit {
     const formItem = item
       ? FormInventoryItemMapperFromItem(this.fb, item, product)
       : emptyItem(this.fb);
-    this.items.push(formItem);
-    this.items.updateValueAndValidity();
+    this.items.push(formItem, { emitEvent: false });
   }
 
   removeItem(index: number) {
@@ -118,13 +117,31 @@ export class EditableInventoryComponent implements OnInit {
   save() {
     this.formChanged = false;
     if (this.form.valid) {
-      const items = this.items.controls.map(
-        (item: FormGroup<FormInventoryItem>) =>
-          FormInventoryItemMapper(item.controls)
-      );
-      this.editedItems.emit(items);
+      const items = this.getItems();
+      this.submitItems.emit(items);
     } else {
       this.form.markAllAsTouched();
     }
+  }
+
+  private getItems(): InventoryItem[] {
+    return this.items.controls.map((item: FormGroup<FormInventoryItem>) =>
+      FormInventoryItemMapper(item.controls)
+    );
+  }
+
+  private resetItems() {
+    this.items.clear({ emitEvent: false });
+    this.originalItems().forEach((item) => this.addItem(item));
+
+    if (this.items.length === 0) {
+      this.addItem();
+    }
+  }
+
+  private setEffects() {
+    effect(() => {
+      this.resetItems();
+    });
   }
 }

@@ -9,6 +9,7 @@ import { ReportsHistoryComponent } from '../reports/history/reports-history.comp
 import { EditProductsComponent } from '../organization/edit-products/edit-products.component';
 import { AllInventoryComponent } from '../inventory/all-inventory/all-inventory.component';
 import { InventoryByUsersComponent } from '../inventory/by-users/inventory-by-users.component';
+import { CheckoutComponent } from '../checkout/checkout.component';
 
 export interface NavItem {
   icon: string;
@@ -80,7 +81,7 @@ export const navItems: NavItem[] = [
     labelKey: 'navigation.checkout',
     route: 'checkout',
     roles: [UserRole.WarehouseManager, UserRole.Admin],
-    component: DummyComponent,
+    component: CheckoutComponent,
   },
   {
     icon: 'assignment',

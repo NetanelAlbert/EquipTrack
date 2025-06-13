@@ -5,17 +5,26 @@ import {
   withMethods,
   patchState,
 } from '@ngrx/signals';
-import { Organization, Product } from '@equip-track/shared';
+import {
+  Organization,
+  PredefinedForm,
+  Product,
+  User,
+  UserRole,
+  UserState,
+} from '@equip-track/shared';
 import { computed, Signal } from '@angular/core';
 
 type MinimalOrganization = Pick<Organization, 'id' | 'name' | 'imageURI'>;
 
-type OrganizationState = {
+interface OrganizationState {
   organizations: Organization[];
   currentOrganization?: Organization;
   updatingProducts: boolean;
   errorUpdatingProducts?: string;
-};
+  users: User[];
+  predefinedForms: PredefinedForm[];
+}
 
 const mockedOrganization: Organization = {
   id: '123',
@@ -41,6 +50,64 @@ const mockedOrganizations: OrganizationState = {
   currentOrganization: mockedOrganization,
   updatingProducts: false,
   errorUpdatingProducts: undefined,
+  users: [
+    {
+      id: '1',
+      name: 'Harry Potter',
+      email: 'harry@hogwarts.com',
+      phone: '1234567890',
+      department: 'Magic',
+      departmentRole: 'Wizard',
+      organizations: [
+        {
+          organizationID: '123',
+          role: UserRole.Customer,
+        },
+      ],
+      state: UserState.Active,
+    },
+    {
+      id: '2',
+      name: 'Hermione Granger',
+      email: 'hermione@hogwarts.com',
+      phone: '1234567890',
+      department: 'Magic',
+      departmentRole: 'Wizard',
+      organizations: [
+        {
+          organizationID: '123',
+          role: UserRole.Customer,
+        },
+      ],
+      state: UserState.Active,
+    },
+  ],
+  predefinedForms: [
+    {
+      formID: '1',
+      description: 'Welcome stuff',
+      items: [
+        {
+          productID: '1',
+          quantity: 1,
+        },
+        {
+          productID: '2',
+          quantity: 1,
+        },
+      ],
+    },
+    {
+      formID: '2',
+      description: 'quidditch stuff',
+      items: [
+        {
+          productID: '1',
+          quantity: 1,
+        },
+      ],
+    },
+  ],
 };
 
 export const OrganizationStore = signalStore(

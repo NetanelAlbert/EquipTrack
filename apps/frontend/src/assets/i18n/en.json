@@ -105,5 +105,20 @@
       "message": "You don't have permission to access this page.",
       "back-home": "Back to Home"
     }
+  },
+  "checkout": {
+    "title": "Checkout Items",
+    "select-user": "Select User",
+    "predefined-forms": "Predefined Forms",
+    "items": "Items",
+    "quantity": "Quantity",
+    "upis": "UPIs",
+    "add-form": "Add Form",
+    "submit": "Submit",
+    "success": "Checkout form created successfully",
+    "error": "Error creating checkout form"
+  },
+  "common": {
+    "close": "Close"
   }
 } 
