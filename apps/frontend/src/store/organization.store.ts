@@ -13,6 +13,8 @@ type MinimalOrganization = Pick<Organization, 'id' | 'name' | 'imageURI'>;
 type OrganizationState = {
   organizations: Organization[];
   currentOrganization?: Organization;
+  updatingProducts: boolean;
+  errorUpdatingProducts?: string;
 };
 
 const mockedOrganization: Organization = {
@@ -36,6 +38,8 @@ const mockedOrganization: Organization = {
 const mockedOrganizations: OrganizationState = {
   organizations: [mockedOrganization],
   currentOrganization: mockedOrganization,
+  updatingProducts: false,
+  errorUpdatingProducts: undefined,
 };
 
 export const OrganizationStore = signalStore(
@@ -92,6 +96,36 @@ export const OrganizationStore = signalStore(
       },
       getProduct(id: string): Product | undefined {
         return store.productsMap().get(id);
+      },
+      async editProducts(products: Product[]) {
+        patchState(store, (state) => ({
+          ...state,
+          updatingProducts: true,
+          errorUpdatingProducts: undefined,
+        }));
+        // todo - call api to update products
+        try {
+          await new Promise((resolve, reject) => setTimeout(reject, 1000));
+          patchState(store, (state) => ({
+            ...state,
+            currentOrganization: state.currentOrganization
+              ? {
+                  ...state.currentOrganization,
+                  products,
+                }
+              : undefined,
+            updatingProducts: false,
+            errorUpdatingProducts: undefined,
+          }));
+        } catch (error: unknown) {
+          console.error('Error updating products', error);
+          // TODO: get error message translation key from api response
+          patchState(store, (state) => ({
+            ...state,
+            updatingProducts: false,
+            errorUpdatingProducts: 'Error updating products',
+          }));
+        }
       },
     };
   })

@@ -22,7 +22,7 @@ const mockedUser: UserStoreState = {
   organizations: [
     {
       organizationID: '123',
-      role: UserRole.Customer,
+      role: UserRole.WarehouseManager,
     },
   ],
   state: UserState.Active,

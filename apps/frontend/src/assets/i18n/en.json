@@ -27,6 +27,21 @@
       "duplicate": "Duplicate products: {{ duplicates }}"
     }
   },
+  "organization": {
+    "editProducts": {
+      "title": "Edit Products",
+      "id": "Product ID",
+      "name": "Product Name",
+      "upi": "Has UPI",
+      "addProduct": "Add Product",
+      "save": "Save Changes",
+      "idRequired": "Product ID is required",
+      "idMinLength": "Product ID must be at least 2 characters long",
+      "nameRequired": "Product name is required",
+      "nameMinLength": "Product name must be at least 2 characters long",
+      "duplicateIds": "Duplicate product IDs are not allowed"
+    }
+  },
   "reports": {
     "title": "Daily Inventory Report",
     "historyTitle": "Reports History",

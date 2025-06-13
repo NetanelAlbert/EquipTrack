@@ -13,13 +13,8 @@ Backend:
 
 
 Frontend 
-- create user screens:
-    - my items
-    - report
-    - my forms
-    - check in
 - create warehouse screens:
-    - edit products
+
     - see all inventory
         - edit
     - see inventory by users

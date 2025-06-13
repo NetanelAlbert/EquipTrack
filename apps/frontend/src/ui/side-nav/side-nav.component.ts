@@ -27,7 +27,7 @@ import { NavItem, navItems } from './nav-items';
   styleUrls: ['./side-nav.component.scss'],
 })
 export class SideNavComponent implements OnInit {
-  userRole = input<UserRole>(UserRole.Customer);
+  userRole = input<UserRole>(UserRole.WarehouseManager);
   isExpanded = signal<boolean>(false);
   currentItem = signal<NavItem | null>(null);
 

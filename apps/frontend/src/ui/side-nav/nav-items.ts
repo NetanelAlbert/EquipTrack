@@ -6,6 +6,7 @@ import { CheckInComponent } from '../check-in/check-in.component';
 import { FormsComponent } from '../forms/forms.component';
 import { TodayReportComponent } from '../reports/reporting/today-report.component';
 import { ReportsHistoryComponent } from '../reports/history/reports-history.component';
+import { EditProductsComponent } from '../organization/edit-products/edit-products.component';
 
 export interface NavItem {
   icon: string;
@@ -56,7 +57,7 @@ export const navItems: NavItem[] = [
     labelKey: 'navigation.edit-products',
     route: 'edit-products',
     roles: [UserRole.WarehouseManager, UserRole.Admin],
-    component: DummyComponent,
+    component: EditProductsComponent,
   },
   {
     icon: 'inventory',
