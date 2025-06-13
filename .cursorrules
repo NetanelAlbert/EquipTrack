@@ -5,6 +5,30 @@
       "description": "Separate component template and styles into their own files unless the component is very small (2-3 elements)",
       "pattern": "*.component.ts",
       "message": "Consider moving template and styles to separate files for better maintainability. Only keep them inline for very small components (2-3 elements)."
+    }, 
+    {
+      "name": "No hardcoded strings",
+      "description": "Use translation keys instead of hardcoded strings",
+      "pattern": "*.component.html",
+      "message": "Use translation keys instead of hardcoded strings"
+    },
+    {
+      "name": "Use Material Design",
+      "description": "Use Material Design components and styles",
+      "pattern": "*.component.html",
+      "message": "Use Material Design components and styles"
+    },
+    {
+      "name": "Use consistent styles",
+      "description": "Use consistent styles for all components",
+      "pattern": "*.component.scss",
+      "message": "Use consistent styles for all components"
+    },
+    {
+      "name": "Reuse styles",
+      "description": "Reuse styles from styles.scss and shared.scss when possible",
+      "pattern": "*.component.scss",
+      "message": "Reuse styles from styles.scss and shared.scss when possible"
     }
   ]
 } 
