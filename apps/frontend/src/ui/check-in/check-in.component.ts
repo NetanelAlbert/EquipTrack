@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { UserStore } from '../../store';
 import { EditableInventoryComponent } from '../inventory/edit/editable-inventory.component';
 import { InventoryItem } from '@equip-track/shared';
-import { UserFormsStore } from '../../store/user-forms.store';
+import { FormsStore } from '../../store/forms.store';
 
 @Component({
   selector: 'app-check-in',
@@ -14,7 +14,7 @@ import { UserFormsStore } from '../../store/user-forms.store';
 })
 export class CheckInComponent {
   userStore = inject(UserStore);
-  formsStore = inject(UserFormsStore);
+  formsStore = inject(FormsStore);
 
   onEditedItems(items: InventoryItem[]) {
     // TODO: Implement check-in logic

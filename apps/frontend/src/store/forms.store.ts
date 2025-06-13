@@ -75,7 +75,7 @@ const mockedForms: FormsState = {
   ],
 };
 
-export const UserFormsStore = signalStore(
+export const FormsStore = signalStore(
   { providedIn: 'root' },
   withState(mockedForms),
   withComputed((state) => {
