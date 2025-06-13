@@ -1,26 +1,26 @@
-import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import {
-  Forms,
+  patchState,
+  signalStore,
+  withComputed,
+  withMethods,
+  withState,
+} from '@ngrx/signals';
+import {
   FormStatus,
   FormType,
   InventoryForm,
   InventoryItem,
 } from '@equip-track/shared';
 import { UserStore } from './user.store';
-import { inject } from '@angular/core';
+import { computed, inject } from '@angular/core';
+import { v4 as uuidv4 } from 'uuid';
 
-const initialState: Forms = {
-  organizationID: '',
-  userID: '',
-  checkInForms: [],
-  checkOutForms: [],
-  lastUpdatedTimeStamp: 0,
-};
+interface FormsState {
+  forms: InventoryForm[];
+}
 
-const mockedForms: Forms = {
-  organizationID: '1',
-  userID: '1',
-  checkInForms: [
+const mockedForms: FormsState = {
+  forms: [
     {
       userID: '1',
       formID: '1',
@@ -39,6 +39,7 @@ const mockedForms: Forms = {
       ],
       status: FormStatus.PENDING,
       createdAtTimestamp: Date.now() + 1000 * 60,
+      lastUpdated: 1,
     },
     {
       userID: '1',
@@ -53,6 +54,8 @@ const mockedForms: Forms = {
       ],
       status: FormStatus.APPROVED,
       createdAtTimestamp: Date.now() + 1000 * 60 * 2,
+      approvedAtTimestamp: Date.now() + 1000 * 60 * 3,
+      lastUpdated: 2,
     },
     {
       userID: '1',
@@ -67,33 +70,45 @@ const mockedForms: Forms = {
       ],
       status: FormStatus.REJECTED,
       createdAtTimestamp: Date.now() + 1000 * 60 * 2,
+      lastUpdated: 3,
     },
   ],
-  checkOutForms: [],
-  lastUpdatedTimeStamp: Date.now(),
 };
 
 export const UserFormsStore = signalStore(
   { providedIn: 'root' },
   withState(mockedForms),
+  withComputed((state) => {
+    return {
+      checkInForms: computed(() =>
+        state
+          .forms()
+          .filter((form: InventoryForm) => form.type === FormType.CheckIn)
+      ),
+      checkOutForms: computed(() =>
+        state
+          .forms()
+          .filter((form: InventoryForm) => form.type === FormType.CheckOut)
+      ),
+    };
+  }),
   withMethods((state) => {
     const userStore = inject(UserStore);
     return {
       addCheckInForm(items: InventoryItem[]) {
+        const newForm: InventoryForm = {
+          userID: userStore.id(),
+          organizationID: userStore.activeOrganization.organizationID(),
+          type: FormType.CheckIn,
+          formID: uuidv4(),
+          items: items,
+          status: FormStatus.PENDING,
+          createdAtTimestamp: Date.now(),
+          lastUpdated: Date.now(),
+        };
         // TODO: API call to add check-in form
         patchState(state, {
-          checkInForms: [
-            ...state.checkInForms(),
-            {
-              userID: userStore.id(),
-              organizationID: userStore.activeOrganization.organizationID(),
-              type: FormType.CheckIn,
-              formID: '1',
-              items: items,
-              status: FormStatus.PENDING,
-              createdAtTimestamp: Date.now(),
-            },
-          ],
+          forms: [newForm, ...state.forms()],
         });
       },
     };

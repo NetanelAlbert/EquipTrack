@@ -24,6 +24,7 @@ export interface InventoryForm {
     approvedByUserID?: string;
     signatureURI?: string;
     pdfURI?: string;
+    lastUpdated: number;
 }
 
 /** DynamoDB table */
@@ -32,12 +33,4 @@ export interface PredefinedForm {
     formID: string; // sort key
     description: string;
     items: InventoryItem[];
-}
-
-export interface Forms {
-    organizationID: string; // partition key
-    userID: string; // sort key
-    checkInForms: InventoryForm[];
-    checkOutForms: InventoryForm[];
-    lastUpdatedTimeStamp: number;
 }

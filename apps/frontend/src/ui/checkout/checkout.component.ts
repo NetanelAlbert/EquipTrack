@@ -90,6 +90,7 @@ export class CheckoutComponent {
         items,
         status: FormStatus.PENDING,
         createdAtTimestamp: Date.now(),
+        lastUpdated: Date.now(),
       };
 
       void this.checkoutStore.createCheckoutForm(userId, formData);
