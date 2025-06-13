@@ -5,6 +5,8 @@ import { TranslateModule } from '@ngx-translate/core';
 import { InventoryListComponent } from '../../inventory/list/inventory-list.component';
 import { InventoryForm } from '@equip-track/shared';
 import { SignaturePadComponent } from '../../signature-pad/signature-pad.component';
+import { MatDialog } from '@angular/material/dialog';
+import { RejectFormDialogComponent } from '../reject-form-dialog/reject-form-dialog.component';
 
 @Component({
   selector: 'app-form-card',
@@ -24,12 +26,22 @@ export class FormCardComponent {
 
   signatureData = '';
 
+  constructor(private dialog: MatDialog) {}
+
   onApprove() {
     console.log('form Approve', this.form.formID);
-    
   }
 
   onReject() {
-    console.log('form Reject', this.form.formID);
+    const dialogRef = this.dialog.open(RejectFormDialogComponent, {
+      data: { formId: this.form.formID },
+    });
+
+    dialogRef.afterClosed().subscribe((reason: string | undefined) => {
+      if (reason) {
+        console.log('Form rejected with reason:', reason);
+        // TODO: Implement form rejection logic
+      }
+    });
   }
 }

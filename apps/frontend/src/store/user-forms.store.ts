@@ -40,6 +40,34 @@ const mockedForms: Forms = {
       status: FormStatus.PENDING,
       createdAtTimestamp: Date.now() + 1000 * 60,
     },
+    {
+      userID: '1',
+      formID: '2',
+      organizationID: '123',
+      type: FormType.CheckIn,
+      items: [
+        {
+          productID: '1',
+          quantity: 1,
+        },
+      ],
+      status: FormStatus.APPROVED,
+      createdAtTimestamp: Date.now() + 1000 * 60 * 2,
+    },
+    {
+      userID: '1',
+      formID: '3',
+      organizationID: '123',
+      type: FormType.CheckIn,
+      items: [
+        {
+          productID: '1',
+          quantity: 1,
+        },
+      ],
+      status: FormStatus.REJECTED,
+      createdAtTimestamp: Date.now() + 1000 * 60 * 2,
+    },
   ],
   checkOutForms: [],
   lastUpdatedTimeStamp: Date.now(),

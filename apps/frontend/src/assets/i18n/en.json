@@ -82,7 +82,14 @@
     "created-at": "Created At",
     "approved-at": "Approved At",
     "approve": "Approve",
-    "reject": "Reject"
+    "reject": "Reject",
+    "reject-dialog": {
+      "title": "Reject Form",
+      "reason": "Reason for Rejection",
+      "reason-placeholder": "Please provide a reason for rejecting this form...",
+      "cancel": "Cancel",
+      "confirm": "Confirm Rejection"
+    }
   },
   "buttons": {
     "delete": "Delete"
