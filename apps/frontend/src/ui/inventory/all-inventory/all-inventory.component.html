@@ -1,0 +1,14 @@
+<div class="container">
+  <mat-tab-group>
+    <mat-tab [label]="'inventory.views.warehouse' | translate">
+      <inventory-list
+        [inventoryItems]="warehouseItems()?.items"
+      ></inventory-list>
+    </mat-tab>
+    <mat-tab [label]="'inventory.views.organization' | translate">
+      <inventory-list
+        [inventoryItems]="organizationItems()"
+      ></inventory-list>
+    </mat-tab>
+  </mat-tab-group>
+</div> 

@@ -25,7 +25,14 @@
       "quantity-pattern": "Quantity must be a positive number",
       "upi-required": "UPI is required",
       "duplicate": "Duplicate products: {{ duplicates }}"
-    }
+    },
+    "views": {
+      "warehouse": "Warehouse Inventory",
+      "organization": "Organization Inventory",
+      "user": "User Inventory",
+      "selectUser": "Select User"
+    },
+    "empty-state": "No items found"
   },
   "organization": {
     "editProducts": {

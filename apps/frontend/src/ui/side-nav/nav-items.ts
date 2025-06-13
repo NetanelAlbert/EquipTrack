@@ -7,6 +7,8 @@ import { FormsComponent } from '../forms/forms.component';
 import { TodayReportComponent } from '../reports/reporting/today-report.component';
 import { ReportsHistoryComponent } from '../reports/history/reports-history.component';
 import { EditProductsComponent } from '../organization/edit-products/edit-products.component';
+import { AllInventoryComponent } from '../inventory/all-inventory/all-inventory.component';
+import { InventoryByUsersComponent } from '../inventory/by-users/inventory-by-users.component';
 
 export interface NavItem {
   icon: string;
@@ -64,14 +66,14 @@ export const navItems: NavItem[] = [
     labelKey: 'navigation.all-inventory',
     route: 'all-inventory',
     roles: [UserRole.WarehouseManager, UserRole.Admin],
-    component: DummyComponent,
+    component: AllInventoryComponent,
   },
   {
     icon: 'people',
     labelKey: 'navigation.inventory-by-users',
     route: 'inventory-by-users',
     roles: [UserRole.WarehouseManager, UserRole.Admin],
-    component: DummyComponent,
+    component: InventoryByUsersComponent,
   },
   {
     icon: 'list_alt',

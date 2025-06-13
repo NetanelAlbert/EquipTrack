@@ -1,0 +1,19 @@
+<div class="container">
+  <div class="user-select">
+    <mat-form-field>
+      <mat-label>{{ 'inventory.views.selectUser' | translate }}</mat-label>
+      <mat-select
+        [(ngModel)]="selectedUserID"
+        (selectionChange)="onUserChange()"
+      >
+        <mat-option
+          [value]="organizationStore.currentOrganization?.()?.warehouseUserID"
+        >
+          {{ 'inventory.views.warehouse' | translate }}
+        </mat-option>
+        <!-- TODO: Add other users -->
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <inventory-list [inventoryItems]="userItems()?.items"></inventory-list>
+</div> 

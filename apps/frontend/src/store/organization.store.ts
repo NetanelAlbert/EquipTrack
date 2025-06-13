@@ -33,6 +33,7 @@ const mockedOrganization: Organization = {
       upi: true,
     },
   ],
+  warehouseUserID: 'warehouse-user-id',
   lastUpdatedTimeStamp: Date.now(),
 };
 const mockedOrganizations: OrganizationState = {

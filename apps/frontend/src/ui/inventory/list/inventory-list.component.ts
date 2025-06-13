@@ -7,6 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { InventoryItem } from '@equip-track/shared';
 import { OrganizationStore } from '../../../store';
 import { TranslateModule } from '@ngx-translate/core';
+import { EmptyStateComponent } from '../../forms/empty-state/empty-state.component';
 
 @Component({
   selector: 'inventory-list',
@@ -18,6 +19,7 @@ import { TranslateModule } from '@ngx-translate/core';
     MatIconModule,
     MatButtonModule,
     TranslateModule,
+    EmptyStateComponent,
   ],
   templateUrl: './inventory-list.component.html',
   styleUrl: './inventory-list.component.scss',
