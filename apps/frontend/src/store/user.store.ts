@@ -5,11 +5,12 @@ import {
   withMethods,
   withState,
 } from '@ngrx/signals';
-import { User, InventoryItem, UserRole, UserState } from '@equip-track/shared';
+import { User, InventoryItem, UserRole, UserState, UserInOrganization } from '@equip-track/shared';
 import { computed } from '@angular/core';
 
 type UserStoreState = User & {
   checkedOut: InventoryItem[];
+  activeOrganization: UserInOrganization;
 };
 
 const mockedUser: UserStoreState = {
@@ -37,6 +38,10 @@ const mockedUser: UserStoreState = {
       upis: ['123', '456', '789'],
     },
   ],
+  activeOrganization: {
+    organizationID: '123',
+    role: UserRole.Customer,
+  },
 };
 
 export const UserStore = signalStore(
