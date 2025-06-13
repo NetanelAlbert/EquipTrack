@@ -120,6 +120,10 @@
     "error": "Error creating checkout form"
   },
   "common": {
-    "close": "Close"
+    "close": "Close",
+    "signature": {
+      "clear": "Clear",
+      "signature-pad": "Sign here"
+    }
   }
 } 
