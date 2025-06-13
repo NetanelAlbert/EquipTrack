@@ -16,6 +16,8 @@
     "@angular/platform-browser": "~18.2.0",
     "@angular/platform-browser-dynamic": "~18.2.0",
     "@angular/router": "~18.2.0",
+    "@aws-sdk/client-dynamodb": "^3.828.0",
+    "@aws-sdk/lib-dynamodb": "^3.828.0",
     "@ng-select/ng-select": "^13.9.1",
     "@ngrx/signals": "^18.1.1",
     "@ngx-translate/core": "^16.0.4",

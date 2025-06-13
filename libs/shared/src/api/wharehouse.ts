@@ -50,7 +50,7 @@ export interface GetInventoryResponse {
  */
 export interface CreateCheckOutForm {
   items: InventoryItem[];
-  forUserID: string;
+  userID: string;
 }
 
 /**

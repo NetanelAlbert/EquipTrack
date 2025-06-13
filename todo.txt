@@ -14,10 +14,6 @@ Backend:
 
 Frontend 
 - create warehouse screens:
-
-    
-    - see forms
-    - approve check in
     - trace specific product by reports
 
 - add validation to UPI
