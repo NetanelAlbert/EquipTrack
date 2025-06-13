@@ -1,9 +1,15 @@
 import { InventoryItem } from "./inventory";
 
+export enum FormStatus {
+    PENDING = 'pending',
+    APPROVED = 'approved',
+    REJECTED = 'rejected',
+}
+
 export interface InventoryForm {
     formID: string;
     items: InventoryItem[];
-    status: 'pending' | 'approved' | 'rejected'; 
+    status: FormStatus; 
     createdAtTimestamp: number;
     approvedAtTimestamp?: number;
     approvedByUserID?: string;

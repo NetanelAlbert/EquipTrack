@@ -1,5 +1,5 @@
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
-import { Forms, InventoryForm, InventoryItem } from '@equip-track/shared';
+import { Forms, FormStatus, InventoryForm, InventoryItem } from '@equip-track/shared';
 
 const initialState: Forms = {
   organizationID: '',
@@ -26,7 +26,7 @@ const mockedForms: Forms = {
           upis: ['123', '456', '789'],
         },
       ],
-      status: 'pending',
+      status: FormStatus.PENDING,
       createdAtTimestamp: Date.now() + 1000 * 60,
     },
   ],
@@ -46,7 +46,7 @@ export const FormsStore = signalStore(
           {
             formID: '1',
             items: items,
-            status: 'pending',
+            status: FormStatus.PENDING,
             createdAtTimestamp: Date.now(),
           },
         ],

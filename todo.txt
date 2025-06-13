@@ -15,10 +15,7 @@ Backend:
 Frontend 
 - create warehouse screens:
 
-    - see all inventory
-        - edit
-    - see inventory by users
-    - checkouts:
+    - checkout:
         - see predefined
             -edit
         -create form

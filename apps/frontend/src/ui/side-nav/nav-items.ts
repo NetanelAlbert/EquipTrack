@@ -77,8 +77,8 @@ export const navItems: NavItem[] = [
   },
   {
     icon: 'list_alt',
-    labelKey: 'navigation.checkouts',
-    route: 'checkouts',
+    labelKey: 'navigation.checkout',
+    route: 'checkout',
     roles: [UserRole.WarehouseManager, UserRole.Admin],
     component: DummyComponent,
   },
