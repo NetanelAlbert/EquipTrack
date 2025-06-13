@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsStore } from '../../store/forms.store';
+import { UserFormsStore } from '../../store/user-forms.store';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
 import { FormCardComponent } from './form-card/form-card.component';
@@ -20,5 +20,5 @@ import { EmptyStateComponent } from './empty-state/empty-state.component';
   styleUrl: './forms.component.scss',
 })
 export class FormsComponent {
-  formsStore = inject(FormsStore);
+  formsStore = inject(UserFormsStore);
 }

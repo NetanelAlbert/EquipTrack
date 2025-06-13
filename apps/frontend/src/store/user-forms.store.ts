@@ -1,5 +1,10 @@
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
-import { Forms, FormStatus, InventoryForm, InventoryItem } from '@equip-track/shared';
+import {
+  Forms,
+  FormStatus,
+  InventoryForm,
+  InventoryItem,
+} from '@equip-track/shared';
 
 const initialState: Forms = {
   organizationID: '',
@@ -34,7 +39,7 @@ const mockedForms: Forms = {
   lastUpdatedTimeStamp: Date.now(),
 };
 
-export const FormsStore = signalStore(
+export const UserFormsStore = signalStore(
   { providedIn: 'root' },
   withState(mockedForms),
   withMethods((state) => ({
