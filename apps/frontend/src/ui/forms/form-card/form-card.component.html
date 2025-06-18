@@ -25,4 +25,11 @@
       </button>
     </div>
   }
+  @if (showCheckInButton) {
+    <div class="actions">
+      <button mat-raised-button color="primary" (click)="onCheckIn()">
+        {{ 'forms.check-in' | translate }}
+      </button>
+    </div>
+  }
 </div> 

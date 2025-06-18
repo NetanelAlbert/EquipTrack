@@ -46,7 +46,7 @@ const mockedForms: FormsState = {
       userID: '1',
       formID: '2',
       organizationID: '123',
-      type: FormType.CheckIn,
+      type: FormType.CheckOut,
       items: [
         {
           productID: '1',

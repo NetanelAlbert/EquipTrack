@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
@@ -8,6 +8,8 @@ import { SignaturePadComponent } from '../../signature-pad/signature-pad.compone
 import { MatDialog } from '@angular/material/dialog';
 import { RejectFormDialogComponent } from '../reject-form-dialog/reject-form-dialog.component';
 import { SignatureDialogComponent } from '../signature-dialog/signature-dialog.component';
+import { UserStore } from '../../../store/user.store';
+import { UserRole, FormStatus, FormType } from '@equip-track/shared';
 
 @Component({
   selector: 'app-form-card',
@@ -25,7 +27,21 @@ import { SignatureDialogComponent } from '../signature-dialog/signature-dialog.c
 export class FormCardComponent {
   @Input() form!: InventoryForm;
 
-  constructor(private dialog: MatDialog) {}
+  dialog = inject(MatDialog);
+  userStore = inject(UserStore);
+
+  get isAdminOrWarehouseManager(): boolean {
+    const role = this.userStore.activeOrganization.role();
+    return role === UserRole.Admin || role === UserRole.WarehouseManager;
+  }
+
+  get showCheckInButton(): boolean {
+    return (
+      this.isAdminOrWarehouseManager &&
+      this.form.status === FormStatus.Approved &&
+      this.form.type === FormType.CheckOut
+    );
+  }
 
   onApprove() {
     const dialogRef = this.dialog.open(SignatureDialogComponent, {
@@ -57,5 +73,10 @@ export class FormCardComponent {
         // TODO: Implement form rejection logic
       }
     });
+  }
+
+  onCheckIn() {
+    // TODO: Implement check-in logic for returning items
+    console.log('Check in clicked for form:', this.form.formID);
   }
 }
