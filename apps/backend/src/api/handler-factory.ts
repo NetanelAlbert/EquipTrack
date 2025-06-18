@@ -1,4 +1,5 @@
-import { APIGatewayProxyHandler } from 'aws-lambda';
+import { APIGatewayProxyEvent, APIGatewayProxyHandler } from 'aws-lambda';
+import { Context } from 'aws-lambda/handler';
 import { endpointMetas, EndpointMeta, UserRole, User, UserState } from '@equip-track/shared';
 import { handlers } from './handlers';
 
@@ -16,7 +17,7 @@ export function createLambdaHandler<Req, Res>(
   meta: EndpointMeta<Req, Res>,
   handler: (req: Req, user: User) => Promise<Res>
 ): APIGatewayProxyHandler {
-  return async (event, _context) => {
+  return async (event: APIGatewayProxyEvent, _context: Context) => {
     const user = parseUser(event);
     if (!user) {
       return {
