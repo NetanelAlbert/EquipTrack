@@ -4,7 +4,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
 import { InventoryListComponent } from '../../inventory/list/inventory-list.component';
 import { InventoryForm } from '@equip-track/shared';
-import { SignaturePadComponent } from '../../signature-pad/signature-pad.component';
 import { MatDialog } from '@angular/material/dialog';
 import { RejectFormDialogComponent } from '../reject-form-dialog/reject-form-dialog.component';
 import { SignatureDialogComponent } from '../signature-dialog/signature-dialog.component';
@@ -19,7 +18,6 @@ import { UserRole, FormStatus, FormType } from '@equip-track/shared';
     MatIconModule,
     TranslateModule,
     InventoryListComponent,
-    SignaturePadComponent,
   ],
   templateUrl: './form-card.component.html',
   styleUrls: ['./form-card.component.scss'],
