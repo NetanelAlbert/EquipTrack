@@ -1,26 +1,10 @@
-
-
-// USERS
-
 import { User } from "../elements";
+import { BasicResponse } from "./basic";
 
-/**
- * GET /api/admin/users
- */
-export interface GetUsersResponse {
+export interface GetUsersResponse extends BasicResponse {
     users: User[];
 }
 
-/**
- * POST /api/admin/users/add
- */
-export interface AddUser {
-    user: User;
-}
-
-/**
- * POST /api/admin/users/update
- */
-export interface UpdateUser {
+    export interface SetUser {
     user: User;
 }

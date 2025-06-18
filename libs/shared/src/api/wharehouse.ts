@@ -10,13 +10,14 @@ import {
   ItemReport,
   User,
 } from '../elements';
+import { BasicResponse } from './basic';
 
 // PRODUCTS
 
 /**
  * POST /api/warehouse/products/set
  */
-export interface SertProducts {
+export interface SetProducts {
   products: Product[];
 }
 
@@ -39,7 +40,7 @@ export interface RemoveInventory {
 /**
  * GET /api/warehouse/inventory/get
  */
-export interface GetInventoryResponse {
+export interface GetInventoryResponse extends BasicResponse {
   items: InventoryItem[];
 }
 
@@ -64,7 +65,7 @@ export interface DeleteCheckOutForm {
 /**
  * GET /api/warehouse/forms/checkOut/pendings
  */
-export interface GetCheckOutFormsResponse {
+export interface GetCheckOutFormsResponse extends BasicResponse {
   formsPerUser: Map<string, InventoryForm[]>;
 }
 
@@ -96,7 +97,7 @@ export interface DeletePredefinedCheckOutForm {
 /**
  * GET /api/warehouse/forms/checkIn/pendings
  */
-export interface GetCheckInFormsResponse {
+export interface GetCheckInFormsResponse extends BasicResponse {
   formsPerUser: Map<string, InventoryForm[]>;
 }
 
@@ -121,7 +122,7 @@ export interface RejectCheckInForm {
  * GET /api/warehouse/reports/today
  * GET /api/warehouse/reports/<date>
  */
-export interface GetTodayReportResponse {
+export interface GetTodayReportResponse extends BasicResponse {
   completed: boolean;
   items: ItemReport[];
   usersWithMissingItems: User[];
@@ -135,6 +136,6 @@ export interface DayTrace {
   userID: string;
   location: string;
 }
-export interface GetUPITraceResponse {
+export interface GetUPITraceResponse extends BasicResponse{
   trace: DayTrace[];
 }

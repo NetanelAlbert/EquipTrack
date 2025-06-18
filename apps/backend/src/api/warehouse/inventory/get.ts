@@ -1,11 +1,10 @@
-import { authenticate } from '../../auth';
-import { unauthorized, ok } from '../../responses';
+import { User, GetInventoryResponse } from '@equip-track/shared';
 // import { InventoryAdapter } from '../../../../db/tables/inventory.adapter';
 
-export const handler = async (event: any) => {
-  const user = authenticate(event);
-  if (!user) return unauthorized();
-
+export const handler = async (
+  user: User,
+  req: undefined
+): Promise<GetInventoryResponse> => {
   // TODO: Use InventoryAdapter to get inventory
-  return ok({ items: [] });
+  return { items: [] };
 };

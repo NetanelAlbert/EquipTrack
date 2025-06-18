@@ -1,10 +1,9 @@
-import { authenticate } from './auth';
-import { unauthorized, ok } from './responses';
+import { User, StartResponse } from '@equip-track/shared';
 
-export const handler = async (event: any) => {
-  const user = authenticate(event);
-  if (!user) return unauthorized();
-
+export const handler = async (
+  user: User,
+  req: undefined
+): Promise<StartResponse> => {
   // TODO: Return actual start data
-  return ok({ status: true, dummyData: 'dummy' });
+  return { status: true, dummyData: 'dummy' };
 };
