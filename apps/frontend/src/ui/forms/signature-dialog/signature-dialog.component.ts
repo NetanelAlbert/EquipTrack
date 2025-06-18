@@ -50,6 +50,12 @@ import { TranslateModule } from '@ngx-translate/core';
       mat-dialog-content {
         min-width: 320px;
       }
+
+      @media (max-width: 600px) {
+        .mat-mdc-dialog-content {
+          padding: 0 2px;
+        }
+      }
     `,
   ],
 })

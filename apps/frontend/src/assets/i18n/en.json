@@ -131,7 +131,8 @@
     "close": "Close",
     "signature": {
       "clear": "Clear",
-      "signature-pad": "Sign here"
+      "signature-pad": "Sign here",
+      "title": "Signature"
     },
     "ok": "OK",
     "cancel": "Cancel"
