@@ -29,6 +29,12 @@
       "description": "Reuse styles from styles.scss and shared.scss when possible",
       "pattern": "*.component.scss",
       "message": "Reuse styles from styles.scss and shared.scss when possible"
+    },
+    {
+      "name": "Prefer unknown over any",
+      "description": "Use unknown type instead of any for better type safety",
+      "pattern": "*.ts",
+      "message": "Prefer unknown over any for better type safety"
     }
   ]
 } 
