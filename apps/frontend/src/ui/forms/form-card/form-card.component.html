@@ -17,8 +17,7 @@
   <inventory-list [inventoryItems]="form.items"></inventory-list>
   @if (form.status === 'pending') {
     <div class="actions">
-      <app-signature-pad (signatureChange)="signatureData = $event"></app-signature-pad>
-      <button mat-raised-button [disabled]="!signatureData" color="primary" (click)="onApprove()">
+      <button mat-raised-button color="primary" (click)="onApprove()">
         {{ 'forms.approve' | translate }}
       </button>
       <button mat-raised-button color="warn" (click)="onReject()">

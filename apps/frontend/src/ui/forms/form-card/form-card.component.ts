@@ -7,6 +7,7 @@ import { InventoryForm } from '@equip-track/shared';
 import { SignaturePadComponent } from '../../signature-pad/signature-pad.component';
 import { MatDialog } from '@angular/material/dialog';
 import { RejectFormDialogComponent } from '../reject-form-dialog/reject-form-dialog.component';
+import { SignatureDialogComponent } from '../signature-dialog/signature-dialog.component';
 
 @Component({
   selector: 'app-form-card',
@@ -24,12 +25,25 @@ import { RejectFormDialogComponent } from '../reject-form-dialog/reject-form-dia
 export class FormCardComponent {
   @Input() form!: InventoryForm;
 
-  signatureData = '';
-
   constructor(private dialog: MatDialog) {}
 
   onApprove() {
-    console.log('form Approve', this.form.formID);
+    const dialogRef = this.dialog.open(SignatureDialogComponent, {
+      data: { signature: '' },
+    });
+
+    dialogRef.afterClosed().subscribe((signature: string | undefined) => {
+      if (signature) {
+        console.log(
+          'Form approved with signature.',
+          'signature size',
+          signature.length,
+          'for form:',
+          this.form.formID
+        );
+        // TODO: Implement form approval logic
+      }
+    });
   }
 
   onReject() {
