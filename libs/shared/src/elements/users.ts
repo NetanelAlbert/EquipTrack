@@ -15,6 +15,10 @@ export interface User {
     state: UserState;
 }
 
+export interface ActiveUser extends User {
+    organizationID: string;
+}
+
 export enum UserRole {
     Admin = 'admin',
     Customer = 'customer',

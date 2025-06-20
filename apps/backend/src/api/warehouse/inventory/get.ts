@@ -1,8 +1,8 @@
-import { User, GetInventoryResponse } from '@equip-track/shared';
+import { ActiveUser, GetInventoryResponse } from '@equip-track/shared';
 // import { InventoryAdapter } from '../../../../db/tables/inventory.adapter';
 
 export const handler = async (
-  user: User,
+  user: ActiveUser,
   req: undefined
 ): Promise<GetInventoryResponse> => {
   // TODO: Use InventoryAdapter to get inventory

@@ -7,6 +7,7 @@ import {
   User,
   UserState,
   ORGANIZATION_ID_PATH_PARAM,
+  ActiveUser,
 } from '@equip-track/shared';
 import { handlers } from './handlers';
 
@@ -47,6 +48,8 @@ export function createLambdaHandler<Req, Res>(
       };
     }
 
+    let activeUser: ActiveUser;
+
     if (meta.path.includes(`{${ORGANIZATION_ID_PATH_PARAM}}`)) {
       const organizationId = event.pathParameters?.[ORGANIZATION_ID_PATH_PARAM];
       if (!organizationId) {
@@ -58,10 +61,10 @@ export function createLambdaHandler<Req, Res>(
           }),
         };
       }
-      user.organizations = user.organizations.filter(
+      const organization = user.organizations.find(
         (org) => org.organizationID === organizationId
       );
-      if (user.organizations.length === 0) {
+      if (!organization) {
         return {
           statusCode: 403,
           body: JSON.stringify({
@@ -73,18 +76,22 @@ export function createLambdaHandler<Req, Res>(
       }
 
       // Note: We assume that the user has only one organization since we just filter the user by the organizationId
-      if (!meta.allowedRoles.includes(user.organizations[0].role)) {
+      if (!meta.allowedRoles.includes(organization.role)) {
         return {
           statusCode: 403,
           body: JSON.stringify({ status: false, error: 'Forbidden' }),
         };
       }
+      activeUser = {
+        ...user,
+        organizationID: organization.organizationID,
+      };
     }
 
     const req =
       meta.method === 'GET' ? (undefined as any) : parseBody<Req>(event);
     try {
-      const result = await handler(user, req);
+      const result = await handler(activeUser ?? user, req);
       return {
         statusCode: 200,
         body: JSON.stringify(result),

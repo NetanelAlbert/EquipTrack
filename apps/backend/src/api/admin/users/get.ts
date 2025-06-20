@@ -1,9 +1,8 @@
-import { ok } from '../../responses';
-import { User, GetUsersResponse } from '@equip-track/shared';
+import { GetUsersResponse, ActiveUser } from '@equip-track/shared';
 // import { OrganizationAdapter } from '../../../db/tables/organization.adapter';
 
 export const handler = async (
-  user: User,
+  user: ActiveUser,
   req: undefined
 ): Promise<GetUsersResponse> => {
   // TODO: Use OrganizationAdapter to get users
