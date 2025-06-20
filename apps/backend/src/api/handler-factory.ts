@@ -1,11 +1,32 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler } from 'aws-lambda';
 import { Context } from 'aws-lambda/handler';
-import { endpointMetas, EndpointMeta, UserRole, User, UserState } from '@equip-track/shared';
+import {
+  endpointMetas,
+  EndpointMeta,
+  UserRole,
+  User,
+  UserState,
+  ORGANIZATION_ID_PATH_PARAM,
+} from '@equip-track/shared';
 import { handlers } from './handlers';
 
 function parseUser(event: unknown): User | null {
   // TODO: Replace with real authentication
-  return { id: 'dummy', name: 'dummy', email: 'dummy', phone: 'dummy', department: 'dummy', departmentRole: 'dummy', organizations: [], state: UserState.Active };
+  return {
+    id: 'dummy',
+    name: 'dummy',
+    email: 'dummy',
+    phone: 'dummy',
+    department: 'dummy',
+    departmentRole: 'dummy',
+    organizations: [
+      {
+        organizationID: 'dummy',
+        role: UserRole.Admin,
+      },
+    ],
+    state: UserState.Active,
+  };
 }
 
 function parseBody<T>(event: any): T {
@@ -15,7 +36,7 @@ function parseBody<T>(event: any): T {
 
 export function createLambdaHandler<Req, Res>(
   meta: EndpointMeta<Req, Res>,
-  handler: (req: Req, user: User) => Promise<Res>
+  handler: (user: User, req: Req) => Promise<Res>
 ): APIGatewayProxyHandler {
   return async (event: APIGatewayProxyEvent, _context: Context) => {
     const user = parseUser(event);
@@ -25,17 +46,45 @@ export function createLambdaHandler<Req, Res>(
         body: JSON.stringify({ status: false, error: 'Unauthorized' }),
       };
     }
-    // TODO: Check rellevant organization by request
-    if (!meta.allowedRoles.includes(user.organizations[0].role)) {
-      return {
-        statusCode: 403,
-        body: JSON.stringify({ status: false, error: 'Forbidden' }),
-      };
+
+    if (meta.path.includes(`{${ORGANIZATION_ID_PATH_PARAM}}`)) {
+      const organizationId = event.pathParameters?.[ORGANIZATION_ID_PATH_PARAM];
+      if (!organizationId) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({
+            status: false,
+            error: 'Organization ID is required',
+          }),
+        };
+      }
+      user.organizations = user.organizations.filter(
+        (org) => org.organizationID === organizationId
+      );
+      if (user.organizations.length === 0) {
+        return {
+          statusCode: 403,
+          body: JSON.stringify({
+            status: false,
+            error: 'Forbidden',
+            message: 'User is not a member of the organization',
+          }),
+        };
+      }
+
+      // Note: We assume that the user has only one organization since we just filter the user by the organizationId
+      if (!meta.allowedRoles.includes(user.organizations[0].role)) {
+        return {
+          statusCode: 403,
+          body: JSON.stringify({ status: false, error: 'Forbidden' }),
+        };
+      }
     }
+
     const req =
       meta.method === 'GET' ? (undefined as any) : parseBody<Req>(event);
     try {
-      const result = await handler(req, user);
+      const result = await handler(user, req);
       return {
         statusCode: 200,
         body: JSON.stringify(result),
@@ -57,6 +106,9 @@ export function createLambdaHandler<Req, Res>(
 export const lambdaHandlers = Object.fromEntries(
   Object.entries(endpointMetas).map(([key, meta]) => [
     key,
-    createLambdaHandler(meta as any, handlers[key]),
+    createLambdaHandler<typeof meta.requestType, typeof meta.responseType>(
+      meta,
+      handlers[key]
+    ),
   ])
 ) as Record<keyof typeof endpointMetas, APIGatewayProxyHandler>;

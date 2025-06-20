@@ -13,97 +13,55 @@ import {
 import { BasicResponse } from './basic';
 
 // PRODUCTS
-
-/**
- * POST /api/warehouse/products/set
- */
 export interface SetProducts {
   products: Product[];
 }
 
 // INVENTORY
 
-/**
- * POST /api/warehouse/inventory/add
- */
 export interface AddInventory {
   items: InventoryItem[];
 }
 
-/**
- * POST /api/warehouse/inventory/remove
- */
 export interface RemoveInventory {
   items: InventoryItem[];
 }
 
-/**
- * GET /api/warehouse/inventory/get
- */
 export interface GetInventoryResponse extends BasicResponse {
   items: InventoryItem[];
 }
 
 // CHECK OUT
 
-/**
- * POST /api/warehouse/forms/checkOut
- */
 export interface CreateCheckOutForm {
   items: InventoryItem[];
   userID: string;
 }
 
-/**
- * DELETE /api/warehouse/forms/checkOut
- */
-export interface DeleteCheckOutForm {
-  formID: string;
-  userID: string;
-}
-
-/**
- * GET /api/warehouse/forms/checkOut/pendings
- */
 export interface GetCheckOutFormsResponse extends BasicResponse {
   formsPerUser: Map<string, InventoryForm[]>;
 }
 
 // PREDEFINED FORMS
 
-/**
- * GET /api/warehouse/forms/checkOut/predefined
- */
 export interface GetPredefinedCheckOutFormResponse {
   forms: PredefinedForm[];
 }
 
-/**
- * POST /api/warehouse/forms/checkOut/predefined
- */
 export interface AddPredefinedCheckOutForm {
   form: PredefinedForm;
 }
 
-/**
- * DELETE /api/warehouse/forms/checkOut/predefined
- */
 export interface DeletePredefinedCheckOutForm {
   formID: string;
 }
 
 // CHECK IN
 
-/**
- * GET /api/warehouse/forms/checkIn/pendings
- */
 export interface GetCheckInFormsResponse extends BasicResponse {
   formsPerUser: Map<string, InventoryForm[]>;
 }
 
-/**
- * POST /api/warehouse/forms/checkIn/approve
- */
 export interface ApproveCheckInForm {
   formID: string;
 }
@@ -136,6 +94,6 @@ export interface DayTrace {
   userID: string;
   location: string;
 }
-export interface GetUPITraceResponse extends BasicResponse{
+export interface GetUPITraceResponse extends BasicResponse {
   trace: DayTrace[];
 }

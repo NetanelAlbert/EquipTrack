@@ -8,5 +8,5 @@ export const handler = async (
 ): Promise<GetUsersResponse> => {
   // TODO: Use OrganizationAdapter to get users
   // For now, just return a dummy users list
-  return { users: [] };
+  return { users: [], status: true };
 };

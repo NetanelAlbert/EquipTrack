@@ -1,10 +1,10 @@
-import { User } from "../elements";
-import { BasicResponse } from "./basic";
+import { User } from '../elements';
+import { BasicResponse } from './basic';
 
 export interface GetUsersResponse extends BasicResponse {
-    users: User[];
+  users: User[];
 }
 
-    export interface SetUser {
-    user: User;
+export interface SetUser {
+  user: User;
 }

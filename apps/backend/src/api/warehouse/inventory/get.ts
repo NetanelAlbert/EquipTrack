@@ -6,5 +6,5 @@ export const handler = async (
   req: undefined
 ): Promise<GetInventoryResponse> => {
   // TODO: Use InventoryAdapter to get inventory
-  return { items: [] };
+  return { items: [], status: true };
 };
