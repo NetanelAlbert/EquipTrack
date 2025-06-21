@@ -9,7 +9,7 @@ export const createRoleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
     const router = inject(Router);
 
     // Get user's role from the first organization (assuming single organization for now)
-    const userRole = userStore.activeOrganization.role();
+    const userRole = userStore.role();
     if (!userRole) {
       router.navigate(['/not-allowed']);
       return false;

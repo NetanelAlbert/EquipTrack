@@ -2,7 +2,7 @@
   <mat-tab-group>
     <mat-tab [label]="'inventory.views.warehouse' | translate">
       <inventory-list
-        [inventoryItems]="warehouseItems()?.items"
+        [inventoryItems]="warehouseItems()"
       ></inventory-list>
     </mat-tab>
     <mat-tab [label]="'inventory.views.organization' | translate">

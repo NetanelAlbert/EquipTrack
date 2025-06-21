@@ -1,8 +1,9 @@
-import { ActiveUser, SetUser, BasicResponse } from '@equip-track/shared';
+import { User, SetUser, BasicResponse } from '@equip-track/shared';
 // import { OrganizationAdapter } from '../../../db/tables/organization.adapter';
 
 export const handler = async (
-  user: ActiveUser,
+  user: User,
+  organizationId: string,
   req: SetUser
 ): Promise<BasicResponse> => {
   // TODO: Use OrganizationAdapter to add user

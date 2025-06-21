@@ -101,7 +101,7 @@ export class EditableInventoryComponent {
 
   addItem(item?: InventoryItem) {
     const product = item
-      ? this.organizationStore.getProduct(item.productID) ?? null
+      ? this.organizationStore.getProduct(item.productId) ?? null
       : null;
     const formItem = item
       ? FormInventoryItemMapperFromItem(this.fb, item, product)

@@ -6,8 +6,9 @@
         [(ngModel)]="selectedUserID"
         (selectionChange)="onUserChange()"
       >
+        <!-- TODO: user proper warehouse value -->
         <mat-option
-          [value]="organizationStore.currentOrganization?.()?.warehouseUserID"
+          value="WAREHOUSE"
         >
           {{ 'inventory.views.warehouse' | translate }}
         </mat-option>
@@ -15,5 +16,5 @@
       </mat-select>
     </mat-form-field>
   </div>
-  <inventory-list [inventoryItems]="userItems()?.items"></inventory-list>
+  <inventory-list [inventoryItems]="userItems()"></inventory-list>
 </div> 

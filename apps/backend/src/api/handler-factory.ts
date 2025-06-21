@@ -3,31 +3,26 @@ import { Context } from 'aws-lambda/handler';
 import {
   endpointMetas,
   EndpointMeta,
-  UserRole,
-  User,
-  UserState,
   ORGANIZATION_ID_PATH_PARAM,
-  ActiveUser,
 } from '@equip-track/shared';
-import { handlers } from './handlers';
+import { HandlerFunction, handlers } from './handlers';
+import {
+  MainAdapter,
+  UserAndAllOrganizations,
+} from '../db';
+import { badRequest, forbidden, unauthorized } from './responses';
 
-function parseUser(event: unknown): User | null {
+const mainAdapter = new MainAdapter();
+
+async function parseUser(event: unknown): Promise<UserAndAllOrganizations> {
   // TODO: Replace with real authentication
-  return {
-    id: 'dummy',
-    name: 'dummy',
-    email: 'dummy',
-    phone: 'dummy',
-    department: 'dummy',
-    departmentRole: 'dummy',
-    organizations: [
-      {
-        organizationID: 'dummy',
-        role: UserRole.Admin,
-      },
-    ],
-    state: UserState.Active,
-  };
+  const userId = 'dummy';
+  try {
+    return await mainAdapter.getUserAndAllOrganizations(userId);
+  } catch (error) {
+    console.error('Error parsing user', error);
+    throw unauthorized('User not found');
+  }
 }
 
 function parseBody<T>(event: any): T {
@@ -37,66 +32,46 @@ function parseBody<T>(event: any): T {
 
 export function createLambdaHandler<Req, Res>(
   meta: EndpointMeta<Req, Res>,
-  handler: (user: User, req: Req) => Promise<Res>
+  handler: HandlerFunction<Req, Res>
 ): APIGatewayProxyHandler {
   return async (event: APIGatewayProxyEvent, _context: Context) => {
-    const user = parseUser(event);
-    if (!user) {
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ status: false, error: 'Unauthorized' }),
-      };
-    }
-
-    let activeUser: ActiveUser;
-
-    if (meta.path.includes(`{${ORGANIZATION_ID_PATH_PARAM}}`)) {
-      const organizationId = event.pathParameters?.[ORGANIZATION_ID_PATH_PARAM];
-      if (!organizationId) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({
-            status: false,
-            error: 'Organization ID is required',
-          }),
-        };
-      }
-      const organization = user.organizations.find(
-        (org) => org.organizationID === organizationId
-      );
-      if (!organization) {
-        return {
-          statusCode: 403,
-          body: JSON.stringify({
-            status: false,
-            error: 'Forbidden',
-            message: 'User is not a member of the organization',
-          }),
-        };
-      }
-
-      // Note: We assume that the user has only one organization since we just filter the user by the organizationId
-      if (!meta.allowedRoles.includes(organization.role)) {
-        return {
-          statusCode: 403,
-          body: JSON.stringify({ status: false, error: 'Forbidden' }),
-        };
-      }
-      activeUser = {
-        ...user,
-        organizationID: organization.organizationID,
-      };
-    }
-
-    const req =
-      meta.method === 'GET' ? (undefined as any) : parseBody<Req>(event);
     try {
-      const result = await handler(activeUser ?? user, req);
+      const { user, userInOrganizations } = await parseUser(event);
+
+      let organizationId: string | undefined;
+      if (meta.path.includes(`{${ORGANIZATION_ID_PATH_PARAM}}`)) {
+        organizationId = event.pathParameters?.[ORGANIZATION_ID_PATH_PARAM];
+        if (!organizationId) {
+          throw badRequest('Organization ID is required');
+        }
+        const organization = userInOrganizations.find(
+          (org) => org.organizationId === organizationId
+        );
+        if (!organization) {
+          throw forbidden('User is not a member of the organization');
+        }
+
+        // Note: We assume that the user has only one organization since we just filter the user by the organizationId
+        if (!meta.allowedRoles.includes(organization.role)) {
+          throw forbidden(
+            `User Role ${organization.role} is not allowed to access this endpoint`
+          );
+        }
+      }
+
+      const req =
+        meta.method === 'GET' ? (undefined as any) : parseBody<Req>(event);
+
+      const result = await handler(user, organizationId, req);
       return {
         statusCode: 200,
         body: JSON.stringify(result),
       };
     } catch (error) {
+      // If the error is an ErrorResponse, return it
+      if ('statusCode' in error) {
+        return error;
+      }
       // TODO: Log error to cloudwatch
       return {
         statusCode: 500,

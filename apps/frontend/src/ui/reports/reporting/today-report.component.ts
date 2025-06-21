@@ -11,10 +11,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
-import { ReportsStore } from '../../../store/reports.store';
-import { UserStore } from '../../../store/user.store';
+import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
 import { ItemReport } from '@equip-track/shared';
-import { OrganizationStore } from '../../../store/organization.store';
 
 @Component({
   selector: 'app-today-report',
@@ -109,7 +107,7 @@ export class TodayReportComponent implements OnInit {
         item.upis.forEach((upi) => {
           if (!reportedUpis.has(upi)) {
             itemsToReport.push({
-              productID: item.productID,
+              productId: item.productId,
               upi: upi,
               location: '',
               repotedBy: this.userStore.name(),
@@ -133,8 +131,8 @@ export class TodayReportComponent implements OnInit {
           this.getItemLocationForSort(b)
         );
       } else {
-        return this.getProductName(a.productID).localeCompare(
-          this.getProductName(b.productID)
+        return this.getProductName(a.productId).localeCompare(
+          this.getProductName(b.productId)
         );
       }
     });

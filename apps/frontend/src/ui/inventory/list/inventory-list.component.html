@@ -1,16 +1,16 @@
 <mat-list class="dynamic-height-list">
     @if (inventoryItems()?.length) {
-        @for (item of inventoryItems(); track item.productID) {
-            @let product = organizationStore.getProduct(item.productID);
+        @for (item of inventoryItems(); track item.productId) {
+            @let product = organizationStore.getProduct(item.productId);
             @let hasUPIs = !!item.upis?.length;
             <mat-list-item 
                 class="dynamic-height-item" 
-                [ngClass]="{upi: product?.upi, clickable: hasUPIs}"
+                [ngClass]="{upi: product?.hasUpi, clickable: hasUPIs}"
                 (click)="hasUPIs && toggleExpand(item)">
                 <div class="main-row">
                     <div class="product-field">
                         <span class="product-name">{{ product?.name }}</span>
-                        <span class="product-id">{{ item.productID }}</span>
+                        <span class="product-id">{{ item.productId }}</span>
                     </div>
                     <div class="quantity-field">
                         <span class="quantity">{{ item.quantity }}</span>

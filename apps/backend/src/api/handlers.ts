@@ -1,4 +1,4 @@
-import { endpointMetas, EndpointMeta, ActiveUser, User } from '@equip-track/shared';
+import { endpointMetas, EndpointMeta, User } from '@equip-track/shared';
 import { handler as getUsersHandler } from './admin/users/get';
 import { handler as setUserHandler } from './admin/users/set';
 import { handler as approveCheckOutHandler } from './user/checkout/approve';
@@ -11,7 +11,7 @@ import { handler as getInventoryHandler } from './warehouse/inventory/get';
 import { handler as startHandler } from './start';
 
 // Handler signatures
-type HandlerFunction<Req, Res> = (user: ActiveUser | User, req: Req) => Promise<Res>;
+export type HandlerFunction<Req, Res> = (user: User, organizationId: string | undefined, req: Req) => Promise<Res>;
 
 type Handlers = {
   [K in keyof typeof endpointMetas]: (typeof endpointMetas)[K] extends EndpointMeta<

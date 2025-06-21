@@ -1,8 +1,9 @@
-import { ActiveUser, RequestCheckIn, BasicResponse } from '@equip-track/shared';
+import { User, RequestCheckIn, BasicResponse } from '@equip-track/shared';
 // import { InventoryFormAdapter } from '../../../../db/tables/inventory-form.adapter';
 
 export const handler = async (
-  user: ActiveUser,
+  user: User,
+  organizationId: string,
   req: RequestCheckIn
 ): Promise<BasicResponse> => {
   // TODO: Use InventoryFormAdapter to request check-in

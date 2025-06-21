@@ -29,7 +29,7 @@ export class FormCardComponent {
   userStore = inject(UserStore);
 
   get isAdminOrWarehouseManager(): boolean {
-    const role = this.userStore.activeOrganization.role();
+    const role = this.userStore.role();
     return role === UserRole.Admin || role === UserRole.WarehouseManager;
   }
 

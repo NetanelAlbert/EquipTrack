@@ -15,13 +15,13 @@ export interface FormInventoryItem {
 export const FormInventoryItemMapper = (
   formItem: FormInventoryItem
 ): InventoryItem => {
-  const upis = formItem.product.value?.upi
+  const upis = formItem.product.value?.hasUpi
     ? formItem.upis.value.filter(
         (upi): upi is string => upi !== null && upi !== ''
       )
     : undefined;
   return {
-    productID: formItem.product.value?.id ?? '',
+    productId: formItem.product.value?.id ?? '',
     quantity: formItem.quantity.value ?? 0,
     upis,
   };
@@ -48,7 +48,7 @@ export const emptyItem: (fb: FormBuilder) => FormGroup<FormInventoryItem> = (
   return FormInventoryItemMapperFromItem(
     fb,
     {
-      productID: '',
+      productId: '',
       quantity: 1,
       upis: undefined,
     },

@@ -1,31 +1,30 @@
 export enum UserState {
-    Active = 'active',
-    Invited = 'invited',
-    Disabled = 'disabled',
+  Active = 'active',
+  Invited = 'invited',
+  Disabled = 'disabled',
 }
 
+/**
+ * Represents the core metadata for a User account.
+ */
 export interface User {
-    id: string;
-    name: string;
-    email: string; // needed?
-    phone: string;
-    department: string;
-    departmentRole: string;
-    organizations: UserInOrganization[];
-    state: UserState;
-}
-
-export interface ActiveUser extends User {
-    organizationID: string;
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  state: UserState;
 }
 
 export enum UserRole {
-    Admin = 'admin',
-    Customer = 'customer',
-    WarehouseManager = 'warehouse-manager',
+  Admin = 'admin',
+  Customer = 'customer',
+  WarehouseManager = 'warehouse-manager',
 }
 
 export interface UserInOrganization {
-    organizationID: string;
-    role: UserRole;
+  organizationId: string;
+  userId: string;
+  role: UserRole;
+  department?: string;
+  departmentRole?: string;
 }

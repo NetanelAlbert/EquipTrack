@@ -28,8 +28,8 @@ export class AllInventoryComponent implements OnInit {
   inventoryStore = inject(InventoryStore);
   organizationStore = inject(OrganizationStore);
 
-  warehouseItems = this.inventoryStore.warehouseInventory;
-  organizationItems = this.inventoryStore.totalOrganizationItems;
+  warehouseItems = this.inventoryStore.wareHouseInventory;
+  organizationItems = this.inventoryStore.wareHouseInventory;
 
   ngOnInit() {
     this.inventoryStore.fetchInventory();

@@ -1,15 +1,10 @@
-import { InventoryItem, ItemReport } from '../elements';
+import { InventoryItem, ItemReport, Organization, User, UserInOrganization } from '../elements';
 import { BasicResponse } from './basic';
 
 export interface StartResponse extends BasicResponse {
-  /* Todo: add here all the data needed for the app to start
-   * - user data
-   * - organization data
-   * - inventory data
-   * - forms data
-   * - reports data
-   */
-  dummyData: string; // todo remove this. only for lint
+  user: User;
+  userInOrganizations: UserInOrganization[];
+  organizations: Organization[];
 }
 
 export interface ApproveCheckOut {

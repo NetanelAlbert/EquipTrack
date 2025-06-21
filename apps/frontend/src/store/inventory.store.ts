@@ -1,135 +1,100 @@
 import {
   signalStore,
   withState,
-  withComputed,
   withMethods,
   patchState,
+  withComputed,
 } from '@ngrx/signals';
-import { Inventory, InventoryItem } from '@equip-track/shared';
-import { computed, inject } from '@angular/core';
-import { OrganizationStore } from './organization.store';
+import { InventoryItem } from '@equip-track/shared';
+import { computed } from '@angular/core';
 
-type InventoryState = {
-  inventory: Inventory[];
+interface InventoryState {
+  // key is userID, value is inventory items for that user
+  inventory: Record<string, InventoryItem[]>;
+  wareHouseInventory: InventoryItem[];
   loading: boolean;
   error?: string;
-};
+}
+
+const mockInventory: InventoryItem[] = [
+  {
+    productId: '1',
+    quantity: 10,
+    upis: [],
+  },
+  {
+    productId: '2',
+    quantity: 20,
+    upis: ['UPIS1', 'UPIS2'],
+  },
+];
 
 const initialState: InventoryState = {
-  inventory: [],
+  inventory: {},
+  wareHouseInventory: [],
   loading: false,
   error: undefined,
 };
-
-const mockInventory: Inventory[] = [
-  {
-    organizationID: '123',
-    userID: '1',
-    items: [
-      {
-        productID: '1',
-        quantity: 10,
-        upis: [],
-      },
-      {
-        productID: '2',
-        quantity: 20,
-        upis: ['UPIS1', 'UPIS2'],
-      },
-    ],
-    lastUpdatedTimeStamp: Date.now(),
-  },
-  {
-    organizationID: '123',
-    userID: 'warehouse-user-id',
-    items: [
-      {
-        productID: '1',
-        quantity: 10,
-        upis: [],
-      },
-      {
-        productID: '2',
-        quantity: 20,
-        upis: ['UPIS3', 'UPIS4'],
-      },
-    ],
-    lastUpdatedTimeStamp: Date.now(),
-  },
-];
 
 export const InventoryStore = signalStore(
   { providedIn: 'root' },
   withState(initialState),
   withComputed((store) => {
-    const organizationStore = inject(OrganizationStore);
-    const allOrganizationInventory = computed(() => {
-      const orgID = organizationStore.currentOrganization?.()?.id;
-      if (!orgID) return [];
-      return store.inventory().filter((inv) => inv.organizationID === orgID);
-    });
-
     return {
-      warehouseInventory: computed(() => {
-        const warehouseUserID =
-          organizationStore.currentOrganization?.()?.warehouseUserID;
-        if (!warehouseUserID) return undefined;
-        return store.inventory().find((inv) => inv.userID === warehouseUserID);
-      }),
-      allOrganizationInventory,
-      totalOrganizationItems: computed(() => {
-        const allItems = new Map<string, InventoryItem>();
-        allOrganizationInventory().forEach((inv: Inventory) => {
-          inv.items.forEach((item: InventoryItem) => {
-            const existing = allItems.get(item.productID);
-            if (existing) {
-              existing.quantity += item.quantity;
-              if (item.upis) {
-                existing.upis = [
-                  ...(existing.upis || []),
-                  ...(item.upis || []),
+      totalOrganizationItems: computed<InventoryItem[]>(() => {
+        // key is productId, value is inventory item
+        const items: Record<string, InventoryItem> = {};
+        store.wareHouseInventory().forEach((item) => {
+          items[item.productId] = item;
+        });
+        Object.values(store.inventory()).forEach((userItems) => {
+          userItems.forEach((item) => {
+            if (items[item.productId]) {
+              items[item.productId].quantity += item.quantity;
+              if (item.upis || items[item.productId].upis) {
+                items[item.productId].upis = [
+                  ...(items[item.productId].upis ?? []),
+                  ...(item.upis ?? []),
                 ];
               }
             } else {
-              allItems.set(item.productID, { ...item });
+              items[item.productId] = item;
             }
           });
         });
-        return Array.from(allItems.values());
+        return Object.values(items);
       }),
     };
   }),
   withMethods((store) => {
-    const organizationStore = inject(OrganizationStore);
+    const updateState = (newState: Partial<InventoryState>) => {
+      patchState(store, (state) => {
+        return {
+          ...state,
+          ...newState,
+        };
+      });
+    };
     return {
       async fetchInventory() {
-        patchState(store, (state) => ({
-          ...state,
-          loading: true,
-          error: undefined,
-        }));
+        updateState({ loading: true });
         try {
-          const org = organizationStore.currentOrganization?.();
-          if (!org) {
-            throw new Error('No organization selected');
-          }
-          patchState(store, (state) => ({
-            ...state,
-            inventory: mockInventory,
-            loading: false,
-          }));
+          updateState({
+            inventory: {
+              '1': mockInventory,
+              '2': mockInventory,
+            },
+            wareHouseInventory: mockInventory,
+          });
         } catch (error) {
           console.error('error fetching inventory', error);
           // TODO: Add error handling
-          patchState(store, (state) => ({
-            ...state,
-            loading: false,
-            error: 'Error fetching inventory',
-          }));
+          updateState({ error: 'Error fetching inventory' });
         }
+        updateState({ loading: false });
       },
-      getUserInventory(userID: string): Inventory | undefined {
-        return store.inventory().find((inv) => inv.userID === userID);
+      getUserInventory(userID: string): InventoryItem[] {
+        return store.inventory()[userID] ?? [];
       },
     };
   })

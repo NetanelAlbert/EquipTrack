@@ -15,55 +15,45 @@ import {
 } from '@equip-track/shared';
 import { computed, Signal } from '@angular/core';
 
-type MinimalOrganization = Pick<Organization, 'id' | 'name' | 'imageURI'>;
-
 interface OrganizationState {
-  organizations: Organization[];
-  currentOrganization?: Organization;
+  organization: Organization;
+
+  users: User[];
+  products: Product[];
+  predefinedForms: PredefinedForm[];
+
+  // Actions state
   updatingProducts: boolean;
   errorUpdatingProducts?: string;
-  users: User[];
-  predefinedForms: PredefinedForm[];
 }
 
 const mockedOrganization: Organization = {
   id: '123',
   name: 'Hogwarts',
-  imageURI: 'https://via.placeholder.com/150',
-  products: [
-    {
-      id: '1',
-      name: 'Broomstick',
-      upi: false,
-    },
-    {
-      id: '2',
-      name: 'Wand',
-      upi: true,
-    },
-  ],
-  warehouseUserID: 'warehouse-user-id',
-  lastUpdatedTimeStamp: Date.now(),
+  imageUrl: 'https://via.placeholder.com/150',
 };
+
+const mockedProducts: Product[] = [
+  {
+    id: '1',
+    name: 'Broomstick',
+    hasUpi: false,
+  },
+  {
+    id: '2',
+    name: 'Wand',
+    hasUpi: true,
+  },
+];
 const mockedOrganizations: OrganizationState = {
-  organizations: [mockedOrganization],
-  currentOrganization: mockedOrganization,
-  updatingProducts: false,
-  errorUpdatingProducts: undefined,
+  organization: mockedOrganization,
+  products: mockedProducts,
   users: [
     {
       id: '1',
       name: 'Harry Potter',
       email: 'harry@hogwarts.com',
       phone: '1234567890',
-      department: 'Magic',
-      departmentRole: 'Wizard',
-      organizations: [
-        {
-          organizationID: '123',
-          role: UserRole.Customer,
-        },
-      ],
       state: UserState.Active,
     },
     {
@@ -71,14 +61,6 @@ const mockedOrganizations: OrganizationState = {
       name: 'Hermione Granger',
       email: 'hermione@hogwarts.com',
       phone: '1234567890',
-      department: 'Magic',
-      departmentRole: 'Wizard',
-      organizations: [
-        {
-          organizationID: '123',
-          role: UserRole.Customer,
-        },
-      ],
       state: UserState.Active,
     },
   ],
@@ -89,11 +71,11 @@ const mockedOrganizations: OrganizationState = {
       description: 'Welcome stuff',
       items: [
         {
-          productID: '1',
+          productId: '1',
           quantity: 1,
         },
         {
-          productID: '2',
+          productId: '2',
           quantity: 1,
         },
       ],
@@ -104,12 +86,14 @@ const mockedOrganizations: OrganizationState = {
       description: 'quidditch stuff',
       items: [
         {
-          productID: '1',
+          productId: '1',
           quantity: 1,
         },
       ],
     },
   ],
+  updatingProducts: false,
+  errorUpdatingProducts: undefined,
 };
 
 export const OrganizationStore = signalStore(
@@ -118,52 +102,26 @@ export const OrganizationStore = signalStore(
   withComputed((store) => {
     const productsMap: Signal<Map<string, Product>> = computed(() => {
       return new Map(
-        store.currentOrganization?.()?.products.map((p) => {
+        store.products().map((p) => {
           return [p.id, p] as const;
         })
       );
     });
     return {
-      minimalOrganizations: computed<MinimalOrganization[]>(() => {
-        return store.organizations().map((o) => {
-          const { id, name, imageURI } = o;
-          return { id, name, imageURI };
-        });
-      }),
-      products: computed<Product[]>(() => Array.from(productsMap().values())),
       productsMap,
     };
   }),
   withMethods((store) => {
-    const get = (id: string): Organization | undefined => {
-      return store.organizations().find((o) => o.id === id);
+    const updateState = (newState: Partial<OrganizationState>) => {
+      patchState(store, (state) => {
+        return {
+          ...state,
+          ...newState,
+        };
+      });
     };
     return {
-      updateState(newState: Partial<Organization>) {
-        patchState(store, (state) => {
-          return {
-            ...state,
-            ...newState,
-          };
-        });
-      },
-      add(o: Organization) {
-        patchState(store, (state) => {
-          return {
-            ...state,
-            organizations: [...state.organizations, o],
-          };
-        });
-      },
-      get,
-      setCurrent(id: string) {
-        patchState(store, (state) => {
-          return {
-            ...state,
-            currentOrganization: get(id),
-          };
-        });
-      },
+      updateState,
       getProduct(id: string): Product | undefined {
         return store.productsMap().get(id);
       },
@@ -176,26 +134,13 @@ export const OrganizationStore = signalStore(
         // todo - call api to update products
         try {
           await new Promise((resolve, reject) => setTimeout(reject, 1000));
-          patchState(store, (state) => ({
-            ...state,
-            currentOrganization: state.currentOrganization
-              ? {
-                  ...state.currentOrganization,
-                  products,
-                }
-              : undefined,
-            updatingProducts: false,
-            errorUpdatingProducts: undefined,
-          }));
+          updateState({ products });
         } catch (error: unknown) {
           console.error('Error updating products', error);
           // TODO: get error message translation key from api response
-          patchState(store, (state) => ({
-            ...state,
-            updatingProducts: false,
-            errorUpdatingProducts: 'Error updating products',
-          }));
+          updateState({ errorUpdatingProducts: 'Error updating products' });
         }
+        updateState({ updatingProducts: false });
       },
     };
   })

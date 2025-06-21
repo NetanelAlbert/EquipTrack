@@ -54,6 +54,6 @@ export class InventoryListComponent {
    * Generate a unique key for an inventory item
    */
   private getItemKey(item: InventoryItem): string {
-    return `${item.productID}`;
+    return `${item.productId}`;
   }
 }

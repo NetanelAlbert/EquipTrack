@@ -1,5 +1,5 @@
 export interface ItemReport {
-    productID: string;
+    productId: string;
     upi: string;
     location: string;
     repotedBy: string;

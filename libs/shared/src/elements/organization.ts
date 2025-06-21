@@ -1,21 +1,24 @@
-
+/**
+ * Represents the definition of a product catalog item for an organization.
+ * This is not a specific instance of an item, but rather the template for it.
+ * (e.g., "16-inch MacBook Pro", not the one with serial number XYZ).
+ */
 export interface Product {
-    id: string;
-    name: string;
-    upi: boolean;    
+  id: string;
+  name: string;
+  /**
+   * Whether this product has a Unique Product Identifier (UPI), like a serial number.
+   * This determines if we track it as a 'UNIQUE_ITEM' or a 'BULK_ITEM_HOLDING'.
+   */
+  hasUpi: boolean;
 }
 
-/** DynamoDB table */
+/**
+ * Represents the metadata for an Organization.
+ * This is the root entity for all other data related to an organization.
+ */
 export interface Organization {
-    id: string; // partition key
-    name: string;
-    imageURI: string;
-    /**
-     * A fake user ID for the warehouse inventory.
-     * This is used to store the warehouse inventory for the organization.
-     * It is not a real user ID, it is just a placeholder.
-     */
-    warehouseUserID: string;
-    products: Product[]; // consider moving to a separate table
-    lastUpdatedTimeStamp: number;
+  id: string;
+  name: string;
+  imageUrl?: string;
 }

@@ -6,6 +6,7 @@ import {
   DeleteCommand,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
+import { DbItem } from '../models';
 
 export abstract class BaseAdapter<T> {
   protected readonly client: DynamoDBClient;
@@ -18,7 +19,7 @@ export abstract class BaseAdapter<T> {
     this.tableName = tableName;
   }
 
-  protected abstract getKey(item: Partial<T>): Record<string, any>;
+  protected abstract getKey(item: Partial<T>): DbItem;
 
   async get(key: Partial<T>): Promise<T | null> {
     const params = {

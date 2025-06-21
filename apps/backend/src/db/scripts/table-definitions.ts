@@ -2,8 +2,15 @@ import {
   AttributeDefinition,
   GlobalSecondaryIndex,
   KeySchemaElement,
-  TableDescription,
 } from '@aws-sdk/client-dynamodb';
+import {
+  ITEMS_BY_HOLDER_INDEX,
+  ITEM_REPORT_HISTORY_INDEX,
+  MAIN_TABLE_NAME,
+  ORGANIZATION_TO_USERS_INDEX,
+  REPORT_TABLE_NAME,
+  TRANSACTIONS_INDEX,
+} from '../constants';
 
 export interface TableDefinition {
   tableName: string;
@@ -14,58 +21,68 @@ export interface TableDefinition {
 }
 
 export const tableDefinitions: Record<string, TableDefinition> = {
-  InventoryForm: {
-    tableName: 'InventoryForm',
+  Main: {
+    tableName: MAIN_TABLE_NAME,
     keySchema: [
-      { AttributeName: 'userID', KeyType: 'HASH' },
-      { AttributeName: 'formID', KeyType: 'RANGE' },
+      { AttributeName: 'PK', KeyType: 'HASH' },
+      { AttributeName: 'SK', KeyType: 'RANGE' },
     ],
     attributeDefinitions: [
-      { AttributeName: 'userID', AttributeType: 'S' },
-      { AttributeName: 'formID', AttributeType: 'S' },
-      { AttributeName: 'organizationID', AttributeType: 'S' },
+      { AttributeName: 'PK', AttributeType: 'S' },
+      { AttributeName: 'SK', AttributeType: 'S' },
+      { AttributeName: 'holderId', AttributeType: 'S' },
+      { AttributeName: 'organizationToUserQueryKey', AttributeType: 'S' },
+      { AttributeName: 'transactionQueryKey', AttributeType: 'S' },
     ],
     globalSecondaryIndexes: [
       {
-        IndexName: 'OrganizationIndex',
+        IndexName: ITEMS_BY_HOLDER_INDEX,
         KeySchema: [
-          { AttributeName: 'organizationID', KeyType: 'HASH' },
-          { AttributeName: 'userID', KeyType: 'RANGE' },
+          { AttributeName: 'PK', KeyType: 'HASH' },
+          { AttributeName: 'holderId', KeyType: 'RANGE' },
+        ],
+        Projection: { ProjectionType: 'ALL' },
+      },
+      {
+        IndexName: ORGANIZATION_TO_USERS_INDEX,
+        KeySchema: [
+          { AttributeName: 'organizationToUserQueryKey', KeyType: 'HASH' },
+          { AttributeName: 'PK', KeyType: 'RANGE' },
+        ],
+        Projection: { ProjectionType: 'ALL' },
+      },
+      {
+        IndexName: TRANSACTIONS_INDEX,
+        KeySchema: [
+          { AttributeName: 'transactionQueryKey', KeyType: 'HASH' },
+          { AttributeName: 'SK', KeyType: 'RANGE' },
         ],
         Projection: { ProjectionType: 'ALL' },
       },
     ],
     billingMode: 'PAY_PER_REQUEST',
   },
-  PredefinedForm: {
-    tableName: 'PredefinedForm',
+  Reports: {
+    tableName: REPORT_TABLE_NAME,
     keySchema: [
-      { AttributeName: 'organizationID', KeyType: 'HASH' },
-      { AttributeName: 'formID', KeyType: 'RANGE' },
+      { AttributeName: 'orgDailyReportId', KeyType: 'HASH' },
+      { AttributeName: 'itemKey', KeyType: 'RANGE' },
     ],
     attributeDefinitions: [
-      { AttributeName: 'organizationID', AttributeType: 'S' },
-      { AttributeName: 'formID', AttributeType: 'S' },
+      { AttributeName: 'orgDailyReportId', AttributeType: 'S' },
+      { AttributeName: 'itemKey', AttributeType: 'S' },
+      { AttributeName: 'itemOrgKey', AttributeType: 'S' },
+      { AttributeName: 'reportDate', AttributeType: 'S' },
     ],
-    billingMode: 'PAY_PER_REQUEST',
-  },
-  Organization: {
-    tableName: 'Organization',
-    keySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
-    attributeDefinitions: [
-      { AttributeName: 'id', AttributeType: 'S' },
-    ],
-    billingMode: 'PAY_PER_REQUEST',
-  },
-  Inventory: {
-    tableName: 'Inventory',
-    keySchema: [
-      { AttributeName: 'organizationID', KeyType: 'HASH' },
-      { AttributeName: 'userID', KeyType: 'RANGE' },
-    ],
-    attributeDefinitions: [
-      { AttributeName: 'organizationID', AttributeType: 'S' },
-      { AttributeName: 'userID', AttributeType: 'S' },
+    globalSecondaryIndexes: [
+      {
+        IndexName: ITEM_REPORT_HISTORY_INDEX,
+        KeySchema: [
+          { AttributeName: 'itemOrgKey', KeyType: 'HASH' },
+          { AttributeName: 'reportDate', KeyType: 'RANGE' },
+        ],
+        Projection: { ProjectionType: 'ALL' },
+      },
     ],
     billingMode: 'PAY_PER_REQUEST',
   },

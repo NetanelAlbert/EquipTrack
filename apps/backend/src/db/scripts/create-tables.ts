@@ -13,7 +13,8 @@ export class TableCreator {
   }
 
   async createTables(): Promise<void> {
-    for (const [tableName, definition] of Object.entries(tableDefinitions)) {
+    for (const definition of Object.values(tableDefinitions)) {
+      const { tableName, keySchema, attributeDefinitions, globalSecondaryIndexes, billingMode } = definition;
       try {
         // Check if table exists
         try {
@@ -27,11 +28,11 @@ export class TableCreator {
         }
 
         const command = new CreateTableCommand({
-          TableName: definition.tableName,
-          KeySchema: definition.keySchema,
-          AttributeDefinitions: definition.attributeDefinitions,
-          GlobalSecondaryIndexes: definition.globalSecondaryIndexes,
-          BillingMode: definition.billingMode,
+          TableName: tableName,
+          KeySchema: keySchema,
+          AttributeDefinitions: attributeDefinitions,
+          GlobalSecondaryIndexes: globalSecondaryIndexes,
+          BillingMode: billingMode,
         });
 
         await this.client.send(command);

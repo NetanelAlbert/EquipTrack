@@ -2,7 +2,7 @@
   <button mat-icon-button (click)="menuClicked.emit()">
     <mat-icon>{{ menuOpen() ? 'menu_open' : 'menu' }}</mat-icon>
   </button>
-  <span class="organization-name">{{organizationStore.currentOrganization?.()?.name}}</span>
+  <span class="organization-name">{{organizationStore.organization.name()}}</span>
   @if (isRTL()) {
     <span class="separator">\</span>
   } @else {

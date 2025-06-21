@@ -34,13 +34,13 @@ const mockedReports: ReportsState = {
     date: '2025-06-09',
     items: [
       {
-        productID: '1',
+        productId: '1',
         upi: '123',
         location: 'Location 1',
         repotedBy: 'User 1',
       },
       {
-        productID: '2',
+        productId: '2',
         upi: '456',
         location: 'Location 2',
         repotedBy: 'User 2',

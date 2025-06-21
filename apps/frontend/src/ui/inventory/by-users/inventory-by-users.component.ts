@@ -25,8 +25,7 @@ import { OrganizationStore } from '../../../store/organization.store';
 export class InventoryByUsersComponent implements OnInit {
   inventoryStore = inject(InventoryStore);
   organizationStore = inject(OrganizationStore);
-  selectedUserID =
-    this.organizationStore.currentOrganization?.()?.warehouseUserID;
+  selectedUserID = undefined;
 
   userItems = computed(() =>
     this.inventoryStore.getUserInventory(this.selectedUserID || '')

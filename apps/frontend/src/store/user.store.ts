@@ -14,40 +14,32 @@ import {
 } from '@equip-track/shared';
 import { computed } from '@angular/core';
 
-type UserStoreState = User & {
+type UserStoreState = User & UserInOrganization & {
   checkedOut: InventoryItem[];
-  activeOrganization: UserInOrganization;
 };
 
 const mockedUser: UserStoreState = {
   name: 'Harry Potter',
   email: 'bla@shtut.x',
   id: '123',
+  userId: '123',
   phone: '123456789',
   department: 'Magic',
   departmentRole: 'Wizard',
-  organizations: [
-    {
-      organizationID: '123',
-      role: UserRole.WarehouseManager,
-    },
-  ],
+  organizationId: '123',
+  role: UserRole.WarehouseManager,
   state: UserState.Active,
   checkedOut: [
     {
-      productID: '1',
+      productId: '1',
       quantity: 14,
     },
     {
-      productID: '2',
+      productId: '2',
       quantity: 3,
       upis: ['123', '456', '789'],
     },
   ],
-  activeOrganization: {
-    organizationID: '123',
-    role: UserRole.WarehouseManager,
-  },
 };
 
 export const UserStore = signalStore(

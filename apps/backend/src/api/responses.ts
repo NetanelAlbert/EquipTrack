@@ -1,15 +1,33 @@
-export function unauthorized() {
+import { BasicResponse } from "@equip-track/shared";
+
+
+
+export interface ErrorResponse {
+  statusCode: number;
+  body: string;
+}
+
+export function error(error: string, statusCode = 500, errorMessage = 'Server error'): ErrorResponse {
   return {
-    statusCode: 401,
-    body: JSON.stringify({ error: 'Unauthorized' }),
+    statusCode,
+    body: JSON.stringify({ status: false, error, errorMessage }),
   };
 }
 
-export function badRequest(message = 'Invalid input') {
-  return {
-    statusCode: 400,
-    body: JSON.stringify({ error: message }),
-  };
+export function resourceNotFound(errorMessage = 'Resource not found'): ErrorResponse {
+  return error('Resource not found', 200, errorMessage);
+}
+
+export function unauthorized(errorMessage = 'Unauthorized'): ErrorResponse {
+  return error('Unauthorized', 401, errorMessage);
+}
+
+export function badRequest(errorMessage = 'Invalid input'): ErrorResponse {
+  return error('Bad request', 400, errorMessage);
+}
+
+export function forbidden(errorMessage = 'Forbidden'): ErrorResponse {
+  return error('Forbidden', 403, errorMessage);
 }
 
 export function ok(body: any) {

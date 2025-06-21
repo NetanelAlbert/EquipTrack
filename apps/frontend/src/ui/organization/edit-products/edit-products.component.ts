@@ -99,7 +99,7 @@ export class EditProductsComponent {
     return this.fb.group({
       id: [product.id, [Validators.required]],
       name: [product.name, [Validators.required, Validators.minLength(2)]],
-      upi: [product.upi],
+      upi: [product.hasUpi],
     }) as ProductFormGroup;
   }
 
@@ -111,7 +111,7 @@ export class EditProductsComponent {
     const newProduct: Product = {
       id: '',
       name: '',
-      upi: false,
+      hasUpi: false,
     };
     this.productsArray.push(this.createProductFormGroup(newProduct));
   }
@@ -124,12 +124,6 @@ export class EditProductsComponent {
   save() {
     if (this.form.valid) {
       const updatedProducts = this.productsArray.value;
-      const currentOrg = this.organizationStore.currentOrganization?.();
-      if (!currentOrg) {
-        console.error('No current organization found');
-        return;
-      }
-
       // NOTE: errors are handled in the store
       void this.organizationStore.editProducts(updatedProducts);
     } else {

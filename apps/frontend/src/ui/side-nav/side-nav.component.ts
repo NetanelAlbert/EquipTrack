@@ -30,7 +30,7 @@ export class SideNavComponent implements OnInit {
   isExpanded = signal<boolean>(false);
   currentItem = signal<NavItem | null>(null);
   userStore = inject(UserStore);
-  userRole = this.userStore.activeOrganization.role;
+  userRole = this.userStore.role;
   toggleExpanded() {
     this.isExpanded.set(!this.isExpanded());
   }

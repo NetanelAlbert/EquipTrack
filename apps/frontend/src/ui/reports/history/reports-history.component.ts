@@ -13,10 +13,8 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
-import { ReportsStore } from '../../../store/reports.store';
-import { UserStore } from '../../../store/user.store';
+import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
 import { ItemReport, InventoryReport } from '@equip-track/shared';
-import { OrganizationStore } from '../../../store/organization.store';
 
 @Component({
   selector: 'app-reports-history',
@@ -62,19 +60,19 @@ export class ReportsHistoryComponent implements OnInit {
       date: this.yesterday.toISOString().split('T')[0],
       items: [
         {
-          productID: '1',
+          productId: '1',
           upi: '123',
           location: 'Warehouse A',
           repotedBy: 'John Doe',
         },
         {
-          productID: '2',
+          productId: '2',
           upi: '456',
           location: 'Warehouse B',
           repotedBy: 'Jane Smith',
         },
         {
-          productID: '3',
+          productId: '3',
           upi: '789',
           location: 'Office Floor 1',
           repotedBy: 'Bob Johnson',
@@ -87,13 +85,13 @@ export class ReportsHistoryComponent implements OnInit {
       date: this.twoDaysAgo.toISOString().split('T')[0],
       items: [
         {
-          productID: '1',
+          productId: '1',
           upi: '123',
           location: 'Storage Room',
           repotedBy: 'John Doe',
         },
         {
-          productID: '4',
+          productId: '4',
           upi: '101',
           location: 'Lab A',
           repotedBy: 'Alice Brown',
@@ -159,8 +157,8 @@ export class ReportsHistoryComponent implements OnInit {
       if (this.sortBy === 'location') {
         return a.location.localeCompare(b.location);
       } else {
-        return this.getProductName(a.productID).localeCompare(
-          this.getProductName(b.productID)
+        return this.getProductName(a.productId).localeCompare(
+          this.getProductName(b.productId)
         );
       }
     });

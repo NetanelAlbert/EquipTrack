@@ -65,7 +65,7 @@ export class EditableItemComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.isUPI.set(this.productControl().value?.upi ?? false);
+    this.isUPI.set(this.productControl().value?.hasUpi ?? false);
   }
 
   productControl: Signal<FormControl<Product | null>> = computed(
@@ -140,7 +140,7 @@ export class EditableItemComponent implements OnInit {
   private initialIsUPI() {
     effect(() =>
       this.productControl().valueChanges.subscribe(() => {
-        this.isUPI.set(this.productControl().value?.upi ?? false);
+        this.isUPI.set(this.productControl().value?.hasUpi ?? false);
         this.upisControl().controls.forEach((control) =>
           this.setUPIValidations(control)
         );

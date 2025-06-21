@@ -15,6 +15,7 @@ import {
 import { UserStore } from './user.store';
 import { computed, inject } from '@angular/core';
 import { v4 as uuidv4 } from 'uuid';
+import { OrganizationStore } from './organization.store';
 
 interface FormsState {
   forms: InventoryForm[];
@@ -29,11 +30,11 @@ const mockedForms: FormsState = {
       type: FormType.CheckIn,
       items: [
         {
-          productID: '1',
+          productId: '1',
           quantity: 1,
         },
         {
-          productID: '2',
+          productId: '2',
           quantity: 2,
           upis: ['123', '456', '789'],
         },
@@ -49,7 +50,7 @@ const mockedForms: FormsState = {
       type: FormType.CheckOut,
       items: [
         {
-          productID: '1',
+          productId: '1',
           quantity: 1,
         },
       ],
@@ -65,7 +66,7 @@ const mockedForms: FormsState = {
       type: FormType.CheckIn,
       items: [
         {
-          productID: '1',
+          productId: '1',
           quantity: 1,
         },
       ],
@@ -95,9 +96,10 @@ export const FormsStore = signalStore(
   }),
   withMethods((state) => {
     const userStore = inject(UserStore);
+    const organizationStore = inject(OrganizationStore);
     return {
       fetchForms() {
-        const userRole = userStore.activeOrganization.role();
+        const userRole = userStore.role();
         if (
           [UserRole.WarehouseManager, UserRole.Admin].includes(
             userRole
@@ -119,7 +121,7 @@ export const FormsStore = signalStore(
       addCheckInForm(items: InventoryItem[]) {
         const newForm: InventoryForm = {
           userID: userStore.id(),
-          organizationID: userStore.activeOrganization.organizationID(),
+          organizationID: organizationStore.organization.id(),
           type: FormType.CheckIn,
           formID: uuidv4(),
           items: items,
@@ -135,7 +137,7 @@ export const FormsStore = signalStore(
       addCheckOutForm(items: InventoryItem[], userId: string) {
         const newForm: InventoryForm = {
           userID: userId,
-          organizationID: userStore.activeOrganization.organizationID(),
+          organizationID: organizationStore.organization.id(),
           type: FormType.CheckOut,
           formID: uuidv4(),
           items: items,
