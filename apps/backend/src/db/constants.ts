@@ -49,3 +49,11 @@ export const FORMS_BY_ORGANIZATION_INDEX = 'FormsByOrganizationIndex';
 // DynamoDB Limits and Configuration
 // ===================================
 export const BATCH_WRITE_SIZE = 25;
+
+// ===================================
+// DynamoDB Attribute Names and Expression Placeholders
+// ===================================
+export const ORG_DAILY_REPORT_ID_ATTR = 'orgDailyReportId';
+export const ITEM_ORG_KEY_ATTR = 'itemOrgKey';
+export const ORG_DAILY_REPORT_ID_PLACEHOLDER = ':orgDailyReportId';
+export const ITEM_ORG_KEY_PLACEHOLDER = ':itemOrgKey';

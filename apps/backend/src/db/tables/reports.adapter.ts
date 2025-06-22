@@ -14,6 +14,10 @@ import {
   DATE_PREFIX,
   ITEM_KEY_PREFIX,
   BATCH_WRITE_SIZE,
+  ORG_DAILY_REPORT_ID_ATTR,
+  ITEM_ORG_KEY_ATTR,
+  ORG_DAILY_REPORT_ID_PLACEHOLDER,
+  ITEM_ORG_KEY_PLACEHOLDER,
 } from '../constants';
 import { ItemReport } from '@equip-track/shared';
 
@@ -41,9 +45,9 @@ export class ReportsAdapter {
       const result = await this.docClient.send(
         new QueryCommand({
           TableName: this.tableName,
-          KeyConditionExpression: 'orgDailyReportId = :orgDailyReportId',
+          KeyConditionExpression: `${ORG_DAILY_REPORT_ID_ATTR} = ${ORG_DAILY_REPORT_ID_PLACEHOLDER}`,
           ExpressionAttributeValues: {
-            ':orgDailyReportId': orgDailyReportId,
+            [ORG_DAILY_REPORT_ID_PLACEHOLDER]: orgDailyReportId,
           },
         })
       );
@@ -177,7 +181,7 @@ export class ReportsAdapter {
     const reportItems = this.prepareReportItems(organizationId, date, items);
     let publishedCount = 0;
 
-    // Process items in batches of 25 (DynamoDB BatchWrite limit)
+    // Process items in batches (DynamoDB BatchWrite limit)
     const batchSize = BATCH_WRITE_SIZE;
     for (let i = 0; i < reportItems.length; i += batchSize) {
       const batch = reportItems.slice(i, i + batchSize);
@@ -199,9 +203,9 @@ export class ReportsAdapter {
       new QueryCommand({
         TableName: this.tableName,
         IndexName: ITEM_REPORT_HISTORY_INDEX,
-        KeyConditionExpression: 'itemOrgKey = :itemOrgKey',
+        KeyConditionExpression: `${ITEM_ORG_KEY_ATTR} = ${ITEM_ORG_KEY_PLACEHOLDER}`,
         ExpressionAttributeValues: {
-          ':itemOrgKey': itemOrgKey,
+          [ITEM_ORG_KEY_PLACEHOLDER]: itemOrgKey,
         },
         ScanIndexForward: false, // Most recent first
       })
@@ -219,9 +223,9 @@ export class ReportsAdapter {
     const result = await this.docClient.send(
       new QueryCommand({
         TableName: this.tableName,
-        KeyConditionExpression: 'orgDailyReportId = :orgDailyReportId',
+        KeyConditionExpression: `${ORG_DAILY_REPORT_ID_ATTR} = ${ORG_DAILY_REPORT_ID_PLACEHOLDER}`,
         ExpressionAttributeValues: {
-          ':orgDailyReportId': orgDailyReportId,
+          [ORG_DAILY_REPORT_ID_PLACEHOLDER]: orgDailyReportId,
         },
       })
     );
