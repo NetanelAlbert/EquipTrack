@@ -26,6 +26,7 @@ export enum DbItemType {
   InventoryItem = 'INVENTORY_ITEM',
   InventoryUniqueItem = 'INVENTORY_UNIQUE_ITEM',
   Form = 'FORM',
+  PredefinedForm = 'PREDEFINED_FORM',
 }
 // ===================================
 // Entity-specific Database Models

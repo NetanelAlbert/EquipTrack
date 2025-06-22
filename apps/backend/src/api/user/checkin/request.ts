@@ -1,10 +1,10 @@
-import { User, RequestCheckIn, BasicResponse } from '@equip-track/shared';
+import { BasicResponse } from '@equip-track/shared';
+import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 // import { InventoryFormAdapter } from '../../../../db/tables/inventory-form.adapter';
 
 export const handler = async (
-  user: User,
-  organizationId: string,
-  req: RequestCheckIn
+  _req: any,
+  pathParams: APIGatewayProxyEventPathParameters
 ): Promise<BasicResponse> => {
   // TODO: Use InventoryFormAdapter to request check-in
   return { status: true };

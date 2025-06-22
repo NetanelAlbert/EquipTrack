@@ -5,11 +5,15 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import {
   ITEMS_BY_HOLDER_INDEX,
+  ITEMS_BY_HOLDER_INDEX_HOLDER_PK,
   ITEM_REPORT_HISTORY_INDEX,
-  MAIN_TABLE_NAME,
-  ORGANIZATION_TO_USERS_INDEX,
   REPORT_TABLE_NAME,
-  TRANSACTIONS_INDEX,
+  USERS_AND_ORGANIZATIONS_TABLE_NAME,
+  INVENTORY_TABLE_NAME,
+  FORMS_TABLE_NAME,
+  FORMS_BY_ORGANIZATION_INDEX,
+  PRODUCTS_BY_ORGANIZATION_INDEX,
+  PRODUCTS_BY_ORGANIZATION_INDEX_PK,
 } from '../constants';
 
 export interface TableDefinition {
@@ -21,8 +25,8 @@ export interface TableDefinition {
 }
 
 export const tableDefinitions: Record<string, TableDefinition> = {
-  Main: {
-    tableName: MAIN_TABLE_NAME,
+  UsersAndOrganizations: {
+    tableName: USERS_AND_ORGANIZATIONS_TABLE_NAME,
     keySchema: [
       { AttributeName: 'PK', KeyType: 'HASH' },
       { AttributeName: 'SK', KeyType: 'RANGE' },
@@ -30,31 +34,57 @@ export const tableDefinitions: Record<string, TableDefinition> = {
     attributeDefinitions: [
       { AttributeName: 'PK', AttributeType: 'S' },
       { AttributeName: 'SK', AttributeType: 'S' },
-      { AttributeName: 'holderId', AttributeType: 'S' },
-      { AttributeName: 'organizationToUserQueryKey', AttributeType: 'S' },
-      { AttributeName: 'transactionQueryKey', AttributeType: 'S' },
+    ],
+    billingMode: 'PAY_PER_REQUEST',
+  },
+  Inventory: {
+    tableName: INVENTORY_TABLE_NAME,
+    keySchema: [
+      { AttributeName: 'PK', KeyType: 'HASH' },
+      { AttributeName: 'SK', KeyType: 'RANGE' },
+    ],
+    attributeDefinitions: [
+      { AttributeName: 'PK', AttributeType: 'S' },
+      { AttributeName: 'SK', AttributeType: 'S' },
+      { AttributeName: ITEMS_BY_HOLDER_INDEX_HOLDER_PK, AttributeType: 'S' },
+      { AttributeName: PRODUCTS_BY_ORGANIZATION_INDEX_PK, AttributeType: 'S' },
     ],
     globalSecondaryIndexes: [
       {
         IndexName: ITEMS_BY_HOLDER_INDEX,
         KeySchema: [
-          { AttributeName: 'PK', KeyType: 'HASH' },
-          { AttributeName: 'holderId', KeyType: 'RANGE' },
+          { AttributeName: ITEMS_BY_HOLDER_INDEX_HOLDER_PK, KeyType: 'HASH' },
+          { AttributeName: 'SK', KeyType: 'RANGE' },
         ],
         Projection: { ProjectionType: 'ALL' },
       },
       {
-        IndexName: ORGANIZATION_TO_USERS_INDEX,
+        IndexName: PRODUCTS_BY_ORGANIZATION_INDEX,
         KeySchema: [
-          { AttributeName: 'organizationToUserQueryKey', KeyType: 'HASH' },
-          { AttributeName: 'PK', KeyType: 'RANGE' },
+          { AttributeName: PRODUCTS_BY_ORGANIZATION_INDEX_PK, KeyType: 'HASH' },
+          { AttributeName: 'SK', KeyType: 'RANGE' },
         ],
         Projection: { ProjectionType: 'ALL' },
       },
+    ],
+    billingMode: 'PAY_PER_REQUEST',
+  },
+  Forms: {
+    tableName: FORMS_TABLE_NAME,
+    keySchema: [
+      { AttributeName: 'PK', KeyType: 'HASH' },
+      { AttributeName: 'SK', KeyType: 'RANGE' },
+    ],
+    attributeDefinitions: [
+      { AttributeName: 'PK', AttributeType: 'S' },
+      { AttributeName: 'SK', AttributeType: 'S' },
+      { AttributeName: 'organizationId', AttributeType: 'S' },
+    ],
+    globalSecondaryIndexes: [
       {
-        IndexName: TRANSACTIONS_INDEX,
+        IndexName: FORMS_BY_ORGANIZATION_INDEX,
         KeySchema: [
-          { AttributeName: 'transactionQueryKey', KeyType: 'HASH' },
+          { AttributeName: 'organizationId', KeyType: 'HASH' },
           { AttributeName: 'SK', KeyType: 'RANGE' },
         ],
         Projection: { ProjectionType: 'ALL' },

@@ -1,31 +1,52 @@
-import { User, StartResponse, UserInOrganization, Organization } from '@equip-track/shared';
-import { MainAdapter } from '../db';
-import { resourceNotFound } from './responses';
+import {
+  StartResponse,
+  UserInOrganization,
+  Organization,
+  USER_ID_PATH_PARAM,
+} from '@equip-track/shared';
+import { UsersAndOrganizationsAdapter } from '../db';
+import { badRequest, resourceNotFound } from './responses';
+import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 
-const mainAdapter = new MainAdapter();
+const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
 
-export const handler = async (
-  user: User,
-): Promise<StartResponse> => {
-  const userAndAllOrganizations = await mainAdapter.getUserAndAllOrganizations(user.id);
+export const handler = async (_req: unknown, pathParams: APIGatewayProxyEventPathParameters): Promise<StartResponse> => {
+  const userId = pathParams[USER_ID_PATH_PARAM];
+  if (!userId) {
+    throw badRequest('User ID is required');
+  }
+  const userAndAllOrganizations =
+    await usersAndOrganizationsAdapter.getUserAndAllOrganizations(userId);
   if (!userAndAllOrganizations) {
     throw resourceNotFound('User not found');
   }
   const { user: userFromDb, userInOrganizations } = userAndAllOrganizations;
-  const organizations: Organization[] = await getOrganizations(userInOrganizations);
+  const organizations: Organization[] = await getOrganizations(
+    userInOrganizations
+  );
   validateUserInOrganizations(userInOrganizations, organizations);
+
   return { status: true, user: userFromDb, userInOrganizations, organizations };
 };
 
-async function getOrganizations(userInOrganizations: UserInOrganization[]): Promise<Organization[]> {
-  const organizationIds: string[] = userInOrganizations.map(u => u.organizationId);
-  return await mainAdapter.getOrganizations(organizationIds);
+async function getOrganizations(
+  userInOrganizations: UserInOrganization[]
+): Promise<Organization[]> {
+  const organizationIds: string[] = userInOrganizations.map(
+    (u) => u.organizationId
+  );
+  return await usersAndOrganizationsAdapter.getOrganizations(organizationIds);
 }
 
-function validateUserInOrganizations(userInOrganizations: UserInOrganization[], organizations: Organization[]) {
-  userInOrganizations.forEach(u => {
-    if (!organizations.some(o => o.id === u.organizationId)) {
-      throw resourceNotFound(`Organization not found (organizationId: ${u.organizationId})`);
+function validateUserInOrganizations(
+  userInOrganizations: UserInOrganization[],
+  organizations: Organization[]
+) {
+  userInOrganizations.forEach((u) => {
+    if (!organizations.some((o) => o.id === u.organizationId)) {
+      throw resourceNotFound(
+        `Organization not found (organizationId: ${u.organizationId})`
+      );
     }
   });
 }

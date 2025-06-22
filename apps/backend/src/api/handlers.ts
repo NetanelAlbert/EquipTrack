@@ -1,4 +1,4 @@
-import { endpointMetas, EndpointMeta, User } from '@equip-track/shared';
+import { endpointMetas, EndpointMeta } from '@equip-track/shared';
 import { handler as getUsersHandler } from './admin/users/get';
 import { handler as setUserHandler } from './admin/users/set';
 import { handler as approveCheckOutHandler } from './user/checkout/approve';
@@ -8,10 +8,15 @@ import { handler as setProductsHandler } from './warehouse/products/set';
 import { handler as addInventoryHandler } from './warehouse/inventory/add';
 import { handler as removeInventoryHandler } from './warehouse/inventory/remove';
 import { handler as getInventoryHandler } from './warehouse/inventory/get';
+import { handler as getUserInventoryHandler } from './warehouse/inventory/get-user';
 import { handler as startHandler } from './start';
+import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 
 // Handler signatures
-export type HandlerFunction<Req, Res> = (user: User, organizationId: string | undefined, req: Req) => Promise<Res>;
+export type HandlerFunction<Req, Res> = (
+  req: Req,
+  pathParams?: APIGatewayProxyEventPathParameters
+) => Promise<Res>;
 
 type Handlers = {
   [K in keyof typeof endpointMetas]: (typeof endpointMetas)[K] extends EndpointMeta<
@@ -38,4 +43,5 @@ export const handlers: Handlers = {
   addInventory: addInventoryHandler,
   removeInventory: removeInventoryHandler,
   getInventory: getInventoryHandler,
+  getUserInventory: getUserInventoryHandler,
 };

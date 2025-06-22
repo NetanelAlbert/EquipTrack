@@ -14,9 +14,10 @@ import {
 } from '@equip-track/shared';
 import { computed } from '@angular/core';
 
-type UserStoreState = User & UserInOrganization & {
-  checkedOut: InventoryItem[];
-};
+type UserStoreState = User &
+  UserInOrganization & {
+    checkedOut: InventoryItem[];
+  };
 
 const mockedUser: UserStoreState = {
   name: 'Harry Potter',
@@ -27,7 +28,7 @@ const mockedUser: UserStoreState = {
   department: 'Magic',
   departmentRole: 'Wizard',
   organizationId: '123',
-  role: UserRole.WarehouseManager,
+  role: UserRole.Customer,
   state: UserState.Active,
   checkedOut: [
     {

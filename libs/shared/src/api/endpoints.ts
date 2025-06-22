@@ -15,6 +15,7 @@ export interface EndpointMeta<Req = any, Res = any> {
 }
 
 export const ORGANIZATION_ID_PATH_PARAM = 'organizationId';
+export const USER_ID_PATH_PARAM = 'userId';
 
 export const endpointMetas = {
   // Admin Users
@@ -34,7 +35,7 @@ export const endpointMetas = {
 
   // Basic User
   start: {
-    path: '/api/start',
+    path: `/api/users/{${USER_ID_PATH_PARAM}}/start`,
     method: 'GET',
     allowedRoles: [
       UserRole.Admin,
@@ -46,21 +47,21 @@ export const endpointMetas = {
   approveCheckOut: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkout/approve`,
     method: 'POST',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
     requestType: {} as BasicUser.ApproveCheckOut,
     responseType: {} as BasicResponse,
   } as EndpointMeta<BasicUser.ApproveCheckOut, BasicResponse>,
   rejectCheckOut: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkout/reject`,
     method: 'POST',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
     requestType: {} as BasicUser.RejectCheckOut,
     responseType: {} as BasicResponse,
   } as EndpointMeta<BasicUser.RejectCheckOut, BasicResponse>,
   requestCheckIn: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkin/request`,
     method: 'POST',
-    allowedRoles: [UserRole.Customer, UserRole.Admin],
+    allowedRoles: [UserRole.Customer, UserRole.Admin, UserRole.WarehouseManager],
     requestType: {} as BasicUser.RequestCheckIn,
     responseType: {} as BasicResponse,
   } as EndpointMeta<BasicUser.RequestCheckIn, BasicResponse>,
@@ -93,4 +94,10 @@ export const endpointMetas = {
     allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
     responseType: {} as Wharehouse.GetInventoryResponse,
   } as EndpointMeta<undefined, Wharehouse.GetInventoryResponse>,
+  getUserInventory: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/inventory/user/{${USER_ID_PATH_PARAM}}`,
+    method: 'GET',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    responseType: {} as Wharehouse.GetUserInventoryResponse,
+  } as EndpointMeta<undefined, Wharehouse.GetUserInventoryResponse>,
 };

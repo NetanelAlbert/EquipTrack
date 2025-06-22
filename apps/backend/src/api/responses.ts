@@ -1,6 +1,3 @@
-import { BasicResponse } from "@equip-track/shared";
-
-
 
 export interface ErrorResponse {
   statusCode: number;
