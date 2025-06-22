@@ -21,6 +21,8 @@ export const HOLDER_PREFIX = 'HOLDER#';
 export const WAREHOUSE_PREFIX = 'WAREHOUSE#';
 export const TRANSFER_PREFIX = 'TRANSFER#';
 export const FORM_PREFIX = 'FORM#';
+export const DATE_PREFIX = 'DATE#';
+export const ITEM_KEY_PREFIX = 'ITEM_KEY#';
 
 // ===================================
 // Special / Reserved Sort Keys
@@ -42,3 +44,8 @@ export const ORGANIZATION_TO_USERS_INDEX_PK = 'organizationToUserQueryKey';
 export const TRANSACTIONS_INDEX = 'TransactionsIndex';
 export const ITEM_REPORT_HISTORY_INDEX = 'ItemReportHistoryIndex';
 export const FORMS_BY_ORGANIZATION_INDEX = 'FormsByOrganizationIndex';
+
+// ===================================
+// DynamoDB Limits and Configuration
+// ===================================
+export const BATCH_WRITE_SIZE = 25;

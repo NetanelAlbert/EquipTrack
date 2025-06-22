@@ -24,29 +24,25 @@ const initialState: ReportsState = {
 
 const mockedReports: ReportsState = {
   todayReport: {
-    organizationID: '1',
     date: '2025-06-09',
     items: [],
-    lastUpdatedTimeStamp: Date.now(),
   },
   lastReport: {
-    organizationID: '1',
     date: '2025-06-09',
     items: [
       {
         productId: '1',
         upi: '123',
         location: 'Location 1',
-        repotedBy: 'User 1',
+        reportedBy: 'User 1',
       },
       {
         productId: '2',
         upi: '456',
         location: 'Location 2',
-        repotedBy: 'User 2',
+        reportedBy: 'User 2',
       },
     ],
-    lastUpdatedTimeStamp: Date.now(),
   },
   loading: false,
   error: null,
@@ -98,7 +94,6 @@ export const ReportsStore = signalStore(
             todayReport: {
               ...todayReport,
               items: updatedItems,
-              lastUpdatedTimeStamp: Date.now(),
             },
             loading: false,
           });

@@ -2,6 +2,7 @@ import { UserRole } from '../elements/users';
 import * as Admin from './admin';
 import * as BasicUser from './basicUser';
 import * as Wharehouse from './wharehouse';
+import * as Reports from './reports';
 import { BasicResponse } from './basic';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -47,21 +48,33 @@ export const endpointMetas = {
   approveCheckOut: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkout/approve`,
     method: 'POST',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    allowedRoles: [
+      UserRole.WarehouseManager,
+      UserRole.Admin,
+      UserRole.Customer,
+    ],
     requestType: {} as BasicUser.ApproveCheckOut,
     responseType: {} as BasicResponse,
   } as EndpointMeta<BasicUser.ApproveCheckOut, BasicResponse>,
   rejectCheckOut: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkout/reject`,
     method: 'POST',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    allowedRoles: [
+      UserRole.WarehouseManager,
+      UserRole.Admin,
+      UserRole.Customer,
+    ],
     requestType: {} as BasicUser.RejectCheckOut,
     responseType: {} as BasicResponse,
   } as EndpointMeta<BasicUser.RejectCheckOut, BasicResponse>,
   requestCheckIn: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkin/request`,
     method: 'POST',
-    allowedRoles: [UserRole.Customer, UserRole.Admin, UserRole.WarehouseManager],
+    allowedRoles: [
+      UserRole.Customer,
+      UserRole.Admin,
+      UserRole.WarehouseManager,
+    ],
     requestType: {} as BasicUser.RequestCheckIn,
     responseType: {} as BasicResponse,
   } as EndpointMeta<BasicUser.RequestCheckIn, BasicResponse>,
@@ -97,7 +110,39 @@ export const endpointMetas = {
   getUserInventory: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/inventory/user/{${USER_ID_PATH_PARAM}}`,
     method: 'GET',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    allowedRoles: [
+      UserRole.WarehouseManager,
+      UserRole.Admin,
+      UserRole.Customer,
+    ],
     responseType: {} as Wharehouse.GetUserInventoryResponse,
   } as EndpointMeta<undefined, Wharehouse.GetUserInventoryResponse>,
+
+  // Reports
+  getReports: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports`,
+    method: 'GET',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    responseType: {} as Reports.GetReportsResponse,
+  } as EndpointMeta<undefined, Reports.GetReportsResponse>,
+  getReportsByDates: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports/by-dates`,
+    method: 'POST',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    requestType: {} as Reports.GetReportsByDatesRequest,
+    responseType: {} as Reports.GetReportsByDatesResponse,
+  } as EndpointMeta<
+    Reports.GetReportsByDatesRequest,
+    Reports.GetReportsByDatesResponse
+  >,
+  publishPartialReport: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports/publish`,
+    method: 'POST',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    requestType: {} as Reports.PublishPartialReportRequest,
+    responseType: {} as Reports.PublishPartialReportResponse,
+  } as EndpointMeta<
+    Reports.PublishPartialReportRequest,
+    Reports.PublishPartialReportResponse
+  >,
 };

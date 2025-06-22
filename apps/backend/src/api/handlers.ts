@@ -9,6 +9,9 @@ import { handler as addInventoryHandler } from './warehouse/inventory/add';
 import { handler as removeInventoryHandler } from './warehouse/inventory/remove';
 import { handler as getInventoryHandler } from './warehouse/inventory/get';
 import { handler as getUserInventoryHandler } from './warehouse/inventory/get-user';
+import { handler as getReportsHandler } from './warehouse/reports/get';
+import { handler as getReportsByDatesHandler } from './warehouse/reports/get-by-dates';
+import { handler as publishPartialReportHandler } from './warehouse/reports/publish';
 import { handler as startHandler } from './start';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 
@@ -44,4 +47,9 @@ export const handlers: Handlers = {
   removeInventory: removeInventoryHandler,
   getInventory: getInventoryHandler,
   getUserInventory: getUserInventoryHandler,
+
+  // Reports
+  getReports: getReportsHandler,
+  getReportsByDates: getReportsByDatesHandler,
+  publishPartialReport: publishPartialReportHandler,
 };

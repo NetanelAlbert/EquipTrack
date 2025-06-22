@@ -13,6 +13,7 @@ export interface User {
   email: string;
   phone?: string;
   state: UserState;
+  organizationIdToShow?: string;
 }
 
 export enum UserRole {

@@ -110,7 +110,7 @@ export class TodayReportComponent implements OnInit {
               productId: item.productId,
               upi: upi,
               location: '',
-              repotedBy: this.userStore.name(),
+              reportedBy: this.userStore.name(),
             });
           }
         });

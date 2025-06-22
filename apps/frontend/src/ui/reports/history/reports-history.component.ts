@@ -56,48 +56,44 @@ export class ReportsHistoryComponent implements OnInit {
   // Mock historical data - in real implementation this would come from the store/API
   private mockHistoricalReports: InventoryReport[] = [
     {
-      organizationID: '1',
       date: this.yesterday.toISOString().split('T')[0],
       items: [
         {
           productId: '1',
           upi: '123',
           location: 'Warehouse A',
-          repotedBy: 'John Doe',
+          reportedBy: 'John Doe',
         },
         {
           productId: '2',
           upi: '456',
           location: 'Warehouse B',
-          repotedBy: 'Jane Smith',
+          reportedBy: 'Jane Smith',
         },
         {
           productId: '3',
           upi: '789',
           location: 'Office Floor 1',
-          repotedBy: 'Bob Johnson',
+          reportedBy: 'Bob Johnson',
         },
       ],
-      lastUpdatedTimeStamp: Date.now() - 86400000, // Yesterday
     },
     {
-      organizationID: '1',
       date: this.twoDaysAgo.toISOString().split('T')[0],
       items: [
         {
           productId: '1',
           upi: '123',
           location: 'Storage Room',
-          repotedBy: 'John Doe',
+          reportedBy: 'John Doe',
         },
         {
           productId: '4',
           upi: '101',
           location: 'Lab A',
-          repotedBy: 'Alice Brown',
+          reportedBy: 'Alice Brown',
         },
       ],
-      lastUpdatedTimeStamp: Date.now() - 172800000, // 2 days ago
     },
   ];
 
