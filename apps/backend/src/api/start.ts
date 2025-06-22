@@ -7,7 +7,11 @@ const mainAdapter = new MainAdapter();
 export const handler = async (
   user: User,
 ): Promise<StartResponse> => {
-  const { user: userFromDb, userInOrganizations } = await mainAdapter.getUserAndAllOrganizations(user.id);
+  const userAndAllOrganizations = await mainAdapter.getUserAndAllOrganizations(user.id);
+  if (!userAndAllOrganizations) {
+    throw resourceNotFound('User not found');
+  }
+  const { user: userFromDb, userInOrganizations } = userAndAllOrganizations;
   const organizations: Organization[] = await getOrganizations(userInOrganizations);
   validateUserInOrganizations(userInOrganizations, organizations);
   return { status: true, user: userFromDb, userInOrganizations, organizations };

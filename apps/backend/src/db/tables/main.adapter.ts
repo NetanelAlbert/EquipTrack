@@ -28,7 +28,6 @@ import {
   UPI_PREFIX,
 } from '../constants';
 import { Organization, User, UserInOrganization } from '@equip-track/shared';
-import { resourceNotFound } from '../../api/responses';
 
 export interface UserAndAllOrganizations {
     user: User;
@@ -42,7 +41,7 @@ export class MainAdapter {
 
   async getUserAndAllOrganizations(
     userId: string
-  ): Promise<UserAndAllOrganizations> {
+  ): Promise<UserAndAllOrganizations | undefined> {
     const command = new QueryCommand({
       TableName: this.tableName,
       KeyConditionExpression: 'PK = :pk',
@@ -63,7 +62,7 @@ export class MainAdapter {
       }
     });
     if (!user) {
-      throw resourceNotFound('User not found');
+      return undefined;
     }
     return { user, userInOrganizations };
   }
