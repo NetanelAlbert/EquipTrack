@@ -24,7 +24,7 @@ const mockInventory: InventoryItem[] = [
   },
   {
     productId: '2',
-    quantity: 20,
+    quantity: 2,
     upis: ['UPIS1', 'UPIS2'],
   },
 ];
@@ -42,27 +42,9 @@ export const InventoryStore = signalStore(
   withComputed((store) => {
     return {
       totalOrganizationItems: computed<InventoryItem[]>(() => {
-        // key is productId, value is inventory item
-        const items: Record<string, InventoryItem> = {};
-        store.wareHouseInventory().forEach((item) => {
-          items[item.productId] = item;
-        });
-        Object.values(store.inventory()).forEach((userItems) => {
-          userItems.forEach((item) => {
-            if (items[item.productId]) {
-              items[item.productId].quantity += item.quantity;
-              if (item.upis || items[item.productId].upis) {
-                items[item.productId].upis = [
-                  ...(items[item.productId].upis ?? []),
-                  ...(item.upis ?? []),
-                ];
-              }
-            } else {
-              items[item.productId] = item;
-            }
-          });
-        });
-        return Object.values(items);
+        const usersItems = Object.values(store.inventory()).flat();
+        const warehouseItems = store.wareHouseInventory();
+        return mergeInventoryItems([...usersItems, ...warehouseItems]);
       }),
     };
   }),
@@ -81,10 +63,10 @@ export const InventoryStore = signalStore(
         try {
           updateState({
             inventory: {
-              '1': mockInventory,
-              '2': mockInventory,
+              '1': [...mockInventory],
+              '2': [...mockInventory],
             },
-            wareHouseInventory: mockInventory,
+            wareHouseInventory: [...mockInventory],
           });
         } catch (error) {
           console.error('error fetching inventory', error);
@@ -99,3 +81,34 @@ export const InventoryStore = signalStore(
     };
   })
 );
+
+function mergeInventoryItems(items: InventoryItem[]): InventoryItem[] {
+  const mergedItems: Record<string, InventoryItem> = {};
+  items.forEach((item) => {
+    if (mergedItems[item.productId]) {
+      mergedItems[item.productId] = mergeInventoryItem(
+        mergedItems[item.productId],
+        item
+      );
+    } else {
+      mergedItems[item.productId] = item;
+    }
+  });
+  return Object.values(mergedItems);
+}
+
+function mergeInventoryItem(
+  item1: InventoryItem,
+  item2: InventoryItem
+): InventoryItem {
+  if (item1.productId !== item2.productId) {
+    throw new Error(
+      `Cannot merge inventory items with different product IDs (${item1.productId} and ${item2.productId})`
+    );
+  }
+  return {
+    productId: item1.productId,
+    quantity: item1.quantity + item2.quantity,
+    upis: [...(item1.upis ?? []), ...(item2.upis ?? [])],
+  };
+}
