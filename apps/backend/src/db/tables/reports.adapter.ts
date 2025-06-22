@@ -32,10 +32,10 @@ export class ReportsAdapter {
   async getReportsByDates(
     organizationId: string,
     dates: string[]
-  ): Promise<ReportItem[]> {
-    const allReports: ReportItem[] = [];
+  ): Promise<Map<string, ReportItem[]>> {
+    const reportsByDate: Map<string, ReportItem[]> = new Map();
 
-    for (const date of dates) {
+    const promises = dates.map(async (date) => {
       const orgDailyReportId = `${ORG_PREFIX}${organizationId}#${DATE_PREFIX}${date}`;
 
       const result = await this.docClient.send(
@@ -49,11 +49,20 @@ export class ReportsAdapter {
       );
 
       if (result.Items) {
-        allReports.push(...(result.Items as ReportItem[]));
+        return {
+          date,
+          reports: result.Items as ReportItem[],
+        };
       }
-    }
+    });
 
-    return allReports;
+    const results = await Promise.all(promises);
+
+    results.forEach((result) => {
+      reportsByDate.set(result.date, result.reports);
+    });
+
+    return reportsByDate;
   }
 
   private prepareReportItems(
