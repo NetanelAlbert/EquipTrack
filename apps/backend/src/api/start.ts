@@ -20,13 +20,13 @@ export const handler = async (_req: unknown, pathParams: APIGatewayProxyEventPat
   if (!userAndAllOrganizations) {
     throw resourceNotFound('User not found');
   }
-  const { user: userFromDb, userInOrganizations } = userAndAllOrganizations;
+  const { user, userInOrganizations } = userAndAllOrganizations;
   const organizations: Organization[] = await getOrganizations(
     userInOrganizations
   );
   validateUserInOrganizations(userInOrganizations, organizations);
 
-  return { status: true, user: userFromDb, userInOrganizations, organizations };
+  return { status: true, user, userInOrganizations, organizations };
 };
 
 async function getOrganizations(
