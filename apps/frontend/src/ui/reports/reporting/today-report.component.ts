@@ -56,7 +56,7 @@ export class TodayReportComponent implements OnInit {
 
   getLastLocation(item: ItemReport): string | null {
     const lastReport = this.reportsStore.lastReport();
-    const lastItem = lastReport?.items.find((i) => i.upi === item.upi);
+    const lastItem = lastReport?.find((i) => i.upi === item.upi);
     return lastItem?.location || null;
   }
 
@@ -97,7 +97,7 @@ export class TodayReportComponent implements OnInit {
   private getItemsToReport(): ItemReport[] {
     const todayReport = this.reportsStore.todayReport();
     const reportedUpis = new Set(
-      todayReport?.items.map((item) => item.upi) || []
+      todayReport?.map((item) => item.upi) || []
     );
 
     const itemsToReport: ItemReport[] = [];
@@ -122,7 +122,7 @@ export class TodayReportComponent implements OnInit {
 
   sortItems() {
     const todayReport = this.reportsStore.todayReport();
-    const reportedItems = todayReport?.items || [];
+    const reportedItems = todayReport || [];
     const itemsToReport = this.getItemsToReport();
 
     this.sortedItems = [...reportedItems, ...itemsToReport].sort((a, b) => {
@@ -143,7 +143,7 @@ export class TodayReportComponent implements OnInit {
       return item.location;
     }
     const lastReport = this.reportsStore.lastReport();
-    const lastItem = lastReport?.items.find((i) => i.upi === item.upi);
+    const lastItem = lastReport?.find((i) => i.upi === item.upi);
     return lastItem?.location || '';
   }
 

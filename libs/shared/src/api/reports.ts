@@ -1,8 +1,8 @@
-import { InventoryReport } from '../elements/reports';
+import { ItemReport } from '../elements/reports';
 import { BasicResponse } from './basic';
 
 export interface GetReportsResponse extends BasicResponse {
-  reports: InventoryReport[];
+  reportsByDate: Map<string, ItemReport[]>;
 }
 
 export interface GetReportsByDatesRequest {
@@ -10,7 +10,7 @@ export interface GetReportsByDatesRequest {
 }
 
 export interface GetReportsByDatesResponse extends BasicResponse {
-  reports: InventoryReport[];
+  reportsByDate: Map<string, ItemReport[]>;
 }
 
 export interface PublishPartialReportRequest {

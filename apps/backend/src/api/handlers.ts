@@ -32,24 +32,24 @@ type Handlers = {
 
 export const handlers: Handlers = {
   // Admin Users
-  getUsers: getUsersHandler,
-  setUser: setUserHandler,
+  getUsers: getUsersHandler, // TODO: Implement this
+  setUser: setUserHandler, // TODO: Implement this
 
   // Basic User
   start: startHandler,
-  approveCheckOut: approveCheckOutHandler,
-  rejectCheckOut: rejectCheckOutHandler,
-  requestCheckIn: requestCheckInHandler,
+  approveCheckOut: approveCheckOutHandler, // TODO: Implement this
+  rejectCheckOut: rejectCheckOutHandler, // TODO: Implement this
+  requestCheckIn: requestCheckInHandler, // TODO: Implement this
 
   // Warehouse
-  setProducts: setProductsHandler,
-  addInventory: addInventoryHandler,
-  removeInventory: removeInventoryHandler,
-  getInventory: getInventoryHandler,
+  setProducts: setProductsHandler, // TODO: Implement this
+  addInventory: addInventoryHandler, // TODO: Implement this
+  removeInventory: removeInventoryHandler, // TODO: Implement this
+  getInventory: getInventoryHandler, // TODO: Implement this
   getUserInventory: getUserInventoryHandler,
 
   // Reports
-  getReports: getReportsHandler,
+  getReports: getReportsHandler, // needed?
   getReportsByDates: getReportsByDatesHandler,
   publishPartialReport: publishPartialReportHandler,
 };

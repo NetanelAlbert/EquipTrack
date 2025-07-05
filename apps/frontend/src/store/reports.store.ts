@@ -6,11 +6,12 @@ import {
   withState,
 } from '@ngrx/signals';
 import { computed } from '@angular/core';
-import { InventoryReport, ItemReport } from '@equip-track/shared';
+import { ItemReport } from '@equip-track/shared';
 
 interface ReportsState {
-  todayReport: InventoryReport | null;
-  lastReport: InventoryReport | null;
+  todayReport: ItemReport[] | null;
+  lastReport: ItemReport[] | null;
+  reportsByDate: Map<string, ItemReport[]>;
   loading: boolean;
   error: string | null;
 }
@@ -18,18 +19,14 @@ interface ReportsState {
 const initialState: ReportsState = {
   todayReport: null,
   lastReport: null,
+  reportsByDate: new Map(),
   loading: false,
   error: null,
 };
 
 const mockedReports: ReportsState = {
-  todayReport: {
-    date: '2025-06-09',
-    items: [],
-  },
-  lastReport: {
-    date: '2025-06-09',
-    items: [
+  todayReport: [],
+  lastReport: [
       {
         productId: '1',
         upi: '123',
@@ -43,7 +40,16 @@ const mockedReports: ReportsState = {
         reportedBy: 'User 2',
       },
     ],
-  },
+  reportsByDate: new Map([
+    ['2025-06-09', [
+      {
+        productId: '1',
+        upi: '123',
+        location: 'Location 1',
+        reportedBy: 'User 1',
+      },
+    ]],
+  ]),
   loading: false,
   error: null,
 };
@@ -81,7 +87,7 @@ export const ReportsStore = signalStore(
         // TODO: Implement API call to update item report
         const todayReport = store.todayReport();
         if (todayReport) {
-          const updatedItems = [...todayReport.items];
+          const updatedItems = [...todayReport];
           const existingIndex = updatedItems.findIndex(
             (item) => item.upi === itemReport.upi
           );
@@ -91,14 +97,12 @@ export const ReportsStore = signalStore(
             updatedItems.push(itemReport);
           }
           patchState(store, {
-            todayReport: {
-              ...todayReport,
-              items: updatedItems,
-            },
+            todayReport: updatedItems,
             loading: false,
           });
         }
-      } catch (error) {
+      } catch (error: unknown) {
+        console.error('Failed to update item report', error);
         patchState(store, {
           error: 'Failed to update item report',
           loading: false,

@@ -2,8 +2,9 @@ import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import {
   PublishPartialReportRequest,
   PublishPartialReportResponse,
+  isValidDate,
 } from '@equip-track/shared';
-import { ReportsAdapter } from '../../db/tables/reports.adapter';
+import { ReportsAdapter } from '../../../db/tables/reports.adapter';
 
 export async function handler(
   req: PublishPartialReportRequest,
@@ -22,9 +23,7 @@ export async function handler(
     throw new Error('Items array is required and must not be empty');
   }
 
-  // Validate date format (YYYY-MM-DD)
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!dateRegex.test(req.date)) {
+  if (!isValidDate(req.date)) {
     throw new Error('Date must be in YYYY-MM-DD format');
   }
 
@@ -40,11 +39,7 @@ export async function handler(
   const reportsAdapter = new ReportsAdapter();
 
   try {
-    const publishedCount = await reportsAdapter.publishPartialReport({
-      organizationId,
-      date: req.date,
-      items: req.items,
-    });
+    const publishedCount = await reportsAdapter.publishPartialReport(organizationId, req.date, req.items);
 
     return {
       status: true,

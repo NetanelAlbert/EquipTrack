@@ -14,7 +14,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
-import { ItemReport, InventoryReport } from '@equip-track/shared';
+import { ItemReport } from '@equip-track/shared';
 
 @Component({
   selector: 'app-reports-history',
@@ -46,59 +46,13 @@ export class ReportsHistoryComponent implements OnInit {
   selectedDate: Date = new Date();
   sortBy: 'location' | 'product' = 'product';
   sortedItems: ItemReport[] = [];
-  selectedReport: InventoryReport | null = null;
-  historicalReports: InventoryReport[] = [];
+  selectedReport: ItemReport[] | null = null;
 
   private today = new Date();
   private yesterday = new Date(this.today.getTime() - 24 * 60 * 60 * 1000);
   private twoDaysAgo = new Date(this.yesterday.getTime() - 24 * 60 * 60 * 1000);
 
-  // Mock historical data - in real implementation this would come from the store/API
-  private mockHistoricalReports: InventoryReport[] = [
-    {
-      date: this.yesterday.toISOString().split('T')[0],
-      items: [
-        {
-          productId: '1',
-          upi: '123',
-          location: 'Warehouse A',
-          reportedBy: 'John Doe',
-        },
-        {
-          productId: '2',
-          upi: '456',
-          location: 'Warehouse B',
-          reportedBy: 'Jane Smith',
-        },
-        {
-          productId: '3',
-          upi: '789',
-          location: 'Office Floor 1',
-          reportedBy: 'Bob Johnson',
-        },
-      ],
-    },
-    {
-      date: this.twoDaysAgo.toISOString().split('T')[0],
-      items: [
-        {
-          productId: '1',
-          upi: '123',
-          location: 'Storage Room',
-          reportedBy: 'John Doe',
-        },
-        {
-          productId: '4',
-          upi: '101',
-          location: 'Lab A',
-          reportedBy: 'Alice Brown',
-        },
-      ],
-    },
-  ];
-
   ngOnInit() {
-    this.loadHistoricalReports();
     this.loadReportForDate(this.selectedDate);
   }
 
@@ -110,27 +64,18 @@ export class ReportsHistoryComponent implements OnInit {
   goToPreviousDay() {
     const previousDay = new Date(this.selectedDate);
     previousDay.setDate(previousDay.getDate() - 1);
-    this.selectedDate = previousDay;
-    this.loadReportForDate(previousDay);
+    this.onDateChange(previousDay);
   }
 
   goToNextDay() {
     const nextDay = new Date(this.selectedDate);
     nextDay.setDate(nextDay.getDate() + 1);
-    this.selectedDate = nextDay;
-    this.loadReportForDate(nextDay);
-  }
-
-  loadHistoricalReports() {
-    // In real implementation, this would call the store/API
-    this.historicalReports = this.mockHistoricalReports;
+    this.onDateChange(nextDay);
   }
 
   loadReportForDate(date: Date) {
     const dateString = this.formatDateToString(date);
-    this.selectedReport =
-      this.historicalReports.find((report) => report.date === dateString) ||
-      null;
+    this.selectedReport = this.reportsStore.reportsByDate().get(dateString) || null;
     this.sortItems();
   }
 
@@ -149,7 +94,7 @@ export class ReportsHistoryComponent implements OnInit {
       return;
     }
 
-    this.sortedItems = [...this.selectedReport.items].sort((a, b) => {
+    this.sortedItems = [...this.selectedReport].sort((a, b) => {
       if (this.sortBy === 'location') {
         return a.location.localeCompare(b.location);
       } else {
@@ -161,11 +106,11 @@ export class ReportsHistoryComponent implements OnInit {
   }
 
   getReportDate(): string {
-    return this.selectedReport?.date || '';
+    return this.formatDateToString(this.selectedDate);
   }
 
   getItemCount(): number {
-    return this.selectedReport?.items.length || 0;
+    return this.selectedReport?.length || 0;
   }
 
   hasReportForDate(): boolean {

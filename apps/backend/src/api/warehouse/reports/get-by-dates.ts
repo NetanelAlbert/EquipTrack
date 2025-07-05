@@ -2,9 +2,9 @@ import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import {
   GetReportsByDatesRequest,
   GetReportsByDatesResponse,
+  isValidDate,
 } from '@equip-track/shared';
-import { ReportsAdapter } from '../../db/tables/reports.adapter';
-import { InventoryReport, ItemReport } from '@equip-track/shared';
+import { ReportItem, ReportsAdapter } from '../../../db/tables/reports.adapter';
 
 export async function handler(
   req: GetReportsByDatesRequest,
@@ -19,44 +19,19 @@ export async function handler(
     throw new Error('Dates array is required and must not be empty');
   }
 
+  const invalidDates = req.dates.filter((date) => !isValidDate(date));
+  if (invalidDates.length > 0) {
+    throw new Error(`Invalid dates: ${invalidDates.join(', ')}`);
+  }
+
   const reportsAdapter = new ReportsAdapter();
 
   try {
-    const reportItems = await reportsAdapter.getReportsByDates({
-      organizationId,
-      dates: req.dates,
-    });
-
-    // Group items by date
-    const reportsByDate = new Map<string, ItemReport[]>();
-
-    for (const item of reportItems) {
-      if (!reportsByDate.has(item.reportDate)) {
-        reportsByDate.set(item.reportDate, []);
-      }
-
-      const itemReport: ItemReport = {
-        productId: item.productId,
-        upi: item.upi,
-        location: item.location,
-        repotedBy: item.reportedBy,
-        reportedAt: item.reportedAt,
-      };
-
-      reportsByDate.get(item.reportDate)!.push(itemReport);
-    }
-
-    // Convert to InventoryReport format
-    const reports: InventoryReport[] = Array.from(reportsByDate.entries()).map(
-      ([date, items]) => ({
-        date,
-        items,
-      })
-    );
+    const reportsByDate: Map<string, ReportItem[]> = await reportsAdapter.getReportsByDates(organizationId, req.dates);
 
     return {
       status: true,
-      reports,
+      reportsByDate,
     };
   } catch (error) {
     console.error('Error getting reports by dates:', error);

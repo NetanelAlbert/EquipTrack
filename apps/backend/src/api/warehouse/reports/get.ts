@@ -1,7 +1,6 @@
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { GetReportsResponse } from '@equip-track/shared';
-import { ReportsAdapter } from '../../db/tables/reports.adapter';
-import { InventoryReport, ItemReport } from '@equip-track/shared';
+import { ReportItem, ReportsAdapter } from '../../../db/tables/reports.adapter';
 
 export async function handler(
   req: undefined,
@@ -25,41 +24,11 @@ export async function handler(
       dates.push(date.toISOString().split('T')[0]);
     }
 
-    const reportItems = await reportsAdapter.getReportsByDates({
-      organizationId,
-      dates,
-    });
-
-    // Group items by date
-    const reportsByDate = new Map<string, ItemReport[]>();
-
-    for (const item of reportItems) {
-      if (!reportsByDate.has(item.reportDate)) {
-        reportsByDate.set(item.reportDate, []);
-      }
-
-      const itemReport: ItemReport = {
-        productId: item.productId,
-        upi: item.upi,
-        location: item.location,
-        repotedBy: item.reportedBy,
-        reportedAt: item.reportedAt,
-      };
-
-      reportsByDate.get(item.reportDate)!.push(itemReport);
-    }
-
-    // Convert to InventoryReport format and sort by date (newest first)
-    const reports: InventoryReport[] = Array.from(reportsByDate.entries())
-      .map(([date, items]) => ({
-        date,
-        items,
-      }))
-      .sort((a, b) => b.date.localeCompare(a.date));
+    const reportsByDate: Map<string, ReportItem[]> = await reportsAdapter.getReportsByDates(organizationId, dates);    
 
     return {
       status: true,
-      reports,
+      reportsByDate,
     };
   } catch (error) {
     console.error('Error getting reports:', error);

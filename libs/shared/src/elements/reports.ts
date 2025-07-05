@@ -6,8 +6,3 @@ export interface ItemReport {
     reportedAt?: number;
     // image?
 }
-
-export interface InventoryReport {
-    date: string; // YYYY-MM-DD for sort
-    items: ItemReport[];
-}
