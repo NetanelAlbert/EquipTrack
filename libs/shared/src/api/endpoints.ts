@@ -7,7 +7,7 @@ import { BasicResponse } from './basic';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
-export interface EndpointMeta<Req = any, Res = any> {
+export interface EndpointMeta<Req = unknown, Res = unknown> {
   path: string;
   method: HttpMethod;
   allowedRoles: UserRole[];

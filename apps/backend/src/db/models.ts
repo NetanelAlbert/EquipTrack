@@ -1,7 +1,5 @@
 import {
-  InventoryItem,
   Organization,
-  Product,
   User,
   UserInOrganization,
 } from '@equip-track/shared';
