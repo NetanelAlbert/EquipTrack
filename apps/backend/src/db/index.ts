@@ -1,5 +1,4 @@
 export * from './tables/base.adapter';
-export * from './tables/main.adapter';
 export * from './tables/users-and-organizations.adapter';
 export * from './tables/inventory.adapter';
 export * from './tables/forms.adapter';
