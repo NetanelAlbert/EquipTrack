@@ -28,8 +28,10 @@ export interface RemoveInventory {
 }
 
 export interface GetInventoryResponse extends BasicResponse {
-  warehouse: InventoryItem[];
-  users: Map<string, InventoryItem[]>;
+  items: {
+    warehouse: InventoryItem[];
+    users: Map<string, InventoryItem[]>;
+  };
   products: Product[];
 }
 

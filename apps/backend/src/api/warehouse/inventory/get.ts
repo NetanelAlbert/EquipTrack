@@ -17,19 +17,15 @@ export const handler = async (
     throw badRequest('Organization ID is required');
   }
 
-  // Get all products for the organization
-  const products = await inventoryAdapter.getAllProductsByOrganization(
+  const { products, warehouseItems, usersItems } = await inventoryAdapter.getOrganizationInventory(
     organizationId
   );
 
-  // TODO: Implement warehouse inventory and user inventory fetching
-  // For now, returning empty arrays
-  const warehouse: any[] = [];
-  const users = new Map<string, any[]>();
-
   return {
-    warehouse,
-    users,
+    items: {
+      warehouse: warehouseItems,
+      users: usersItems,
+    },
     products,
     status: true,
   };

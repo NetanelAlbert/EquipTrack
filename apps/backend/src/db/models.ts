@@ -23,7 +23,7 @@ export enum DbItemType {
   User = 'USER',
   UserInOrganization = 'UIO',
   Product = 'PRODUCT',
-  InventoryItem = 'INVENTORY_ITEM',
+  InventoryBulkItem = 'INVENTORY_BULK_ITEM',
   InventoryUniqueItem = 'INVENTORY_UNIQUE_ITEM',
   Form = 'FORM',
   PredefinedForm = 'PREDEFINED_FORM',
@@ -34,7 +34,17 @@ export enum DbItemType {
 
 export interface OrganizationDb extends Organization, DbItem {}
 
-export interface ProductDb extends Product, DbItem {}
+/**
+ * Product stored in DynamoDB with flattened fields for better query performance
+ */
+export interface ProductDb extends DbItem {
+  // Flattened Product fields
+  id: string;
+  name: string;
+  hasUpi: boolean;
+  // Additional DB-specific fields
+  organizationId: string;
+}
 
 export interface UserDb extends User, DbItem {}
 
@@ -45,14 +55,29 @@ export interface UserInOrganizationDb extends UserInOrganization, DbItem {
   organizationToUserQueryKey: string;
 }
 
-// export interface InventoryItemDb extends InventoryItem, DbItem {
-//   holderId: Holder;
-//   heldItemKey: string;
-// }
+/**
+ * Base interface for inventory items in DynamoDB
+ */
+export interface InventoryItemDb extends DbItem {
+  // Flattened InventoryItem fields
+  productId: string;
+  // Additional DB-specific fields
+  organizationId: string;
+  holderId: string; // USER#123 or WAREHOUSE
+  holderIdQueryKey: string; // For GSI queries
+}
 
-// export interface UniqueInventoryItemDb
-//   extends UniqueInventoryItem,
-//     InventoryItemDb {}
-// export interface BulkInventoryItemDb
-//   extends BulkInventoryItem,
-//     InventoryItemDb {}
+/**
+ * Unique inventory item (has UPI) stored in DynamoDB
+ */
+export interface UniqueInventoryItemDb extends InventoryItemDb {
+  upi: string;
+}
+
+/**
+ * Bulk inventory item (no UPI) stored in DynamoDB
+ */
+export interface BulkInventoryItemDb extends InventoryItemDb {
+  // Quantity is more meaningful for bulk items
+  quantity: number;
+}
