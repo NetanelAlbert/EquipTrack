@@ -29,20 +29,23 @@ export const handler = async (
     throw badRequest('Invalid product ID format');
   }
 
-  // Check if the product is used in any inventory items
-  const isProductUsed = await inventoryAdapter.isProductUsedInInventory(
-    productId,
-    organizationId
-  );
+  inventoryAdapter.withInventoryLock(organizationId, async () => {
 
-  if (isProductUsed) {
-    throw badRequest(
-      'Cannot delete product: it is currently used in inventory items'
+    // Check if the product is used in any inventory items
+    const isProductUsed = await inventoryAdapter.isProductUsedInInventory(
+        productId,
+        organizationId
     );
-  }
 
-  // Delete the product
-  await inventoryAdapter.deleteProduct(productId, organizationId);
+    if (isProductUsed) {
+        throw badRequest(
+        'Cannot delete product: it is currently used in inventory items'
+        );
+    }
+
+    // Delete the product
+    await inventoryAdapter.deleteProduct(productId, organizationId);
+  });
 
   return { status: true };
 };

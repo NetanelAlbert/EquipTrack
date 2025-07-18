@@ -29,8 +29,11 @@ export const handler = async (
     throw badRequest('Invalid product data: id, name, and hasUpi are required');
   }
 
-  // Create the product
-  await inventoryAdapter.createProduct(product, organizationId);
+  inventoryAdapter.withInventoryLock(organizationId, async () => {
+
+    // Create the product
+    await inventoryAdapter.createProduct(product, organizationId);
+  });
 
   return { status: true };
 };
