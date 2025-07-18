@@ -6,8 +6,8 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DbKey, DbItemType } from '../models';
 import {
   DynamoDBDocumentClient,
-  BatchGetCommand,
   QueryCommand,
+  PutCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
   FORMS_TABLE_NAME,
@@ -68,6 +68,22 @@ export class FormsAdapter {
     return items
       .filter((item) => item.dbItemType === DbItemType.PredefinedForm)
       .map(this.getPredefinedForm);
+  }
+
+  async createForm(form: InventoryForm): Promise<void> {
+    const formDb = {
+      ...this.getFormKey(form.userID, form.formID),
+      dbItemType: DbItemType.Form,
+      organizationId: `${ORG_PREFIX}${form.organizationID}`,
+      ...form,
+    };
+
+    const command = new PutCommand({
+      TableName: this.tableName,
+      Item: formDb,
+    });
+
+    await this.docClient.send(command);
   }
 
   private getFormKey(userId: string, formId: string): DbKey {

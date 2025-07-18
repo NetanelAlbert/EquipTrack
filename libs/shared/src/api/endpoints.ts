@@ -124,6 +124,13 @@ export const endpointMetas = {
     ],
     responseType: {} as Wharehouse.GetUserInventoryResponse,
   } as EndpointMeta<undefined, Wharehouse.GetUserInventoryResponse>,
+  createCheckOutForm: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkout/create`,
+    method: 'POST',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    requestType: {} as Wharehouse.CreateCheckOutForm,
+    responseType: {} as BasicResponse,
+  } as EndpointMeta<Wharehouse.CreateCheckOutForm, BasicResponse>,
 
   // Reports
   getReports: {
