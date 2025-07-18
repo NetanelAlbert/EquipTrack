@@ -23,6 +23,7 @@ export const TRANSFER_PREFIX = 'TRANSFER#';
 export const FORM_PREFIX = 'FORM#';
 export const DATE_PREFIX = 'DATE#';
 export const ITEM_KEY_PREFIX = 'ITEM_KEY#';
+export const LOCK_PREFIX = 'LOCK#';
 
 // ===================================
 // Special / Reserved Sort Keys

@@ -45,8 +45,8 @@ export const handlers: Handlers = {
   // Warehouse
   setProduct: setProductHandler,
   deleteProduct: deleteProductHandler,
-  addInventory: addInventoryHandler, // TODO: Implement this
-  removeInventory: removeInventoryHandler, // TODO: Implement this
+  addInventory: addInventoryHandler,
+  removeInventory: removeInventoryHandler,
   getInventory: getInventoryHandler,
   getUserInventory: getUserInventoryHandler,
 

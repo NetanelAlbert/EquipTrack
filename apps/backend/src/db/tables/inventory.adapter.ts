@@ -11,6 +11,7 @@ import {
   BulkInventoryItemDb,
   DbItemType,
   DbItem,
+  LockDb,
 } from '../models';
 import {
   DynamoDBDocumentClient,
@@ -18,6 +19,7 @@ import {
   PutCommand,
   UpdateCommand,
   DeleteCommand,
+  GetCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
   INVENTORY_TABLE_NAME,
@@ -30,6 +32,7 @@ import {
   PRODUCTS_BY_ORGANIZATION_INDEX,
   PRODUCTS_BY_ORGANIZATION_INDEX_PK,
   WAREHOUSE_SUFFIX,
+  LOCK_PREFIX,
 } from '../constants';
 import { InventoryItem, Product } from '@equip-track/shared';
 
@@ -226,6 +229,35 @@ export class InventoryAdapter {
   }
 
   /**
+   * Creates a bulk inventory item with flattened fields
+   */
+  async createBulkInventoryItem(
+    productId: string,
+    organizationId: string,
+    holderId: string,
+    quantity: number
+  ): Promise<void> {
+    const inventoryItem: BulkInventoryItemDb = {
+      ...this.getBulkProductKey(productId, organizationId, holderId),
+      dbItemType: DbItemType.InventoryBulkItem,
+      // Flattened InventoryItem fields
+      productId,
+      quantity,
+      // Additional DB-specific fields
+      organizationId,
+      holderId,
+      holderIdQueryKey: `${HOLDER_PREFIX}${organizationId}#${holderId}`,
+    };
+
+    const command = new PutCommand({
+      TableName: this.tableName,
+      Item: inventoryItem,
+    });
+
+    await this.docClient.send(command);
+  }
+
+  /**
    * Updates inventory item quantity using flattened fields
    */
   async updateInventoryItemQuantity(
@@ -243,6 +275,42 @@ export class InventoryAdapter {
       ExpressionAttributeValues: {
         ':quantity': quantity,
       },
+    });
+
+    await this.docClient.send(command);
+  }
+
+  /**
+   * Deletes a unique inventory item
+   */
+  async deleteUniqueInventoryItem(
+    productId: string,
+    upi: string,
+    organizationId: string
+  ): Promise<void> {
+    const key = this.getUniqueProductKey(productId, upi, organizationId);
+
+    const command = new DeleteCommand({
+      TableName: this.tableName,
+      Key: key,
+    });
+
+    await this.docClient.send(command);
+  }
+
+  /**
+   * Deletes a bulk inventory item
+   */
+  async deleteBulkInventoryItem(
+    productId: string,
+    organizationId: string,
+    holderId: string
+  ): Promise<void> {
+    const key = this.getBulkProductKey(productId, organizationId, holderId);
+
+    const command = new DeleteCommand({
+      TableName: this.tableName,
+      Key: key,
     });
 
     await this.docClient.send(command);
@@ -284,6 +352,166 @@ export class InventoryAdapter {
     });
 
     await this.docClient.send(command);
+  }
+
+  /**
+   * Acquires a lock for inventory operations on an organization
+   * @param organizationId The organization to lock
+   * @param lockTimeoutMs Lock timeout in milliseconds (default: 3000ms)
+   * @returns true if lock was acquired, false if already locked
+   */
+  async acquireInventoryLock(
+    organizationId: string,
+    lockTimeoutMs = 3000
+  ): Promise<number | false> {
+    const lockKey = this.getLockKey(organizationId);
+    const currentTimestamp = Date.now();
+
+    try {
+      // First, check if a lock exists
+      const getCommand = new GetCommand({
+        TableName: this.tableName,
+        Key: lockKey,
+      });
+
+      const existingLock = await this.docClient.send(getCommand);
+
+      if (existingLock.Item) {
+        const lockDb = existingLock.Item as LockDb;
+        const lockAge = currentTimestamp - lockDb.lockTimestamp;
+
+        if (lockAge < lockTimeoutMs) {
+          // Lock is still valid, cannot acquire
+          return false;
+        }
+
+        // Lock is expired, delete it first
+        await this.docClient.send(
+          new DeleteCommand({
+            TableName: this.tableName,
+            Key: lockKey,
+            ConditionExpression: 'lockTimestamp = :lockTimestamp',
+            ExpressionAttributeValues: {
+              ':lockTimestamp': lockDb.lockTimestamp,
+            },
+          })
+        );
+      }
+
+      // Try to acquire the lock
+      const lockDb: LockDb = {
+        ...lockKey,
+        dbItemType: DbItemType.Lock,
+        organizationId,
+        lockTimestamp: currentTimestamp,
+        lockType: 'INVENTORY',
+      };
+
+      const putCommand = new PutCommand({
+        TableName: this.tableName,
+        Item: lockDb,
+        ConditionExpression: 'attribute_not_exists(PK)',
+      });
+
+      await this.docClient.send(putCommand);
+      return currentTimestamp;
+    } catch (error: any) {
+      if (error.name === 'ConditionalCheckFailedException') {
+        // Another process acquired the lock between our check and put
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Releases the inventory lock for an organization
+   * @param organizationId The organization to unlock
+   */
+  async releaseInventoryLock(
+    organizationId: string,
+    lockTimestamp: number
+  ): Promise<void> {
+    const lockKey = this.getLockKey(organizationId);
+
+    const command = new DeleteCommand({
+      TableName: this.tableName,
+      Key: lockKey,
+      ConditionExpression: 'lockTimestamp = :lockTimestamp',
+      ExpressionAttributeValues: {
+        ':lockTimestamp': lockTimestamp,
+      },
+    });
+
+    try {
+      await this.docClient.send(command);
+    } catch (error) {
+      // Ignore errors when releasing lock (it might already be expired/deleted)
+      console.warn(
+        `Failed to release lock for organization ${organizationId}:`,
+        error
+      );
+    }
+  }
+
+  /**
+   * Executes a function with an inventory lock
+   * @param organizationId The organization to lock
+   * @param fn The function to execute while holding the lock
+   * @param lockTimeoutMs Lock timeout in milliseconds (default: 3000ms)
+   * @param maxRetries Maximum number of retry attempts (default: 3)
+   * @param retryDelayMs Delay between retries in milliseconds (default: 100ms)
+   */
+  async withInventoryLock<T>(
+    organizationId: string,
+    fn: () => Promise<T>,
+    lockTimeoutMs = 3000,
+    maxRetries = 3,
+    retryDelayMs = 100
+  ): Promise<T> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const lockAcquired: number | false = await this.acquireInventoryLock(
+          organizationId,
+          lockTimeoutMs
+        );
+
+        if (!lockAcquired) {
+          lastError = new Error(
+            `Failed to acquire inventory lock for organization ${organizationId} after ${
+              attempt + 1
+            } attempts`
+          );
+          if (attempt < maxRetries - 1) {
+            await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+            continue;
+          }
+          throw lastError;
+        }
+
+        try {
+          return await fn();
+        } finally {
+          await this.releaseInventoryLock(organizationId, lockAcquired);
+        }
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        if (attempt < maxRetries - 1) {
+          await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+        }
+      }
+    }
+
+    throw lastError || new Error('Unknown error occurred');
+  }
+
+  private getLockKey(organizationId: string): DbKey {
+    return {
+      PK: `${ORG_PREFIX}${organizationId}`,
+      SK: `${LOCK_PREFIX}INVENTORY`,
+    };
   }
 
   private getProductKey(productId: string, organizationId: string): DbKey {

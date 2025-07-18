@@ -43,6 +43,7 @@ This table manages products, inventory items, and their current holders.
 | **Product Definition** | `ORG#<id>`                | `PRODUCT#<id>`                    | -                                    | `ORG#<id>`                  |
 | **Unique Item**        | `ORG#<id>`                | `PRODUCT#<id>#UPI#<upi>`           | `HOLDER#<orgId>#<userId>`             | -                          |
 | **Bulk Item Holding**  | `ORG#<id>`                | `PRODUCT#<id>#HOLDER#<holder>`    | `HOLDER#<orgId>#<userId>`             | -                          |
+| **Organization Lock**  | `ORG#<id>`                | `LOCK#INVENTORY`                  | -                                    | -                          |
 
 ---
 

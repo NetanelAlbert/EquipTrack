@@ -25,6 +25,7 @@ export enum DbItemType {
   InventoryUniqueItem = 'INVENTORY_UNIQUE_ITEM',
   Form = 'FORM',
   PredefinedForm = 'PREDEFINED_FORM',
+  Lock = 'LOCK',
 }
 // ===================================
 // Entity-specific Database Models
@@ -78,4 +79,13 @@ export interface UniqueInventoryItemDb extends InventoryItemDb {
 export interface BulkInventoryItemDb extends InventoryItemDb {
   // Quantity is more meaningful for bulk items
   quantity: number;
+}
+
+/**
+ * Lock entity for synchronizing inventory operations per organization
+ */
+export interface LockDb extends DbItem {
+  organizationId: string;
+  lockTimestamp: number; // Unix timestamp in milliseconds
+  lockType: string; // 'INVENTORY' for inventory operations
 }
