@@ -74,7 +74,7 @@ This is the Online Analytical Processing (OLAP) table. Its purpose is to store a
 
 Instead of storing a single large document per day (which risks hitting DynamoDB's 400KB item size limit), this table stores **one row per reported item, per day**.
 
--   **Table Name**: `EquipTrackReports`
+-   **Table Name**: `EquipTrackReport`
 
 ### Primary Key and GSI
 
