@@ -80,13 +80,20 @@ export const endpointMetas = {
   } as EndpointMeta<BasicUser.RequestCheckIn, BasicResponse>,
 
   // Warehouse
-  setProducts: {
+  setProduct: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products/set`,
     method: 'POST',
     allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
-    requestType: {} as Wharehouse.SetProducts,
+    requestType: {} as Wharehouse.SetProduct,
     responseType: {} as BasicResponse,
-  } as EndpointMeta<Wharehouse.SetProducts, BasicResponse>,
+  } as EndpointMeta<Wharehouse.SetProduct, BasicResponse>,
+  deleteProduct: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products/delete`,
+    method: 'POST',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    requestType: {} as Wharehouse.DeleteProduct,
+    responseType: {} as BasicResponse,
+  } as EndpointMeta<Wharehouse.DeleteProduct, BasicResponse>,
   addInventory: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/inventory/add`,
     method: 'POST',

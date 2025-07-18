@@ -13,8 +13,12 @@ import {
 import { BasicResponse } from './basic';
 
 // PRODUCTS
-export interface SetProducts {
-  products: Product[];
+export interface SetProduct {
+  product: Product;
+}
+
+export interface DeleteProduct {
+  productId: string;
 }
 
 // INVENTORY

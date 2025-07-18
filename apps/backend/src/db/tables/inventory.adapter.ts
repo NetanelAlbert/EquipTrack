@@ -17,6 +17,7 @@ import {
   QueryCommand,
   PutCommand,
   UpdateCommand,
+  DeleteCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
   INVENTORY_TABLE_NAME,
@@ -144,12 +145,13 @@ export class InventoryAdapter {
           break;
         }
         case DbItemType.InventoryUniqueItem:
-        case DbItemType.InventoryBulkItem: { 
+        case DbItemType.InventoryBulkItem: {
           const bulkItemDb = item as BulkInventoryItemDb;
           const existingItems = dbItemsByHolder.get(bulkItemDb.holderId) || [];
           existingItems.push(bulkItemDb);
           dbItemsByHolder.set(bulkItemDb.holderId, existingItems);
-          break;}
+          break;
+        }
         default:
           throw new Error(`Invalid item type: ${item.dbItemType}`);
       }
@@ -241,6 +243,44 @@ export class InventoryAdapter {
       ExpressionAttributeValues: {
         ':quantity': quantity,
       },
+    });
+
+    await this.docClient.send(command);
+  }
+
+  /**
+   * Checks if a product is used in any inventory items
+   */
+  async isProductUsedInInventory(
+    productId: string,
+    organizationId: string
+  ): Promise<boolean> {
+    const command = new QueryCommand({
+      TableName: this.tableName,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+      ExpressionAttributeValues: {
+        ':pk': `${ORG_PREFIX}${organizationId}`,
+        ':sk': `${PRODUCT_PREFIX}${productId}#`,
+      },
+      Limit: 1, // We only need to know if any exist
+    });
+
+    const result = await this.docClient.send(command);
+    return (result.Items?.length ?? 0) > 0;
+  }
+
+  /**
+   * Deletes a product definition
+   */
+  async deleteProduct(
+    productId: string,
+    organizationId: string
+  ): Promise<void> {
+    const key = this.getProductKey(productId, organizationId);
+
+    const command = new DeleteCommand({
+      TableName: this.tableName,
+      Key: key,
     });
 
     await this.docClient.send(command);

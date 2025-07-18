@@ -4,7 +4,8 @@ import { handler as setUserHandler } from './admin/users/set';
 import { handler as approveCheckOutHandler } from './user/checkout/approve';
 import { handler as rejectCheckOutHandler } from './user/checkout/reject';
 import { handler as requestCheckInHandler } from './user/checkin/request';
-import { handler as setProductsHandler } from './warehouse/products/set';
+import { handler as setProductHandler } from './warehouse/products/set';
+import { handler as deleteProductHandler } from './warehouse/products/delete';
 import { handler as addInventoryHandler } from './warehouse/inventory/add';
 import { handler as removeInventoryHandler } from './warehouse/inventory/remove';
 import { handler as getInventoryHandler } from './warehouse/inventory/get';
@@ -42,10 +43,11 @@ export const handlers: Handlers = {
   requestCheckIn: requestCheckInHandler, // TODO: Implement this
 
   // Warehouse
-  setProducts: setProductsHandler, // TODO: Implement this
+  setProduct: setProductHandler,
+  deleteProduct: deleteProductHandler,
   addInventory: addInventoryHandler, // TODO: Implement this
   removeInventory: removeInventoryHandler, // TODO: Implement this
-  getInventory: getInventoryHandler, // TODO: Implement this
+  getInventory: getInventoryHandler,
   getUserInventory: getUserInventoryHandler,
 
   // Reports
