@@ -459,7 +459,7 @@ export class InventoryAdapter {
    * @param organizationId The organization to lock
    * @param fn The function to execute while holding the lock
    * @param lockTimeoutMs Lock timeout in milliseconds (default: 3000ms)
-   * @param maxRetries Maximum number of retry attempts (default: 3)
+   * @param maxRetries Maximum number of retry attempts for lock acquisition (default: 3)
    * @param retryDelayMs Delay between retries in milliseconds (default: 100ms)
    */
   async withInventoryLock<T>(
@@ -469,42 +469,35 @@ export class InventoryAdapter {
     maxRetries = 3,
     retryDelayMs = 100
   ): Promise<T> {
-    let lastError: Error | null = null;
-
+    // Retry only lock acquisition
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        const lockAcquired: number | false = await this.acquireInventoryLock(
-          organizationId,
-          lockTimeoutMs
-        );
+      const lockAcquired: number | false = await this.acquireInventoryLock(
+        organizationId,
+        lockTimeoutMs
+      );
 
-        if (!lockAcquired) {
-          lastError = new Error(
-            `Failed to acquire inventory lock for organization ${organizationId} after ${
-              attempt + 1
-            } attempts`
-          );
-          if (attempt < maxRetries - 1) {
-            await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
-            continue;
-          }
-          throw lastError;
-        }
-
+      if (lockAcquired) {
+        // Lock acquired successfully, execute fn() (no retry for fn() errors)
         try {
           return await fn();
         } finally {
           await this.releaseInventoryLock(organizationId, lockAcquired);
         }
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        if (attempt < maxRetries - 1) {
-          await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
-        }
+      }
+
+      // Failed to acquire lock, retry if we have attempts left
+      if (attempt < maxRetries - 1) {
+        console.log(
+          `Failed to acquire inventory lock for organization ${organizationId} after ${attempt} attempts, retrying in ${retryDelayMs}ms`
+        );
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
       }
     }
 
-    throw lastError || new Error('Unknown error occurred');
+    // All lock acquisition attempts failed
+    throw new Error(
+      `Failed to acquire inventory lock for organization ${organizationId} after ${maxRetries} attempts`
+    );
   }
 
   private getLockKey(organizationId: string): DbKey {
