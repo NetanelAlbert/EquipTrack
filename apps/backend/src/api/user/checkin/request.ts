@@ -1,11 +1,11 @@
 import { BasicResponse } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
+import { notImplemented } from '../../responses';
 // import { InventoryFormAdapter } from '../../../../db/tables/inventory-form.adapter';
 
 export const handler = async (
   _req: any,
   pathParams: APIGatewayProxyEventPathParameters
 ): Promise<BasicResponse> => {
-  // TODO: Use InventoryFormAdapter to request check-in
-  return { status: true };
+  throw notImplemented('Request check-in endpoint is not yet implemented');
 };

@@ -1,11 +1,11 @@
 import { BasicResponse } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
+import { notImplemented } from '../../responses';
 // import { InventoryFormAdapter } from '../../../../db/tables/inventory-form.adapter';
 
 export const handler = async (
   _req: any,
   pathParams: APIGatewayProxyEventPathParameters
 ): Promise<BasicResponse> => {
-  // TODO: Use InventoryFormAdapter to reject checkout
-  return { status: true };
+  throw notImplemented('Reject checkout endpoint is not yet implemented');
 };
