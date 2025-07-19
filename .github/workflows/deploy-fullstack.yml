@@ -1,0 +1,75 @@
+name: Deploy Full Stack to AWS
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+  workflow_dispatch:
+
+env:
+  # Use the correct lowercase AWS region identifier.
+  AWS_REGION: il-central-1
+  NODE_VERSION: '20'
+  # Stage name is used by several deployment scripts (defaults to "dev" if omitted).
+  STAGE: ${{ github.ref == 'refs/heads/master' && 'production' || 'dev' }}
+
+jobs:
+  deploy:
+    name: Deploy Full Stack
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build backend
+        run: npx nx build backend --configuration=production
+
+      - name: Build frontend
+        run: npx nx build frontend --configuration=production
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Prepare deployment configuration
+        run: node scripts/prepare-deployment.js
+
+      - name: Create DynamoDB tables
+        run: |
+          cd dist/apps/backend
+          node scripts/create-tables.js
+
+      - name: Create Lambda deployment packages
+        run: node scripts/create-lambda-packages.js
+
+      - name: Deploy Lambda functions
+        run: node scripts/deploy-lambdas.js
+
+
+      - name: Deploy API Gateway
+        run: node scripts/deploy-api-gateway.js
+
+      - name: Deploy Frontend to S3
+        run: node scripts/deploy-frontend.js
+
+      - name: Create CloudFront Distribution
+        run: node scripts/setup-cloudfront.js
+
+      - name: Output URLs
+        run: |
+          echo "API deployed to: $(cat deployment-info.json | jq -r '.api.apiUrl')"
+          echo "Frontend deployed to: $(cat deployment-info.json | jq -r '.frontend.cloudfrontUrl')" 

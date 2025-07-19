@@ -47,3 +47,12 @@ Thumbs.db
 .github/instructions/nx.instructions.md
 
 .env
+
+# Deployment artifacts
+lambda-packages/
+deployment-info.json
+endpoints-config.json
+website-config.json
+bucket-policy.json
+cloudfront-config.json
+cloudfront-update-config.json
