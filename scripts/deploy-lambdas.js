@@ -126,6 +126,45 @@ function ensureRole() {
   }
 }
 
+function waitForLambdaUpdate(functionName, maxAttempts = 12) {
+  console.log(`Waiting for ${functionName} to be ready for configuration update...`);
+  let attempts = 0;
+  
+  while (attempts < maxAttempts) {
+    try {
+      const result = execSync(
+        `aws lambda get-function --function-name ${functionName}`,
+        { encoding: 'utf8', stdio: 'pipe' }
+      );
+      const functionInfo = JSON.parse(result);
+      
+      if (functionInfo.Configuration.LastUpdateStatus === 'Successful') {
+        console.log(`✅ ${functionName} is ready for configuration update`);
+        return true;
+      } else if (functionInfo.Configuration.LastUpdateStatus === 'Failed') {
+        console.log(`❌ ${functionName} update failed: ${functionInfo.Configuration.LastUpdateStatusReason}`);
+        return false;
+      }
+      
+      attempts++;
+      console.log(`${functionName} status: ${functionInfo.Configuration.LastUpdateStatus}, waiting... (${attempts}/${maxAttempts})`);
+      execSync('sleep 5');
+      
+    } catch (error) {
+      attempts++;
+      if (attempts >= maxAttempts) {
+        console.log(`⚠️ Could not verify ${functionName} status, but continuing...`);
+        return true;
+      }
+      console.log(`Error checking status, retrying... (${attempts}/${maxAttempts})`);
+      execSync('sleep 5');
+    }
+  }
+  
+  console.log(`⚠️ Timeout waiting for ${functionName} to be ready, but continuing...`);
+  return true;
+}
+
 function deployLambdaFunction(handlerName, roleArn) {
   const functionName = `equip-track-${handlerName}-${STAGE}`;
   const zipPath = path.join(PACKAGES_DIR, `${handlerName}.zip`);
@@ -134,24 +173,51 @@ function deployLambdaFunction(handlerName, roleArn) {
     throw new Error(`Package not found: ${zipPath}`);
   }
   
+  let functionExists = false;
+  
+  // Check if function exists
   try {
-    // Try to update existing function
-    console.log(`Updating Lambda function: ${functionName}`);
-    execSync(
-      `aws lambda update-function-code --function-name ${functionName} --zip-file fileb://${zipPath}`,
-      { stdio: 'inherit' }
-    );
-    
-    // Update function configuration
-    execSync(
-      `aws lambda update-function-configuration --function-name ${functionName} ` +
-      `--timeout ${LAMBDA_CONFIG.timeout} --memory-size ${LAMBDA_CONFIG.memorySize} ` +
-      `--environment "Variables={STAGE=${STAGE}}"`,
-      { stdio: 'inherit' }
-    );
-    
+    execSync(`aws lambda get-function --function-name ${functionName}`, { stdio: 'pipe' });
+    functionExists = true;
   } catch (error) {
-    // Function doesn't exist, create it
+    functionExists = false;
+  }
+  
+  if (functionExists) {
+    // Update existing function
+    console.log(`Updating Lambda function: ${functionName}`);
+    try {
+      execSync(
+        `aws lambda update-function-code --function-name ${functionName} --zip-file fileb://${zipPath}`,
+        { stdio: 'inherit' }
+      );
+      
+      // Wait for code update to complete before updating configuration
+      if (waitForLambdaUpdate(functionName)) {
+        try {
+          execSync(
+            `aws lambda update-function-configuration --function-name ${functionName} ` +
+            `--timeout ${LAMBDA_CONFIG.timeout} --memory-size ${LAMBDA_CONFIG.memorySize} ` +
+            `--environment "Variables={STAGE=${STAGE}}"`,
+            { stdio: 'inherit' }
+          );
+        } catch (configError) {
+          if (configError.message.includes('ResourceConflictException')) {
+            console.log(`⚠️ Configuration update skipped for ${functionName} - update still in progress`);
+          } else {
+            throw configError;
+          }
+        }
+      }
+    } catch (codeError) {
+      if (codeError.message.includes('ResourceConflictException')) {
+        console.log(`⚠️ Code update skipped for ${functionName} - update already in progress`);
+      } else {
+        throw codeError;
+      }
+    }
+  } else {
+    // Create new function
     console.log(`Creating Lambda function: ${functionName}`);
     execSync(
       `aws lambda create-function --function-name ${functionName} ` +
