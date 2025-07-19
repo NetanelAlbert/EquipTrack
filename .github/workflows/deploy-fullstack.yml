@@ -49,9 +49,7 @@ jobs:
         run: node scripts/prepare-deployment.js
 
       - name: Create DynamoDB tables
-        run: |
-          cd dist/apps/backend
-          node scripts/create-tables.js
+        run: node scripts/create-dynamodb-tables.js
 
       - name: Create Lambda deployment packages
         run: node scripts/create-lambda-packages.js

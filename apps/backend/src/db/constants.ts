@@ -1,4 +1,3 @@
-export const MAIN_TABLE_NAME = 'EquipTrack';
 export const REPORT_TABLE_NAME = 'EquipTrackReport';
 export const USERS_AND_ORGANIZATIONS_TABLE_NAME = 'UsersAndOrganizations';
 export const INVENTORY_TABLE_NAME = 'Inventory';

@@ -1,30 +1,28 @@
-import {
-  AttributeDefinition,
-  GlobalSecondaryIndex,
-  KeySchemaElement,
-} from '@aws-sdk/client-dynamodb';
-import {
-  ITEMS_BY_HOLDER_INDEX,
-  ITEMS_BY_HOLDER_INDEX_HOLDER_PK,
-  ITEM_REPORT_HISTORY_INDEX,
-  REPORT_TABLE_NAME,
-  USERS_AND_ORGANIZATIONS_TABLE_NAME,
-  INVENTORY_TABLE_NAME,
-  FORMS_TABLE_NAME,
-  FORMS_BY_ORGANIZATION_INDEX,
-  PRODUCTS_BY_ORGANIZATION_INDEX,
-  PRODUCTS_BY_ORGANIZATION_INDEX_PK,
-} from '../constants';
+const {
+  DynamoDBClient,
+  CreateTableCommand,
+  DescribeTableCommand,
+} = require('@aws-sdk/client-dynamodb');
 
-export interface TableDefinition {
-  tableName: string;
-  keySchema: KeySchemaElement[];
-  attributeDefinitions: AttributeDefinition[];
-  globalSecondaryIndexes?: GlobalSecondaryIndex[];
-  billingMode: 'PAY_PER_REQUEST' | 'PROVISIONED';
-}
+// Environment variables
+const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
+const STAGE = process.env.STAGE || 'dev';
 
-export const tableDefinitions: Record<string, TableDefinition> = {
+// Constants
+const USERS_AND_ORGANIZATIONS_TABLE_NAME = 'UsersAndOrganizations';
+const INVENTORY_TABLE_NAME = 'Inventory';
+const FORMS_TABLE_NAME = 'Forms';
+const REPORT_TABLE_NAME = 'EquipTrackReport';
+
+const ITEMS_BY_HOLDER_INDEX = 'ItemsByHolderIndex';
+const ITEMS_BY_HOLDER_INDEX_HOLDER_PK = 'holderIdQueryKey';
+const PRODUCTS_BY_ORGANIZATION_INDEX = 'ProductsByOrganizationIndex';
+const PRODUCTS_BY_ORGANIZATION_INDEX_PK = 'organizationId';
+const FORMS_BY_ORGANIZATION_INDEX = 'FormsByOrganizationIndex';
+const ITEM_REPORT_HISTORY_INDEX = 'ItemReportHistoryIndex';
+
+// Table Definitions
+const tableDefinitions = {
   UsersAndOrganizations: {
     tableName: USERS_AND_ORGANIZATIONS_TABLE_NAME,
     keySchema: [
@@ -92,7 +90,7 @@ export const tableDefinitions: Record<string, TableDefinition> = {
     ],
     billingMode: 'PAY_PER_REQUEST',
   },
-  Reports: {
+  EquipTrackReport: {
     tableName: REPORT_TABLE_NAME,
     keySchema: [
       { AttributeName: 'orgDailyReportId', KeyType: 'HASH' },
@@ -117,3 +115,75 @@ export const tableDefinitions: Record<string, TableDefinition> = {
     billingMode: 'PAY_PER_REQUEST',
   },
 };
+
+class TableCreator {
+  constructor() {
+    this.client = new DynamoDBClient({
+      region: AWS_REGION,
+    });
+  }
+
+  async createTables() {
+    console.log(
+      `🚀 Creating DynamoDB tables for stage: ${STAGE} in region: ${AWS_REGION}`
+    );
+
+    for (const definition of Object.values(tableDefinitions)) {
+      // Add stage suffix to table names for environment isolation
+      const stageTableName =
+        STAGE === 'production'
+          ? definition.tableName
+          : `${definition.tableName}-${STAGE}`;
+
+      const {
+        keySchema,
+        attributeDefinitions,
+        globalSecondaryIndexes,
+        billingMode,
+      } = definition;
+
+      try {
+        // Check if table exists
+        try {
+          await this.client.send(
+            new DescribeTableCommand({ TableName: stageTableName })
+          );
+          console.log(`✅ Table ${stageTableName} already exists`);
+          continue;
+        } catch (error) {
+          // Table doesn't exist, proceed with creation
+          console.log(`📝 Creating table ${stageTableName}...`);
+        }
+
+        const command = new CreateTableCommand({
+          TableName: stageTableName,
+          KeySchema: keySchema,
+          AttributeDefinitions: attributeDefinitions,
+          GlobalSecondaryIndexes: globalSecondaryIndexes,
+          BillingMode: billingMode,
+        });
+
+        await this.client.send(command);
+        console.log(`✅ Created table ${stageTableName}`);
+      } catch (error) {
+        console.error(`❌ Error creating table ${stageTableName}:`, error);
+        throw error;
+      }
+    }
+
+    console.log('🎉 All tables created successfully!');
+  }
+}
+
+async function main() {
+  const creator = new TableCreator();
+  try {
+    await creator.createTables();
+    console.log('All tables created successfully');
+  } catch (error) {
+    console.error('Error creating tables:', error);
+    process.exit(1);
+  }
+}
+
+main(); 
