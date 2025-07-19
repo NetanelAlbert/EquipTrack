@@ -1,22 +1,11 @@
 import { UserRole } from '@equip-track/shared';
-import { MyItemsComponent } from '../my-items/my-items.component';
-import { DummyComponent } from '../dummy/dummy.component';
-import { Type } from '@angular/core';
-import { CheckInComponent } from '../check-in/check-in.component';
-import { FormsComponent } from '../forms/forms.component';
-import { TodayReportComponent } from '../reports/reporting/today-report.component';
-import { ReportsHistoryComponent } from '../reports/history/reports-history.component';
-import { EditProductsComponent } from '../organization/edit-products/edit-products.component';
-import { AllInventoryComponent } from '../inventory/all-inventory/all-inventory.component';
-import { InventoryByUsersComponent } from '../inventory/by-users/inventory-by-users.component';
-import { CheckoutComponent } from '../checkout/checkout.component';
 
 export interface NavItem {
   icon: string;
   labelKey: string;
   route: string;
   roles: UserRole[];
-  component: Type<unknown>;
+  loadComponent?: () => Promise<any>; // Function for lazy loading
 }
 
 export const navItems: NavItem[] = [
@@ -25,83 +14,103 @@ export const navItems: NavItem[] = [
     labelKey: 'navigation.my-items',
     route: 'my-items',
     roles: [UserRole.Customer, UserRole.WarehouseManager, UserRole.Admin],
-    component: MyItemsComponent,
+    loadComponent: () =>
+      import('../my-items/my-items.component').then((m) => m.MyItemsComponent),
   },
   {
     icon: 'report',
     labelKey: 'navigation.today-report',
     route: 'today-report',
     roles: [UserRole.Customer, UserRole.WarehouseManager, UserRole.Admin],
-    component: TodayReportComponent,
+    loadComponent: () =>
+      import('../reports/reporting/today-report.component').then(
+        (m) => m.TodayReportComponent
+      ),
   },
   {
     icon: 'history',
     labelKey: 'navigation.reports-history',
     route: 'reports-history',
     roles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
-    component: ReportsHistoryComponent,
+    loadComponent: () =>
+      import('../reports/history/reports-history.component').then(
+        (m) => m.ReportsHistoryComponent
+      ),
   },
   {
     icon: 'description',
     labelKey: 'navigation.my-forms',
     route: 'my-forms',
     roles: [UserRole.Customer],
-    component: FormsComponent,
+    loadComponent: () =>
+      import('../forms/forms.component').then((m) => m.FormsComponent),
   },
   {
     icon: 'login',
     labelKey: 'navigation.check-in',
     route: 'check-in',
     roles: [UserRole.Customer],
-    component: CheckInComponent,
+    loadComponent: () =>
+      import('../check-in/check-in.component').then((m) => m.CheckInComponent),
   },
   {
     icon: 'edit',
     labelKey: 'navigation.edit-products',
     route: 'edit-products',
     roles: [UserRole.WarehouseManager, UserRole.Admin],
-    component: EditProductsComponent,
+    loadComponent: () =>
+      import('../organization/edit-products/edit-products.component').then(
+        (m) => m.EditProductsComponent
+      ),
   },
   {
     icon: 'inventory',
     labelKey: 'navigation.all-inventory',
     route: 'all-inventory',
     roles: [UserRole.WarehouseManager, UserRole.Admin],
-    component: AllInventoryComponent,
+    loadComponent: () =>
+      import('../inventory/all-inventory/all-inventory.component').then(
+        (m) => m.AllInventoryComponent
+      ),
   },
   {
     icon: 'people',
     labelKey: 'navigation.inventory-by-users',
     route: 'inventory-by-users',
     roles: [UserRole.WarehouseManager, UserRole.Admin],
-    component: InventoryByUsersComponent,
+    loadComponent: () =>
+      import('../inventory/by-users/inventory-by-users.component').then(
+        (m) => m.InventoryByUsersComponent
+      ),
   },
   {
     icon: 'list_alt',
     labelKey: 'navigation.checkout',
     route: 'checkout',
     roles: [UserRole.WarehouseManager, UserRole.Admin],
-    component: CheckoutComponent,
+    loadComponent: () =>
+      import('../checkout/checkout.component').then((m) => m.CheckoutComponent),
   },
   {
     icon: 'assignment',
     labelKey: 'navigation.forms',
     route: 'forms',
     roles: [UserRole.WarehouseManager, UserRole.Admin],
-    component: FormsComponent,
+    loadComponent: () =>
+      import('../forms/forms.component').then((m) => m.FormsComponent),
   },
   {
     icon: 'track_changes',
     labelKey: 'navigation.trace-product',
     route: 'trace-product',
     roles: [UserRole.WarehouseManager, UserRole.Admin],
-    component: DummyComponent,
+    // loadComponent omitted - will use DummyComponent (eager loaded)
   },
   {
     icon: 'admin_panel_settings',
     labelKey: 'navigation.admin-dashboard',
     route: 'admin',
     roles: [UserRole.Admin],
-    component: DummyComponent,
+    // loadComponent omitted - will use DummyComponent (eager loaded)
   },
 ];

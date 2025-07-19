@@ -1,22 +1,41 @@
 import { Route } from '@angular/router';
-import { DummyComponent } from '../ui';
-import { navItems } from '../ui/side-nav/nav-items';
 import { createRoleGuard } from './guards/role.guard';
 import { NotAllowedComponent } from '../ui/not-allowed/not-allowed.component';
+import { DummyComponent } from '../ui';
+import { navItems } from '../ui/side-nav/nav-items';
 
-const navItemsRoutes = navItems.map((item) => ({
-  path: item.route,
-  component: item.component,
-  title: item.labelKey,
-  canActivate: [createRoleGuard(item.roles)],
-}));
+// Generate routes from nav items (single source of truth)
+const navItemRoutes: Route[] = navItems.map((item) => {
+  if (item.loadComponent) {
+    // Lazy loaded component
+    return {
+      path: item.route,
+      loadComponent: item.loadComponent,
+      title: item.labelKey,
+      canActivate: [createRoleGuard(item.roles)],
+    };
+  } else {
+    // Eager loaded component (DummyComponent)
+    return {
+      path: item.route,
+      component: DummyComponent,
+      title: item.labelKey,
+      canActivate: [createRoleGuard(item.roles)],
+    };
+  }
+});
 
 export const appRoutes: Route[] = [
-  ...navItemsRoutes,
+  ...navItemRoutes,
   {
     path: 'not-allowed',
     component: NotAllowedComponent,
     title: 'Not Allowed',
+  },
+  {
+    path: '',
+    redirectTo: 'my-items',
+    pathMatch: 'full',
   },
   {
     path: '**',
