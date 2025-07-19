@@ -1,7 +1,22 @@
-export const REPORT_TABLE_NAME = 'EquipTrackReport';
-export const USERS_AND_ORGANIZATIONS_TABLE_NAME = 'UsersAndOrganizations';
-export const INVENTORY_TABLE_NAME = 'Inventory';
-export const FORMS_TABLE_NAME = 'Forms';
+// ------------------------------
+// Dynamic table names per stage
+// ------------------------------
+// Compute the DynamoDB table name based on the current deployment stage (e.g. "dev", "staging", "production").
+// In production we use the plain base name. For every other stage we suffix the base name with "-<stage>"
+// so that multiple environments can coexist in the same AWS account.
+
+const STAGE = process.env.STAGE || 'dev';
+
+function stageTableName(base: string): string {
+  return STAGE === 'production' ? base : `${base}-${STAGE}`;
+}
+
+export const REPORT_TABLE_NAME = stageTableName('EquipTrackReport');
+export const USERS_AND_ORGANIZATIONS_TABLE_NAME = stageTableName(
+  'UsersAndOrganizations'
+);
+export const INVENTORY_TABLE_NAME = stageTableName('Inventory');
+export const FORMS_TABLE_NAME = stageTableName('Forms');
 
 // ===================================
 // Entity Type Discriminators

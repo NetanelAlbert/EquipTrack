@@ -145,7 +145,8 @@ function deployLambdaFunction(handlerName, roleArn) {
     // Update function configuration
     execSync(
       `aws lambda update-function-configuration --function-name ${functionName} ` +
-      `--timeout ${LAMBDA_CONFIG.timeout} --memory-size ${LAMBDA_CONFIG.memorySize}`,
+      `--timeout ${LAMBDA_CONFIG.timeout} --memory-size ${LAMBDA_CONFIG.memorySize} ` +
+      `--environment "Variables={STAGE=${STAGE}}"`,
       { stdio: 'inherit' }
     );
     
@@ -159,7 +160,8 @@ function deployLambdaFunction(handlerName, roleArn) {
       `--handler index.handler ` +
       `--zip-file fileb://${zipPath} ` +
       `--timeout ${LAMBDA_CONFIG.timeout} ` +
-      `--memory-size ${LAMBDA_CONFIG.memorySize}`,
+      `--memory-size ${LAMBDA_CONFIG.memorySize} ` +
+      `--environment "Variables={STAGE=${STAGE}}"`,
       { stdio: 'inherit' }
     );
   }
