@@ -5,7 +5,7 @@ const path = require('path');
 
 const STAGE = process.env.STAGE || 'dev';
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
-const FRONTEND_DIST_PATH = 'dist/apps/frontend';
+const FRONTEND_DIST_PATH = 'dist/apps/frontend/browser';
 
 // Configurable settings
 const FRONTEND_CACHE_MAX_AGE = process.env.FRONTEND_CACHE_MAX_AGE || '31536000';
@@ -131,14 +131,30 @@ function updateEnvironmentFile() {
     console.log('⚠️  Warning: API URL not found in deployment info. Skipping API URL replacement.');
     return;
   }
-  const envProdFile = path.join(FRONTEND_DIST_PATH, 'main.js');
+  
+  // Find the hashed main.js file (e.g., main-TOSE4JP4.js)
+  let mainJsFile = null;
+  try {
+    const files = fs.readdirSync(FRONTEND_DIST_PATH);
+    mainJsFile = files.find(file => file.startsWith('main') && file.endsWith('.js'));
+  } catch (error) {
+    console.log('⚠️  Warning: Could not read frontend build directory');
+    return;
+  }
+  
+  if (!mainJsFile) {
+    console.log('⚠️  Warning: Could not find main JavaScript file');
+    return;
+  }
+  
+  const envProdFile = path.join(FRONTEND_DIST_PATH, mainJsFile);
   
   if (fs.existsSync(envProdFile)) {
     try {
       let content = fs.readFileSync(envProdFile, 'utf8');
       content = content.replace(/API_URL_PLACEHOLDER/g, apiUrl);
       fs.writeFileSync(envProdFile, content);
-      console.log(`✅ Updated API URL to: ${apiUrl}`);
+      console.log(`✅ Updated API URL to: ${apiUrl} in ${mainJsFile}`);
     } catch (error) {
       console.log('⚠️  Warning: Could not update API URL in built files');
     }
