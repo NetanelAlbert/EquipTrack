@@ -98,19 +98,49 @@ function uploadToS3(bucketName) {
     throw new Error(`Frontend build directory not found: ${FRONTEND_DIST_PATH}`);
   }
   
-  // Upload all files with proper content types
+  // Upload all files with proper content types and caching
   execSync(
     `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --delete --cache-control max-age=${FRONTEND_CACHE_MAX_AGE}`,
     { stdio: 'inherit' }
   );
   
-  // Set specific cache control for index.html (no cache)
+  // Set specific content-type and cache control for HTML files
   execSync(
-    `aws s3 cp s3://${bucketName}/index.html s3://${bucketName}/index.html --metadata-directive REPLACE --cache-control "${FRONTEND_INDEX_CACHE_CONTROL}"`,
+    `aws s3 cp s3://${bucketName}/index.html s3://${bucketName}/index.html --metadata-directive REPLACE --content-type "text/html" --cache-control "${FRONTEND_INDEX_CACHE_CONTROL}"`,
     { stdio: 'inherit' }
   );
   
-  console.log('✅ Frontend files uploaded to S3');
+  // Set content-type for all HTML files (in case there are others)
+  try {
+    execSync(
+      `aws s3 cp s3://${bucketName}/ s3://${bucketName}/ --recursive --exclude "*" --include "*.html" --metadata-directive REPLACE --content-type "text/html" --cache-control "${FRONTEND_INDEX_CACHE_CONTROL}"`,
+      { stdio: 'inherit' }
+    );
+  } catch (error) {
+    console.log('Note: Could not update all HTML files content-type');
+  }
+  
+  // Set content-type for CSS files
+  try {
+    execSync(
+      `aws s3 cp s3://${bucketName}/ s3://${bucketName}/ --recursive --exclude "*" --include "*.css" --metadata-directive REPLACE --content-type "text/css" --cache-control max-age=${FRONTEND_CACHE_MAX_AGE}`,
+      { stdio: 'inherit' }
+    );
+  } catch (error) {
+    console.log('Note: Could not update CSS files content-type');
+  }
+  
+  // Set content-type for JS files
+  try {
+    execSync(
+      `aws s3 cp s3://${bucketName}/ s3://${bucketName}/ --recursive --exclude "*" --include "*.js" --metadata-directive REPLACE --content-type "application/javascript" --cache-control max-age=${FRONTEND_CACHE_MAX_AGE}`,
+      { stdio: 'inherit' }
+    );
+  } catch (error) {
+    console.log('Note: Could not update JS files content-type');
+  }
+  
+  console.log('✅ Frontend files uploaded to S3 with proper content types');
 }
 
 function updateEnvironmentFile() {

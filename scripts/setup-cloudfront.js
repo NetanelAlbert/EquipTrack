@@ -16,21 +16,23 @@ function createCloudFrontDistribution(bucketName, s3WebsiteUrl) {
     Origins: {
       Quantity: 1,
       Items: [{
-        Id: `S3-${bucketName}`,
-        DomainName: s3WebsiteUrl.replace('http://', ''),
+        Id: `S3-Website-${bucketName}`,
+        DomainName: s3WebsiteUrl.replace(/^https?:\/\//, ''),
         CustomOriginConfig: {
           HTTPPort: 80,
           HTTPSPort: 443,
           OriginProtocolPolicy: 'http-only',
           OriginSslProtocols: {
-            Quantity: 1,
-            Items: ['TLSv1.2']
-          }
+            Quantity: 3,
+            Items: ['TLSv1', 'TLSv1.1', 'TLSv1.2']
+          },
+          OriginReadTimeout: 30,
+          OriginKeepaliveTimeout: 5
         }
       }]
     },
     DefaultCacheBehavior: {
-      TargetOriginId: `S3-${bucketName}`,
+      TargetOriginId: `S3-Website-${bucketName}`,
       ViewerProtocolPolicy: 'redirect-to-https',
       Compress: true,
       TrustedSigners: {
@@ -51,12 +53,17 @@ function createCloudFrontDistribution(bucketName, s3WebsiteUrl) {
       MaxTTL: 31536000    // 1 year
     },
     CustomErrorResponses: {
-      Quantity: 1,
+      Quantity: 2,
       Items: [{
         ErrorCode: 404,
         ResponsePagePath: '/index.html',
         ResponseCode: '200',
-        ErrorCachingMinTTL: 300
+        ErrorCachingMinTTL: 0
+      }, {
+        ErrorCode: 403,
+        ResponsePagePath: '/index.html',
+        ResponseCode: '200',
+        ErrorCachingMinTTL: 0
       }]
     }
   };
@@ -142,14 +149,29 @@ function updateDistributionIfNeeded(distributionId, bucketName, s3WebsiteUrl) {
 
     // Check if origin domain matches current S3 website URL
     const currentOrigin = config.Origins.Items[0];
-    const expectedDomain = s3WebsiteUrl.replace('http://', '');
+    const expectedDomain = s3WebsiteUrl.replace(/^https?:\/\//, '');
 
     if (currentOrigin.DomainName !== expectedDomain) {
       console.log('Updating CloudFront distribution with new origin...');
       
-      // Update the origin domain
+      // Update the origin domain and ID
       config.Origins.Items[0].DomainName = expectedDomain;
+      config.Origins.Items[0].Id = `S3-Website-${bucketName}`;
+      config.DefaultCacheBehavior.TargetOriginId = `S3-Website-${bucketName}`;
       config.CallerReference = `equip-track-${STAGE}-update-${Date.now()}`;
+
+      // Ensure proper CustomOriginConfig settings
+      config.Origins.Items[0].CustomOriginConfig = {
+        HTTPPort: 80,
+        HTTPSPort: 443,
+        OriginProtocolPolicy: 'http-only',
+        OriginSslProtocols: {
+          Quantity: 3,
+          Items: ['TLSv1', 'TLSv1.1', 'TLSv1.2']
+        },
+        OriginReadTimeout: 30,
+        OriginKeepaliveTimeout: 5
+      };
 
       // Write updated config
       fs.writeFileSync('cloudfront-update-config.json', JSON.stringify(config));
