@@ -145,6 +145,12 @@ export class UsersAndOrganizationsAdapter {
    * Create a new user with UUID and external auth provider info
    */
   async createUser(user: User, googleSub?: string): Promise<void> {
+    // First check if a user with this email already exists
+    const existingUser = await this.getUserByEmail(user.email);
+    if (existingUser) {
+      throw new Error(`User with email ${user.email} already exists`);
+    }
+
     const userDb: UserDb = {
       ...user,
       PK: `${USER_PREFIX}${user.id}`,
@@ -157,18 +163,9 @@ export class UsersAndOrganizationsAdapter {
     const command = new PutCommand({
       TableName: this.tableName,
       Item: userDb,
-      // Prevent overwriting existing users by email
-      ConditionExpression: 'attribute_not_exists(email)',
     });
 
-    try {
-      await this.docClient.send(command);
-    } catch (error) {
-      if (error.name === 'ConditionalCheckFailedException') {
-        throw new Error(`User with email ${user.email} already exists`);
-      }
-      throw error;
-    }
+    await this.docClient.send(command);
   }
 
   /**
