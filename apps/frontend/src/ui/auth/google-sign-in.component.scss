@@ -2,9 +2,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   position: relative;
-  min-height: 60px;
+  min-height: 80px;
+  padding: 12px;
 
   .loading-overlay {
     position: absolute;
@@ -16,81 +17,151 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    background-color: rgba(255, 255, 255, 0.9);
-    border-radius: 4px;
-    z-index: 10;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 
     .loading-text {
-      font-size: 14px;
-      color: var(--mat-primary-600);
-      font-weight: 500;
+      font-size: 16px;
+      color: var(--mat-primary-700);
+      font-weight: 600;
+      text-align: center;
+      letter-spacing: 0.25px;
+      animation: pulse-text 1.5s ease-in-out infinite;
+    }
+
+    mat-spinner {
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
     }
   }
 
   .google-button-container {
     display: flex;
     justify-content: center;
-    transition: opacity 0.2s ease-in-out;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    position: relative;
 
     &.disabled {
-      opacity: 0.6;
+      opacity: 0.5;
       pointer-events: none;
+      filter: grayscale(0.3);
     }
 
     &.hidden {
       display: none;
     }
 
+    // Add focus indicator for the container
+    &:focus-within {
+      outline: 3px solid var(--mat-primary-500);
+      outline-offset: 4px;
+      border-radius: 8px;
+    }
+
     // Override Google button styles to match Material Design
     div[data-iframeid] {
-      // Ensure proper spacing and alignment
       display: flex !important;
       justify-content: center !important;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+      transition: all 0.2s ease;
+
+      &:hover {
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+        transform: translateY(-1px);
+      }
     }
 
     iframe {
-      // Add shadow to match Material Design elevation
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-      border-radius: 4px !important;
-      transition: box-shadow 0.2s ease-in-out;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15) !important;
+      border-radius: 6px !important;
+      transition: all 0.2s ease-in-out !important;
+      border: 1px solid rgba(0, 0, 0, 0.05) !important;
 
       &:hover {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
+        transform: translateY(-2px) !important;
+      }
+
+      &:focus {
+        outline: 2px solid var(--mat-primary-500) !important;
+        outline-offset: 2px !important;
       }
     }
+  }
+
+  .fallback-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
   }
 
   .fallback-button {
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-width: 280px;
-    height: 48px;
-    font-weight: 500;
+    gap: 12px;
+    min-width: 300px;
+    min-height: 52px;
+    font-weight: 600;
     text-transform: none;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
     transition: all 0.2s ease-in-out;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--mat-primary-500) 0%, var(--mat-primary-600) 100%);
+    color: white;
+    letter-spacing: 0.25px;
+
+    // Add subtle shine effect
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s ease;
+    }
 
     &:hover:not(:disabled) {
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+      transform: translateY(-2px);
+
+      &::before {
+        left: 100%;
+      }
+    }
+
+    &:focus {
+      outline: 3px solid var(--mat-primary-300);
+      outline-offset: 2px;
     }
 
     &:disabled {
       opacity: 0.6;
+      transform: none !important;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
     }
 
     mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
     }
 
     span {
-      font-size: 16px;
-      letter-spacing: 0.25px;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
   }
 
@@ -98,50 +169,144 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 24px;
-    border: 1px solid var(--mat-warn-300);
-    border-radius: 8px;
-    background-color: var(--mat-warn-50);
+    gap: 16px;
+    padding: 28px 24px;
+    border: 2px solid var(--mat-warn-400);
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--mat-warn-50) 0%, rgba(255, 249, 235, 0.8) 100%);
     text-align: center;
-    max-width: 300px;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: 0 4px 16px rgba(244, 67, 54, 0.1);
+    position: relative;
+    overflow: hidden;
+
+    // Subtle animated border
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--mat-warn-500), transparent);
+      animation: scan 3s linear infinite;
+    }
+
+    .error-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      z-index: 1;
+    }
 
     mat-icon {
-      font-size: 32px;
-      width: 32px;
-      height: 32px;
+      font-size: 40px;
+      width: 40px;
+      height: 40px;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+      animation: shake 0.5s ease-in-out;
     }
 
-    p {
+    .error-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--mat-warn-800);
+      margin: 0;
+      letter-spacing: 0.25px;
+    }
+
+    .error-message {
       margin: 0;
       color: var(--mat-warn-700);
-      font-size: 14px;
-      line-height: 1.4;
+      font-size: 15px;
+      line-height: 1.5;
+      font-weight: 500;
     }
 
-    button {
-      margin-top: 8px;
+    .retry-button {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 10px 20px;
+      font-weight: 600;
+      text-transform: none;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+      &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      &:focus {
+        outline: 2px solid var(--mat-primary-500);
+        outline-offset: 2px;
+      }
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        animation: none;
+      }
     }
   }
+}
+
+// Screen reader only class for accessibility
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 // Dark theme support
 @media (prefers-color-scheme: dark) {
   .google-sign-in-container {
     .loading-overlay {
-      background-color: rgba(33, 33, 33, 0.9);
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.98) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
 
       .loading-text {
         color: var(--mat-primary-300);
       }
     }
 
-    .error-state {
-      background-color: var(--mat-warn-900);
-      border-color: var(--mat-warn-700);
+    .fallback-button {
+      background: linear-gradient(135deg, var(--mat-primary-600) 0%, var(--mat-primary-700) 100%);
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
 
-      p {
+      &:hover:not(:disabled) {
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      }
+
+      &:focus {
+        outline-color: var(--mat-primary-400);
+      }
+    }
+
+    .error-state {
+      background: linear-gradient(135deg, rgba(127, 29, 29, 0.2) 0%, rgba(153, 27, 27, 0.1) 100%);
+      border-color: var(--mat-warn-600);
+      box-shadow: 0 4px 16px rgba(244, 67, 54, 0.2);
+
+      .error-title {
         color: var(--mat-warn-200);
+      }
+
+      .error-message {
+        color: var(--mat-warn-300);
       }
     }
   }
@@ -150,23 +315,143 @@
 // Responsive design
 @media (max-width: 480px) {
   .google-sign-in-container {
+    gap: 16px;
+    padding: 8px;
+
     .fallback-button {
-      min-width: 240px;
-      font-size: 14px;
+      min-width: 280px;
+      min-height: 48px;
+      font-size: 15px;
+
+      mat-icon {
+        font-size: 22px;
+        width: 22px;
+        height: 22px;
+      }
+
+      span {
+        font-size: 15px;
+      }
     }
 
     .google-button-container {
       // Adjust Google button size for mobile
-      transform: scale(0.9);
+      transform: scale(0.95);
+    }
+
+    .error-state {
+      padding: 20px 16px;
+      max-width: 300px;
+
+      .error-title {
+        font-size: 16px;
+      }
+
+      .error-message {
+        font-size: 14px;
+      }
     }
   }
 }
 
-// Animation for component entrance
+@media (max-width: 360px) {
+  .google-sign-in-container {
+    .fallback-button {
+      min-width: 240px;
+      font-size: 14px;
+      gap: 8px;
+
+      span {
+        font-size: 14px;
+      }
+    }
+
+    .error-state {
+      padding: 16px 12px;
+
+      mat-icon {
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+      }
+    }
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .google-sign-in-container {
+    .fallback-button {
+      border: 3px solid currentColor;
+      background: var(--mat-primary-500);
+    }
+
+    .error-state {
+      border-width: 3px;
+      background: var(--mat-warn-50);
+
+      .retry-button {
+        border: 2px solid var(--mat-primary-500);
+      }
+    }
+
+    .loading-overlay {
+      border: 2px solid var(--mat-primary-500);
+      background: var(--mat-surface);
+    }
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .google-sign-in-container {
+    .fallback-button {
+      transition: none !important;
+
+      &::before {
+        transition: none !important;
+      }
+
+      &:hover:not(:disabled) {
+        transform: none !important;
+
+        &::before {
+          left: -100% !important;
+        }
+      }
+    }
+
+    .google-button-container {
+      div[data-iframeid]:hover {
+        transform: none !important;
+      }
+
+      iframe:hover {
+        transform: none !important;
+      }
+    }
+
+    .error-state {
+      &::before {
+        animation: none !important;
+      }
+
+      mat-icon {
+        animation: none !important;
+      }
+    }
+
+    .loading-overlay .loading-text {
+      animation: none !important;
+    }
+  }
+}
+
+// Animation keyframes
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -174,19 +459,47 @@
   }
 }
 
-.google-sign-in-container {
-  animation: fadeInUp 0.3s ease-out;
+@keyframes pulse-text {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
-// High contrast mode support
-@media (prefers-contrast: high) {
-  .google-sign-in-container {
-    .fallback-button {
-      border: 2px solid currentColor;
-    }
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
 
-    .error-state {
-      border-width: 2px;
-    }
+@keyframes scan {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+// Main component animation
+.google-sign-in-container {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+// Focus management for better accessibility
+.google-sign-in-container:focus-within {
+  .google-button-container,
+  .fallback-button,
+  .retry-button {
+    position: relative;
+    z-index: 10;
   }
 } 
