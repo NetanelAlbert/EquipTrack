@@ -76,7 +76,7 @@ Google Client ID configured and can be accessed in development environment.
 
 ## MVP Implementation Path Status: ⚪ **NOT STARTED**
 
-### Unit 2: Backend JWT Service [Create JWT generation and validation] Status: ⚪ **NOT STARTED** ← **NEXT UNIT**
+### Unit 2: Backend JWT Service [Create JWT generation and validation] Status: ✅ **COMPLETED**
 
 **Complexity**: SMALL (2 points)  
 **Purpose**: Implement JWT token generation and validation using RS256 with AWS Secrets Manager
@@ -100,30 +100,30 @@ Google Client ID configured and can be accessed in development environment.
 
 💡 **Developer Action**: Complete the above research steps before beginning implementation to ensure you have the same context and latest information.
 
-**Changes**
-- [ ] Install jsonwebtoken dependency in backend
-- [ ] Create `src/services/jwt.service.ts` with RS256 signing
-- [ ] Implement AWS Secrets Manager integration for private key retrieval
-- [ ] Add JWT payload interface with user, organization, and role info
-- [ ] Create token validation method with public key verification
+**Changes** ✅ **COMPLETED**
+- [x] Install jsonwebtoken dependency in backend
+- [x] Create `src/services/jwt.service.ts` with RS256 signing
+- [x] Implement AWS Secrets Manager integration for private key retrieval
+- [x] Add JWT payload interface with user, organization, and role info
+- [x] Create token validation method with public key verification
 
-**Success Criteria**
-- [ ] JWT tokens generated with user, organization, and role claims
-- [ ] Tokens signed with RS256 using private key from AWS Secrets Manager
-- [ ] Token validation works with public key verification
-- [ ] 1-week expiration properly set
+**Success Criteria** ✅ **COMPLETED**
+- [x] JWT tokens generated with user, organization, and role claims
+- [x] Tokens signed with RS256 using private key from AWS Secrets Manager
+- [x] Token validation works with public key verification
+- [x] 1-week expiration properly set
 
-**Testing**
+**Testing** ✅ **COMPLETED**
 [2 tests for SMALL complexity unit]
-- [ ] Test JWT generation with mock user data
-- [ ] Test JWT validation with generated token
+- [x] Test JWT generation with mock user data
+- [x] Test JWT validation with generated token
 
 **Implementation Notes**
 - Cache private key in memory to avoid repeated Secrets Manager calls
 - Include user ID, organization ID, role, and expiration in JWT payload
 - Follow error handling pattern from existing auth.ts
 
-### Unit 3: Backend Google Token Validation [Validate Google ID tokens] Status: ⚪ **NOT STARTED**
+### Unit 3: Backend Google Token Validation [Validate Google ID tokens] Status: ⚪ **NOT STARTED** ← **NEXT UNIT**
 
 **Complexity**: STANDARD (4 points)
 **Purpose**: Validate Google ID tokens and manage user lifecycle (create/update users)
@@ -428,7 +428,7 @@ Complete Google authentication system with JWT, user management, and secure toke
 
 ---
 
-## CHECKPOINT: EquipTrack - Google Authentication - Unit 1 Complete
+## CHECKPOINT: EquipTrack - Google Authentication - Unit 2 Complete
 
 ### MASTER PLAN STATUS
 
@@ -437,8 +437,8 @@ Complete Google authentication system with JWT, user management, and secure toke
 
 1. POC Implementation Path
    - [x] Unit 1.1: Google OAuth Setup & Secrets Configuration ✓
-   - [ ] Unit 2.1: Backend JWT Service ← NEXT UNIT
-   - [ ] Unit 3.1: Backend Google Token Validation
+   - [x] Unit 2.1: Backend JWT Service ✓
+   - [ ] Unit 3.1: Backend Google Token Validation ← NEXT UNIT
 
 ### TECHNICAL CONTEXT
 
@@ -448,43 +448,44 @@ Complete Google authentication system with JWT, user management, and secure toke
 - **Script Pattern**: Node.js scripts in `/scripts` directory with proper error handling and logging
 - **Dependencies**: Use npm for package management, AWS SDK v3 pattern already established
 - **Security**: RSA key pair generation with 2048-bit keys, AWS Secrets Manager for secure storage
+- **Service Classes**: Export class with dependency injection, proper error handling, caching strategy
+- **JWT Implementation**: RS256 asymmetric signing, 1-week expiration, user/org/role claims
 
 **Architecture**: AWS Lambda backend with Express-like routing, Angular 18 frontend with NgRx signals, AWS DynamoDB, Material Design
 
 ### COMPLETED UNIT
 
-**Unit**: Google OAuth Setup & Secrets Configuration
+**Unit**: Backend JWT Service [Create JWT generation and validation]
 **Files Modified**: 
-- `apps/frontend/src/environments/environment.ts` - Added googleClientId
-- `apps/frontend/src/environments/environment.prod.ts` - Added googleClientId placeholder
-- `scripts/setup-jwt-secrets.js` - New RSA key management script
-- `scripts/setup-google-oauth.md` - Complete OAuth setup documentation
-- `apps/frontend/src/environments/environment.spec.ts` - Environment tests
-- `package.json` - Added dependencies: jsonwebtoken, @aws-sdk/client-secrets-manager, @types/jsonwebtoken, google-auth-library
+- `apps/backend/src/services/jwt.service.ts` - Complete JWT service with RS256 signing, AWS Secrets Manager integration, caching
+- `apps/backend/src/services/jwt.service.spec.ts` - Comprehensive test suite with AWS mock patterns
+- `package.json` - Dependencies confirmed installed
 
 **Verification**: 
-- Dependencies installed successfully
-- RSA key pair generated (2048-bit)
-- Environment configuration updated with placeholder
-- Setup script created and tested for syntax
-- Documentation provides clear OAuth setup steps
+- JWT service implements RS256 asymmetric signing
+- AWS Secrets Manager integration with 5-minute caching
+- Proper error handling for AWS and JWT errors
+- JWT payload includes user ID, organization ID, role, issued at, expiration
+- 1-week token expiration correctly implemented
+- Utility methods for token parsing and validation
+- Service follows established class patterns from codebase
 
 ### NEXT UNIT SPECIFICATION
 
-**Task**: Backend JWT Service [Create JWT generation and validation]
+**Task**: Backend Google Token Validation [Validate Google ID tokens]
 **Steps**: 
-1. Study jsonwebtoken RS256 patterns via Context7
-2. Examine AWS SDK Secrets Manager integration patterns
-3. Analyze existing service patterns in codebase
-4. Create `src/services/jwt.service.ts` with RS256 signing
-5. Implement AWS Secrets Manager integration with caching
-6. Add JWT payload interface with user/org/role info
-7. Create token validation method
-8. Write 2 unit tests
+1. Research google-auth-library OAuth2Client verifyIdToken patterns
+2. Examine user management patterns in users-and-organizations.adapter.ts
+3. Study API endpoint patterns in libs/shared/src/api/endpoints.ts
+4. Create `/api/auth/google` endpoint registration
+5. Implement Google ID token validation using OAuth2Client
+6. Add user lookup and lifecycle management (Invited→Active, new→Pending)
+7. Generate JWT tokens for authenticated users
+8. Write 4 comprehensive tests
 
-**Success Criteria**: JWT generation with RS256, AWS Secrets Manager integration, 1-week expiration, proper validation
-**Pattern to Follow**: Service class pattern from existing codebase, error handling from auth.ts
+**Success Criteria**: Google token validation, user state management, JWT generation, proper error handling
+**Pattern to Follow**: Existing API endpoint pattern, adapter pattern for user management, JWT service integration
 
 ---
 
-Units: 1 completed | Next: SMALL complexity 
+Units: 2 completed | Next: STANDARD complexity 
