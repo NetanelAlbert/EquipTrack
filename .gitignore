@@ -56,3 +56,5 @@ website-config.json
 bucket-policy.json
 cloudfront-config.json
 cloudfront-update-config.json
+
+scratchpads/
