@@ -5,3 +5,10 @@ export * as Wharehouse from './wharehouse';
 export * as Reports from './reports';
 export * from './basic';
 export * from './endpoints';
+
+// Export all types directly for easier importing
+export * from './admin';
+export * from './auth';
+export * from './basicUser';
+export * from './wharehouse';
+export * from './reports';
