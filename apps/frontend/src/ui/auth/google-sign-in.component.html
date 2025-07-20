@@ -1,0 +1,44 @@
+<div class="google-sign-in-container">
+  <!-- Loading indicator -->
+  @if (isLoading) {
+    <div class="loading-overlay">
+      <mat-spinner diameter="24"></mat-spinner>
+      <span class="loading-text">{{ 'auth.signing-in' | translate }}</span>
+    </div>
+  }
+
+  <!-- Google Sign-In Button Container -->
+  <div 
+    #googleButtonContainer 
+    class="google-button-container"
+    [class.disabled]="disabled() || isLoading"
+    [class.hidden]="!isGoogleLoaded && !fallbackClicked">
+  </div>
+
+  <!-- Fallback Button (shown if Google Sign-In fails to load) -->
+  @if (showFallbackButton() && !isGoogleLoaded && !fallbackClicked) {
+    <button
+      mat-raised-button
+      color="primary"
+      class="fallback-button"
+      [disabled]="disabled() || isLoading"
+      (click)="onFallbackButtonClick()">
+      <mat-icon>account_circle</mat-icon>
+      <span>{{ 'auth.sign-in-with-google' | translate }}</span>
+    </button>
+  }
+
+  <!-- Error state fallback -->
+  @if (fallbackClicked) {
+    <div class="error-state">
+      <mat-icon color="warn">error_outline</mat-icon>
+      <p>{{ 'auth.google-unavailable' | translate }}</p>
+      <button 
+        mat-button 
+        color="primary" 
+        (click)="initializeGoogleSignIn()">
+        {{ 'auth.try-again' | translate }}
+      </button>
+    </div>
+  }
+</div> 
