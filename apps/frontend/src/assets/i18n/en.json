@@ -1,140 +1,67 @@
 {
-  "inventory": {
-    "name": "Name",
-    "pid": "Product ID",
-    "upi": {
-      "title": "UPIs"
-    },
-    "button": {
-      "add-item": "Add Item",
-      "save": "Save"
-    },
-    "form": {
-      "product": "Product",
-      "quantity": "Quantity",
-      "upi": "UPI",
-      "upi-placeholder": "UPI"
-    },
-    "list": {
-      "items": "Items"
-    },
-    "validation": {
-      "product-required": "Product is required",
-      "quantity-required": "Quantity is required",
-      "quantity-min": "Quantity must be at least 1",
-      "quantity-pattern": "Quantity must be a positive number",
-      "upi-required": "UPI is required",
-      "duplicate": "Duplicate products: {{ duplicates }}"
-    },
-    "views": {
-      "warehouse": "Warehouse Inventory",
-      "organization": "Organization Inventory",
-      "user": "User Inventory",
-      "selectUser": "Select User"
-    },
-    "empty-state": "No items found"
+  "title": "EquipTrack",
+  "auth": {
+    "sign-in-with-google": "Sign in with Google",
+    "sign-in-title": "Sign In",
+    "sign-in-subtitle": "Access your equipment tracking system",
+    "signing-in": "Signing in...",
+    "success": "Successfully signed in!",
+    "error": "Sign-in failed",
+    "google-unavailable": "Google Sign-In is currently unavailable. Please try again later.",
+    "try-again": "Try Again",
+    "welcome-message": "Welcome to EquipTrack. Please sign in with your Google account to continue.",
+    "or": "or",
+    "need-help": "Need help accessing your account?",
+    "contact-admin": "Contact Administrator",
+    "security-note": "Your data is protected with enterprise-grade security"
   },
-  "organization": {
-    "editProducts": {
-      "title": "Edit Products",
-      "id": "Product ID",
-      "name": "Product Name",
-      "upi": "Has UPI",
-      "addProduct": "Add Product",
-      "save": "Save Changes",
-      "idRequired": "Product ID is required",
-      "idMinLength": "Product ID must be at least 2 characters long",
-      "nameRequired": "Product name is required",
-      "nameMinLength": "Product name must be at least 2 characters long",
-      "duplicateIds": "Duplicate product IDs are not allowed"
-    }
+  "common": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK"
   },
-  "reports": {
-    "title": "Daily Inventory Report",
-    "historyTitle": "Reports History",
-    "sortBy": "Sort By",
-    "sortByLocation": "Location",
-    "sortByProduct": "Product",
-    "noLocation": "No Location Set",
-    "lastLocation": "Last Location",
-    "useLastLocation": "Use Last Location",
-    "enterLocation": "Enter Location",
-    "reported": "Reported",
-    "notReported": "Not Reported",
-    "loading": "Loading reports...",
-    "error": "Error loading reports",
-    "upiLabel": "UPI",
-    "selectDate": "Select Date",
-    "items": "items",
-    "noReportForDate": "No Report Available",
-    "noReportForDateDescription": "No inventory report was found for the selected date. Please choose a different date."
+  "navigation": {
+    "dashboard": "Dashboard",
+    "inventory": "Inventory",
+    "forms": "Forms",
+    "reports": "Reports",
+    "settings": "Settings",
+    "user-menu": "User menu",
+    "view-profile": "View Profile",
+    "sign-out": "Sign Out",
+    "sign-in": "Sign In"
   },
   "forms": {
-    "check-in": "Check In",
-    "check-out": "Check Out",
     "form-id": "Form ID",
     "status": "Status",
     "status-pending": "Pending",
-    "status-approved": "Approved",
+    "status-approved": "Approved", 
     "status-rejected": "Rejected",
-    "empty-check-in": "No check-in forms available",
-    "empty-check-out": "No check-out forms available",
     "created-at": "Created At",
     "approved-at": "Approved At",
     "approve": "Approve",
     "reject": "Reject",
-    "reject-dialog": {
-      "title": "Reject Form",
-      "reason": "Reason for Rejection",
-      "reason-placeholder": "Please provide a reason for rejecting this form...",
-      "cancel": "Cancel",
-      "confirm": "Confirm Rejection"
-    }
+    "check-in": "Check In"
   },
-  "buttons": {
-    "delete": "Delete"
-  },
-  "navigation": {
-    "my-items": "My Items",
-    "today-report": "Today's Report",
-    "reports-history": "Reports History",
-    "my-forms": "My Forms",
-    "check-in": "Check In",
-    "edit-products": "Edit Products",
-    "all-inventory": "All Inventory",
-    "inventory-by-users": "Inventory by Users",
-    "checkout": "Checkout",
-    "forms": "Forms",
-    "trace-product": "Trace Product",
-    "admin-dashboard": "Admin Dashboard"
+  "inventory": {
+    "title": "Inventory",
+    "add-item": "Add Item",
+    "edit-item": "Edit Item",
+    "remove-item": "Remove Item",
+    "quantity": "Quantity",
+    "location": "Location",
+    "status": "Status"
   },
   "errors": {
     "not-allowed": {
       "title": "Access Denied",
-      "message": "You don't have permission to access this page.",
-      "back-home": "Back to Home"
+      "message": "You don't have permission to access this page."
     }
-  },
-  "checkout": {
-    "title": "Checkout Items",
-    "select-user": "Select User",
-    "predefined-forms": "Predefined Forms",
-    "items": "Items",
-    "quantity": "Quantity",
-    "upis": "UPIs",
-    "add-form": "Add Form",
-    "submit": "Submit",
-    "success": "Checkout form created successfully",
-    "error": "Error creating checkout form"
-  },
-  "common": {
-    "close": "Close",
-    "signature": {
-      "clear": "Clear",
-      "signature-pad": "Sign here",
-      "title": "Signature"
-    },
-    "ok": "OK",
-    "cancel": "Cancel"
   }
 } 

@@ -2,7 +2,7 @@
   <mat-sidenav #sidenav
                mode="side"
                [opened]="isExpanded()"
-               (openedChange)="isExpanded.set($event)"
+               (openedChange)="onOpenedChange($event)"
                [fixedInViewport]="true"
                class="sidenav"
                [class.expanded]="isExpanded()"

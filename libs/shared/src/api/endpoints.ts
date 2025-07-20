@@ -1,5 +1,6 @@
 import { UserRole } from '../elements/users';
 import * as Admin from './admin';
+import * as Auth from './auth';
 import * as BasicUser from './basicUser';
 import * as Wharehouse from './wharehouse';
 import * as Reports from './reports';
@@ -19,6 +20,15 @@ export const ORGANIZATION_ID_PATH_PARAM = 'organizationId';
 export const USER_ID_PATH_PARAM = 'userId';
 
 export const endpointMetas = {
+  // Authentication
+  googleAuth: {
+    path: `/api/auth/google`,
+    method: 'POST',
+    allowedRoles: [], // No authentication required for this endpoint
+    requestType: {} as Auth.GoogleAuthRequest,
+    responseType: {} as Auth.GoogleAuthResponse,
+  } as EndpointMeta<Auth.GoogleAuthRequest, Auth.GoogleAuthResponse>,
+
   // Admin Users
   getUsers: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/users`,

@@ -14,6 +14,8 @@ import {
   DynamoDBDocumentClient,
   BatchGetCommand,
   QueryCommand,
+  PutCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
   USERS_AND_ORGANIZATIONS_TABLE_NAME,
@@ -21,7 +23,12 @@ import {
   USER_PREFIX,
   METADATA_SK,
 } from '../constants';
-import { Organization, User, UserInOrganization } from '@equip-track/shared';
+import {
+  Organization,
+  User,
+  UserInOrganization,
+  UserState,
+} from '@equip-track/shared';
 
 export interface UserAndAllOrganizations {
   user: User;
@@ -132,5 +139,108 @@ export class UsersAndOrganizationsAdapter {
       name: organizationDB.name,
       imageUrl: organizationDB.imageUrl,
     };
+  }
+
+  /**
+   * Create a new user with UUID and external auth provider info
+   */
+  async createUser(user: User, googleSub?: string): Promise<void> {
+    // First check if a user with this email already exists
+    const existingUser = await this.getUserByEmail(user.email);
+    if (existingUser) {
+      throw new Error(`User with email ${user.email} already exists`);
+    }
+
+    const userDb: UserDb = {
+      ...user,
+      PK: `${USER_PREFIX}${user.id}`,
+      SK: METADATA_SK,
+      dbItemType: DbItemType.User,
+      // Store Google sub for future reference if provided
+      ...(googleSub && { googleSub }),
+    };
+
+    const command = new PutCommand({
+      TableName: this.tableName,
+      Item: userDb,
+    });
+
+    await this.docClient.send(command);
+  }
+
+  /**
+   * Update an existing user's state (e.g., from Invited to Active)
+   */
+  async updateUserState(userId: string, newState: UserState): Promise<void> {
+    const command = new UpdateCommand({
+      TableName: this.tableName,
+      Key: {
+        PK: `${USER_PREFIX}${userId}`,
+        SK: METADATA_SK,
+      },
+      UpdateExpression: 'SET #state = :state',
+      ExpressionAttributeNames: {
+        '#state': 'state',
+      },
+      ExpressionAttributeValues: {
+        ':state': newState,
+      },
+      // Ensure the user exists before updating
+      ConditionExpression: 'attribute_exists(PK)',
+    });
+
+    try {
+      await this.docClient.send(command);
+    } catch (error) {
+      if (error.name === 'ConditionalCheckFailedException') {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get user by email address using the UsersByEmailIndex GSI
+   */
+  async getUserByEmail(
+    email: string
+  ): Promise<UserAndAllOrganizations | undefined> {
+    // First, get the user record using the email GSI
+    const userQuery = new QueryCommand({
+      TableName: this.tableName,
+      IndexName: 'UsersByEmailIndex',
+      KeyConditionExpression: 'email = :email AND SK = :sk',
+      ExpressionAttributeValues: {
+        ':email': email,
+        ':sk': METADATA_SK,
+      },
+    });
+
+    const userResult = await this.docClient.send(userQuery);
+    const userItems = userResult.Items as UserDb[];
+
+    if (!userItems || userItems.length === 0) {
+      return undefined;
+    }
+
+    const userDb = userItems[0];
+    const user = this.getUser(userDb);
+
+    // Now get all user-organization relationships for this user
+    const orgQuery = new QueryCommand({
+      TableName: this.tableName,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :orgPrefix)',
+      ExpressionAttributeValues: {
+        ':pk': userDb.PK,
+        ':orgPrefix': ORG_PREFIX,
+      },
+    });
+
+    const orgResult = await this.docClient.send(orgQuery);
+    const orgItems = (orgResult.Items as UserInOrganizationDb[]) ?? [];
+
+    const userInOrganizations = orgItems.map(this.getUserInOrganizations);
+
+    return { user, userInOrganizations };
   }
 }
