@@ -1,4 +1,5 @@
 import { endpointMetas, EndpointMeta } from '@equip-track/shared';
+import { handler as googleAuthHandler } from './auth/google';
 import { handler as getUsersHandler } from './admin/users/get';
 import { handler as setUserHandler } from './admin/users/set';
 import { handler as approveCheckOutHandler } from './user/checkout/approve';
@@ -23,7 +24,7 @@ export type HandlerFunction<Req, Res> = (
   pathParams?: APIGatewayProxyEventPathParameters
 ) => Promise<Res>;
 
-type Handlers = {
+type HandlersDefinition = {
   [K in keyof typeof endpointMetas]: (typeof endpointMetas)[K] extends EndpointMeta<
     infer Req,
     infer Res
@@ -32,7 +33,10 @@ type Handlers = {
     : never;
 };
 
-export const handlers: Handlers = {
+export const handlers: HandlersDefinition = {
+  // Authentication
+  googleAuth: googleAuthHandler,
+
   // Admin Users
   getUsers: getUsersHandler, // TODO: Implement this
   setUser: setUserHandler, // TODO: Implement this

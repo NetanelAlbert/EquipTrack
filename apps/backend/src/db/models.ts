@@ -1,8 +1,4 @@
-import {
-  Organization,
-  User,
-  UserInOrganization,
-} from '@equip-track/shared';
+import { Organization, User, UserInOrganization } from '@equip-track/shared';
 
 /**
  * Base interface for all items stored in the main EquipTrack DynamoDB table.
@@ -45,7 +41,10 @@ export interface ProductDb extends DbItem {
   organizationId: string;
 }
 
-export interface UserDb extends User, DbItem {}
+export interface UserDb extends User, DbItem {
+  // Optional Google sub ID for users who authenticated with Google
+  googleSub?: string;
+}
 
 /**
  * Represents the link between a User and an Organization in the database.

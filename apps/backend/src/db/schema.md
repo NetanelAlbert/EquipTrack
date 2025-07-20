@@ -9,13 +9,19 @@ This table manages users, organizations, and the relationships between them.
 -   **Table Name**: `UsersAndOrganizations`
 -   **Primary Key**: `PK` (Partition Key), `SK` (Sort Key)
 
+### Global Secondary Indexes (GSIs)
+
+1.  **`UsersByEmailIndex`**: Used for efficient user lookup by email address during authentication.
+    -   **PK**: `email` (User's email address)
+    -   **SK**: `SK` (Same as main table sort key: `METADATA`)
+
 ### Entity Map
 
-| Entity / Purpose       | `PK` (Partition Key)      | `SK` (Sort Key)                   |
-| :--------------------- | :------------------------ | :-------------------------------- |
-| **Organization**       | `ORG#<id>`                | `METADATA`                        |
-| **User**               | `USER#<id>`               | `METADATA`                        |
-| **User-Org Link**      | `USER#<id>`               | `ORG#<id>`                        |
+| Entity / Purpose       | `PK` (Partition Key)      | `SK` (Sort Key)                   | `email`                    |
+| :--------------------- | :------------------------ | :-------------------------------- | :------------------------- |
+| **Organization**       | `ORG#<id>`                | `METADATA`                        | -                          |
+| **User**               | `USER#<uuid>`             | `METADATA`                        | `user@example.com`         |
+| **User-Org Link**      | `USER#<uuid>`             | `ORG#<id>`                        | -                          |
 
 ---
 

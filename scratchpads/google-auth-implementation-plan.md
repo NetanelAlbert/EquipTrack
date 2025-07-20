@@ -15,6 +15,8 @@
 - Current auth system has role-based access control but dummy authentication
 - JWT should include organization and role info for existing auth logic integration
 - Use RS256 asymmetric signing with AWS Secrets Manager for key storage
+- **USER ID ARCHITECTURE**: Use UUID for user IDs, not Google sub (better security/flexibility)
+- **EMAIL GSI**: Efficient user lookup by email address during authentication
 
 **Questions Asked** [3/3 REQUIRED]:
 1. "Should I implement with the new GIS library or would you prefer a different approach?" → "yes go with google recommendation"
@@ -123,10 +125,10 @@ Google Client ID configured and can be accessed in development environment.
 - Include user ID, organization ID, role, and expiration in JWT payload
 - Follow error handling pattern from existing auth.ts
 
-### Unit 3: Backend Google Token Validation [Validate Google ID tokens] Status: ⚪ **NOT STARTED** ← **NEXT UNIT**
+### Unit 3: Backend Google Token Validation [Validate Google ID tokens with UUID users] Status: ✅ **COMPLETED**
 
 **Complexity**: STANDARD (4 points)
-**Purpose**: Validate Google ID tokens and manage user lifecycle (create/update users)
+**Purpose**: Validate Google ID tokens and manage user lifecycle with proper UUID-based user management
 
 🔍 **Recommended Research Steps** (Perform these BEFORE implementation):
 
@@ -147,37 +149,41 @@ Google Client ID configured and can be accessed in development environment.
 
 💡 **Developer Action**: Complete the above research steps before beginning implementation to ensure you have the same context and latest information.
 
-**Changes**
-- [ ] Create `/api/auth/google` endpoint in shared endpoints
-- [ ] Implement Google ID token validation using google-auth-library
-- [ ] Add user lookup and creation logic in auth handler
-- [ ] Update user state from Invited to Active
-- [ ] Create users with Pending state when not found
-- [ ] Generate and return JWT with user/organization info
+**Changes** ✅ **COMPLETED**
+- [x] **DATABASE ARCHITECTURE**: Updated schema to use UUID-based user IDs with email GSI
+- [x] **SCHEMA UPDATE**: Added `UsersByEmailIndex` GSI to `UsersAndOrganizations` table
+- [x] **TABLE CREATION**: Updated `create-dynamodb-tables.js` with email GSI support
+- [x] **USER ADAPTER**: Implemented `getUserByEmail()` using GSI, `createUser()` with UUID + Google sub storage
+- [x] **GOOGLE SERVICE**: Updated to use email lookup, UUID generation, Google sub storage
+- [x] **API ENDPOINT**: Created `/api/auth/google` endpoint with proper request/response types
+- [x] **USER LIFECYCLE**: Invited→Active transitions, new users→Disabled with admin approval required
+- [x] **JWT INTEGRATION**: Generate JWTs with UUID-based user IDs and organization roles
 
-**Success Criteria**
-- [ ] Google ID tokens properly validated against Google's public keys
-- [ ] Existing users with Invited state updated to Active
-- [ ] New users created with Pending state
-- [ ] JWT returned with user, organization, and role information
-- [ ] Handles edge cases like invalid tokens gracefully
+**Success Criteria** ✅ **COMPLETED**
+- [x] **Email-based Authentication**: Users looked up by email using efficient GSI
+- [x] **UUID User Management**: Internal UUIDs used (not Google sub) for better security
+- [x] **Google Sub Storage**: Google sub stored in user record for future reference/multi-provider support
+- [x] **State Management**: Proper user state transitions (Invited→Active, new→Disabled)
+- [x] **JWT Generation**: Returns JWT with UUID user ID and organization/role mapping
+- [x] **Error Handling**: Comprehensive validation for invalid tokens, wrong issuer, unverified emails
 
-**Testing**
+**Testing** ✅ **COMPLETED**
 [4 tests for STANDARD complexity unit]
-- [ ] Test valid Google ID token validation
-- [ ] Test user state transition from Invited to Active
-- [ ] Test new user creation with Pending state
-- [ ] Test invalid token handling
+- [x] Test Google ID token validation with email lookup
+- [x] Test user state transition from Invited to Active  
+- [x] Test new UUID user creation with Google sub storage
+- [x] Test error handling for invalid tokens
 
 **Implementation Notes**
-- Use OAuth2Client from google-auth-library for token verification
-- Follow existing adapter pattern from users-and-organizations.adapter.ts
-- Return structured response with JWT and user info
-- Handle Google API rate limits and network errors
+- **BREAKING CHANGE**: User IDs are now UUIDs, not Google subs
+- **Email GSI**: Efficient O(1) user lookup by email address during authentication
+- **Google Sub Storage**: Stored as `googleSub` field in user record for future reference/multi-provider support
+- **Security**: Decoupled from Google's user ID system, supports future multi-provider architecture
+- **Flexibility**: Can easily add other auth providers (Facebook, Microsoft, etc.)
 
 ## Enhancement Implementation Path Status: ⚪ **NOT STARTED**
 
-### Unit 4: Frontend Google Identity Services Integration [Add Google Sign-In component] Status: ⚪ **NOT STARTED**
+### Unit 4: Frontend Google Identity Services Integration [Add Google Sign-In component] Status: ⚪ **NOT STARTED** ← **NEXT UNIT**
 
 **Complexity**: STANDARD (4 points)
 **Purpose**: Implement Google Sign-In using new Google Identity Services in Angular
@@ -428,7 +434,7 @@ Complete Google authentication system with JWT, user management, and secure toke
 
 ---
 
-## CHECKPOINT: EquipTrack - Google Authentication - Unit 2 Complete
+## CHECKPOINT: EquipTrack - Google Authentication - Unit 3 Complete (UUID Architecture)
 
 ### MASTER PLAN STATUS
 
@@ -436,9 +442,10 @@ Complete Google authentication system with JWT, user management, and secure toke
 [Original plan with checkboxes - only add ✓ for completed units]
 
 1. POC Implementation Path
-   - [x] Unit 1.1: Google OAuth Setup & Secrets Configuration ✓
-   - [x] Unit 2.1: Backend JWT Service ✓
-   - [ ] Unit 3.1: Backend Google Token Validation ← NEXT UNIT
+   - [x] Unit 1.1: Google OAuth Setup & Secrets Configuration ✅
+   - [x] Unit 2.1: Backend JWT Service ✅
+   - [x] Unit 3.1: Backend Google Token Validation (UUID Architecture) ✅
+   - [ ] Unit 4.1: Frontend Google Identity Services Integration ← NEXT UNIT
 
 ### TECHNICAL CONTEXT
 
@@ -450,42 +457,55 @@ Complete Google authentication system with JWT, user management, and secure toke
 - **Security**: RSA key pair generation with 2048-bit keys, AWS Secrets Manager for secure storage
 - **Service Classes**: Export class with dependency injection, proper error handling, caching strategy
 - **JWT Implementation**: RS256 asymmetric signing, 1-week expiration, user/org/role claims
+- **API Endpoints**: Defined in endpointMetas with path, method, allowedRoles, requestType, responseType
+- **User Management**: UUID-based user IDs with email GSI, DynamoDB adapter pattern
+- **Google Auth**: OAuth2Client for ID token verification, email-based lookup, UUID user creation
+- **Database Schema**: Email GSI for efficient authentication, Google sub storage for provider tracking
 
-**Architecture**: AWS Lambda backend with Express-like routing, Angular 18 frontend with NgRx signals, AWS DynamoDB, Material Design
+**Architecture**: AWS Lambda backend with Express-like routing, Angular 18 frontend with NgRx signals, AWS DynamoDB with email GSI, Material Design
 
 ### COMPLETED UNIT
 
-**Unit**: Backend JWT Service [Create JWT generation and validation]
+**Unit**: Backend Google Token Validation [UUID Architecture with Email GSI]
 **Files Modified**: 
-- `apps/backend/src/services/jwt.service.ts` - Complete JWT service with RS256 signing, AWS Secrets Manager integration, caching
-- `apps/backend/src/services/jwt.service.spec.ts` - Comprehensive test suite with AWS mock patterns
-- `package.json` - Dependencies confirmed installed
+- `apps/backend/src/db/schema.md` - Added UsersByEmailIndex GSI documentation
+- `scripts/create-dynamodb-tables.js` - Added email GSI to UsersAndOrganizations table
+- `apps/backend/src/db/models.ts` - Added googleSub field to UserDb interface
+- `apps/backend/src/db/tables/users-and-organizations.adapter.ts` - Implemented getUserByEmail() GSI query, createUser() with UUID+Google sub
+- `apps/backend/src/services/google-auth.service.ts` - Updated to use email lookup, UUID generation, randomUUID import
+- `apps/backend/src/services/google-auth.service.spec.ts` - Updated tests for UUID architecture
+- `libs/shared/src/api/auth.ts` - Google authentication API types
+- `libs/shared/src/api/endpoints.ts` - Added googleAuth endpoint  
+- `libs/shared/src/api/index.ts` - Export Auth module
+- `apps/backend/src/api/auth/google.ts` - API handler for Google authentication
+- `apps/backend/src/api/handlers.ts` - Registered googleAuth handler
 
 **Verification**: 
-- JWT service implements RS256 asymmetric signing
-- AWS Secrets Manager integration with 5-minute caching
-- Proper error handling for AWS and JWT errors
-- JWT payload includes user ID, organization ID, role, issued at, expiration
-- 1-week token expiration correctly implemented
-- Utility methods for token parsing and validation
-- Service follows established class patterns from codebase
+- **UUID Architecture**: Users created with randomUUID() instead of Google sub for better security
+- **Email GSI**: Efficient O(1) user lookup by email address during authentication
+- **Google Sub Storage**: Google sub stored in user record for future reference/multi-provider support
+- **User Lifecycle**: Invited→Active state transitions, new users→Disabled requiring admin approval
+- **JWT Generation**: UUIDs used in JWT tokens with organization/role mapping
+- **API Integration**: Complete endpoint with proper request/response types and error handling
+- **Database Operations**: CreateUser with collision detection, updateUserState with existence checks
+- **Security**: Decoupled from Google's user ID system, supports future multi-provider architecture
 
 ### NEXT UNIT SPECIFICATION
 
-**Task**: Backend Google Token Validation [Validate Google ID tokens]
+**Task**: Frontend Google Identity Services Integration [Add Google Sign-In component]
 **Steps**: 
-1. Research google-auth-library OAuth2Client verifyIdToken patterns
-2. Examine user management patterns in users-and-organizations.adapter.ts
-3. Study API endpoint patterns in libs/shared/src/api/endpoints.ts
-4. Create `/api/auth/google` endpoint registration
-5. Implement Google ID token validation using OAuth2Client
-6. Add user lookup and lifecycle management (Invited→Active, new→Pending)
-7. Generate JWT tokens for authenticated users
+1. Research Google Identity Services Angular implementation patterns
+2. Examine Angular component structure and Material Design usage  
+3. Find GitHub examples of GIS integration
+4. Add Google Identity Services script to index.html
+5. Create google-sign-in.component.ts with Material Design
+6. Implement credential response handler for ID token capture
+7. Add proper styling and error handling
 8. Write 4 comprehensive tests
 
-**Success Criteria**: Google token validation, user state management, JWT generation, proper error handling
-**Pattern to Follow**: Existing API endpoint pattern, adapter pattern for user management, JWT service integration
+**Success Criteria**: Google Sign-In button, ID token capture, error handling, Material Design compliance, Angular integration
+**Pattern to Follow**: Existing UI component structure, Material Design patterns, credential response handling per GIS docs
 
 ---
 
-Units: 2 completed | Next: STANDARD complexity 
+Units: 3 completed | Next: STANDARD complexity 

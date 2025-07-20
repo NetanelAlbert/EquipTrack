@@ -10,8 +10,7 @@ import { UserRole } from '@equip-track/shared';
  */
 export interface JwtPayload {
   sub: string; // User ID
-  organizationId: string;
-  role: UserRole;
+  orgIdToRole: Record<string, UserRole>;
   iat: number; // Issued at
   exp: number; // Expiration time
 }
@@ -42,8 +41,7 @@ export class JwtService {
    */
   async generateToken(
     userId: string,
-    organizationId: string,
-    role: UserRole
+    orgIdToRole: Record<string, UserRole>
   ): Promise<string> {
     try {
       const privateKey = await this.getPrivateKey();
@@ -52,8 +50,7 @@ export class JwtService {
 
       const payload: JwtPayload = {
         sub: userId,
-        organizationId,
-        role,
+        orgIdToRole,
         iat: now,
         exp: now + oneWeekInSeconds,
       };

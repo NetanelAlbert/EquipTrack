@@ -20,6 +20,7 @@ const PRODUCTS_BY_ORGANIZATION_INDEX = 'ProductsByOrganizationIndex';
 const PRODUCTS_BY_ORGANIZATION_INDEX_PK = 'organizationId';
 const FORMS_BY_ORGANIZATION_INDEX = 'FormsByOrganizationIndex';
 const ITEM_REPORT_HISTORY_INDEX = 'ItemReportHistoryIndex';
+const USERS_BY_EMAIL_INDEX = 'UsersByEmailIndex';
 
 // Table Definitions
 const tableDefinitions = {
@@ -32,6 +33,17 @@ const tableDefinitions = {
     attributeDefinitions: [
       { AttributeName: 'PK', AttributeType: 'S' },
       { AttributeName: 'SK', AttributeType: 'S' },
+      { AttributeName: 'email', AttributeType: 'S' },
+    ],
+    globalSecondaryIndexes: [
+      {
+        IndexName: USERS_BY_EMAIL_INDEX,
+        KeySchema: [
+          { AttributeName: 'email', KeyType: 'HASH' },
+          { AttributeName: 'SK', KeyType: 'RANGE' },
+        ],
+        Projection: { ProjectionType: 'ALL' },
+      },
     ],
     billingMode: 'PAY_PER_REQUEST',
   },
