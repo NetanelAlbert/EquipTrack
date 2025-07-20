@@ -2,11 +2,18 @@
   "title": "EquipTrack",
   "auth": {
     "sign-in-with-google": "Sign in with Google",
+    "sign-in-title": "Sign In",
+    "sign-in-subtitle": "Access your equipment tracking system",
     "signing-in": "Signing in...",
     "success": "Successfully signed in!",
     "error": "Sign-in failed",
     "google-unavailable": "Google Sign-In is currently unavailable. Please try again later.",
-    "try-again": "Try Again"
+    "try-again": "Try Again",
+    "welcome-message": "Welcome to EquipTrack. Please sign in with your Google account to continue.",
+    "or": "or",
+    "need-help": "Need help accessing your account?",
+    "contact-admin": "Contact Administrator",
+    "security-note": "Your data is protected with enterprise-grade security"
   },
   "common": {
     "close": "Close",
@@ -18,6 +25,17 @@
     "yes": "Yes",
     "no": "No",
     "ok": "OK"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "inventory": "Inventory",
+    "forms": "Forms",
+    "reports": "Reports",
+    "settings": "Settings",
+    "user-menu": "User menu",
+    "view-profile": "View Profile",
+    "sign-out": "Sign Out",
+    "sign-in": "Sign In"
   },
   "forms": {
     "form-id": "Form ID",
@@ -40,11 +58,10 @@
     "location": "Location",
     "status": "Status"
   },
-  "navigation": {
-    "dashboard": "Dashboard",
-    "inventory": "Inventory",
-    "forms": "Forms",
-    "reports": "Reports",
-    "settings": "Settings"
+  "errors": {
+    "not-allowed": {
+      "title": "Access Denied",
+      "message": "You don't have permission to access this page."
+    }
   }
 } 

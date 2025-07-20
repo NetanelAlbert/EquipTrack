@@ -1,0 +1,56 @@
+<div class="login-container">
+  <mat-card class="login-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>security</mat-icon>
+        {{ 'auth.sign-in-title' | translate }}
+      </mat-card-title>
+      <mat-card-subtitle>
+        {{ 'auth.sign-in-subtitle' | translate }}
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="login-content">
+        <p class="welcome-text">
+          {{ 'auth.welcome-message' | translate }}
+        </p>
+
+        <!-- Google Sign-In Component -->
+        <div class="sign-in-section">
+          <app-google-sign-in
+            [buttonTheme]="'filled_blue'"
+            [buttonSize]="'large'"
+            [buttonText]="'signin_with'"
+            [disabled]="isLoading"
+            (signInSuccess)="onGoogleSignInSuccess($event)"
+            (signInError)="onGoogleSignInError($event)">
+          </app-google-sign-in>
+        </div>
+
+        <div class="divider">
+          <span>{{ 'auth.or' | translate }}</span>
+        </div>
+
+        <div class="alternative-signin">
+          <p class="help-text">
+            {{ 'auth.need-help' | translate }}
+          </p>
+          <button mat-button color="primary" class="contact-admin-button">
+            <mat-icon>contact_support</mat-icon>
+            {{ 'auth.contact-admin' | translate }}
+          </button>
+        </div>
+      </div>
+    </mat-card-content>
+
+    <mat-card-footer>
+      <div class="footer-content">
+        <p class="security-note">
+          <mat-icon>shield</mat-icon>
+          {{ 'auth.security-note' | translate }}
+        </p>
+      </div>
+    </mat-card-footer>
+  </mat-card>
+</div> 

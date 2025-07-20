@@ -95,7 +95,7 @@ describe('JwtService', () => {
     it('should handle AWS Secrets Manager errors', async () => {
       // Arrange
       mockSecretsManagerClient.send.mockRejectedValue(
-        new Error('AWS Error') as any
+        new Error('AWS Error') as never
       );
 
       // Act & Assert
