@@ -1,7 +1,18 @@
 export interface ErrorResponse {
   statusCode: number;
+  headers: Record<string, string>;
   body: string;
 }
+
+// CORS headers for all responses
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Accept,Origin,X-Requested-With',
+  'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+  'Access-Control-Allow-Credentials': 'false',
+  'Content-Type': 'application/json',
+};
 
 export function error(
   error: string,
@@ -10,6 +21,7 @@ export function error(
 ): ErrorResponse {
   return {
     statusCode,
+    headers: CORS_HEADERS,
     body: JSON.stringify({ status: false, error, errorMessage }),
   };
 }
@@ -38,9 +50,10 @@ export function notImplemented(
   return error('Not implemented', 501, errorMessage);
 }
 
-export function ok(body: any) {
+export function ok(body: unknown) {
   return {
     statusCode: 200,
+    headers: CORS_HEADERS,
     body: JSON.stringify(body),
   };
 }
