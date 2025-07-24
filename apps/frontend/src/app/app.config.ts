@@ -14,7 +14,6 @@ import {
   TranslateModule,
   TranslateLoader,
   TranslateService,
-  TranslateStore,
 } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { OrganizationStore, UserStore } from '../store';
@@ -30,7 +29,6 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(),
     provideHttpClient(),
     TranslateService,
-    TranslateStore,
     OrganizationStore,
     UserStore,
     importProvidersFrom(
