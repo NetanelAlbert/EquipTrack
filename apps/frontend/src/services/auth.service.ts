@@ -4,35 +4,13 @@ import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { environment } from '../environments/environment';
-import { User, UserRole, UserInOrganization } from '@equip-track/shared';
-
-/**
- * JWT payload interface matching backend implementation
- */
-interface JwtPayload {
-  userId: string;
-  orgIdToRole: Record<string, UserRole>;
-  iat: number;
-  exp: number;
-}
-
-/**
- * Decoded JWT with user information
- */
-interface DecodedJwt extends JwtPayload {
-  user: User;
-  userInOrganizations: UserInOrganization[];
-}
-
-/**
- * Google authentication response from backend
- */
-interface GoogleAuthResponse {
-  success: boolean;
-  jwt: string;
-  user: User;
-  userInOrganizations: UserInOrganization[];
-}
+import {
+  User,
+  UserRole,
+  UserInOrganization,
+  DecodedJwt,
+  GoogleAuthResponse,
+} from '@equip-track/shared';
 
 @Injectable({
   providedIn: 'root',
@@ -87,7 +65,7 @@ export class AuthService {
       })
       .pipe(
         map((response) => {
-          if (response.success && response.jwt) {
+          if (response.status && response.jwt) {
             // Store JWT and update auth state
             this.storeToken(response.jwt);
 

@@ -37,19 +37,39 @@ export class LoginComponent {
   onGoogleSignInSuccess(idToken: string): void {
     this.isLoading = true;
 
+    console.log('Received Google ID token, authenticating with backend...');
+
     this.authService.authenticateWithGoogle(idToken).subscribe({
       next: (response) => {
-        if (response.success) {
-          this.showSuccess('Successfully signed in!');
+        console.log('Backend authentication response:', response);
+
+        if (response.status) {
+          this.showSuccess('Welcome! Redirecting to your dashboard...');
           // Redirect to the originally intended route or default route
-          this.router.navigate(['/my-items']);
+          setTimeout(() => {
+            this.router.navigate(['/my-items']);
+          }, 1000); // Give user time to see the success message
         } else {
-          this.showError('Authentication failed. Please try again.');
+          console.error('Backend authentication failed:', response);
+          this.showError('Server authentication failed. Please try again.');
         }
       },
       error: (error) => {
         console.error('Authentication error:', error);
-        this.showError('Authentication failed. Please try again.');
+
+        // Provide more specific error messages
+        let errorMessage = 'Authentication failed. Please try again.';
+        if (error.status === 0) {
+          errorMessage =
+            'Network error. Please check your connection and try again.';
+        } else if (error.status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (error.status === 401 || error.status === 403) {
+          errorMessage =
+            'Authentication failed. Your Google account may not have access.';
+        }
+
+        this.showError(errorMessage);
       },
       complete: () => {
         this.isLoading = false;

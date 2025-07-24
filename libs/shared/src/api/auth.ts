@@ -1,4 +1,4 @@
-import { User, UserInOrganization } from '../elements';
+import { User, UserInOrganization, UserRole } from '../elements';
 import { BasicResponse } from './basic';
 
 /**
@@ -15,4 +15,22 @@ export interface GoogleAuthResponse extends BasicResponse {
   jwt: string;
   user: User;
   userInOrganizations: UserInOrganization[];
-} 
+}
+
+/**
+ * JWT payload interface matching backend implementation
+ */
+export interface JwtPayload {
+  userId: string;
+  orgIdToRole: Record<string, UserRole>;
+  iat: number;
+  exp: number;
+}
+
+/**
+ * Decoded JWT with user information
+ */
+export interface DecodedJwt extends JwtPayload {
+  user: User;
+  userInOrganizations: UserInOrganization[];
+}

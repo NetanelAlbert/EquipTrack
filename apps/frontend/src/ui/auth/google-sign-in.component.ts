@@ -33,6 +33,8 @@ interface GoogleIdConfiguration {
   auto_select?: boolean;
   cancel_on_tap_outside?: boolean;
   context?: 'signin' | 'signup' | 'use';
+  use_fedcm_for_prompt?: boolean;
+  itp_support?: boolean;
 }
 
 /**
@@ -144,7 +146,7 @@ export class GoogleSignInComponent implements AfterViewInit {
         throw new Error('Google library not loaded');
       }
 
-      // Initialize Google Identity Services
+      // Initialize Google Identity Services with COOP-compatible settings
       window.google.accounts.id.initialize({
         client_id: environment.googleClientId,
         callback: (response: GoogleCredentialResponse) => {
@@ -153,6 +155,9 @@ export class GoogleSignInComponent implements AfterViewInit {
         auto_select: false,
         cancel_on_tap_outside: true,
         context: 'signin',
+        // Add COOP-compatible settings
+        use_fedcm_for_prompt: false,
+        itp_support: false,
       });
 
       // Render the Google Sign-In button
@@ -192,15 +197,31 @@ export class GoogleSignInComponent implements AfterViewInit {
         throw new Error('No credential received from Google');
       }
 
-      // Emit the ID token to parent component
-      this.signInSuccess.emit(response.credential);
+      console.log('Google Sign-In credential received successfully');
 
-      this.showSuccess('Successfully signed in with Google');
+      // Use setTimeout to ensure the postMessage issues don't interfere
+      setTimeout(() => {
+        try {
+          // Emit the ID token to parent component
+          this.signInSuccess.emit(response.credential);
+
+          // Don't show success message here - let the parent component handle it
+          // after the full authentication flow completes
+          // this.showSuccess('Google authentication successful');
+        } catch (error) {
+          console.error('Error emitting sign-in success:', error);
+          this.handleError('Failed to process Google sign-in response');
+        }
+      }, 100); // Small delay to let Google's postMessage attempts complete
     } catch (error) {
       console.error('Google sign-in error:', error);
       this.handleError('Failed to process Google sign-in');
     } finally {
-      this.isLoading = false;
+      // Reset loading state after a short delay
+      setTimeout(() => {
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }, 150);
     }
   }
 
