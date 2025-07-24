@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const BACKEND_DIST_PATH = 'dist/apps/backend/apps/backend/src';
+const BACKEND_DIST_PATH = 'dist/apps/backend';
 const PACKAGES_DIR = 'lambda-packages';
 
 function getHandlerNames() {
@@ -43,9 +43,12 @@ function createLambdaPackages() {
     // Copy the entire built backend to each package
     execSync(`cp -r ${BACKEND_DIST_PATH}/* ${packageDir}/`, { stdio: 'inherit' });
     
+    // Install dependencies in the package directory for external modules
+    execSync(`cd ${packageDir} && npm install --only=production`, { stdio: 'inherit' });
+    
     // Create the specific handler entry point
     const handlerContent = `
-const { lambdaHandlers } = require('./api/handler-factory');
+const { lambdaHandlers } = require('./main');
 
 exports.handler = lambdaHandlers.${handlerName};
 `;
