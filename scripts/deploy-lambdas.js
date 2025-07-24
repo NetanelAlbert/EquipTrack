@@ -51,9 +51,9 @@ function ensureRole() {
       `aws iam attach-role-policy --role-name ${roleName} --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole`
     );
     
-    // Create and attach least-privilege DynamoDB policy
-    const policyName = `equip-track-dynamodb-policy-${STAGE}`;
-    const dynamodbPolicy = {
+    // Create and attach least-privilege DynamoDB and Secrets Manager policy
+    const policyName = `equip-track-lambda-policy-${STAGE}`;
+    const lambdaPolicy = {
       Version: '2012-10-17',
       Statement: [
         {
@@ -75,19 +75,28 @@ function ensureRole() {
             `arn:aws:dynamodb:${AWS_REGION}:*:table/EquipTrackReport*`,
             `arn:aws:dynamodb:${AWS_REGION}:*:table/*/index/*`
           ]
+        },
+        {
+          Effect: 'Allow',
+          Action: [
+            'secretsmanager:GetSecretValue'
+          ],
+          Resource: [
+            `arn:aws:secretsmanager:${AWS_REGION}:*:secret:equip-track/jwt-private-key*`
+          ]
         }
       ]
     };
     
     // Create the policy
-    fs.writeFileSync('dynamodb-policy.json', JSON.stringify(dynamodbPolicy));
+    fs.writeFileSync('lambda-policy.json', JSON.stringify(lambdaPolicy));
     try {
-      execSync(`aws iam create-policy --policy-name ${policyName} --policy-document file://dynamodb-policy.json`, { stdio: 'pipe' });
+      execSync(`aws iam create-policy --policy-name ${policyName} --policy-document file://lambda-policy.json`, { stdio: 'pipe' });
     } catch (error) {
       // Policy might already exist
       console.log(`Policy ${policyName} might already exist`);
     }
-    fs.unlinkSync('dynamodb-policy.json');
+    fs.unlinkSync('lambda-policy.json');
     
     // Attach the custom policy
     try {

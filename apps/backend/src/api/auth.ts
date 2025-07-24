@@ -16,9 +16,18 @@ export async function authenticate(
   meta: EndpointMeta<any, any>,
   event: APIGatewayProxyEvent
 ): Promise<boolean> {
+  console.log(`[AUTH] Authenticating endpoint: ${meta.path}`);
+  console.log(`[AUTH] Required roles:`, meta.allowedRoles);
+
   const jwtPayload = await validateAndExtractJwt(event);
+  console.log(`[AUTH] JWT validated for user:`, jwtPayload.sub);
+
   const organization = validateOrganizationAccess(jwtPayload, meta, event);
+  console.log(`[AUTH] Organization access validated:`, organization);
+
   validateUserAccess(jwtPayload, meta, event, organization);
+  console.log(`[AUTH] User access validated successfully`);
+
   return true;
 }
 
@@ -95,7 +104,8 @@ function validateOrganizationAccess(
     }
 
     // Check if user's role is allowed for this endpoint
-    if (!meta.allowedRoles.includes(userRole)) {
+    const allowedRoles = meta.allowedRoles || [];
+    if (!allowedRoles.includes(userRole)) {
       throw forbidden(
         `User Role ${userRole} is not allowed to access this endpoint`
       );

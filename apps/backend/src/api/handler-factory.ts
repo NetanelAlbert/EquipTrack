@@ -26,32 +26,58 @@ export function createLambdaHandler<Req, Res>(
 ): APIGatewayProxyHandler {
   return async (event: APIGatewayProxyEvent, _context: Context) => {
     try {
-      const authenticated = await authenticate(meta, event);
-      if (!authenticated) {
-        throw unauthorized('Unauthorized');
+      console.log(`[${meta.path}] Processing request`, {
+        method: meta.method,
+        requiresAuth: (meta.allowedRoles?.length || 0) > 0,
+        allowedRoles: meta.allowedRoles || [],
+        pathParameters: event.pathParameters,
+        hasAuthHeader: !!(
+          event.headers?.['Authorization'] || event.headers?.['authorization']
+        ),
+      });
+
+      // Only authenticate if the endpoint requires roles (has allowedRoles)
+      if ((meta.allowedRoles?.length || 0) > 0) {
+        console.log(`[${meta.path}] Authentication required, validating...`);
+        const authenticated = await authenticate(meta, event);
+        if (!authenticated) {
+          throw unauthorized('Unauthorized');
+        }
+        console.log(`[${meta.path}] Authentication successful`);
+      } else {
+        console.log(
+          `[${meta.path}] No authentication required (public endpoint)`
+        );
       }
 
       const req =
         meta.method === 'GET' ? (undefined as any) : parseBody<Req>(event);
 
+      console.log(`[${meta.path}] Calling handler...`);
       const result = await handler(req, event.pathParameters);
+      console.log(`[${meta.path}] Handler completed successfully`);
+
       return {
         statusCode: 200,
         headers: CORS_HEADERS,
         body: JSON.stringify(result),
       };
     } catch (error) {
+      console.error(`[${meta.path}] Error occurred:`, error);
+
       // If the error is an ErrorResponse, return it
-      if ('statusCode' in error) {
+      if (error && typeof error === 'object' && 'statusCode' in error) {
+        console.log(`[${meta.path}] Returning error response:`, error);
         return error;
       }
-      // TODO: Log error to cloudwatch
+
+      console.log(`[${meta.path}] Creating generic error response for:`, error);
       return {
         statusCode: 500,
         headers: CORS_HEADERS,
         body: JSON.stringify({
           status: false,
-          error: error.message || 'Internal server error',
+          error: error?.message || 'Internal server error',
         }),
       };
     }
