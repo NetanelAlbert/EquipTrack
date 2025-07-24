@@ -6,6 +6,7 @@ import {
   inject,
   output,
   input,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -89,6 +90,7 @@ export class GoogleSignInComponent implements AfterViewInit {
 
   private snackBar = inject(MatSnackBar);
   private translateService = inject(TranslateService);
+  private cdr = inject(ChangeDetectorRef);
 
   // Component inputs
   buttonType = input<'standard' | 'icon'>('standard');
@@ -168,7 +170,11 @@ export class GoogleSignInComponent implements AfterViewInit {
         }
       );
 
-      this.isGoogleLoaded = true;
+      // Defer property change to avoid ExpressionChangedAfterItHasBeenCheckedError
+      setTimeout(() => {
+        this.isGoogleLoaded = true;
+        this.cdr.detectChanges();
+      });
     } catch (error) {
       console.error('Failed to initialize Google Sign-In:', error);
       this.handleError('Failed to load Google Sign-In');
