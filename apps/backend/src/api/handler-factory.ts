@@ -1,13 +1,19 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler } from 'aws-lambda';
 import { Context } from 'aws-lambda/handler';
-import {
-  endpointMetas,
-  EndpointMeta,
-} from '@equip-track/shared';
+import { endpointMetas, EndpointMeta } from '@equip-track/shared';
 import { HandlerFunction, handlers } from './handlers';
 import { unauthorized } from './responses';
 import { authenticate } from './auth';
 
+// CORS headers for all responses
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Accept,Origin,X-Requested-With',
+  'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+  'Access-Control-Allow-Credentials': 'false',
+  'Content-Type': 'application/json',
+};
 
 function parseBody<T>(event: any): T {
   if (!event.body) return undefined as any;
@@ -31,6 +37,7 @@ export function createLambdaHandler<Req, Res>(
       const result = await handler(req, event.pathParameters);
       return {
         statusCode: 200,
+        headers: CORS_HEADERS,
         body: JSON.stringify(result),
       };
     } catch (error) {
@@ -41,6 +48,7 @@ export function createLambdaHandler<Req, Res>(
       // TODO: Log error to cloudwatch
       return {
         statusCode: 500,
+        headers: CORS_HEADERS,
         body: JSON.stringify({
           status: false,
           error: error.message || 'Internal server error',

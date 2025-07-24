@@ -2,8 +2,11 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 
+// Disable AWS CLI pager to prevent interactive prompts
+process.env.AWS_PAGER = '';
+
 const STAGE = process.env.STAGE || 'dev';
-const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
+const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
 
 // Load endpoint definitions from config file
 function loadEndpoints() {
@@ -28,7 +31,7 @@ function createOrUpdateAPI() {
   
   try {
     // Try to find existing API
-    const result = execSync(`aws apigateway get-rest-apis`, { encoding: 'utf8' });
+    const result = execSync(`aws apigateway get-rest-apis --no-paginate`, { encoding: 'utf8' });
     const apis = JSON.parse(result).items;
     const existingAPI = apis.find(api => api.name === apiName);
     
@@ -57,7 +60,7 @@ function getAccountId() {
 }
 
 function getResources(apiId) {
-  const result = execSync(`aws apigateway get-resources --rest-api-id ${apiId}`, { encoding: 'utf8' });
+  const result = execSync(`aws apigateway get-resources --rest-api-id ${apiId} --no-paginate`, { encoding: 'utf8' });
   return JSON.parse(result).items;
 }
 
@@ -90,6 +93,15 @@ function createMethod(apiId, resourceId, method, functionName) {
   const accountId = getAccountId();
   const lambdaUri = `arn:aws:apigateway:${AWS_REGION}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS_REGION}:${accountId}:function:${functionName}/invocations`;
   
+  // Create CORS parameters file
+  const corsParams = {
+    "method.response.header.Access-Control-Allow-Origin": "'*'",
+    "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Accept,Origin,X-Requested-With'",
+    "method.response.header.Access-Control-Allow-Methods": "'GET,POST,PUT,DELETE,OPTIONS'",
+    "method.response.header.Access-Control-Allow-Credentials": "'false'"
+  };
+  fs.writeFileSync('cors-params.json', JSON.stringify(corsParams, null, 2));
+  
   try {
     // Create method
     execSync(
@@ -105,37 +117,37 @@ function createMethod(apiId, resourceId, method, functionName) {
     
     // Add method response with CORS headers (200)
     execSync(
-      `aws apigateway put-method-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method ${method} --status-code 200 --response-parameters "method.response.header.Access-Control-Allow-Origin=false,method.response.header.Access-Control-Allow-Headers=false,method.response.header.Access-Control-Allow-Methods=false,method.response.header.Access-Control-Allow-Credentials=false"`,
+      `aws apigateway put-method-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method ${method} --status-code 200 --response-parameters '{"method.response.header.Access-Control-Allow-Origin":false,"method.response.header.Access-Control-Allow-Headers":false,"method.response.header.Access-Control-Allow-Methods":false,"method.response.header.Access-Control-Allow-Credentials":false}'`,
       { stdio: 'inherit' }
     );
     
     // Add method response with CORS headers (4xx errors)
     execSync(
-      `aws apigateway put-method-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method ${method} --status-code 400 --response-parameters "method.response.header.Access-Control-Allow-Origin=false,method.response.header.Access-Control-Allow-Headers=false,method.response.header.Access-Control-Allow-Methods=false,method.response.header.Access-Control-Allow-Credentials=false"`,
+      `aws apigateway put-method-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method ${method} --status-code 400 --response-parameters '{"method.response.header.Access-Control-Allow-Origin":false,"method.response.header.Access-Control-Allow-Headers":false,"method.response.header.Access-Control-Allow-Methods":false,"method.response.header.Access-Control-Allow-Credentials":false}'`,
       { stdio: 'pipe' }
     );
     
     // Add method response with CORS headers (5xx errors)
     execSync(
-      `aws apigateway put-method-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method ${method} --status-code 500 --response-parameters "method.response.header.Access-Control-Allow-Origin=false,method.response.header.Access-Control-Allow-Headers=false,method.response.header.Access-Control-Allow-Methods=false,method.response.header.Access-Control-Allow-Credentials=false"`,
+      `aws apigateway put-method-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method ${method} --status-code 500 --response-parameters '{"method.response.header.Access-Control-Allow-Origin":false,"method.response.header.Access-Control-Allow-Headers":false,"method.response.header.Access-Control-Allow-Methods":false,"method.response.header.Access-Control-Allow-Credentials":false}'`,
       { stdio: 'pipe' }
     );
     
     // Add integration response with CORS headers (200)
     execSync(
-      `aws apigateway put-integration-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method ${method} --status-code 200 --response-parameters "method.response.header.Access-Control-Allow-Origin='*',method.response.header.Access-Control-Allow-Headers='Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Accept,Origin,X-Requested-With',method.response.header.Access-Control-Allow-Methods='GET,POST,PUT,DELETE,OPTIONS',method.response.header.Access-Control-Allow-Credentials='false'"`,
+      `aws apigateway put-integration-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method ${method} --status-code 200 --response-parameters file://cors-params.json`,
       { stdio: 'inherit' }
     );
     
     // Add integration response with CORS headers (4xx errors)
     execSync(
-      `aws apigateway put-integration-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method ${method} --status-code 400 --selection-pattern "4\\\\d{2}" --response-parameters "method.response.header.Access-Control-Allow-Origin='*',method.response.header.Access-Control-Allow-Headers='Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Accept,Origin,X-Requested-With',method.response.header.Access-Control-Allow-Methods='GET,POST,PUT,DELETE,OPTIONS',method.response.header.Access-Control-Allow-Credentials='false'"`,
+      `aws apigateway put-integration-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method ${method} --status-code 400 --selection-pattern "4\\\\d{2}" --response-parameters file://cors-params.json`,
       { stdio: 'pipe' }
     );
     
     // Add integration response with CORS headers (5xx errors)
     execSync(
-      `aws apigateway put-integration-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method ${method} --status-code 500 --selection-pattern "5\\\\d{2}" --response-parameters "method.response.header.Access-Control-Allow-Origin='*',method.response.header.Access-Control-Allow-Headers='Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Accept,Origin,X-Requested-With',method.response.header.Access-Control-Allow-Methods='GET,POST,PUT,DELETE,OPTIONS',method.response.header.Access-Control-Allow-Credentials='false'"`,
+      `aws apigateway put-integration-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method ${method} --status-code 500 --selection-pattern "5\\\\d{2}" --response-parameters file://cors-params.json`,
       { stdio: 'pipe' }
     );
     
@@ -157,10 +169,20 @@ function createMethod(apiId, resourceId, method, functionName) {
 }
 
 function createOptionsMethod(apiId, resourceId) {
+  // Create OPTIONS CORS parameters file
+  const optionsCorsParams = {
+    "method.response.header.Access-Control-Allow-Origin": "'*'",
+    "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Accept,Origin,X-Requested-With,Access-Control-Request-Method,Access-Control-Request-Headers'",
+    "method.response.header.Access-Control-Allow-Methods": "'GET,POST,PUT,DELETE,OPTIONS'",
+    "method.response.header.Access-Control-Allow-Credentials": "'false'",
+    "method.response.header.Access-Control-Max-Age": "'86400'"
+  };
+  fs.writeFileSync('options-cors-params.json', JSON.stringify(optionsCorsParams, null, 2));
+  
   try {
     // Create OPTIONS method for CORS preflight
     execSync(
-      `aws apigateway put-method --rest-api-id ${apiId} --resource-id ${resourceId} --http-method OPTIONS --authorization-type NONE --api-key-required false`,
+      `aws apigateway put-method --rest-api-id ${apiId} --resource-id ${resourceId} --http-method OPTIONS --authorization-type NONE --no-api-key-required`,
       { stdio: 'inherit' }
     );
     
@@ -172,13 +194,13 @@ function createOptionsMethod(apiId, resourceId) {
     
     // Add method response for OPTIONS with CORS headers
     execSync(
-      `aws apigateway put-method-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method OPTIONS --status-code 200 --response-parameters "method.response.header.Access-Control-Allow-Origin=false,method.response.header.Access-Control-Allow-Headers=false,method.response.header.Access-Control-Allow-Methods=false,method.response.header.Access-Control-Allow-Credentials=false,method.response.header.Access-Control-Max-Age=false"`,
+      `aws apigateway put-method-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method OPTIONS --status-code 200 --response-parameters '{"method.response.header.Access-Control-Allow-Origin":false,"method.response.header.Access-Control-Allow-Headers":false,"method.response.header.Access-Control-Allow-Methods":false,"method.response.header.Access-Control-Allow-Credentials":false,"method.response.header.Access-Control-Max-Age":false}'`,
       { stdio: 'inherit' }
     );
     
     // Add integration response for OPTIONS with CORS headers and proper response template
     execSync(
-      `aws apigateway put-integration-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method OPTIONS --status-code 200 --response-parameters "method.response.header.Access-Control-Allow-Origin='*',method.response.header.Access-Control-Allow-Headers='Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Accept,Origin,X-Requested-With,Access-Control-Request-Method,Access-Control-Request-Headers',method.response.header.Access-Control-Allow-Methods='GET,POST,PUT,DELETE,OPTIONS',method.response.header.Access-Control-Allow-Credentials='false',method.response.header.Access-Control-Max-Age='86400'" --response-templates '{"application/json":""}'`,
+      `aws apigateway put-integration-response --rest-api-id ${apiId} --resource-id ${resourceId} --http-method OPTIONS --status-code 200 --response-parameters file://options-cors-params.json --response-templates '{"application/json":""}'`,
       { stdio: 'inherit' }
     );
     
@@ -258,6 +280,18 @@ function deployAPIGateway() {
   
   console.log('\n🎉 API Gateway deployment completed!');
   console.log(`API URL: ${deployment.apiUrl}`);
+  
+  // Clean up temporary files
+  try {
+    if (fs.existsSync('cors-params.json')) {
+      fs.unlinkSync('cors-params.json');
+    }
+    if (fs.existsSync('options-cors-params.json')) {
+      fs.unlinkSync('options-cors-params.json');
+    }
+  } catch (error) {
+    console.log('Note: Could not clean up temporary files');
+  }
   
   return deployment;
 }
