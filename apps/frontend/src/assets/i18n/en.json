@@ -36,7 +36,19 @@
     "user-menu": "User menu",
     "view-profile": "View Profile",
     "sign-out": "Sign Out",
-    "sign-in": "Sign In"
+    "sign-in": "Sign In",
+    "my-items": "My Items",
+    "today-report": "Today Report",
+    "reports-history": "Reports History",
+    "my-forms": "My Forms",
+    "check-in": "Check In",
+    "edit-products": "Edit Products",
+    "edit-users": "Edit Users",
+    "all-inventory": "All Inventory",
+    "inventory-by-users": "Inventory by Users",
+    "checkout": "Checkout",
+    "trace-product": "Trace Product",
+    "admin-dashboard": "Admin Dashboard"
   },
   "forms": {
     "form-id": "Form ID",

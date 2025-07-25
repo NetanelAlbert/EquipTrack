@@ -1,0 +1,210 @@
+.edit-users-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 16px;
+
+  h1 {
+    color: var(--color-text-primary);
+    font-size: 2rem;
+    font-weight: 400;
+    margin: 0 0 8px 0;
+  }
+
+  .subtitle {
+    color: var(--color-text-secondary);
+    font-size: 1rem;
+    margin: 0;
+  }
+}
+
+// Invite User Card
+.invite-card {
+  .invite-form {
+    display: flex;
+    gap: 16px;
+    align-items: start;
+    flex-wrap: wrap;
+
+    .email-field {
+      flex: 2;
+      min-width: 250px;
+    }
+
+    .role-field {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .invite-button {
+      height: 56px; // Match form field height
+      min-width: 160px;
+      
+      mat-icon {
+        margin-right: 8px;
+        
+        &.loading {
+          animation: spin 1s linear infinite;
+        }
+      }
+    }
+  }
+}
+
+// Users Table Card
+.users-table-card {
+  .table-container {
+    overflow-x: auto;
+    min-height: 200px;
+    
+    .users-table {
+      width: 100%;
+      
+      .user-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        .user-icon {
+          color: var(--color-text-secondary);
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+      }
+      
+      .role-badge {
+        background: #e3f2fd;
+        color: #1976d2;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+      
+      .state-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        
+        &.state-active {
+          background: #e8f5e8;
+          color: #2e7d32;
+        }
+        
+        &.state-invited {
+          background: #fff3e0;
+          color: #f57c00;
+        }
+        
+        &.state-disabled {
+          background: #ffebee;
+          color: #d32f2f;
+        }
+      }
+    }
+  }
+  
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+    
+    .empty-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      color: var(--color-text-secondary);
+      margin-bottom: 16px;
+    }
+    
+    h3 {
+      color: var(--color-text-primary);
+      font-size: 1.25rem;
+      font-weight: 500;
+      margin: 0 0 8px 0;
+    }
+    
+    p {
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+  }
+}
+
+// Responsive breakpoints
+@media (max-width: 768px) {
+  .edit-users-container {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .header {
+    h1 {
+      font-size: 1.75rem;
+    }
+  }
+
+  .invite-card .invite-form {
+    flex-direction: column;
+    align-items: stretch;
+    
+    .email-field,
+    .role-field {
+      flex: none;
+      min-width: unset;
+    }
+    
+    .invite-button {
+      height: 48px;
+      margin-top: 8px;
+    }
+  }
+  
+  .users-table-card .table-container {
+    // Enable horizontal scrolling on mobile
+    .users-table {
+      min-width: 600px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .edit-users-container {
+    padding: 12px;
+  }
+  
+  .header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .invite-card,
+  .users-table-card {
+    mat-card-header {
+      mat-card-title {
+        font-size: 1.125rem;
+      }
+      
+      mat-card-subtitle {
+        font-size: 0.875rem;
+      }
+    }
+  }
+}
+
+// Animation for loading spinner
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+} 
