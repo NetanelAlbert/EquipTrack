@@ -1,5 +1,12 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import {
+  FormArray,
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,51 +14,39 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import {
-  FormBuilder,
-  FormGroup,
-  FormArray,
-  ReactiveFormsModule,
-  Validators,
-  AbstractControl,
-  ValidatorFn,
-} from '@angular/forms';
-import { OrganizationStore } from '../../../store/organization.store';
-import { Product } from '@equip-track/shared';
 import { TranslateModule } from '@ngx-translate/core';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { Product } from '@equip-track/shared';
+import { OrganizationStore } from '../../../store/organization.store';
+import { OrganizationService } from '../../../services/organization.service';
+import { FormControl } from '@angular/forms';
 
-interface ProductFormGroup extends FormGroup {
-  controls: {
-    id: FormGroup['controls']['id'];
-    name: FormGroup['controls']['name'];
-    upi: FormGroup['controls']['upi'];
-  };
+interface ProductForm {
+  id: string;
+  name: string;
+  upi: boolean;
 }
 
-// TODO: move to shared together with edit-inventory.component.ts validator
-// TODO: make it actually work
-const duplicateIdValidator: ValidatorFn = (formArray: AbstractControl) => {
-  if (!(formArray instanceof FormArray)) {
-    return null;
-  }
-  const items = formArray.value;
-  const ids = new Set<string>();
-  const duplicates = new Set<string>();
+type ProductFormGroup = FormGroup<{
+  id: FormControl<string>;
+  name: FormControl<string>;
+  upi: FormControl<boolean>;
+}>;
 
-  items.forEach((item: any) => {
-    const id = item.id;
-    if (id) {
-      if (ids.has(id)) {
-        duplicates.add(id);
-      } else {
-        ids.add(id);
-      }
+import { AbstractControl, ValidatorFn } from '@angular/forms';
+
+function duplicateIdValidator(): ValidatorFn {
+  return (control: AbstractControl) => {
+    if (!(control instanceof FormArray)) {
+      return null;
     }
-  });
-
-  return duplicates.size > 0 ? { duplicateIds: Array.from(duplicates) } : null;
-};
+    const ids = control.controls.map((ctrl) => ctrl.get('id')?.value);
+    const duplicates = ids.filter(
+      (id, index) => ids.indexOf(id) !== index && id !== ''
+    );
+    return duplicates.length > 0 ? { duplicateIds: duplicates } : null;
+  };
+}
 
 @Component({
   selector: 'app-edit-products',
@@ -75,12 +70,13 @@ const duplicateIdValidator: ValidatorFn = (formArray: AbstractControl) => {
 export class EditProductsComponent {
   private fb = inject(FormBuilder);
   private organizationStore = inject(OrganizationStore);
+  private organizationService = inject(OrganizationService);
 
   products = this.organizationStore.products;
   updatingProducts = this.organizationStore.updatingProducts;
   errorUpdatingProducts = this.organizationStore.errorUpdatingProducts;
   form: FormGroup = this.fb.group({
-    products: this.fb.array<ProductFormGroup>([], [duplicateIdValidator]),
+    products: this.fb.array<ProductFormGroup>([], [duplicateIdValidator()]),
   });
 
   constructor() {
@@ -123,9 +119,15 @@ export class EditProductsComponent {
 
   save() {
     if (this.form.valid) {
-      const updatedProducts = this.productsArray.value;
-      // NOTE: errors are handled in the store
-      void this.organizationStore.editProducts(updatedProducts);
+      const updatedProducts: Product[] = this.productsArray.value.map(
+        (formValue: any) => ({
+          id: formValue.id,
+          name: formValue.name,
+          hasUpi: formValue.upi,
+        })
+      );
+      // Use service instead of store method
+      void this.organizationService.editProducts(updatedProducts);
     } else {
       this.form.markAllAsTouched();
     }

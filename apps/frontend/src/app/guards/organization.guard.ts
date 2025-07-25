@@ -1,13 +1,13 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { OrganizationSelectionService } from '../../services/organization-selection.service';
+import { OrganizationService } from '../../services/organization.service';
 
 /**
  * Organization selection guard to ensure user has selected an organization
  * Redirects to home page if no organization is selected
  */
 export const organizationGuard: CanActivateFn = () => {
-  const organizationService = inject(OrganizationSelectionService);
+  const organizationService = inject(OrganizationService);
   const router = inject(Router);
 
   if (organizationService.hasSelectedOrganization()) {

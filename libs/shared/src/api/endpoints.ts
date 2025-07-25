@@ -46,7 +46,7 @@ export const endpointMetas = {
   inviteUser: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/users/invite`,
     method: 'POST',
-    allowedRoles: [UserRole.Admin, UserRole.WarehouseManager],
+    allowedRoles: [UserRole.Admin],
     requestType: {} as Admin.InviteUser,
     responseType: {} as BasicResponse,
   } as EndpointMeta<Admin.InviteUser, BasicResponse>,

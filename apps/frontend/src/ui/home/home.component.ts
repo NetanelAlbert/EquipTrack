@@ -8,7 +8,7 @@ import { MatGridListModule } from '@angular/material/grid-list';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../services/auth.service';
-import { OrganizationSelectionService } from '../../services/organization-selection.service';
+import { OrganizationService } from '../../services/organization.service';
 import { Organization } from '@equip-track/shared';
 
 @Component({
@@ -27,7 +27,7 @@ import { Organization } from '@equip-track/shared';
 })
 export class HomeComponent {
   private authService = inject(AuthService);
-  private organizationService = inject(OrganizationSelectionService);
+  private organizationService = inject(OrganizationService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private translateService = inject(TranslateService);
@@ -94,7 +94,7 @@ export class HomeComponent {
       setTimeout(() => {
         this.router.navigate(['/my-items']);
       }, 1000);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to select organization:', error);
       this.showError(
         this.translateService.instant('organization.select.error') ||

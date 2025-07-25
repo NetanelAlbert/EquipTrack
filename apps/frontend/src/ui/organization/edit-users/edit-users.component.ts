@@ -13,6 +13,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { OrganizationStore } from '../../../store/organization.store';
+import { OrganizationService } from '../../../services/organization.service';
 import { User, UserRole, UserState } from '@equip-track/shared';
 
 @Component({
@@ -38,16 +39,17 @@ import { User, UserRole, UserState } from '@equip-track/shared';
 export class EditUsersComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private organizationStore = inject(OrganizationStore);
+  private organizationService = inject(OrganizationService);
   private snackBar = inject(MatSnackBar);
   private translateService = inject(TranslateService);
 
   // State signals
-  isLoading = signal(false);
   inviteEmail = signal('');
   selectedRole = signal<UserRole>(UserRole.Customer);
 
-  // Get users from organization store
+  // Get data from organization store
   users = this.organizationStore.users;
+  isLoading = this.organizationStore.invitingUserStatus.isLoading;
 
   // Table configuration
   displayedColumns: string[] = ['name', 'email', 'role', 'state', 'actions'];
@@ -65,14 +67,14 @@ export class EditUsersComponent implements OnInit {
       }
     });
 
-    // TODO: Load users from API
-    console.log('EditUsersComponent initialized');
+    // Load users from API
+    void this.organizationService.getUsers();
   }
 
   /**
    * Invite a new user to the organization
    */
-  inviteUser(): void {
+  async inviteUser(): Promise<void> {
     const email = this.inviteEmail().trim();
     const role = this.selectedRole();
 
@@ -94,23 +96,23 @@ export class EditUsersComponent implements OnInit {
       return;
     }
 
-    this.isLoading.set(true);
+    const success = await this.organizationService.inviteUser(email, role);
 
-    // TODO: Call inviteUser API endpoint
-    console.log(`Inviting user: ${email} with role: ${role}`);
-
-    // Simulate API call
-    setTimeout(() => {
+    if (success) {
       this.showSuccess(
         this.translateService.instant('organization.users.invite.success', {
           email,
         })
       );
       this.inviteEmail.set('');
-      this.isLoading.set(false);
-
-      // TODO: Refresh user list
-    }, 1000);
+      void this.organizationService.getUsers();
+    } else {
+      // Error handling is done in the store, but we can show additional UI feedback here if needed
+      const errorMessage =
+        this.organizationStore.invitingUserStatus.error() ||
+        this.translateService.instant('organization.users.invite.error');
+      this.showError(errorMessage);
+    }
   }
 
   /**

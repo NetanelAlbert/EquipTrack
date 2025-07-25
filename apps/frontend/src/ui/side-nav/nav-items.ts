@@ -67,7 +67,7 @@ export const navItems: NavItem[] = [
     icon: 'group',
     labelKey: 'navigation.edit-users',
     route: 'edit-users',
-    roles: [UserRole.WarehouseManager, UserRole.Admin],
+    roles: [UserRole.Admin],
     loadComponent: () =>
       import('../organization/edit-users/edit-users.component').then(
         (m) => m.EditUsersComponent

@@ -100,6 +100,9 @@
     "users": {
       "title": "Edit Users",
       "subtitle": "Manage organization users and send invitations",
+      "get": {
+        "error": "Failed to get users"
+      },
       "invite": {
         "title": "Invite New User",
         "subtitle": "Send an invitation to join this organization",
