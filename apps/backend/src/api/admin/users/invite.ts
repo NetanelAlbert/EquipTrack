@@ -5,7 +5,7 @@ import {
   UserState,
 } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { badRequest, resourceNotFound } from '../../responses';
+import { badRequest } from '../../responses';
 import { UsersAndOrganizationsAdapter } from '../../../db';
 import { ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
 import { v4 as uuidv4 } from 'uuid';
@@ -43,6 +43,8 @@ export const handler = async (
       req.email
     );
 
+    let userId: string;
+
     if (existingUser) {
       // User exists, check if they're already in this organization
       const existingOrgRelation = existingUser.userInOrganizations.find(
@@ -50,32 +52,34 @@ export const handler = async (
       );
 
       if (existingOrgRelation) {
+        console.log('User is already a member of this organization', existingOrgRelation);
         throw badRequest('User is already a member of this organization');
       }
 
-      // User exists but not in this org - we could add them, but for now treat as error
-      throw badRequest(
-        'User already exists in the system. Please use the user management interface to add them to this organization.'
-      );
+      console.log('User exists, adding to organization', existingUser);
+
+      userId = existingUser.user.id;
+    } else {
+      // Create new user in Invited state
+      const newUser = {
+        id: uuidv4(),
+        name: req.email.split('@')[0], // Use email prefix as default name - user can update later
+        email: req.email,
+        state: UserState.Invited,
+      };
+
+      // Create the user
+      await usersAndOrganizationsAdapter.createUser(newUser);
+      userId = newUser.id;
     }
+    // Create UserInOrganization relationship
+    await usersAndOrganizationsAdapter.createUserInOrganization({
+      userId,
+      organizationId,
+      role: req.role,
+    });
 
-    // Create new user in Invited state
-    const newUser = {
-      id: uuidv4(),
-      name: req.email.split('@')[0], // Use email prefix as default name - user can update later
-      email: req.email,
-      state: UserState.Invited,
-    };
-
-    // Create the user
-    await usersAndOrganizationsAdapter.createUser(newUser);
-
-    // TODO: Create UserInOrganization relationship
-    // This would require extending the UsersAndOrganizationsAdapter to support creating relationships
-    // For now, we'll log this as a TODO since the adapter doesn't have this method yet
-    console.log(
-      `TODO: Create UserInOrganization relationship for user ${newUser.id} in org ${organizationId} with role ${req.role}`
-    );
+    // TODO: Send email to user
 
     console.log(
       `User invited successfully: ${req.email} to organization ${organizationId} with role ${req.role}`

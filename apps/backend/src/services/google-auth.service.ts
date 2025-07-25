@@ -57,11 +57,20 @@ export class GoogleAuthService {
       if (userAndOrganizations) {
         // User exists - handle state transition if needed
         if (userAndOrganizations.user.state === UserState.Invited) {
+          console.log('User exists, updating state to active', userAndOrganizations.user);
           await this.usersAdapter.updateUserState(
             userAndOrganizations.user.id,
             UserState.Active
           );
           userAndOrganizations.user.state = UserState.Active;
+        }
+        if (userAndOrganizations.user.name !== googlePayload.name) {
+          console.log('User exists, updating name', userAndOrganizations.user);
+          await this.usersAdapter.updateUserName(
+            userAndOrganizations.user.id,
+            googlePayload.name
+          );
+          userAndOrganizations.user.name = googlePayload.name;
         }
       } else {
         // User doesn't exist - create new user with UUID and Disabled state
