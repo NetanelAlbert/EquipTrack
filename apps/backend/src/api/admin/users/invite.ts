@@ -73,10 +73,12 @@ export const handler = async (
       userId = newUser.id;
     }
     // Create UserInOrganization relationship
-    await usersAndOrganizationsAdapter.createUserInOrganization({
+    await usersAndOrganizationsAdapter.setUserInOrganization({
       userId,
       organizationId,
       role: req.role,
+      department: req.department,
+      departmentRole: req.departmentRole,
     });
 
     // TODO: Send email to user

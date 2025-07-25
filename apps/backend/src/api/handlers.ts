@@ -39,8 +39,8 @@ export const handlers: HandlersDefinition = {
   googleAuth: googleAuthHandler,
 
   // Admin Users
-  getUsers: getUsersHandler, // TODO: Implement this
-  setUser: setUserHandler, // TODO: Implement this
+  getUsers: getUsersHandler,
+  setUser: setUserHandler,
   inviteUser: inviteUserHandler,
 
   // Basic User

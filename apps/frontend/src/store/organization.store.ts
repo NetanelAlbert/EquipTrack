@@ -9,7 +9,7 @@ import {
   Organization,
   PredefinedForm,
   Product,
-  User,
+  UserAndUserInOrganization,
 } from '@equip-track/shared';
 import { computed, Signal } from '@angular/core';
 import { ApiStatus } from './stores.models';
@@ -17,7 +17,7 @@ import { ApiStatus } from './stores.models';
 interface OrganizationState {
   organization: Organization;
 
-  users: User[];
+  users: UserAndUserInOrganization[];
   products: Product[];
   predefinedForms: PredefinedForm[];
 
@@ -77,7 +77,7 @@ export const OrganizationStore = signalStore(
       },
 
       // State setters for services
-      setUsers(users: User[]) {
+      setUsers(users: UserAndUserInOrganization[]) {
         updateState({ users });
       },
 

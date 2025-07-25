@@ -22,10 +22,13 @@ import {
   ORG_PREFIX,
   USER_PREFIX,
   METADATA_SK,
+  ORGANIZATION_TO_USERS_INDEX,
+  ORGANIZATION_TO_USERS_INDEX_PK,
 } from '../constants';
 import {
   Organization,
   User,
+  UserAndUserInOrganization,
   UserInOrganization,
   UserState,
 } from '@equip-track/shared';
@@ -224,6 +227,29 @@ export class UsersAndOrganizationsAdapter {
   }
 
   /**
+   * Update an existing user's phone number
+   */
+  async updateUserPhone(userId: string, newPhone?: string): Promise<void> {
+    const command = new UpdateCommand({
+      TableName: this.tableName,
+      Key: {
+        PK: `${USER_PREFIX}${userId}`,
+        SK: METADATA_SK,
+      },
+      UpdateExpression: newPhone ? 'SET phone = :phone' : 'REMOVE phone',
+      ...(newPhone && {
+        ExpressionAttributeValues: {
+          ':phone': newPhone,
+        },
+      }),
+      // Ensure the user exists before updating
+      ConditionExpression: 'attribute_exists(PK)',
+    });
+
+    await this.docClient.send(command);
+  }
+
+  /**
    * Get user by email address using the UsersByEmailIndex GSI
    */
   async getUserByEmail(
@@ -269,6 +295,52 @@ export class UsersAndOrganizationsAdapter {
   }
 
   /**
+   * Get all users in an organization
+   */
+  async getUsersByOrganization(organizationId: string): Promise<UserAndUserInOrganization[]> {
+    // First, get all UserInOrganization records for this organization
+    // organizationToUserQueryKey format: ORG#<orgId>#USER#<userId>
+    const userOrgQuery = new QueryCommand({
+      TableName: this.tableName,
+      IndexName: ORGANIZATION_TO_USERS_INDEX,
+      KeyConditionExpression: `begins_with(${ORGANIZATION_TO_USERS_INDEX_PK}, :orgPrefix)`,
+      ExpressionAttributeValues: {
+        ':orgPrefix': `${ORG_PREFIX}${organizationId}#`,
+      },
+    });
+
+    const userOrgResult = await this.docClient.send(userOrgQuery);
+    const userOrgItems = (userOrgResult.Items as UserInOrganizationDb[]) ?? [];
+
+    if (userOrgItems.length === 0) {
+      return [];
+    }
+
+    // Extract user IDs
+    const userIds = userOrgItems.map((item) => item.userId);
+
+    // Batch get all user records
+    const batchGetCommand = new BatchGetCommand({
+      RequestItems: {
+        [this.tableName]: {
+          Keys: userIds.map((userId) => this.getUserKey(userId)),
+        },
+      },
+    });
+
+    const batchResult = await this.docClient.send(batchGetCommand);
+    const userDbs = (batchResult.Responses?.[this.tableName] as UserDb[]) ?? [];
+
+    const users = userDbs.map(this.getUser);
+    const userInOrganizations = userOrgItems.map(this.getUserInOrganizations);
+
+    return users.map((user) => ({
+      user,
+      userInOrganization: userInOrganizations.find((uio) => uio.userId === user.id),
+    }));
+  }
+
+  /**
    * Create a new organization
    */
   async createOrganization(organization: Organization): Promise<void> {
@@ -290,7 +362,7 @@ export class UsersAndOrganizationsAdapter {
   /**
    * Create a user-organization relationship
    */
-  async createUserInOrganization(
+  async setUserInOrganization(
     userInOrganization: UserInOrganization
   ): Promise<void> {
     const userInOrganizationDb: UserInOrganizationDb = {
