@@ -44,10 +44,10 @@ export class LoginComponent {
         console.log('Backend authentication response:', response);
 
         if (response.status) {
-          this.showSuccess('Welcome! Redirecting to your dashboard...');
-          // Redirect to the originally intended route or default route
+          this.showSuccess('Welcome! Redirecting to organization selection...');
+          // Redirect to home for organization selection
           setTimeout(() => {
-            this.router.navigate(['/my-items']);
+            this.router.navigate(['/']);
           }, 1000); // Give user time to see the success message
         } else {
           console.error('Backend authentication failed:', response);

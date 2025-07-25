@@ -38,7 +38,7 @@ export class SideNavComponent implements OnInit {
   currentRole = this.authService.currentRole;
 
   toggleExpanded() {
-    this.isExpanded.set(!this.isExpanded());
+    this.isExpanded.update((isExpanded) => !isExpanded);
   }
 
   navigateTo(item: NavItem) {

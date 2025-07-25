@@ -24,7 +24,8 @@
     "add": "Add",
     "yes": "Yes",
     "no": "No",
-    "ok": "OK"
+    "ok": "OK",
+    "copied-to-clipboard": "Copied to clipboard"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -63,6 +64,26 @@
       "title": "Access Denied",
       "message": "You don't have permission to access this page.",
       "back-home": "Back to Home"
+    }
+  },
+  "organization": {
+    "select": {
+      "title": "Select Organization",
+      "subtitle": "Choose the organization you'd like to work with",
+      "select-button": "Select",
+      "no-organizations": {
+        "title": "No Organizations Available",
+        "message": "You are not currently a member of any organization. Please contact your administrator to be added to an organization.",
+        "contact-admin": "Contact Administrator"
+      },
+      "loading": "Loading organizations...",
+      "error": "Failed to load organizations",
+      "success": "Organization selected successfully!"
+    },
+    "invitation": {
+      "request-subject": "Request Access to EquipTrack",
+      "request-body": "Hello,\n\nI would like to request access to EquipTrack for my organization.\n\nMy email: {{email}}\nApp URL: {{appUrl}}\n\nPlease add me to an organization so I can start using the equipment tracking system.\n\nThank you!",
+      "copied": "Invitation message copied to clipboard"
     }
   }
 } 

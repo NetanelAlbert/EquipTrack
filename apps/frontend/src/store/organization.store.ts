@@ -10,7 +10,6 @@ import {
   PredefinedForm,
   Product,
   User,
-  UserRole,
   UserState,
 } from '@equip-track/shared';
 import { computed, Signal } from '@angular/core';

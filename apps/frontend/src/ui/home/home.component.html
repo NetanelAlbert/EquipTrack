@@ -1,0 +1,69 @@
+<div class="home-container">
+  <!-- Header -->
+  <div class="header">
+    <h1>{{ 'organization.select.title' | translate }}</h1>
+    <p class="subtitle">{{ 'organization.select.subtitle' | translate }}</p>
+  </div>
+
+  <!-- Organizations Grid -->
+  <div class="organizations-section" *ngIf="hasOrganizations(); else noOrganizations">
+    <mat-grid-list 
+      [cols]="getGridCols()" 
+      rowHeight="200px" 
+      gutterSize="16px"
+      class="organizations-grid">
+      
+      <mat-grid-tile *ngFor="let org of availableOrganizations()">
+        <mat-card 
+          class="organization-card"
+          [class.selecting]="isSelectingOrganization(org.id)"
+          (click)="selectOrganization(org)">
+          
+          <!-- Organization Image/Icon -->
+          <div class="card-header">
+            <div class="organization-avatar">
+              <mat-icon>business</mat-icon>
+            </div>
+          </div>
+
+          <!-- Organization Info -->
+          <mat-card-content class="card-content">
+            <h3 class="organization-name">{{ org.name }}</h3>
+          </mat-card-content>
+
+          <!-- Select Button -->
+          <mat-card-actions class="card-actions">
+            <button 
+              mat-raised-button 
+              color="primary"
+              [disabled]="isLoading()"
+              class="select-button">
+              
+              <mat-icon *ngIf="isSelectingOrganization(org.id)">hourglass_empty</mat-icon>
+              <span>{{ 'organization.select.select-button' | translate }}</span>
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </mat-grid-tile>
+    </mat-grid-list>
+  </div>
+
+  <!-- No Organizations State -->
+  <ng-template #noOrganizations>
+    <div class="no-organizations">
+      <mat-icon class="no-org-icon">group_off</mat-icon>
+      <h2>{{ 'organization.select.no-organizations.title' | translate }}</h2>
+      <p>{{ 'organization.select.no-organizations.message' | translate }}</p>
+      
+      <div class="actions">
+        <button 
+          mat-raised-button 
+          color="primary"
+          (click)="requestAccess()">
+          <mat-icon>mail</mat-icon>
+          {{ 'organization.select.no-organizations.contact-admin' | translate }}
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</div> 

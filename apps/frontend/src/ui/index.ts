@@ -8,3 +8,4 @@ export * from './not-allowed/not-allowed.component';
 export * from './signature-pad/signature-pad.component';
 export * from './auth/google-sign-in.component';
 export * from './login/login.component';
+export * from './home/home.component';
