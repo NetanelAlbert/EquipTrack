@@ -11,7 +11,7 @@ import {
   Product,
   UserAndUserInOrganization,
 } from '@equip-track/shared';
-import { computed, Signal } from '@angular/core';
+import { computed, Signal, inject, effect } from '@angular/core';
 import { ApiStatus } from './stores.models';
 
 interface OrganizationState {
@@ -21,6 +21,10 @@ interface OrganizationState {
   products: Product[];
   predefinedForms: PredefinedForm[];
 
+  // Enhanced loading states
+  loadingOrganizationData: boolean;
+  errorLoadingOrganization?: string;
+
   // Actions state
   updatingProducts: boolean;
   errorUpdatingProducts?: string;
@@ -28,6 +32,9 @@ interface OrganizationState {
   // Invite user state
   invitingUserStatus: ApiStatus;
   getUsersStatus: ApiStatus;
+
+  // Organization switching state
+  switchingOrganization: boolean;
 }
 
 const emptyState: OrganizationState = {
@@ -39,7 +46,9 @@ const emptyState: OrganizationState = {
   users: [],
   products: [],
   predefinedForms: [],
+  loadingOrganizationData: false,
   updatingProducts: false,
+  switchingOrganization: false,
   invitingUserStatus: {
     isLoading: false,
     error: undefined,
@@ -61,19 +70,112 @@ export const OrganizationStore = signalStore(
         })
       );
     });
+
+    // Enhanced computed properties
+    const isOrganizationLoaded = computed(() => !!store.organization().id);
+    const hasOrganizationData = computed(
+      () => store.users().length > 0 || store.products().length > 0
+    );
+    const organizationLoadingStatus = computed(() => ({
+      isLoading: store.loadingOrganizationData(),
+      error: store.errorLoadingOrganization?.() || undefined,
+      isLoaded: isOrganizationLoaded(),
+      hasData: hasOrganizationData(),
+    }));
+
     return {
       productsMap,
       organizationId: store.organization.id,
+      isOrganizationLoaded,
+      hasOrganizationData,
+      organizationLoadingStatus,
     };
   }),
   withMethods((store) => {
     const updateState = (newState: Partial<OrganizationState>) => {
       patchState(store, newState);
     };
+
     return {
       // Computed methods
       getProduct(id: string): Product | undefined {
         return store.productsMap().get(id);
+      },
+
+      // Enhanced organization loading
+      async loadOrganizationData(organizationId: string) {
+        if (!organizationId) {
+          console.error(
+            'Cannot load organization data: No organization ID provided'
+          );
+          return false;
+        }
+
+        // Don't reload if we already have this organization's data
+        if (
+          store.organization().id === organizationId &&
+          store.hasOrganizationData()
+        ) {
+          return true;
+        }
+
+        updateState({
+          loadingOrganizationData: true,
+          errorLoadingOrganization: undefined,
+        });
+
+        try {
+          // TODO: Replace with actual API calls when available
+          // For now, set basic organization info
+          updateState({
+            organization: {
+              id: organizationId,
+              name: `Organization ${organizationId}`,
+              imageUrl: null,
+            },
+            loadingOrganizationData: false,
+          });
+
+          console.log(`Loaded organization data for: ${organizationId}`);
+          return true;
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'Failed to load organization data';
+          updateState({
+            loadingOrganizationData: false,
+            errorLoadingOrganization: errorMessage,
+          });
+          console.error('Failed to load organization data:', error);
+          return false;
+        }
+      },
+
+      // Switch organization with data loading
+      async switchToOrganization(organizationId: string) {
+        updateState({ switchingOrganization: true });
+
+        try {
+          const success = await this.loadOrganizationData(organizationId);
+          updateState({ switchingOrganization: false });
+          return success;
+        } catch (error) {
+          updateState({ switchingOrganization: false });
+          console.error('Failed to switch organization:', error);
+          return false;
+        }
+      },
+
+      // Clear organization data (when switching or signing out)
+      clearOrganizationData() {
+        updateState({
+          organization: { id: '', name: '', imageUrl: null },
+          users: [],
+          products: [],
+          predefinedForms: [],
+          errorLoadingOrganization: undefined,
+        });
       },
 
       // State setters for services
@@ -87,6 +189,18 @@ export const OrganizationStore = signalStore(
 
       setOrganization(organization: Organization) {
         updateState({ organization });
+      },
+
+      // Enhanced error handling
+      setOrganizationError(error: string) {
+        updateState({
+          errorLoadingOrganization: error,
+          loadingOrganizationData: false,
+        });
+      },
+
+      clearOrganizationError() {
+        updateState({ errorLoadingOrganization: undefined });
       },
 
       // Get users state management
@@ -149,5 +263,5 @@ export const OrganizationStore = signalStore(
         });
       },
     };
-  }),
+  })
 );

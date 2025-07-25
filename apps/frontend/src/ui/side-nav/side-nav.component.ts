@@ -1,15 +1,20 @@
-import { Component, inject, signal, OnInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { MatListModule } from '@angular/material/list';
-import { MatIconModule } from '@angular/material/icon';
+import {
+  Component,
+  computed,
+  inject,
+  input,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
 import { MatSidenavModule } from '@angular/material/sidenav';
+import { Router, RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
-
-import { navItems, NavItem } from './nav-items';
-import { AuthService } from '../../services/auth.service';
-import { UserRole } from '@equip-track/shared';
+import { UserStore } from '../../store';
+import { NavItem, navItems } from './nav-items';
 import { TopBarComponent } from '../top-bar/top-bar.component';
 
 @Component({
@@ -17,11 +22,11 @@ import { TopBarComponent } from '../top-bar/top-bar.component';
   standalone: true,
   imports: [
     CommonModule,
-    RouterModule,
-    MatListModule,
-    MatIconModule,
-    MatButtonModule,
     MatSidenavModule,
+    MatListModule,
+    MatButtonModule,
+    MatIconModule,
+    RouterModule,
     TranslateModule,
     TopBarComponent,
   ],
@@ -29,20 +34,32 @@ import { TopBarComponent } from '../top-bar/top-bar.component';
   styleUrl: './side-nav.component.scss',
 })
 export class SideNavComponent implements OnInit {
+  userStore = inject(UserStore);
+  router = inject(Router);
+
+  opened = input<boolean>(false);
+  currentUrl = signal<string>('');
   isExpanded = signal<boolean>(false);
-  currentItem = signal<NavItem | null>(null);
-  authService = inject(AuthService);
 
-  // Authentication state
-  isAuthenticated = this.authService.isAuthenticated;
-  currentRole = this.authService.currentRole;
+  // Authentication state from UserStore
+  currentRole = this.userStore.currentRole;
 
-  toggleExpanded() {
-    this.isExpanded.update((isExpanded) => !isExpanded);
-  }
+  // Filtered navigation items based on user role
+  navItems = computed(() => {
+    const currentRole = this.currentRole();
+    if (!currentRole) return [];
 
-  navigateTo(item: NavItem) {
-    this.currentItem.set(item);
+    return navItems.filter((item: NavItem) => {
+      if (!item.roles || item.roles.length === 0) return true;
+      return item.roles.includes(currentRole);
+    });
+  });
+
+  // For template compatibility
+  filteredNavItems = this.navItems;
+
+  ngOnInit(): void {
+    this.currentUrl.set(this.router.url);
   }
 
   /**
@@ -52,28 +69,21 @@ export class SideNavComponent implements OnInit {
     this.isExpanded.set(opened);
   }
 
-  filteredNavItems: NavItem[] = [];
-
-  constructor() {
-    // Use effect to react to role changes
-    effect(() => {
-      this.filterNavItems(this.currentRole());
-    });
+  /**
+   * Toggle expanded state
+   */
+  toggleExpanded(): void {
+    this.isExpanded.update((expanded) => !expanded);
   }
 
-  ngOnInit() {
-    // Initial filter
-    this.filterNavItems(this.currentRole());
-  }
-
-  filterNavItems(userRole: UserRole | null) {
-    if (!userRole) {
-      this.filteredNavItems = [];
-      return;
-    }
-
-    this.filteredNavItems = navItems.filter((item) =>
-      item.roles.includes(userRole)
+  isActiveRoute(route: string): boolean {
+    return (
+      this.currentUrl() === route || this.currentUrl().startsWith(route + '/')
     );
+  }
+
+  onNavItemClick(): void {
+    // Update current URL when navigation item is clicked
+    this.currentUrl.set(this.router.url);
   }
 }

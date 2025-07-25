@@ -7,9 +7,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { AuthService } from '../../services/auth.service';
+import { UserStore } from '../../store';
 import { OrganizationService } from '../../services/organization.service';
 import { Organization } from '@equip-track/shared';
+import { UserRole } from '@equip-track/shared';
 
 @Component({
   selector: 'app-home',
@@ -26,7 +27,7 @@ import { Organization } from '@equip-track/shared';
   styleUrl: './home.component.scss',
 })
 export class HomeComponent {
-  private authService = inject(AuthService);
+  private userStore = inject(UserStore);
   private organizationService = inject(OrganizationService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
@@ -36,29 +37,27 @@ export class HomeComponent {
   isLoading = signal(false);
   selectedOrgId = signal<string | null>(null);
 
-  // Get user organizations from auth service
-  userOrganizations = this.authService.userOrganizations;
-  currentUser = this.authService.currentUser;
+  // Get user organizations from user store
+  userOrganizations = this.userStore.userInOrganizations;
+  currentUser = this.userStore.user;
+
+  // Computed properties for template
+  hasOrganizations = computed(() => this.userOrganizations().length > 0);
 
   // Get actual organization objects from user organization relationships
   availableOrganizations = computed(() => {
-    // For now, we need to get organizations from the auth service's organizations list
+    // For now, we need to get organizations from the user store's organizations list
     // This will be enhanced when we integrate with the full organizations store
     const userOrgIds = this.userOrganizations().map((uo) => uo.organizationId);
 
     // TODO: In future iterations, get actual organization data from AllOrganizationsStore
     // For now, create mock organizations based on user organization relationships
-    return this.userOrganizations().map(
-      (uo) =>
-        ({
-          id: uo.organizationId,
-          name: `Organization ${uo.organizationId}`, // Placeholder - will be replaced with real data
-          imageUrl: 'https://via.placeholder.com/150',
-        } as Organization)
-    );
+    return this.userOrganizations().map((uo) => ({
+      id: uo.organizationId,
+      name: `Organization ${uo.organizationId}`, // Mock name
+      imageUrl: null,
+    }));
   });
-
-  hasOrganizations = computed(() => this.availableOrganizations().length > 0);
 
   /**
    * Get responsive grid columns based on screen size
@@ -73,41 +72,76 @@ export class HomeComponent {
   }
 
   /**
-   * Handle organization selection
+   * Check if a specific organization is being selected
+   */
+  isSelectingOrganization(organizationId: string): boolean {
+    return this.isLoading() && this.selectedOrgId() === organizationId;
+  }
+
+  /**
+   * Handle organization selection (for template compatibility)
    */
   selectOrganization(organization: Organization): void {
+    this.onSelectOrganization(organization.id);
+  }
+
+  /**
+   * Handle organization selection with improved error handling and navigation
+   */
+  onSelectOrganization(organizationId: string): void {
+    if (this.isLoading()) {
+      return; // Prevent multiple selections
+    }
+
     this.isLoading.set(true);
-    this.selectedOrgId.set(organization.id);
+    this.selectedOrgId.set(organizationId);
 
     try {
-      // Store selected organization
-      this.organizationService.setSelectedOrganization(organization);
+      // Validate organization access
+      if (!this.userStore.hasAccessToOrganization(organizationId)) {
+        throw new Error('You do not have access to this organization');
+      }
 
-      // Show success message
-      this.showSuccess(
-        this.translateService.instant('organization.select.success', {
-          name: organization.name,
-        }) || `Selected ${organization.name}`
-      );
+      // Update user store with selected organization
+      const success = this.userStore.selectOrganization(organizationId);
 
-      // Navigate to main app
+      if (!success) {
+        throw new Error('Failed to select organization');
+      }
+
+      // Ensure the role is available after selection
+      const currentRole = this.userStore.currentRole();
+      if (!currentRole) {
+        throw new Error(
+          'Unable to determine user role in selected organization'
+        );
+      }
+
+      this.showSuccess('Organization selected successfully');
+
+      // Small delay to ensure stores are updated before navigation
       setTimeout(() => {
-        this.router.navigate(['/my-items']);
-      }, 1000);
+        this.isLoading.set(false);
+        this.selectedOrgId.set(null);
+
+        // Navigate to the appropriate route based on role
+        this.navigateToDefaultRoute(currentRole);
+      }, 100);
     } catch (error: unknown) {
-      console.error('Failed to select organization:', error);
-      this.showError(
-        this.translateService.instant('organization.select.error') ||
-          'Failed to select organization'
-      );
-      this.selectedOrgId.set(null);
-    } finally {
+      console.error('Error selecting organization:', error);
       this.isLoading.set(false);
+      this.selectedOrgId.set(null);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to select organization';
+      this.showError(errorMessage);
     }
   }
 
   /**
-   * Generate invitation message and open email client
+   * Request access to organizations
    */
   requestAccess(): void {
     const user = this.currentUser();
@@ -117,16 +151,15 @@ export class HomeComponent {
     }
 
     const appUrl = window.location.origin;
-    const subject = this.translateService.instant(
-      'organization.invitation.request-subject'
-    );
-    const body = this.translateService.instant(
-      'organization.invitation.request-body',
-      {
+    const subject =
+      this.translateService.instant(
+        'organization.invitation.request-subject'
+      ) || 'Access Request';
+    const body =
+      this.translateService.instant('organization.invitation.request-body', {
         email: user.email,
         appUrl: appUrl,
-      }
-    );
+      }) || `Please grant access to ${user.email} for ${appUrl}`;
 
     // Create mailto link
     const mailtoLink = `mailto:?subject=${encodeURIComponent(
@@ -137,42 +170,11 @@ export class HomeComponent {
       // Open email client
       window.location.href = mailtoLink;
 
-      // Also copy to clipboard as fallback
-      navigator.clipboard
-        .writeText(`${subject}\n\n${body}`)
-        .then(() => {
-          this.showSuccess(
-            this.translateService.instant('common.copied-to-clipboard') ||
-              'Message copied to clipboard'
-          );
-        })
-        .catch(() => {
-          // Clipboard failed, but email client should still open
-          console.warn('Could not copy to clipboard');
-        });
+      this.showSuccess('Email client opened with access request');
     } catch (error) {
       console.error('Failed to open email client:', error);
-
-      // Fallback: copy to clipboard only
-      navigator.clipboard
-        .writeText(`${subject}\n\n${body}`)
-        .then(() => {
-          this.showSuccess(
-            this.translateService.instant('organization.invitation.copied') ||
-              'Invitation message copied to clipboard'
-          );
-        })
-        .catch(() => {
-          this.showError('Failed to generate invitation message');
-        });
+      this.showError('Failed to generate access request');
     }
-  }
-
-  /**
-   * Check if an organization is currently being selected
-   */
-  isSelectingOrganization(organizationId: string): boolean {
-    return this.selectedOrgId() === organizationId && this.isLoading();
   }
 
   /**
@@ -180,7 +182,7 @@ export class HomeComponent {
    */
   private showSuccess(message: string): void {
     this.snackBar.open(
-      message,
+      this.translateService.instant(message) || message,
       this.translateService.instant('common.close') || 'Close',
       {
         duration: 3000,
@@ -194,12 +196,42 @@ export class HomeComponent {
    */
   private showError(message: string): void {
     this.snackBar.open(
-      message,
+      this.translateService.instant(message) || message,
       this.translateService.instant('common.close') || 'Close',
       {
         duration: 5000,
         panelClass: ['error-snackbar'],
       }
     );
+  }
+
+  /**
+   * Navigate to appropriate route based on user role
+   */
+  private navigateToDefaultRoute(role: UserRole): void {
+    try {
+      let targetRoute = '/my-items'; // Default route for all roles
+
+      // Role-specific default routes (optional customization)
+      switch (role) {
+        case UserRole.Admin:
+          targetRoute = '/my-items'; // Admin can also start with my-items
+          break;
+        case UserRole.WarehouseManager:
+          targetRoute = '/my-items'; // Warehouse managers can start with my-items
+          break;
+        case UserRole.Customer:
+          targetRoute = '/my-items'; // Customers start with my-items
+          break;
+        default:
+          targetRoute = '/my-items';
+      }
+
+      console.log(`Navigating to ${targetRoute} for role: ${role}`);
+      this.router.navigate([targetRoute]);
+    } catch (navigationError) {
+      console.error('Navigation failed:', navigationError);
+      this.showError('Navigation failed. Please try again.');
+    }
   }
 }

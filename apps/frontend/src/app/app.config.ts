@@ -1,23 +1,16 @@
-import {
-  ApplicationConfig,
-  provideZoneChangeDetection,
-  APP_INITIALIZER,
-  importProvidersFrom,
-} from '@angular/core';
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { appRoutes } from './app.routes';
-import { provideAnimations } from '@angular/platform-browser/animations';
-import { AppInitService } from './app.init.service';
-import { initApplication } from './app.init';
-import { HttpClient, provideHttpClient } from '@angular/common/http';
-import {
-  TranslateModule,
-  TranslateLoader,
-  TranslateService,
-} from '@ngx-translate/core';
-import { TranslateHttpLoader } from '@ngx-translate/http-loader';
-import { OrganizationStore, UserStore } from '../store';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideHttpClient, HttpClient } from '@angular/common/http';
+import { MAT_SNACK_BAR_DEFAULT_OPTIONS } from '@angular/material/snack-bar';
+import { APP_INITIALIZER, importProvidersFrom } from '@angular/core';
 
+import { appRoutes } from './app.routes';
+import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
+import { TranslateHttpLoader } from '@ngx-translate/http-loader';
+import { appInitializer } from './app.init';
+
+// Factory function for TranslateHttpLoader
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
 }
@@ -26,11 +19,8 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(appRoutes),
-    provideAnimations(),
+    provideAnimationsAsync(),
     provideHttpClient(),
-    TranslateService,
-    OrganizationStore,
-    UserStore,
     importProvidersFrom(
       TranslateModule.forRoot({
         loader: {
@@ -38,13 +28,21 @@ export const appConfig: ApplicationConfig = {
           useFactory: HttpLoaderFactory,
           deps: [HttpClient],
         },
+        defaultLanguage: 'en',
       })
     ),
     {
       provide: APP_INITIALIZER,
-      useFactory: initApplication,
+      useFactory: appInitializer,
       multi: true,
-      deps: [AppInitService, HttpClient],
+    },
+    {
+      provide: MAT_SNACK_BAR_DEFAULT_OPTIONS,
+      useValue: {
+        duration: 3000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom',
+      },
     },
   ],
 };

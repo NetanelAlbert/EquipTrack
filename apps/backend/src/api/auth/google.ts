@@ -45,20 +45,10 @@ export const handler = async (
       req.idToken
     );
 
-    console.log(
-      '[GOOGLE_AUTH] Google authentication successful for user:',
-      authResult.user?.email
-    );
-    console.log(
-      '[GOOGLE_AUTH] User organizations count:',
-      authResult.userInOrganizations?.length || 0
-    );
 
     const response = {
       status: true,
       jwt: authResult.jwt,
-      user: authResult.user,
-      userInOrganizations: authResult.userInOrganizations,
     };
 
     console.log('[GOOGLE_AUTH] Returning successful response');

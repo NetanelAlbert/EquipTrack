@@ -1,6 +1,7 @@
+import { inject } from '@angular/core';
 import { AppInitService } from './app.init.service';
 
-
-export const initApplication = (appInitService: AppInitService) => (): Promise<void> => {
-    return appInitService.initializeApp();
-};
+export function appInitializer() {
+  const appInitService = inject(AppInitService);
+  return () => appInitService.initialize();
+}

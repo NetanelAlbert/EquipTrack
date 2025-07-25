@@ -42,8 +42,6 @@ export class GoogleAuthService {
    */
   async authenticateWithGoogle(idToken: string): Promise<{
     jwt: string;
-    user: User;
-    userInOrganizations: any[];
   }> {
     try {
       // Step 1: Validate the Google ID token
@@ -108,10 +106,10 @@ export class GoogleAuthService {
         orgIdToRole
       );
 
+      console.log('successful google auth for user', userAndOrganizations.user.id);
+
       return {
         jwt,
-        user: userAndOrganizations.user,
-        userInOrganizations: userAndOrganizations.userInOrganizations,
       };
     } catch (error) {
       console.error('Google authentication error:', error);

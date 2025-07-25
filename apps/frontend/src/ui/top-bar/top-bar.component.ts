@@ -5,7 +5,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
-import { AuthService } from '../../services/auth.service';
+import { UserStore } from '../../store/user.store';
+import { AuthStore } from '../../store/auth.store';
 import { OrganizationStore } from '../../store';
 import { Title } from '@angular/platform-browser';
 import { NavigationEnd, Router } from '@angular/router';
@@ -13,6 +14,7 @@ import { filter } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { User } from '@equip-track/shared';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'top-bar',
@@ -30,6 +32,8 @@ import { User } from '@equip-track/shared';
   styleUrl: './top-bar.component.scss',
 })
 export class TopBarComponent implements AfterViewInit {
+  userStore = inject(UserStore);
+  authStore = inject(AuthStore);
   authService = inject(AuthService);
   organizationStore = inject(OrganizationStore);
   titleService = inject(Title);
@@ -41,9 +45,7 @@ export class TopBarComponent implements AfterViewInit {
 
   pageTitle = '';
 
-  // Authentication state
-  isAuthenticated = this.authService.isAuthenticated;
-  currentUser = this.authService.currentUser;
+  currentUser = this.userStore.user;
 
   constructor() {
     this.detectTitleChange();

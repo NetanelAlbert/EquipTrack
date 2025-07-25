@@ -1,15 +1,15 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import {
-  User,
-  UserRole,
-  UserInOrganization,
-  DecodedJwt,
+  GoogleAuthRequest,
   GoogleAuthResponse,
 } from '@equip-track/shared';
 import { ApiService } from './api.service';
+import { AuthStore } from '../store/auth.store';
+import { UserStore } from '../store/user.store';
+import { STORAGE_KEYS } from '../utils/consts';
 
 @Injectable({
   providedIn: 'root',
@@ -17,89 +17,84 @@ import { ApiService } from './api.service';
 export class AuthService {
   private router = inject(Router);
   private apiService = inject(ApiService);
+  private authStore = inject(AuthStore);
+  private userStore = inject(UserStore);
 
-  private readonly TOKEN_KEY = 'equip-track-jwt';
+  // Initialize authentication with enhanced error handling
+  async initializeAuth(): Promise<boolean> {
+    this.authStore.setInitializationLoading(true);
 
-  // Authentication state signals
-  public token = signal<string | null>(null);
-  public isAuthenticated = computed(() => !!this.token());
-  public currentUser = signal<User | null>(null);
-  public currentRole = signal<UserRole | null>(null);
-  public userOrganizations = signal<UserInOrganization[]>([]);
+    try {
+      // Clean up any invalid localStorage data first
+      this.cleanupInvalidStorageData();
 
-  // Computed signals for convenience
-  public isAdmin = computed(() => this.currentRole() === UserRole.Admin);
-  public isCustomer = computed(() => this.currentRole() === UserRole.Customer);
-  public isWarehouseManager = computed(
-    () => this.currentRole() === UserRole.WarehouseManager
-  );
-  public hasOrganizations = computed(() => this.userOrganizations().length > 0);
-
-  constructor() {
-    this.initializeAuth();
-  }
-
-  /**
-   * Initialize authentication state from stored token
-   */
-  private initializeAuth(): void {
-    const token = this.getStoredToken();
-    if (token && this.isTokenValid(token)) {
-      const decoded = this.decodeToken(token);
-      if (decoded) {
-        this.setAuthenticationState(decoded, token);
+      const storedToken = this.getStoredToken();
+      if (storedToken && this.validateAndCacheToken(storedToken)) {
+          this.authStore.setToken(storedToken);
+          this.userStore.loadPersistedOrganizationSelection();
+          this.authStore.setInitializationSuccess();
+          return true;
       }
-    } else {
-      this.clearAuthenticationState();
+      this.clearInvalidTokenData();
+
+      this.authStore.setInitializationSuccess();
+      return false;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Initialization failed';
+      this.authStore.setInitializationError(errorMessage);
+      console.error('Auth initialization failed:', error);
+      return false;
     }
   }
 
-  /**
-   * Authenticate with Google ID token
-   */
+  // Enhanced Google authentication with comprehensive error handling
   authenticateWithGoogle(idToken: string): Observable<GoogleAuthResponse> {
-    return this.apiService.endpoints.googleAuth.execute(
-      {
-        idToken,
-      },
-      {},
-      false
-    )
+    this.authStore.setAuthLoading();
+
+    const request: GoogleAuthRequest = { idToken };
+
+    return this.apiService.endpoints.googleAuth
+      .execute(request, {}, false)
       .pipe(
         map((response) => {
           if (response.status && response.jwt) {
-            // Store JWT and update auth state
+            // Store JWT token
             this.storeToken(response.jwt);
+            this.authStore.setToken(response.jwt);
+            this.validateAndCacheToken(response.jwt);
 
-            const decoded: DecodedJwt = {
-              userId: response.user.id,
-              orgIdToRole: response.userInOrganizations.reduce((acc, org) => {
-                acc[org.organizationId] = org.role;
-                return acc;
-              }, {} as Record<string, UserRole>),
-              iat: Math.floor(Date.now() / 1000),
-              exp: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60, // 1 week
-              user: response.user,
-              userInOrganizations: response.userInOrganizations,
-            };
-
-            this.setAuthenticationState(decoded, response.jwt);
+            this.authStore.setAuthSuccess();
+          } else {
+            this.authStore.setAuthError('Invalid authentication response');
           }
           return response;
         }),
         catchError((error) => {
           console.error('Google authentication failed:', error);
+
+          let errorMessage = 'Authentication failed';
+          if (error.status === 0) {
+            errorMessage = 'Network error. Please check your connection.';
+          } else if (error.status >= 500) {
+            errorMessage = 'Server error. Please try again later.';
+          } else if (error.status === 401 || error.status === 403) {
+            errorMessage =
+              'Authentication failed. Please verify your account access.';
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+
+          this.authStore.setAuthError(errorMessage);
           this.clearAuthenticationState();
           throw error;
         })
       );
   }
 
-  /**
-   * Sign out user
-   */
+  // Enhanced sign out with cleanup
   signOut(): void {
-    this.removeStoredToken();
+    // Clear token and user data
     this.clearAuthenticationState();
 
     // Disable auto-select for Google Sign-In
@@ -107,204 +102,100 @@ export class AuthService {
       window.google.accounts.id.disableAutoSelect();
     }
 
+    // Navigate to login
     this.router.navigate(['/login']);
   }
 
-  /**
-   * Check if user is authenticated
-   */
+  // Check if user is authenticated
   isUserAuthenticated(): boolean {
-    const token = this.getStoredToken();
-    return token ? this.isTokenValid(token) : false;
+    const token = this.authStore.token();
+    if (!token) return false;
+
+    return this.validateAndCacheToken(token);
   }
 
-  /**
-   * Get current user
-   */
-  getCurrentUser(): User | null {
-    return this.currentUser();
+  // Private helper methods
+
+  private cleanupInvalidStorageData(): void {
+    try {
+      // Check for old organization data that might cause JSON parsing errors
+      const orgKey = 'equip-track-selected-org';
+      const storedOrgData = localStorage.getItem(orgKey);
+
+      if (storedOrgData) {
+        try {
+          // Try to parse as JSON
+          JSON.parse(storedOrgData);
+          // If successful, check if it's the old format (just a string)
+          if (typeof JSON.parse(storedOrgData) === 'string') {
+            console.log('Removing old organization data format');
+            localStorage.removeItem(orgKey);
+          }
+        } catch (parseError) {
+          // If it's not valid JSON and also not a valid organization object, remove it
+          console.log('Removing invalid organization data:', storedOrgData);
+          localStorage.removeItem(orgKey);
+        }
+      }
+    } catch (error) {
+      console.error('Error during localStorage cleanup:', error);
+    }
   }
 
-  /**
-   * Get current user role (from first organization)
-   */
-  getCurrentRole(): UserRole | null {
-    return this.currentRole();
+  private validateAndCacheToken(token: string): boolean {
+    const isValid = this.isTokenValid(token);
+    this.authStore.updateTokenValidationCache(isValid);
+    return isValid;
   }
 
-  /**
-   * Get user organizations
-   */
-  getUserOrganizations(): UserInOrganization[] {
-    return this.userOrganizations();
+  private clearInvalidTokenData(): void {
+    this.clearStoredToken();
+    this.authStore.setToken(null);
   }
 
-  /**
-   * Check if user has required role
-   */
-  hasRole(allowedRoles: UserRole[]): boolean {
-    const currentRole = this.getCurrentRole();
-    return currentRole ? allowedRoles.includes(currentRole) : false;
+  private clearAuthenticationState(): void {
+    this.authStore.clearAuthState();
+    this.userStore.clearUser();
+    this.clearStoredToken();
   }
 
-  /**
-   * Get authorization header for API requests
-   */
-  getAuthorizationHeader(): { Authorization: string } | object {
-    const token = this.getStoredToken();
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }
+  // Token management helper functions
 
-  /**
-   * Store JWT token in localStorage
-   */
   private storeToken(token: string): void {
     try {
-      localStorage.setItem(this.TOKEN_KEY, token);
+      localStorage.setItem(STORAGE_KEYS.TOKEN, token);
     } catch (error) {
       console.error('Failed to store authentication token:', error);
     }
   }
 
-  /**
-   * Get stored JWT token from localStorage
-   */
   private getStoredToken(): string | null {
     try {
-      return localStorage.getItem(this.TOKEN_KEY);
+      return localStorage.getItem(STORAGE_KEYS.TOKEN);
     } catch (error) {
       console.error('Failed to retrieve authentication token:', error);
       return null;
     }
   }
 
-  /**
-   * Remove stored JWT token
-   */
-  private removeStoredToken(): void {
+  private clearStoredToken(): void {
     try {
-      localStorage.removeItem(this.TOKEN_KEY);
+      localStorage.removeItem(STORAGE_KEYS.TOKEN);
     } catch (error) {
       console.error('Failed to remove authentication token:', error);
     }
   }
 
-  /**
-   * Decode JWT token payload
-   */
-  private decodeToken(token: string): DecodedJwt | null {
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) {
-        return null;
-      }
-
-      const payload = JSON.parse(atob(parts[1]));
-
-      // For now, we'll need to store user info separately since JWT only has minimal data
-      // This is a limitation that should be addressed in Unit 5 (Auth Store)
-      const storedUser = this.getStoredUserInfo();
-
-      return {
-        ...payload,
-        user: storedUser?.user || null,
-        userInOrganizations: storedUser?.userInOrganizations || [],
-      };
-    } catch (error) {
-      console.error('Failed to decode JWT token:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Check if JWT token is valid (not expired)
-   */
   private isTokenValid(token: string): boolean {
     try {
-      const decoded = this.decodeToken(token);
-      if (!decoded) {
-        return false;
-      }
+      const parts = token.split('.');
+      if (parts.length !== 3) return false;
 
+      const payload = JSON.parse(atob(parts[1]));
       const currentTime = Math.floor(Date.now() / 1000);
-      return decoded.exp > currentTime;
+      return payload.exp > currentTime;
     } catch (error) {
       return false;
-    }
-  }
-
-  /**
-   * Set authentication state
-   */
-  private setAuthenticationState(decoded: DecodedJwt, token: string): void {
-    this.token.set(token);
-    this.apiService.setToken(token);
-
-    if (decoded.user) {
-      this.currentUser.set(decoded.user);
-      this.userOrganizations.set(decoded.userInOrganizations);
-
-      // Set primary role (from first organization)
-      const primaryRole = decoded.userInOrganizations[0]?.role || null;
-      this.currentRole.set(primaryRole);
-
-      // Store user info for future token decoding
-      this.storeUserInfo({
-        user: decoded.user,
-        userInOrganizations: decoded.userInOrganizations,
-      });
-    }
-  }
-
-  /**
-   * Clear authentication state
-   */
-  private clearAuthenticationState(): void {
-    this.token.set(null);
-    this.currentUser.set(null);
-    this.currentRole.set(null);
-    this.userOrganizations.set([]);
-    this.removeStoredUserInfo();
-  }
-
-  /**
-   * Store user info for JWT decoding (temporary solution)
-   */
-  private storeUserInfo(userInfo: {
-    user: User;
-    userInOrganizations: UserInOrganization[];
-  }): void {
-    try {
-      localStorage.setItem(`${this.TOKEN_KEY}-user`, JSON.stringify(userInfo));
-    } catch (error) {
-      console.error('Failed to store user info:', error);
-    }
-  }
-
-  /**
-   * Get stored user info
-   */
-  private getStoredUserInfo(): {
-    user: User;
-    userInOrganizations: UserInOrganization[];
-  } | null {
-    try {
-      const stored = localStorage.getItem(`${this.TOKEN_KEY}-user`);
-      return stored ? JSON.parse(stored) : null;
-    } catch (error) {
-      console.error('Failed to retrieve user info:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Remove stored user info
-   */
-  private removeStoredUserInfo(): void {
-    try {
-      localStorage.removeItem(`${this.TOKEN_KEY}-user`);
-    } catch (error) {
-      console.error('Failed to remove user info:', error);
     }
   }
 }

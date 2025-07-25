@@ -13,8 +13,6 @@ export interface GoogleAuthRequest {
  */
 export interface GoogleAuthResponse extends BasicResponse {
   jwt: string;
-  user: User;
-  userInOrganizations: UserInOrganization[];
 }
 
 /**
@@ -25,12 +23,4 @@ export interface JwtPayload {
   orgIdToRole: Record<string, UserRole>;
   iat: number;
   exp: number;
-}
-
-/**
- * Decoded JWT with user information
- */
-export interface DecodedJwt extends JwtPayload {
-  user: User;
-  userInOrganizations: UserInOrganization[];
 }

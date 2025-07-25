@@ -96,9 +96,7 @@ export class TodayReportComponent implements OnInit {
 
   private getItemsToReport(): ItemReport[] {
     const todayReport = this.reportsStore.todayReport();
-    const reportedUpis = new Set(
-      todayReport?.map((item) => item.upi) || []
-    );
+    const reportedUpis = new Set(todayReport?.map((item) => item.upi) || []);
 
     const itemsToReport: ItemReport[] = [];
 
@@ -110,7 +108,7 @@ export class TodayReportComponent implements OnInit {
               productId: item.productId,
               upi: upi,
               location: '',
-              reportedBy: this.userStore.name(),
+              reportedBy: this.userStore.user()?.name || 'Unknown User',
             });
           }
         });

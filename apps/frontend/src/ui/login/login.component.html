@@ -17,19 +17,28 @@
         </p>
 
         <!-- Google Sign-In Component -->
-        <section class="sign-in-section" aria-labelledby="signin-heading">
-          <h2 id="signin-heading" class="sr-only">{{ 'auth.signin-methods' | translate }}</h2>
-          <app-google-sign-in
-            [buttonTheme]="'filled_blue'"
-            [buttonSize]="'large'"
-            [buttonText]="'signin_with'"
-            [disabled]="isLoading"
-            (signInSuccess)="onGoogleSignInSuccess($event)"
-            (signInError)="onGoogleSignInError($event)"
-            role="group"
-            [attr.aria-label]="'auth.google-signin-group' | translate">
-          </app-google-sign-in>
-        </section>
+        <div class="signin-methods-section" 
+           role="group" 
+           [attr.aria-label]="'auth.google-signin-group' | translate">
+        
+        <!-- Error message display -->
+        @if (authState().error) {
+          <div class="error-message" role="alert" aria-live="polite">
+            <mat-icon aria-hidden="true">error</mat-icon>
+            <span>{{ authState().error }}</span>
+          </div>
+        }
+
+        <!-- Loading state -->
+        @if (authState().isLoading) {
+          <div class="loading-message" role="status" aria-live="polite">
+            <mat-icon aria-hidden="true">hourglass_empty</mat-icon>
+            <span>{{ 'auth.signing-in' | translate }}</span>
+          </div>
+        }
+
+        <app-google-sign-in (signInSuccess)="onGoogleSignIn($event)"></app-google-sign-in>
+      </div>
 
         <div class="divider" role="separator" [attr.aria-label]="'auth.or-separator' | translate">
           <span aria-hidden="true">{{ 'auth.or' | translate }}</span>

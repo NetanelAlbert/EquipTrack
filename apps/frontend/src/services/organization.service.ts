@@ -20,97 +20,10 @@ export interface SelectedOrganizationInfo {
   providedIn: 'root',
 })
 export class OrganizationService {
-  private readonly SELECTED_ORG_KEY = 'equip-track-selected-org';
+  // Use a different key to avoid conflicts with UserStore
   private readonly apiService = inject(ApiService);
   private readonly translateService = inject(TranslateService);
   private readonly organizationStore = inject(OrganizationStore);
-
-  constructor() {
-    this.initializeSelectedOrganization();
-  }
-
-  /**
-   * Initialize selected organization from localStorage on service creation
-   */
-  private initializeSelectedOrganization(): void {
-    const stored = this.getSelectedOrganization();
-    if (stored) {
-      this.organizationStore.setOrganization(stored.organization);
-    }
-  }
-
-  /**
-   * Set selected organization and persist to localStorage
-   */
-  setSelectedOrganization(organization: Organization): void {
-    try {
-      const selectedInfo: SelectedOrganizationInfo = {
-        organizationId: organization.id,
-        organization,
-        selectedAt: Date.now(),
-      };
-
-      localStorage.setItem(this.SELECTED_ORG_KEY, JSON.stringify(selectedInfo));
-
-      // Update store
-      this.organizationStore.setOrganization(organization);
-
-      console.log('Organization selected and stored:', organization.name);
-    } catch (error) {
-      console.error('Failed to store selected organization:', error);
-    }
-  }
-
-  /**
-   * Get selected organization from localStorage
-   */
-  getSelectedOrganization(): SelectedOrganizationInfo | null {
-    try {
-      const stored = localStorage.getItem(this.SELECTED_ORG_KEY);
-      return stored ? JSON.parse(stored) : null;
-    } catch (error) {
-      console.error('Failed to retrieve selected organization:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Clear selected organization from localStorage and store
-   */
-  clearSelectedOrganization(): void {
-    try {
-      localStorage.removeItem(this.SELECTED_ORG_KEY);
-
-      // Clear organization in store
-      this.organizationStore.setOrganization({
-        id: '',
-        name: '',
-        imageUrl: null,
-      });
-
-      console.log('Selected organization cleared');
-    } catch (error) {
-      console.error('Failed to clear selected organization:', error);
-    }
-  }
-
-  /**
-   * Check if an organization is currently selected
-   */
-  hasSelectedOrganization(): boolean {
-    return !!this.organizationStore.organizationId();
-  }
-
-  /**
-   * Update organization info (e.g., when organization data changes)
-   */
-  updateSelectedOrganizationInfo(organization: Organization): void {
-    const currentSelected = this.getSelectedOrganization();
-    if (currentSelected && currentSelected.organizationId === organization.id) {
-      this.setSelectedOrganization(organization);
-    }
-  }
-
 
   async getUsers(): Promise<void> {
     this.organizationStore.setGetUsersLoading(true);

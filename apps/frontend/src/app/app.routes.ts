@@ -1,6 +1,6 @@
 import { Route } from '@angular/router';
 import { createRoleGuard } from './guards/role.guard';
-import { authGuard } from './guards/auth.guard';
+import { createAuthGuard } from './guards/auth.guard';
 import { organizationGuard } from './guards/organization.guard';
 import { NotAllowedComponent } from '../ui/not-allowed/not-allowed.component';
 import { DummyComponent } from '../ui';
@@ -14,7 +14,7 @@ const navItemRoutes: Route[] = navItems.map((item) => {
       path: item.route,
       loadComponent: item.loadComponent,
       title: item.labelKey,
-      canActivate: [authGuard, organizationGuard, createRoleGuard(item.roles)], // Auth -> Org -> Role guards
+      canActivate: [createAuthGuard(), organizationGuard, createRoleGuard(item.roles)], // Auth -> Org -> Role guards
     };
   } else {
     // Eager loaded component (DummyComponent)
@@ -22,7 +22,7 @@ const navItemRoutes: Route[] = navItems.map((item) => {
       path: item.route,
       component: DummyComponent,
       title: item.labelKey,
-      canActivate: [authGuard, organizationGuard, createRoleGuard(item.roles)], // Auth -> Org -> Role guards
+      canActivate: [createAuthGuard(), organizationGuard, createRoleGuard(item.roles)], // Auth -> Org -> Role guards
     };
   }
 });
@@ -42,7 +42,7 @@ export const appRoutes: Route[] = [
     loadComponent: () =>
       import('../ui/home/home.component').then((m) => m.HomeComponent),
     title: 'organization.select.title',
-    canActivate: [authGuard], // Only auth required, not organization
+    canActivate: [createAuthGuard()], // Only auth required, not organization
     pathMatch: 'full',
   },
 

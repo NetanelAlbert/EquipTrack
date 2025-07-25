@@ -99,18 +99,20 @@ export const FormsStore = signalStore(
     const organizationStore = inject(OrganizationStore);
     return {
       fetchForms() {
-        const userRole = userStore.role();
-        if (
-          [UserRole.WarehouseManager, UserRole.Admin].includes(
-            userRole
-          )
-        ) {
+        const userRole = userStore.currentRole();
+        const userId = userStore.user()?.id;
+
+        if (!userRole || !userId) {
+          console.error('User role or ID not available');
+          return;
+        }
+
+        if ([UserRole.WarehouseManager, UserRole.Admin].includes(userRole)) {
           // TODO: API call to fetch all forms
           patchState(state, {
             forms: [...state.forms()],
           });
         } else {
-          const userId = userStore.id();
           console.log('fetching forms for user', userId);
           // TODO: API call to fetch all forms for a user
           patchState(state, {
@@ -119,19 +121,31 @@ export const FormsStore = signalStore(
         }
       },
       addCheckInForm(items: InventoryItem[]) {
+        const userRole = userStore.currentRole();
+        const userId = userStore.user()?.id;
+
+        if (!userRole || !userId) {
+          console.error('User role or ID not available');
+          return;
+        }
+
         const newForm: InventoryForm = {
-          userID: userStore.id(),
+          userID: userId,
           organizationID: organizationStore.organization.id(),
           type: FormType.CheckIn,
-          formID: uuidv4(),
+          formID: crypto.randomUUID(),
           items: items,
           status: FormStatus.Pending,
           createdAtTimestamp: Date.now(),
           lastUpdated: Date.now(),
         };
         // TODO: API call to add check-in form
-        patchState(state, {
-          forms: [newForm, ...state.forms()],
+
+        patchState(state, (state) => {
+          return {
+            ...state,
+            forms: [...state.forms, newForm],
+          };
         });
       },
       addCheckOutForm(items: InventoryItem[], userId: string) {

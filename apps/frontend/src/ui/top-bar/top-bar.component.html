@@ -12,7 +12,7 @@
   <span class="spacer"></span>
   
   <!-- Authenticated User Menu -->
-  @if (isAuthenticated()) {
+  @if (currentUser()) {
     @if (currentUser(); as user) {
       <button 
         mat-icon-button 

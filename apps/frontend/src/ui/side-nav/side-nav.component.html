@@ -9,7 +9,7 @@
                [class.collapsed]="!isExpanded()">
 
     <mat-nav-list>
-      @for (item of filteredNavItems; track item.route) {
+      @for (item of filteredNavItems(); track item.route) {
         <a mat-list-item [routerLink]="item.route" routerLinkActive="active">
           <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
           <!-- consider removing the if this as the bad dissapear -->

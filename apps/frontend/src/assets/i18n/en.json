@@ -1,19 +1,20 @@
 {
   "title": "EquipTrack",
   "auth": {
-    "sign-in-with-google": "Sign in with Google",
-    "sign-in-title": "Sign In",
-    "sign-in-subtitle": "Access your equipment tracking system",
-    "signing-in": "Signing in...",
-    "success": "Successfully signed in!",
-    "error": "Sign-in failed",
-    "google-unavailable": "Google Sign-In is currently unavailable. Please try again later.",
-    "try-again": "Try Again",
-    "welcome-message": "Welcome to EquipTrack. Please sign in with your Google account to continue.",
+    "login-page": "Sign in to EquipTrack",
+    "sign-in-title": "Welcome to EquipTrack",
+    "sign-in-subtitle": "Track and manage your equipment inventory",
+    "welcome-message": "Please sign in to access your equipment management dashboard.",
+    "signin-methods": "Sign-in methods",
+    "google-signin-group": "Google sign-in options",
+    "or-separator": "Alternative sign-in methods separator",
     "or": "or",
+    "help-section": "Help and support options",
     "need-help": "Need help accessing your account?",
     "contact-admin": "Contact Administrator",
-    "security-note": "Your data is protected with enterprise-grade security"
+    "security-icon": "Security and privacy information",
+    "security-note": "Your data is protected with enterprise-grade security.",
+    "signing-in": "Signing you in..."
   },
   "common": {
     "close": "Close",
