@@ -5,8 +5,22 @@ const fs = require('fs');
 // Disable AWS CLI pager to prevent interactive prompts
 process.env.AWS_PAGER = '';
 
+/**
+ * Deploy API Gateway script
+ * 
+ * Environment variables:
+ * - STAGE: Deployment stage (default: 'dev')
+ * - AWS_REGION: AWS region (default: 'il-central-1')
+ * - RECREATE_API: Set to 'true' to delete and recreate API Gateway from scratch (default: false)
+ * 
+ * Usage:
+ * node scripts/deploy-api-gateway.js
+ * RECREATE_API=true node scripts/deploy-api-gateway.js
+ */
+
 const STAGE = process.env.STAGE || 'dev';
 const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
+const RECREATE_API = process.env.RECREATE_API === 'true';
 
 // Load endpoint definitions from config file
 function loadEndpoints() {
@@ -35,12 +49,20 @@ function createOrUpdateAPI() {
     const apis = JSON.parse(result).items;
     const existingAPI = apis.find(api => api.name === apiName);
     
-    if (existingAPI) {
+    if (existingAPI && !RECREATE_API) {
       console.log(`Using existing API: ${existingAPI.id}`);
       return existingAPI.id;
+    } else if (existingAPI && RECREATE_API) {
+      console.log(`Deleting existing API: ${existingAPI.id} (RECREATE_API=true)`);
+      try {
+        execSync(`aws apigateway delete-rest-api --rest-api-id ${existingAPI.id}`, { stdio: 'inherit' });
+        console.log(`✅ Deleted existing API: ${existingAPI.id}`);
+      } catch (deleteError) {
+        console.log(`Warning: Could not delete existing API: ${deleteError.message}`);
+      }
     }
   } catch (error) {
-    console.log('Error checking for existing APIs, will create new one');
+    console.log('Error checking for existing APIs, will create new one', error);
   }
   
   // Create new API
@@ -74,13 +96,42 @@ function createResourcePath(apiId, path, existingResources) {
     let resource = existingResources.find(r => r.path === currentPath);
     
     if (!resource) {
-      console.log(`Creating resource: ${currentPath}`);
-      const result = execSync(
-        `aws apigateway create-resource --rest-api-id ${apiId} --parent-id ${parentId} --path-part "${part}"`,
-        { encoding: 'utf8' }
+      // Check if a resource with this path part already exists under the current parent
+      const existingChildResource = existingResources.find(r => 
+        r.parentId === parentId && r.pathPart === part
       );
-      resource = JSON.parse(result);
-      existingResources.push(resource);
+      
+      if (existingChildResource) {
+        console.log(`Using existing resource: ${currentPath} (id: ${existingChildResource.id})`);
+        resource = existingChildResource;
+      } else {
+        console.log(`Creating resource: ${currentPath}`);
+        try {
+          const result = execSync(
+            `aws apigateway create-resource --rest-api-id ${apiId} --parent-id ${parentId} --path-part "${part}"`,
+            { encoding: 'utf8' }
+          );
+          resource = JSON.parse(result);
+          existingResources.push(resource);
+        } catch (error) {
+          // If resource creation fails, try to find it by refreshing the resources list
+          console.log(`Resource creation failed, refreshing resources list...`);
+          const updatedResources = getResources(apiId);
+          existingResources.length = 0;
+          existingResources.push(...updatedResources);
+          
+          resource = existingResources.find(r => 
+            r.parentId === parentId && r.pathPart === part
+          );
+          
+          if (!resource) {
+            throw error; // Re-throw if we still can't find the resource
+          }
+          console.log(`Found existing resource after refresh: ${currentPath} (id: ${resource.id})`);
+        }
+      }
+    } else {
+      console.log(`Using existing resource: ${currentPath} (id: ${resource.id})`);
     }
     
     parentId = resource.id;
@@ -89,9 +140,28 @@ function createResourcePath(apiId, path, existingResources) {
   return parentId;
 }
 
+function methodExists(apiId, resourceId, method) {
+  try {
+    execSync(
+      `aws apigateway get-method --rest-api-id ${apiId} --resource-id ${resourceId} --http-method ${method}`,
+      { stdio: 'pipe' }
+    );
+    return true;
+  } catch (error) {
+    console.log('Error checking if method exists. returning false', error);
+    return false;
+  }
+}
+
 function createMethod(apiId, resourceId, method, functionName) {
   const accountId = getAccountId();
   const lambdaUri = `arn:aws:apigateway:${AWS_REGION}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS_REGION}:${accountId}:function:${functionName}/invocations`;
+  
+  // Check if method already exists
+  if (methodExists(apiId, resourceId, method)) {
+    console.log(`Method ${method} already exists for resource ${resourceId}, skipping creation`);
+    return;
+  }
   
   // Create CORS parameters file
   const corsParams = {
@@ -156,11 +226,16 @@ function createMethod(apiId, resourceId, method, functionName) {
     try {
       execSync(
         `aws lambda add-permission --function-name ${functionName} --statement-id "${statementId}" --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${AWS_REGION}:${accountId}:${apiId}/*/*"`,
-        { stdio: 'inherit' }
+        { stdio: 'pipe' }
       );
+      console.log(`Added Lambda permission for ${functionName}`);
     } catch (error) {
-      // Permission might already exist
-      console.log(`Permission for ${functionName} might already exist`);
+      // Permission might already exist or function might not exist yet
+      if (error.stderr && error.stderr.includes('ResourceConflictException')) {
+        console.log(`Permission for ${functionName} already exists`);
+      } else {
+        console.log(`Could not add permission for ${functionName}: ${error.message}`);
+      }
     }
     
   } catch (error) {
@@ -169,6 +244,12 @@ function createMethod(apiId, resourceId, method, functionName) {
 }
 
 function createOptionsMethod(apiId, resourceId) {
+  // Check if OPTIONS method already exists
+  if (methodExists(apiId, resourceId, 'OPTIONS')) {
+    console.log(`OPTIONS method already exists for resource ${resourceId}, skipping creation`);
+    return;
+  }
+  
   // Create OPTIONS CORS parameters file
   const optionsCorsParams = {
     "method.response.header.Access-Control-Allow-Origin": "'*'",
@@ -241,6 +322,12 @@ function deployAPIGateway() {
   const apiId = createOrUpdateAPI();
   const existingResources = getResources(apiId);
   
+  // Debug: Show existing resources
+  console.log(`Found ${existingResources.length} existing resources:`);
+  existingResources.forEach(resource => {
+    console.log(`  ${resource.path} (id: ${resource.id}, parentId: ${resource.parentId}, pathPart: ${resource.pathPart})`);
+  });
+  
   // Create resources and methods for each endpoint
   const resourcesWithOptions = new Set();
   
@@ -250,14 +337,19 @@ function deployAPIGateway() {
     
     console.log(`Setting up ${endpoint.method} ${endpoint.path} -> ${functionName}`);
     
-    const resourceId = createResourcePath(apiId, endpoint.path, existingResources);
-    createMethod(apiId, resourceId, endpoint.method, functionName);
-    
-    // Create OPTIONS method for CORS preflight (only once per resource)
-    if (!resourcesWithOptions.has(resourceId)) {
-      console.log(`Adding CORS OPTIONS method for ${endpoint.path}`);
-      createOptionsMethod(apiId, resourceId);
-      resourcesWithOptions.add(resourceId);
+    try {
+      const resourceId = createResourcePath(apiId, endpoint.path, existingResources);
+      createMethod(apiId, resourceId, endpoint.method, functionName);
+      
+      // Create OPTIONS method for CORS preflight (only once per resource)
+      if (!resourcesWithOptions.has(resourceId)) {
+        console.log(`Adding CORS OPTIONS method for ${endpoint.path}`);
+        createOptionsMethod(apiId, resourceId);
+        resourcesWithOptions.add(resourceId);
+      }
+    } catch (error) {
+      console.error(`Error setting up endpoint ${endpoint.method} ${endpoint.path}:`, error.message);
+      // Continue with other endpoints instead of failing completely
     }
   });
   
@@ -290,7 +382,7 @@ function deployAPIGateway() {
       fs.unlinkSync('options-cors-params.json');
     }
   } catch (error) {
-    console.log('Note: Could not clean up temporary files');
+    console.log('Note: Could not clean up temporary files', error);
   }
   
   return deployment;
