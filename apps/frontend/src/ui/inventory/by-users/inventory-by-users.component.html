@@ -13,9 +13,9 @@
           {{ 'inventory.views.warehouse' | translate }}
         </mat-option>
 
-        @for (user of organizationStore.users(); track user.id) {
-          <mat-option [value]="user.id">
-            {{ user.name }}
+        @for (user of organizationStore.users(); track user.user.id) {
+          <mat-option [value]="user.user.id">
+            {{ user.user.name }}
           </mat-option>
         }
         <!-- TODO: Add other users -->

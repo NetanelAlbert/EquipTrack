@@ -1,6 +1,7 @@
 import { Route } from '@angular/router';
 import { createRoleGuard } from './guards/role.guard';
 import { authGuard } from './guards/auth.guard';
+import { organizationGuard } from './guards/organization.guard';
 import { NotAllowedComponent } from '../ui/not-allowed/not-allowed.component';
 import { DummyComponent } from '../ui';
 import { navItems } from '../ui/side-nav/nav-items';
@@ -13,7 +14,7 @@ const navItemRoutes: Route[] = navItems.map((item) => {
       path: item.route,
       loadComponent: item.loadComponent,
       title: item.labelKey,
-      canActivate: [authGuard, createRoleGuard(item.roles)], // Add auth guard before role guard
+      canActivate: [authGuard, organizationGuard, createRoleGuard(item.roles)], // Auth -> Org -> Role guards
     };
   } else {
     // Eager loaded component (DummyComponent)
@@ -21,7 +22,7 @@ const navItemRoutes: Route[] = navItems.map((item) => {
       path: item.route,
       component: DummyComponent,
       title: item.labelKey,
-      canActivate: [authGuard, createRoleGuard(item.roles)], // Add auth guard before role guard
+      canActivate: [authGuard, organizationGuard, createRoleGuard(item.roles)], // Auth -> Org -> Role guards
     };
   }
 });
@@ -35,7 +36,17 @@ export const appRoutes: Route[] = [
     title: 'auth.sign-in-title',
   },
 
-  // Protected routes
+  // Organization selection (requires auth but not organization)
+  {
+    path: '',
+    loadComponent: () =>
+      import('../ui/home/home.component').then((m) => m.HomeComponent),
+    title: 'organization.select.title',
+    canActivate: [authGuard], // Only auth required, not organization
+    pathMatch: 'full',
+  },
+
+  // Protected routes (require auth + organization + role)
   ...navItemRoutes,
 
   // Public routes
@@ -43,13 +54,6 @@ export const appRoutes: Route[] = [
     path: 'not-allowed',
     component: NotAllowedComponent,
     title: 'errors.not-allowed.title',
-  },
-
-  // Default redirect
-  {
-    path: '',
-    redirectTo: 'my-items',
-    pathMatch: 'full',
   },
 
   // Catch-all route

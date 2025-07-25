@@ -64,6 +64,16 @@ export const navItems: NavItem[] = [
       ),
   },
   {
+    icon: 'group',
+    labelKey: 'navigation.edit-users',
+    route: 'edit-users',
+    roles: [UserRole.Admin],
+    loadComponent: () =>
+      import('../organization/edit-users/edit-users.component').then(
+        (m) => m.EditUsersComponent
+      ),
+  },
+  {
     icon: 'inventory',
     labelKey: 'navigation.all-inventory',
     route: 'all-inventory',

@@ -9,96 +9,50 @@ import {
   Organization,
   PredefinedForm,
   Product,
-  User,
-  UserRole,
-  UserState,
+  UserAndUserInOrganization,
 } from '@equip-track/shared';
 import { computed, Signal } from '@angular/core';
+import { ApiStatus } from './stores.models';
 
 interface OrganizationState {
   organization: Organization;
 
-  users: User[];
+  users: UserAndUserInOrganization[];
   products: Product[];
   predefinedForms: PredefinedForm[];
 
   // Actions state
   updatingProducts: boolean;
   errorUpdatingProducts?: string;
+
+  // Invite user state
+  invitingUserStatus: ApiStatus;
+  getUsersStatus: ApiStatus;
 }
 
-const mockedOrganization: Organization = {
-  id: '123',
-  name: 'Hogwarts',
-  imageUrl: 'https://via.placeholder.com/150',
-};
-
-const mockedProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Broomstick',
-    hasUpi: false,
+const emptyState: OrganizationState = {
+  organization: {
+    id: '',
+    name: '',
+    imageUrl: null,
   },
-  {
-    id: '2',
-    name: 'Wand',
-    hasUpi: true,
-  },
-];
-const mockedOrganizations: OrganizationState = {
-  organization: mockedOrganization,
-  products: mockedProducts,
-  users: [
-    {
-      id: '1',
-      name: 'Harry Potter',
-      email: 'harry@hogwarts.com',
-      phone: '1234567890',
-      state: UserState.Active,
-    },
-    {
-      id: '2',
-      name: 'Hermione Granger',
-      email: 'hermione@hogwarts.com',
-      phone: '1234567890',
-      state: UserState.Active,
-    },
-  ],
-  predefinedForms: [
-    {
-      organizationID: '123',
-      formID: '1',
-      description: 'Welcome stuff',
-      items: [
-        {
-          productId: '1',
-          quantity: 1,
-        },
-        {
-          productId: '2',
-          quantity: 1,
-        },
-      ],
-    },
-    {
-      organizationID: '123',
-      formID: '2',
-      description: 'quidditch stuff',
-      items: [
-        {
-          productId: '1',
-          quantity: 1,
-        },
-      ],
-    },
-  ],
+  users: [],
+  products: [],
+  predefinedForms: [],
   updatingProducts: false,
-  errorUpdatingProducts: undefined,
+  invitingUserStatus: {
+    isLoading: false,
+    error: undefined,
+  },
+  getUsersStatus: {
+    isLoading: false,
+    error: undefined,
+  },
 };
 
 export const OrganizationStore = signalStore(
   { providedIn: 'root' },
-  withState(mockedOrganizations), // todo - replace with real data / empty state
+  withState(emptyState),
   withComputed((store) => {
     const productsMap: Signal<Map<string, Product>> = computed(() => {
       return new Map(
@@ -109,39 +63,91 @@ export const OrganizationStore = signalStore(
     });
     return {
       productsMap,
+      organizationId: store.organization.id,
     };
   }),
   withMethods((store) => {
     const updateState = (newState: Partial<OrganizationState>) => {
-      patchState(store, (state) => {
-        return {
-          ...state,
-          ...newState,
-        };
-      });
+      patchState(store, newState);
     };
     return {
-      updateState,
+      // Computed methods
       getProduct(id: string): Product | undefined {
         return store.productsMap().get(id);
       },
-      async editProducts(products: Product[]) {
-        patchState(store, (state) => ({
-          ...state,
-          updatingProducts: true,
+
+      // State setters for services
+      setUsers(users: UserAndUserInOrganization[]) {
+        updateState({ users });
+      },
+
+      setProducts(products: Product[]) {
+        updateState({ products });
+      },
+
+      setOrganization(organization: Organization) {
+        updateState({ organization });
+      },
+
+      // Get users state management
+      setGetUsersLoading(isLoading: boolean) {
+        updateState({
+          getUsersStatus: { isLoading, error: undefined },
+        });
+      },
+
+      setGetUsersSuccess() {
+        updateState({
+          getUsersStatus: { isLoading: false, error: undefined },
+        });
+      },
+
+      setGetUsersError(error: string) {
+        updateState({
+          getUsersStatus: { isLoading: false, error },
+        });
+      },
+
+      // Update products state management
+      setUpdatingProducts(updating: boolean) {
+        updateState({
+          updatingProducts: updating,
+          ...(updating && { errorUpdatingProducts: undefined }),
+        });
+      },
+
+      setUpdatingProductsSuccess() {
+        updateState({
+          updatingProducts: false,
           errorUpdatingProducts: undefined,
-        }));
-        // todo - call api to update products
-        try {
-          await new Promise((resolve, reject) => setTimeout(reject, 1000));
-          updateState({ products });
-        } catch (error: unknown) {
-          console.error('Error updating products', error);
-          // TODO: get error message translation key from api response
-          updateState({ errorUpdatingProducts: 'Error updating products' });
-        }
-        updateState({ updatingProducts: false });
+        });
+      },
+
+      setUpdatingProductsError(error: string) {
+        updateState({
+          updatingProducts: false,
+          errorUpdatingProducts: error,
+        });
+      },
+
+      // Invite user state management
+      setInvitingUserLoading(isLoading: boolean) {
+        updateState({
+          invitingUserStatus: { isLoading, error: undefined },
+        });
+      },
+
+      setInvitingUserSuccess() {
+        updateState({
+          invitingUserStatus: { isLoading: false, error: undefined },
+        });
+      },
+
+      setInvitingUserError(error: string) {
+        updateState({
+          invitingUserStatus: { isLoading: false, error },
+        });
       },
     };
-  })
+  }),
 );

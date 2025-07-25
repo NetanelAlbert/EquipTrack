@@ -13,7 +13,6 @@ export interface User {
   email: string;
   phone?: string;
   state: UserState;
-  organizationIdToShow?: string;
 }
 
 export enum UserRole {
@@ -28,4 +27,9 @@ export interface UserInOrganization {
   role: UserRole;
   department?: string;
   departmentRole?: string;
+}
+
+export interface UserAndUserInOrganization {
+  user: User;
+  userInOrganization: UserInOrganization;
 }

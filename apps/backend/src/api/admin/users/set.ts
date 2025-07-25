@@ -1,11 +1,72 @@
-import { BasicResponse } from '@equip-track/shared';
+import {
+  SetUser,
+  BasicResponse,
+  ORGANIZATION_ID_PATH_PARAM,
+} from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { notImplemented } from '../../responses';
-// import { OrganizationAdapter } from '../../../db/tables/organization.adapter';
+import { badRequest } from '../../responses';
+import { UsersAndOrganizationsAdapter } from '../../../db';
+
+const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
 
 export const handler = async (
-  _req: any,
+  req: SetUser,
   pathParams: APIGatewayProxyEventPathParameters
 ): Promise<BasicResponse> => {
-  throw notImplemented('Set user endpoint is not yet implemented');
+  const organizationId = pathParams[ORGANIZATION_ID_PATH_PARAM];
+
+  if (!organizationId) {
+    throw badRequest('Organization ID is required');
+  }
+
+  if (!req.userInOrganization) {
+    throw badRequest('User information is required');
+  }
+
+  const { userInOrganization } = req;
+
+  // Validate required fields
+  if (!userInOrganization.userId) {
+    throw badRequest('User ID is required');
+  }
+
+  if (!userInOrganization.organizationId) {
+    throw badRequest('Organization ID is required');
+  }
+
+  if (userInOrganization.organizationId !== organizationId) {
+    throw badRequest('Organization ID does not match');
+  }
+
+
+
+  try {
+    console.log(
+      `Updating user ${userInOrganization.userId} in organization ${organizationId}`,
+      userInOrganization
+    );
+
+    await usersAndOrganizationsAdapter.setUserInOrganization(userInOrganization);
+
+    console.log(`Successfully updated user ${userInOrganization.userId}`);
+
+    return {
+      status: true,
+    };
+  } catch (error) {
+    console.error('Error updating user:', error);
+
+    // Re-throw known errors
+    if (
+      error.message &&
+      (error.message.includes('required') ||
+        error.message.includes('Invalid') ||
+        error.message.includes('not found'))
+    ) {
+      throw error;
+    }
+
+    // Generic error for unexpected issues
+    throw new Error('Failed to update user');
+  }
 };

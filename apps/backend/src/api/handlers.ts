@@ -2,6 +2,7 @@ import { endpointMetas, EndpointMeta } from '@equip-track/shared';
 import { handler as googleAuthHandler } from './auth/google';
 import { handler as getUsersHandler } from './admin/users/get';
 import { handler as setUserHandler } from './admin/users/set';
+import { handler as inviteUserHandler } from './admin/users/invite';
 import { handler as approveCheckOutHandler } from './user/checkout/approve';
 import { handler as rejectCheckOutHandler } from './user/checkout/reject';
 import { handler as requestCheckInHandler } from './user/checkin/request';
@@ -38,8 +39,9 @@ export const handlers: HandlersDefinition = {
   googleAuth: googleAuthHandler,
 
   // Admin Users
-  getUsers: getUsersHandler, // TODO: Implement this
-  setUser: setUserHandler, // TODO: Implement this
+  getUsers: getUsersHandler,
+  setUser: setUserHandler,
+  inviteUser: inviteUserHandler,
 
   // Basic User
   start: startHandler,

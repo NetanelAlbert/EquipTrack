@@ -57,11 +57,23 @@ export class GoogleAuthService {
       if (userAndOrganizations) {
         // User exists - handle state transition if needed
         if (userAndOrganizations.user.state === UserState.Invited) {
+          console.log(
+            'User exists, updating state to active',
+            userAndOrganizations.user
+          );
           await this.usersAdapter.updateUserState(
             userAndOrganizations.user.id,
             UserState.Active
           );
           userAndOrganizations.user.state = UserState.Active;
+        }
+        if (userAndOrganizations.user.name !== googlePayload.name) {
+          console.log('User exists, updating name', userAndOrganizations.user);
+          await this.usersAdapter.updateUserName(
+            userAndOrganizations.user.id,
+            googlePayload.name
+          );
+          userAndOrganizations.user.name = googlePayload.name;
         }
       } else {
         // User doesn't exist - create new user with UUID and Disabled state
@@ -152,18 +164,33 @@ export class GoogleAuthService {
         throw new Error('Email not verified');
       }
 
+      // Verify sub (user ID) is present
+      if (!payload.sub) {
+        throw new Error('Missing user ID');
+      }
+
+      // Verify iat (issued at) is present
+      if (!payload.iat) {
+        throw new Error('Missing issued at time');
+      }
+
+      // Verify exp (expiration time) is present
+      if (!payload.exp) {
+        throw new Error('Missing expiration time');
+      }
+
       return {
         iss: payload.iss,
         aud: payload.aud,
-        sub: payload.sub!,
+        sub: payload.sub,
         email: payload.email,
         email_verified: payload.email_verified,
         name: payload.name || payload.email,
         picture: payload.picture,
         given_name: payload.given_name,
         family_name: payload.family_name,
-        iat: payload.iat!,
-        exp: payload.exp!,
+        iat: payload.iat,
+        exp: payload.exp,
       };
     } catch (error) {
       console.error('Google ID token validation error:', error);

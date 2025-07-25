@@ -24,7 +24,8 @@
     "add": "Add",
     "yes": "Yes",
     "no": "No",
-    "ok": "OK"
+    "ok": "OK",
+    "copied-to-clipboard": "Copied to clipboard"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -35,7 +36,19 @@
     "user-menu": "User menu",
     "view-profile": "View Profile",
     "sign-out": "Sign Out",
-    "sign-in": "Sign In"
+    "sign-in": "Sign In",
+    "my-items": "My Items",
+    "today-report": "Today Report",
+    "reports-history": "Reports History",
+    "my-forms": "My Forms",
+    "check-in": "Check In",
+    "edit-products": "Edit Products",
+    "edit-users": "Edit Users",
+    "all-inventory": "All Inventory",
+    "inventory-by-users": "Inventory by Users",
+    "checkout": "Checkout",
+    "trace-product": "Trace Product",
+    "admin-dashboard": "Admin Dashboard"
   },
   "forms": {
     "form-id": "Form ID",
@@ -63,6 +76,70 @@
       "title": "Access Denied",
       "message": "You don't have permission to access this page.",
       "back-home": "Back to Home"
+    }
+  },
+  "organization": {
+    "select": {
+      "title": "Select Organization",
+      "subtitle": "Choose the organization you'd like to work with",
+      "select-button": "Select",
+      "no-organizations": {
+        "title": "No Organizations Available",
+        "message": "You are not currently a member of any organization. Please contact your administrator to be added to an organization.",
+        "contact-admin": "Contact Administrator"
+      },
+      "loading": "Loading organizations...",
+      "error": "Failed to load organizations",
+      "success": "Organization selected successfully!"
+    },
+    "invitation": {
+      "request-subject": "Request Access to EquipTrack",
+      "request-body": "Hello,\n\nI would like to request access to EquipTrack for my organization.\n\nMy email: {{email}}\nApp URL: {{appUrl}}\n\nPlease add me to an organization so I can start using the equipment tracking system.\n\nThank you!",
+      "copied": "Invitation message copied to clipboard"
+    },
+    "users": {
+      "title": "Edit Users",
+      "subtitle": "Manage organization users and send invitations",
+      "get": {
+        "error": "Failed to get users"
+      },
+      "invite": {
+        "title": "Invite New User",
+        "subtitle": "Send an invitation to join this organization",
+        "email-label": "Email Address",
+        "email-placeholder": "user@example.com",
+        "role-label": "Role",
+        "button-sending": "Sending...",
+        "button-send": "Send Invitation",
+        "success": "Invitation sent to {{email}}",
+        "email-required": "Email is required",
+        "email-invalid": "Please enter a valid email address"
+      },
+      "table": {
+        "title": "Organization Users",
+        "subtitle": "Current members of this organization",
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "actions": "Actions",
+        "edit-tooltip": "Edit User",
+        "edit-coming-soon": "User editing functionality coming soon"
+      },
+      "roles": {
+        "admin": "Administrator",
+        "warehouse-manager": "Warehouse Manager",
+        "customer": "Customer"
+      },
+      "states": {
+        "active": "Active",
+        "invited": "Invited",
+        "disabled": "Disabled"
+      },
+      "empty": {
+        "title": "No Users Found",
+        "message": "Start by inviting users to your organization using the form above."
+      }
     }
   }
 } 

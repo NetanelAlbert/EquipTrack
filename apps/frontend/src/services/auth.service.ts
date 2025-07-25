@@ -1,9 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { environment } from '../environments/environment';
 import {
   User,
   UserRole,
@@ -11,19 +9,20 @@ import {
   DecodedJwt,
   GoogleAuthResponse,
 } from '@equip-track/shared';
+import { ApiService } from './api.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  private http = inject(HttpClient);
   private router = inject(Router);
+  private apiService = inject(ApiService);
 
   private readonly TOKEN_KEY = 'equip-track-jwt';
-  private readonly API_URL = environment.apiUrl;
 
   // Authentication state signals
-  public isAuthenticated = signal<boolean>(false);
+  public token = signal<string | null>(null);
+  public isAuthenticated = computed(() => !!this.token());
   public currentUser = signal<User | null>(null);
   public currentRole = signal<UserRole | null>(null);
   public userOrganizations = signal<UserInOrganization[]>([]);
@@ -59,10 +58,13 @@ export class AuthService {
    * Authenticate with Google ID token
    */
   authenticateWithGoogle(idToken: string): Observable<GoogleAuthResponse> {
-    return this.http
-      .post<GoogleAuthResponse>(`${this.API_URL}/api/auth/google`, {
+    return this.apiService.endpoints.googleAuth.execute(
+      {
         idToken,
-      })
+      },
+      {},
+      false
+    )
       .pipe(
         map((response) => {
           if (response.status && response.jwt) {
@@ -235,7 +237,8 @@ export class AuthService {
    * Set authentication state
    */
   private setAuthenticationState(decoded: DecodedJwt, token: string): void {
-    this.isAuthenticated.set(true);
+    this.token.set(token);
+    this.apiService.setToken(token);
 
     if (decoded.user) {
       this.currentUser.set(decoded.user);
@@ -257,7 +260,7 @@ export class AuthService {
    * Clear authentication state
    */
   private clearAuthenticationState(): void {
-    this.isAuthenticated.set(false);
+    this.token.set(null);
     this.currentUser.set(null);
     this.currentRole.set(null);
     this.userOrganizations.set([]);
