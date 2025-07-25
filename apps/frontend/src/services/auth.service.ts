@@ -1,9 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { environment } from '../environments/environment';
 import {
   User,
   UserRole,
@@ -17,12 +15,10 @@ import { ApiService } from './api.service';
   providedIn: 'root',
 })
 export class AuthService {
-  private http = inject(HttpClient);
   private router = inject(Router);
   private apiService = inject(ApiService);
 
   private readonly TOKEN_KEY = 'equip-track-jwt';
-  private readonly API_URL = environment.apiUrl;
 
   // Authentication state signals
   public token = signal<string | null>(null);
