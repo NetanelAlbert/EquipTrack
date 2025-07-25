@@ -96,6 +96,47 @@
       "request-subject": "Request Access to EquipTrack",
       "request-body": "Hello,\n\nI would like to request access to EquipTrack for my organization.\n\nMy email: {{email}}\nApp URL: {{appUrl}}\n\nPlease add me to an organization so I can start using the equipment tracking system.\n\nThank you!",
       "copied": "Invitation message copied to clipboard"
+    },
+    "users": {
+      "title": "Edit Users",
+      "subtitle": "Manage organization users and send invitations",
+      "invite": {
+        "title": "Invite New User",
+        "subtitle": "Send an invitation to join this organization",
+        "email-label": "Email Address",
+        "email-placeholder": "user@example.com",
+        "role-label": "Role",
+        "button-sending": "Sending...",
+        "button-send": "Send Invitation",
+        "success": "Invitation sent to {{email}}",
+        "email-required": "Email is required",
+        "email-invalid": "Please enter a valid email address"
+      },
+      "table": {
+        "title": "Organization Users",
+        "subtitle": "Current members of this organization",
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "actions": "Actions",
+        "edit-tooltip": "Edit User",
+        "edit-coming-soon": "User editing functionality coming soon"
+      },
+      "roles": {
+        "admin": "Administrator",
+        "warehouse-manager": "Warehouse Manager",
+        "customer": "Customer"
+      },
+      "states": {
+        "active": "Active",
+        "invited": "Invited",
+        "disabled": "Disabled"
+      },
+      "empty": {
+        "title": "No Users Found",
+        "message": "Start by inviting users to your organization using the form above."
+      }
     }
   }
 } 

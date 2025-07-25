@@ -8,6 +8,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -26,6 +27,7 @@ import { User, UserRole, UserState } from '@equip-track/shared';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatTooltipModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -75,14 +77,20 @@ export class EditUsersComponent implements OnInit {
     const role = this.selectedRole();
 
     if (!email) {
-      this.showError('Email is required');
+      this.showError(
+        this.translateService.instant(
+          'organization.users.invite.email-required'
+        )
+      );
       return;
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      this.showError('Please enter a valid email address');
+      this.showError(
+        this.translateService.instant('organization.users.invite.email-invalid')
+      );
       return;
     }
 
@@ -93,7 +101,11 @@ export class EditUsersComponent implements OnInit {
 
     // Simulate API call
     setTimeout(() => {
-      this.showSuccess(`Invitation sent to ${email}`);
+      this.showSuccess(
+        this.translateService.instant('organization.users.invite.success', {
+          email,
+        })
+      );
       this.inviteEmail.set('');
       this.isLoading.set(false);
 
@@ -107,7 +119,9 @@ export class EditUsersComponent implements OnInit {
   editUser(user: User): void {
     // TODO: Implement user editing functionality
     console.log('Editing user:', user);
-    this.showInfo('User editing functionality coming soon');
+    this.showInfo(
+      this.translateService.instant('organization.users.table.edit-coming-soon')
+    );
   }
 
   /**
@@ -116,11 +130,15 @@ export class EditUsersComponent implements OnInit {
   getRoleDisplayName(role: UserRole): string {
     switch (role) {
       case UserRole.Admin:
-        return 'Administrator';
+        return this.translateService.instant('organization.users.roles.admin');
       case UserRole.WarehouseManager:
-        return 'Warehouse Manager';
+        return this.translateService.instant(
+          'organization.users.roles.warehouse-manager'
+        );
       case UserRole.Customer:
-        return 'Customer';
+        return this.translateService.instant(
+          'organization.users.roles.customer'
+        );
       default:
         return role;
     }
@@ -132,11 +150,17 @@ export class EditUsersComponent implements OnInit {
   getStateDisplayName(state: UserState): string {
     switch (state) {
       case UserState.Active:
-        return 'Active';
+        return this.translateService.instant(
+          'organization.users.states.active'
+        );
       case UserState.Invited:
-        return 'Invited';
+        return this.translateService.instant(
+          'organization.users.states.invited'
+        );
       case UserState.Disabled:
-        return 'Disabled';
+        return this.translateService.instant(
+          'organization.users.states.disabled'
+        );
       default:
         return state;
     }
