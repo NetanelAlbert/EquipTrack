@@ -109,7 +109,7 @@ export class EditUsersComponent implements OnInit {
     } else {
       // Error handling is done in the store, but we can show additional UI feedback here if needed
       const errorMessage =
-        this.organizationStore.invitingUserStatus.error() ||
+        this.organizationStore.invitingUserStatus()?.error ||
         this.translateService.instant('organization.users.invite.error');
       this.showError(errorMessage);
     }

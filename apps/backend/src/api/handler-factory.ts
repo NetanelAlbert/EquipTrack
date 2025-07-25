@@ -3,7 +3,7 @@ import { Context } from 'aws-lambda/handler';
 import { endpointMetas, EndpointMeta } from '@equip-track/shared';
 import { HandlerFunction, handlers } from './handlers';
 import { unauthorized } from './responses';
-import { authenticate } from './auth';
+import { authenticateAndGetUserId } from './auth';
 
 // CORS headers for all responses
 const CORS_HEADERS = {
@@ -36,11 +36,12 @@ export function createLambdaHandler<Req, Res>(
         ),
       });
 
+      let userId: string | undefined;
       // Only authenticate if the endpoint requires roles (has allowedRoles)
       if ((meta.allowedRoles?.length || 0) > 0) {
         console.log(`[${meta.path}] Authentication required, validating...`);
-        const authenticated = await authenticate(meta, event);
-        if (!authenticated) {
+        userId = await authenticateAndGetUserId(meta, event);
+        if (!userId) {
           throw unauthorized('Unauthorized');
         }
         console.log(`[${meta.path}] Authentication successful`);
@@ -54,7 +55,7 @@ export function createLambdaHandler<Req, Res>(
         meta.method === 'GET' ? (undefined as any) : parseBody<Req>(event);
 
       console.log(`[${meta.path}] Calling handler...`);
-      const result = await handler(req, event.pathParameters);
+      const result = await handler(req, event.pathParameters, userId);
       console.log(`[${meta.path}] Handler completed successfully`);
 
       return {

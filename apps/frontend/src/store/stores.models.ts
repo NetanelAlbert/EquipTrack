@@ -1,4 +1,4 @@
 export interface ApiStatus {
   isLoading: boolean;
-  error: string | undefined;
+  error?: string;
 }

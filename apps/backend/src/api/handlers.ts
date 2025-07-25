@@ -22,7 +22,8 @@ import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 // Handler signatures
 export type HandlerFunction<Req, Res> = (
   req: Req,
-  pathParams?: APIGatewayProxyEventPathParameters
+  pathParams?: APIGatewayProxyEventPathParameters,
+  userId?: string
 ) => Promise<Res>;
 
 type HandlersDefinition = {

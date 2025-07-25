@@ -53,7 +53,7 @@ export const endpointMetas = {
 
   // Basic User
   start: {
-    path: `/api/users/{${USER_ID_PATH_PARAM}}/start`,
+    path: `/api/users/start`,
     method: 'GET',
     allowedRoles: [
       UserRole.Admin,

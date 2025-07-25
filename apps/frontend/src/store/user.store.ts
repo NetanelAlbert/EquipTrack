@@ -4,34 +4,43 @@ import {
   withComputed,
   withMethods,
   withState,
-  withHooks,
 } from '@ngrx/signals';
 import {
   User,
   UserRole,
   UserInOrganization,
   InventoryItem,
+  Organization,
 } from '@equip-track/shared';
-import { computed } from '@angular/core';
+import { computed, inject } from '@angular/core';
 import { STORAGE_KEYS } from '../utils/consts';
+import { firstValueFrom } from 'rxjs';
+import { ApiService } from '../services/api.service';
+import { ApiStatus } from './stores.models';
 
 interface UserStoreState {
   // Core user data
   user: User | null;
   userInOrganizations: UserInOrganization[];
+  organizations: Organization[];
 
   // Current organization selection
-  selectedOrganizationId: string | null;
+  selectedOrganizationId: string;
 
   // User inventory items (moved from old user store)
   checkedOut: InventoryItem[];
+
+  // Loading state
+  startDataStatus: ApiStatus | null;
 }
 
 const emptyState: UserStoreState = {
   user: null,
   userInOrganizations: [],
-  selectedOrganizationId: null,
+  organizations: [],
+  selectedOrganizationId: '',
   checkedOut: [],
+  startDataStatus: null,
 };
 
 export const UserStore = signalStore(
@@ -60,6 +69,15 @@ export const UserStore = signalStore(
     const hasOrganizations = computed(
       () => store.userInOrganizations().length > 0
     );
+
+    const currentOrganization = computed(() => {
+      const selectedOrgId = store.selectedOrganizationId();
+      if (!selectedOrgId) return null;
+
+      return (
+        store.organizations().find((org) => org.id === selectedOrgId) || null
+      );
+    });
 
     // User display properties
     const userInitials = computed(() => {
@@ -104,12 +122,14 @@ export const UserStore = signalStore(
       organizationCount,
       isMultiOrganizationUser,
       currentOrganizationDetails,
-
+      currentOrganization,
       // User display
       userInitials,
     };
   }),
   withMethods((store) => {
+    const apiService = inject(ApiService);
+
     const updateState = (newState: Partial<UserStoreState>) => {
       patchState(store, newState);
     };
@@ -125,12 +145,8 @@ export const UserStore = signalStore(
         updateState({ userInOrganizations });
       },
 
-      // Set complete auth data
-      setAuthData(user: User, userInOrganizations: UserInOrganization[]) {
-        updateState({
-          user,
-          userInOrganizations,
-        });
+      setOrganizations(organizations: Organization[]) {
+        updateState({ organizations });
       },
 
       // Organization selection with enhanced functionality
@@ -207,6 +223,31 @@ export const UserStore = signalStore(
         }
       },
 
+      async loadStartData() {
+        updateState({ startDataStatus: { isLoading: true } });
+        try {
+          const startResponse = await firstValueFrom(
+            apiService.endpoints.start.execute(undefined)
+          );
+
+          if (!startResponse.status) {
+            throw new Error('Failed to load start data');
+          }
+
+          updateState({
+            user: startResponse.user,
+            userInOrganizations: startResponse.userInOrganizations,
+            organizations: startResponse.organizations,
+            startDataStatus: { isLoading: false },
+          });
+        } catch (error) {
+          console.error('Failed to load start data:', error);
+          updateState({
+            startDataStatus: { isLoading: false, error: error as string },
+          });
+        }
+      },
+
       // Clear persisted selection
       clearPersistedOrganizationSelection() {
         try {
@@ -246,12 +287,7 @@ export const UserStore = signalStore(
 
       // Clear user data (typically on sign out)
       clearUser() {
-        updateState({
-          user: null,
-          userInOrganizations: [],
-          selectedOrganizationId: null,
-          checkedOut: [],
-        });
+        updateState(emptyState);
 
         // Clear persisted selection
         try {
@@ -265,12 +301,4 @@ export const UserStore = signalStore(
       },
     };
   }),
-  withHooks((store) => {
-    return {
-      onInit() {
-        console.log('user store onInit');
-        store.loadPersistedOrganizationSelection();
-      },
-    };
-  })
 );

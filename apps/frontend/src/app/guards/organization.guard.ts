@@ -16,16 +16,6 @@ export const organizationGuard: CanActivateFn = () => {
     return true;
   }
 
-  userStore.loadPersistedOrganizationSelection();
-  console.log(
-    'organization guard after load',
-    userStore.selectedOrganizationId()
-  );
-
-  if (userStore.selectedOrganizationId()) {
-    return true;
-  }
-
   // Redirect to home page for organization selection
   router.navigate(['/']);
   return false;

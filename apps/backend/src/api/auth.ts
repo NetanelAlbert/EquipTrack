@@ -12,10 +12,10 @@ import { JwtService, JwtPayload } from '../services/jwt.service';
 const jwtService = new JwtService();
 const rolesAllowedToAccessOtherUsers = [UserRole.Admin];
 
-export async function authenticate(
+export async function authenticateAndGetUserId(
   meta: EndpointMeta<any, any>,
   event: APIGatewayProxyEvent
-): Promise<boolean> {
+): Promise<string> {
   console.log(`[AUTH] Authenticating endpoint: ${meta.path}`);
   console.log(`[AUTH] Required roles:`, meta.allowedRoles);
 
@@ -28,7 +28,7 @@ export async function authenticate(
   validateUserAccess(jwtPayload, meta, event, organization);
   console.log(`[AUTH] User access validated successfully`);
 
-  return true;
+  return jwtPayload.sub;
 }
 
 /**
@@ -127,9 +127,6 @@ function validateUserAccess(
   event: APIGatewayProxyEvent,
   organization?: UserInOrganization
 ) {
-  if (!organization) {
-    throw forbidden('Global access is not allowed');
-  }
   if (meta.path.includes(`{${USER_ID_PATH_PARAM}}`)) {
     const userId = event.pathParameters?.[USER_ID_PATH_PARAM];
     if (!userId) {
@@ -138,7 +135,7 @@ function validateUserAccess(
     if (rolesAllowedToAccessOtherUsers.includes(organization.role)) {
       return;
     }
-    if (userId === organization.userId) {
+    if (userId === jwtPayload.sub) {
       return;
     }
     throw forbidden(

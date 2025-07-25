@@ -9,6 +9,7 @@ import {
   Organization,
 } from '@equip-track/shared';
 import { OrganizationStore } from '../store/organization.store';
+import { UserStore } from '../store/user.store';
 
 export interface SelectedOrganizationInfo {
   organizationId: string;
@@ -24,12 +25,13 @@ export class OrganizationService {
   private readonly apiService = inject(ApiService);
   private readonly translateService = inject(TranslateService);
   private readonly organizationStore = inject(OrganizationStore);
+  private readonly userStore = inject(UserStore);
 
   async getUsers(): Promise<void> {
     this.organizationStore.setGetUsersLoading(true);
 
     try {
-      const orgId = this.organizationStore.organizationId();
+      const orgId = this.userStore.selectedOrganizationId();
       const getUsersResponse = await firstValueFrom(
         this.apiService.endpoints.getUsers.execute(undefined, {
           [ORGANIZATION_ID_PATH_PARAM]: orgId,
@@ -79,11 +81,11 @@ export class OrganizationService {
           {
             email,
             role,
-            organizationId: this.organizationStore.organizationId(),
+            organizationId: this.userStore.selectedOrganizationId(),
           },
           {
             [ORGANIZATION_ID_PATH_PARAM]:
-              this.organizationStore.organizationId(),
+              this.userStore.selectedOrganizationId(),
           }
         )
       );

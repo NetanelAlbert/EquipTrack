@@ -2,10 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import {
-  GoogleAuthRequest,
-  GoogleAuthResponse,
-} from '@equip-track/shared';
+import { GoogleAuthRequest, GoogleAuthResponse } from '@equip-track/shared';
 import { ApiService } from './api.service';
 import { AuthStore } from '../store/auth.store';
 import { UserStore } from '../store/user.store';
@@ -25,20 +22,16 @@ export class AuthService {
     this.authStore.setInitializationLoading(true);
 
     try {
-      // Clean up any invalid localStorage data first
-      this.cleanupInvalidStorageData();
-
       const storedToken = this.getStoredToken();
       if (storedToken && this.validateAndCacheToken(storedToken)) {
-          this.authStore.setToken(storedToken);
-          this.userStore.loadPersistedOrganizationSelection();
-          this.authStore.setInitializationSuccess();
-          return true;
+        this.authStore.setToken(storedToken);
+        this.authStore.setInitializationSuccess();
+        return true;
+      } else {
+        this.clearInvalidTokenData();
+        this.authStore.setInitializationSuccess();
+        return false;
       }
-      this.clearInvalidTokenData();
-
-      this.authStore.setInitializationSuccess();
-      return false;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Initialization failed';
@@ -112,34 +105,6 @@ export class AuthService {
     if (!token) return false;
 
     return this.validateAndCacheToken(token);
-  }
-
-  // Private helper methods
-
-  private cleanupInvalidStorageData(): void {
-    try {
-      // Check for old organization data that might cause JSON parsing errors
-      const orgKey = 'equip-track-selected-org';
-      const storedOrgData = localStorage.getItem(orgKey);
-
-      if (storedOrgData) {
-        try {
-          // Try to parse as JSON
-          JSON.parse(storedOrgData);
-          // If successful, check if it's the old format (just a string)
-          if (typeof JSON.parse(storedOrgData) === 'string') {
-            console.log('Removing old organization data format');
-            localStorage.removeItem(orgKey);
-          }
-        } catch (parseError) {
-          // If it's not valid JSON and also not a valid organization object, remove it
-          console.log('Removing invalid organization data:', storedOrgData);
-          localStorage.removeItem(orgKey);
-        }
-      }
-    } catch (error) {
-      console.error('Error during localStorage cleanup:', error);
-    }
   }
 
   private validateAndCacheToken(token: string): boolean {

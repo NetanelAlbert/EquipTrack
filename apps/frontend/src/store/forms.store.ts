@@ -131,7 +131,7 @@ export const FormsStore = signalStore(
 
         const newForm: InventoryForm = {
           userID: userId,
-          organizationID: organizationStore.organization.id(),
+          organizationID: userStore.selectedOrganizationId(),
           type: FormType.CheckIn,
           formID: crypto.randomUUID(),
           items: items,
@@ -151,7 +151,7 @@ export const FormsStore = signalStore(
       addCheckOutForm(items: InventoryItem[], userId: string) {
         const newForm: InventoryForm = {
           userID: userId,
-          organizationID: organizationStore.organization.id(),
+          organizationID: userStore.selectedOrganizationId(),
           type: FormType.CheckOut,
           formID: uuidv4(),
           items: items,

@@ -6,17 +6,14 @@ import {
   patchState,
 } from '@ngrx/signals';
 import {
-  Organization,
   PredefinedForm,
   Product,
   UserAndUserInOrganization,
 } from '@equip-track/shared';
-import { computed, Signal, inject, effect } from '@angular/core';
+import { computed, Signal } from '@angular/core';
 import { ApiStatus } from './stores.models';
 
 interface OrganizationState {
-  organization: Organization;
-
   users: UserAndUserInOrganization[];
   products: Product[];
   predefinedForms: PredefinedForm[];
@@ -38,11 +35,6 @@ interface OrganizationState {
 }
 
 const emptyState: OrganizationState = {
-  organization: {
-    id: '',
-    name: '',
-    imageUrl: null,
-  },
   users: [],
   products: [],
   predefinedForms: [],
@@ -71,24 +63,9 @@ export const OrganizationStore = signalStore(
       );
     });
 
-    // Enhanced computed properties
-    const isOrganizationLoaded = computed(() => !!store.organization().id);
-    const hasOrganizationData = computed(
-      () => store.users().length > 0 || store.products().length > 0
-    );
-    const organizationLoadingStatus = computed(() => ({
-      isLoading: store.loadingOrganizationData(),
-      error: store.errorLoadingOrganization?.() || undefined,
-      isLoaded: isOrganizationLoaded(),
-      hasData: hasOrganizationData(),
-    }));
 
     return {
       productsMap,
-      organizationId: store.organization.id,
-      isOrganizationLoaded,
-      hasOrganizationData,
-      organizationLoadingStatus,
     };
   }),
   withMethods((store) => {
@@ -102,82 +79,6 @@ export const OrganizationStore = signalStore(
         return store.productsMap().get(id);
       },
 
-      // Enhanced organization loading
-      async loadOrganizationData(organizationId: string) {
-        if (!organizationId) {
-          console.error(
-            'Cannot load organization data: No organization ID provided'
-          );
-          return false;
-        }
-
-        // Don't reload if we already have this organization's data
-        if (
-          store.organization().id === organizationId &&
-          store.hasOrganizationData()
-        ) {
-          return true;
-        }
-
-        updateState({
-          loadingOrganizationData: true,
-          errorLoadingOrganization: undefined,
-        });
-
-        try {
-          // TODO: Replace with actual API calls when available
-          // For now, set basic organization info
-          updateState({
-            organization: {
-              id: organizationId,
-              name: `Organization ${organizationId}`,
-              imageUrl: null,
-            },
-            loadingOrganizationData: false,
-          });
-
-          console.log(`Loaded organization data for: ${organizationId}`);
-          return true;
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error
-              ? error.message
-              : 'Failed to load organization data';
-          updateState({
-            loadingOrganizationData: false,
-            errorLoadingOrganization: errorMessage,
-          });
-          console.error('Failed to load organization data:', error);
-          return false;
-        }
-      },
-
-      // Switch organization with data loading
-      async switchToOrganization(organizationId: string) {
-        updateState({ switchingOrganization: true });
-
-        try {
-          const success = await this.loadOrganizationData(organizationId);
-          updateState({ switchingOrganization: false });
-          return success;
-        } catch (error) {
-          updateState({ switchingOrganization: false });
-          console.error('Failed to switch organization:', error);
-          return false;
-        }
-      },
-
-      // Clear organization data (when switching or signing out)
-      clearOrganizationData() {
-        updateState({
-          organization: { id: '', name: '', imageUrl: null },
-          users: [],
-          products: [],
-          predefinedForms: [],
-          errorLoadingOrganization: undefined,
-        });
-      },
-
       // State setters for services
       setUsers(users: UserAndUserInOrganization[]) {
         updateState({ users });
@@ -185,10 +86,6 @@ export const OrganizationStore = signalStore(
 
       setProducts(products: Product[]) {
         updateState({ products });
-      },
-
-      setOrganization(organization: Organization) {
-        updateState({ organization });
       },
 
       // Enhanced error handling
