@@ -20,33 +20,13 @@ import { Product } from '@equip-track/shared';
 import { OrganizationStore } from '../../../store/organization.store';
 import { OrganizationService } from '../../../services/organization.service';
 import { FormControl } from '@angular/forms';
-
-interface ProductForm {
-  id: string;
-  name: string;
-  upi: boolean;
-}
+import { AbstractControl, ValidatorFn } from '@angular/forms';
 
 type ProductFormGroup = FormGroup<{
   id: FormControl<string>;
   name: FormControl<string>;
   upi: FormControl<boolean>;
 }>;
-
-import { AbstractControl, ValidatorFn } from '@angular/forms';
-
-function duplicateIdValidator(): ValidatorFn {
-  return (control: AbstractControl) => {
-    if (!(control instanceof FormArray)) {
-      return null;
-    }
-    const ids = control.controls.map((ctrl) => ctrl.get('id')?.value);
-    const duplicates = ids.filter(
-      (id, index) => ids.indexOf(id) !== index && id !== ''
-    );
-    return duplicates.length > 0 ? { duplicateIds: duplicates } : null;
-  };
-}
 
 @Component({
   selector: 'app-edit-products',
@@ -74,7 +54,7 @@ export class EditProductsComponent {
 
   products = this.organizationStore.products;
   form: FormGroup = this.fb.group({
-    products: this.fb.array<ProductFormGroup>([], [duplicateIdValidator()]),
+    products: this.fb.array<ProductFormGroup>([]),
   });
 
   // Track loading states per product row
@@ -90,21 +70,24 @@ export class EditProductsComponent {
   private initializeForm() {
     const productsArray = this.fb.array<ProductFormGroup>([]);
     this.products().forEach((product, index) => {
-      productsArray.push(this.createProductFormGroup(product));
+      productsArray.push(this.createProductFormGroup(product, index));
       this.productLoadingStates.set(index, { saving: false, deleting: false });
     });
     this.form.setControl('products', productsArray);
   }
 
-  private createProductFormGroup(product: Product): ProductFormGroup {
+  private createProductFormGroup(
+    product: Product,
+    index: number
+  ): ProductFormGroup {
     return this.fb.group({
-      id: [product.id, [Validators.required]],
+      id: [product.id, [Validators.required, this.duplicateIdValidator(index)]],
       name: [product.name, [Validators.required, Validators.minLength(2)]],
       upi: [product.hasUpi],
     }) as ProductFormGroup;
   }
 
-  get productsArray() {
+  get productsArray(): FormArray<ProductFormGroup> {
     return this.form.get('products') as FormArray<ProductFormGroup>;
   }
 
@@ -115,7 +98,7 @@ export class EditProductsComponent {
       hasUpi: false,
     };
     const newIndex = this.productsArray.length;
-    this.productsArray.push(this.createProductFormGroup(newProduct));
+    this.productsArray.push(this.createProductFormGroup(newProduct, newIndex));
     this.productLoadingStates.set(newIndex, { saving: false, deleting: false });
   }
 
@@ -231,5 +214,19 @@ export class EditProductsComponent {
   isProductFormValid(index: number): boolean {
     const productForm = this.productsArray.at(index);
     return productForm ? productForm.valid : false;
+  }
+
+  private duplicateIdValidator(index: number): ValidatorFn {
+    return (idControl: AbstractControl) => {
+      const id = idControl.value;
+      const firstIndexWithSameId = this.productsArray.controls.findIndex(
+        (ctrl) => {
+          const ctrlId = ctrl.get('id')?.value;
+          return ctrlId === id && ctrlId !== '';
+        }
+      );
+
+      return firstIndexWithSameId !== index ? { duplicateId: true } : null;
+    };
   }
 }
