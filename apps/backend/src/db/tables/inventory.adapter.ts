@@ -372,7 +372,7 @@ export class InventoryAdapter {
     const command = new QueryCommand({
       TableName: this.tableName,
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-      FilterExpression: 'dbItemType != :type',
+      FilterExpression: 'dbItemType <> :type',
       ExpressionAttributeValues: {
         ':pk': `${ORG_PREFIX}${organizationId}`,
         ':sk': `${PRODUCT_PREFIX}${productId}#`,
