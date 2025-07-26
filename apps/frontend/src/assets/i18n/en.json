@@ -87,14 +87,15 @@
     "approve": "Approve",
     "reject": "Reject",
     "check-in": "Check In",
-    "check-out": "Check Out"
+    "check-out": "Check Out",
+    "empty-check-in": "No check-in forms available.",
+    "empty-check-out": "No check-out forms available."
   },
   "inventory": {
     "title": "Inventory",
     "add-item": "Add Item",
     "edit-item": "Edit Item",
     "remove-item": "Remove Item",
-    "quantity": "Quantity",
     "location": "Location",
     "status": "Status",
     "loading": "Loading inventory...",
@@ -135,7 +136,8 @@
     },
     "empty": {
       "title": "No Inventory Items",
-      "description": "No inventory items found for this selection."
+      "description": "No inventory items found for this selection.",
+      "empty-state": "No inventory items available."
     },
     "form": {
       "product": "Product",

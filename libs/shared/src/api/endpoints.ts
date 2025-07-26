@@ -147,6 +147,24 @@ export const endpointMetas = {
     ],
     responseType: {} as Wharehouse.GetUserInventoryResponse,
   } as EndpointMeta<undefined, Wharehouse.GetUserInventoryResponse>,
+
+  // Forms
+  getUserForms: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/my-forms`,
+    method: 'GET',
+    allowedRoles: [
+      UserRole.WarehouseManager,
+      UserRole.Admin,
+      UserRole.Customer,
+    ],
+    responseType: {} as Wharehouse.GetUserFormsResponse,
+  } as EndpointMeta<undefined, Wharehouse.GetUserFormsResponse>,
+  getAllForms: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/all-forms`,
+    method: 'GET',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    responseType: {} as Wharehouse.GetAllFormsResponse,
+  } as EndpointMeta<undefined, Wharehouse.GetAllFormsResponse>,
   createCheckOutForm: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkout/create`,
     method: 'POST',

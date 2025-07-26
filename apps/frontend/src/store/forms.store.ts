@@ -25,67 +25,15 @@ interface FormsState {
   error?: string;
 }
 
-const mockedForms: FormsState = {
-  forms: [
-    {
-      userID: '1',
-      formID: '1',
-      organizationID: '123',
-      type: FormType.CheckIn,
-      items: [
-        {
-          productId: '1',
-          quantity: 1,
-        },
-        {
-          productId: '2',
-          quantity: 2,
-          upis: ['123', '456', '789'],
-        },
-      ],
-      status: FormStatus.Pending,
-      createdAtTimestamp: Date.now() + 1000 * 60,
-      lastUpdated: 1,
-    },
-    {
-      userID: '1',
-      formID: '2',
-      organizationID: '123',
-      type: FormType.CheckOut,
-      items: [
-        {
-          productId: '1',
-          quantity: 1,
-        },
-      ],
-      status: FormStatus.Approved,
-      createdAtTimestamp: Date.now() + 1000 * 60 * 2,
-      approvedAtTimestamp: Date.now() + 1000 * 60 * 3,
-      lastUpdated: 2,
-    },
-    {
-      userID: '1',
-      formID: '3',
-      organizationID: '123',
-      type: FormType.CheckIn,
-      items: [
-        {
-          productId: '1',
-          quantity: 1,
-        },
-      ],
-      status: FormStatus.Rejected,
-      createdAtTimestamp: Date.now() + 1000 * 60 * 2,
-      lastUpdated: 3,
-    },
-  ],
+const emptyState: FormsState = {
+  forms: [],
   loading: false,
   error: undefined,
 };
 
 export const FormsStore = signalStore(
   { providedIn: 'root' },
-  withState(mockedForms),
+  withState(emptyState),
   withComputed((state) => {
     return {
       checkInForms: computed(() =>
@@ -125,24 +73,31 @@ export const FormsStore = signalStore(
 
         try {
           if ([UserRole.WarehouseManager, UserRole.Admin].includes(userRole)) {
-            // TODO: API call to fetch all forms (endpoint not yet available)
-            // When available, use: await firstValueFrom(apiService.endpoints.getAllForms.execute(...))
             console.log(
               'Fetching all forms for admin/warehouse manager (API not available yet)'
             );
-            updateState({
-              forms: [...state.forms()],
-              loading: false,
-            });
+            const response = await firstValueFrom(
+              apiService.endpoints.getAllForms.execute(undefined, {
+                [ORGANIZATION_ID_PATH_PARAM]:
+                  userStore.selectedOrganizationId(),
+              })
+            );
+            if (!response.status) {
+              throw new Error(response.errorMessage || 'Failed to fetch forms');
+            }
+            updateState({ forms: response.forms, loading: false });
           } else {
             console.log('fetching forms for user', userId);
-            // TODO: API call to fetch all forms for a user (endpoint not yet available)
-            // When available, use: await firstValueFrom(apiService.endpoints.getUserForms.execute(...))
-            console.log('Fetching user forms (API not available yet)');
-            updateState({
-              forms: [...state.forms()],
-              loading: false,
-            });
+            const response = await firstValueFrom(
+              apiService.endpoints.getUserForms.execute(undefined, {
+                [ORGANIZATION_ID_PATH_PARAM]:
+                  userStore.selectedOrganizationId(),
+              })
+            );
+            if (!response.status) {
+              throw new Error(response.errorMessage || 'Failed to fetch forms');
+            }
+            updateState({ forms: response.forms, loading: false });
           }
         } catch (error) {
           console.error('Error fetching forms:', error);

@@ -48,15 +48,21 @@ export interface GetUserInventoryResponse extends BasicResponse {
   products: Product[];
 }
 
+// FORMS
+
+export interface GetUserFormsResponse extends BasicResponse {
+  forms: InventoryForm[];
+}
+
+export interface GetAllFormsResponse extends BasicResponse {
+  forms: InventoryForm[];
+}
+
 // CHECK OUT
 
 export interface CreateCheckOutForm {
   items: InventoryItem[];
   userID: string;
-}
-
-export interface GetCheckOutFormsResponse extends BasicResponse {
-  formsPerUser: Map<string, InventoryForm[]>;
 }
 
 // PREDEFINED FORMS
@@ -74,10 +80,6 @@ export interface DeletePredefinedCheckOutForm {
 }
 
 // CHECK IN
-
-export interface GetCheckInFormsResponse extends BasicResponse {
-  formsPerUser: Map<string, InventoryForm[]>;
-}
 
 export interface ApproveCheckInForm {
   formID: string;
