@@ -109,7 +109,7 @@ export class InventoryAdapter {
       IndexName: PRODUCTS_BY_ORGANIZATION_INDEX,
       KeyConditionExpression: `${PRODUCTS_BY_ORGANIZATION_INDEX_PK} = :pk`,
       ExpressionAttributeValues: {
-        ':pk': organizationId,
+        ':pk': `${ORG_PREFIX}${organizationId}`,
       },
     });
 
@@ -193,7 +193,7 @@ export class InventoryAdapter {
       name: product.name,
       hasUpi: product.hasUpi,
       // Additional DB-specific fields
-      organizationId,
+      organizationId: `${ORG_PREFIX}${organizationId}`,
     };
 
     const command = new PutCommand({
