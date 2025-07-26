@@ -109,7 +109,7 @@ export class InventoryAdapter {
       IndexName: PRODUCTS_BY_ORGANIZATION_INDEX,
       KeyConditionExpression: `${PRODUCTS_BY_ORGANIZATION_INDEX_PK} = :pk`,
       ExpressionAttributeValues: {
-        ':pk': `${ORG_PREFIX}${organizationId}`,
+        ':pk': organizationId,
       },
     });
 
