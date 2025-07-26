@@ -204,6 +204,22 @@ export class InventoryAdapter {
     await this.docClient.send(command);
   }
 
+  async getProductFromDB(
+    productId: string,
+    organizationId: string
+  ): Promise<Product | undefined> {
+    const command = new GetCommand({
+      TableName: this.tableName,
+      Key: this.getProductKey(productId, organizationId),
+    });
+    const result = await this.docClient.send(command);
+    if (!result.Item) {
+      return undefined;
+    }
+    const productDb = result.Item as ProductDb;
+    return this.getProduct(productDb);
+  }
+
   /**
    * Creates a unique inventory item with flattened fields
    */
@@ -356,14 +372,17 @@ export class InventoryAdapter {
     const command = new QueryCommand({
       TableName: this.tableName,
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+      FilterExpression: 'dbItemType != :type',
       ExpressionAttributeValues: {
         ':pk': `${ORG_PREFIX}${organizationId}`,
         ':sk': `${PRODUCT_PREFIX}${productId}#`,
+        ':type': DbItemType.Product,
       },
       Limit: 1, // We only need to know if any exist
     });
 
     const result = await this.docClient.send(command);
+
     return (result.Items?.length ?? 0) > 0;
   }
 
