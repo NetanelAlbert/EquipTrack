@@ -16,7 +16,6 @@ import {
 import { UserStore } from './user.store';
 import { computed, inject } from '@angular/core';
 import { v4 as uuidv4 } from 'uuid';
-import { OrganizationStore } from './organization.store';
 import { ApiService } from '../services/api.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -103,7 +102,6 @@ export const FormsStore = signalStore(
   }),
   withMethods((state) => {
     const userStore = inject(UserStore);
-    const organizationStore = inject(OrganizationStore);
     const apiService = inject(ApiService);
 
     const updateState = (newState: Partial<FormsState>) => {
@@ -182,16 +180,16 @@ export const FormsStore = signalStore(
         }));
 
         try {
-          // TODO: API call to add check-in form (backend returns notImplemented)
-          // When available, use:
-          // await firstValueFrom(apiService.endpoints.requestCheckIn.execute(
-          //   { items },
-          //   { [ORGANIZATION_ID_PATH_PARAM]: userStore.selectedOrganizationId() }
-          // ));
-          console.log(
-            'Check-in form created locally (API not implemented yet):',
-            newForm
+          await firstValueFrom(
+            apiService.endpoints.requestCheckIn.execute(
+              { items },
+              {
+                [ORGANIZATION_ID_PATH_PARAM]:
+                  userStore.selectedOrganizationId(),
+              }
+            )
           );
+          console.log('Check-in form submitted successfully:', newForm);
         } catch (error) {
           console.error('Error creating check-in form:', error);
           // Revert optimistic update on error

@@ -14,6 +14,16 @@ const CORS_HEADERS = {
   'Content-Type': 'application/json',
 };
 
+
+
+export function ok(body: unknown) {
+  return {
+    statusCode: 200,
+    headers: CORS_HEADERS,
+    body: JSON.stringify(body),
+  };
+}
+
 export function error(
   error: string,
   statusCode = 500,
@@ -56,10 +66,8 @@ export function notImplemented(
   return error('Not implemented', 501, errorMessage);
 }
 
-export function ok(body: unknown) {
-  return {
-    statusCode: 200,
-    headers: CORS_HEADERS,
-    body: JSON.stringify(body),
-  };
+export function internalServerError(
+  errorMessage = 'Internal server error'
+): ErrorResponse {
+  return error('Internal server error', 500, errorMessage);
 }

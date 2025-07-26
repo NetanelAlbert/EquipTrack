@@ -1,11 +1,45 @@
-import { BasicResponse } from '@equip-track/shared';
+import { BasicResponse, FormStatus, FormType } from '@equip-track/shared';
+import { BasicUser } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { notImplemented } from '../../responses';
-// import { InventoryFormAdapter } from '../../../../db/tables/inventory-form.adapter';
+import { FormsAdapter } from '../../../db/tables/forms.adapter';
+import { randomUUID } from 'crypto';
+import { badRequest, internalServerError } from '../../responses';
 
 export const handler = async (
-  _req: any,
-  pathParams: APIGatewayProxyEventPathParameters
+  req: BasicUser.RequestCheckIn,
+  pathParams: APIGatewayProxyEventPathParameters,
+  userId?: string
 ): Promise<BasicResponse> => {
-  throw notImplemented('Request check-in endpoint is not yet implemented');
+  try {
+    const organizationId = pathParams?.organizationId;
+    if (!organizationId) {
+      throw badRequest('Organization ID is required');
+    }
+
+    if (!userId) {
+      throw badRequest('User ID is required');
+    }
+
+    const formsAdapter = new FormsAdapter();
+    const formID = randomUUID();
+    const now = Date.now();
+
+    const form = {
+      userID: userId,
+      formID,
+      organizationID: organizationId,
+      items: req.items,
+      type: FormType.CheckIn,
+      status: FormStatus.Pending,
+      createdAtTimestamp: now,
+      lastUpdated: now,
+    };
+
+    await formsAdapter.createForm(form);
+
+    return { status: true };
+  } catch (error) {
+    console.error('Error creating check-in form:', error);
+    throw internalServerError('Failed to create check-in form');
+  }
 };
