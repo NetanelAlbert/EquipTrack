@@ -16,6 +16,16 @@ process.env.AWS_PAGER = '';
  * Usage:
  * node scripts/deploy-api-gateway.js
  * RECREATE_API=true node scripts/deploy-api-gateway.js
+ * 
+ * Error Handling:
+ * - The script now fails fast on critical resource conflicts
+ * - Detects and reports legacy resource conflicts
+ * - Provides clear instructions for resolving conflicts
+ * - Exits with code 1 on failure to ensure CI/CD systems detect errors
+ * 
+ * Common Issues:
+ * - ConflictException: Usually means legacy resources exist with conflicting paths
+ * - Solution: Run with RECREATE_API=true to recreate the API from scratch
  */
 
 const STAGE = process.env.STAGE || 'dev';
@@ -102,10 +112,10 @@ function createResourcePath(apiId, path, existingResources) {
       );
       
       if (existingChildResource) {
-        console.log(`Using existing resource: ${currentPath} (id: ${existingChildResource.id})`);
+        console.log(`✅ Using existing resource: ${currentPath} (id: ${existingChildResource.id})`);
         resource = existingChildResource;
       } else {
-        console.log(`Creating resource: ${currentPath}`);
+        console.log(`📝 Creating resource: ${currentPath}`);
         try {
           const result = execSync(
             `aws apigateway create-resource --rest-api-id ${apiId} --parent-id ${parentId} --path-part "${part}"`,
@@ -113,25 +123,45 @@ function createResourcePath(apiId, path, existingResources) {
           );
           resource = JSON.parse(result);
           existingResources.push(resource);
+          console.log(`✅ Created resource: ${currentPath} (id: ${resource.id})`);
         } catch (error) {
-          // If resource creation fails, try to find it by refreshing the resources list
-          console.log(`Resource creation failed, refreshing resources list...`);
-          const updatedResources = getResources(apiId);
-          existingResources.length = 0;
-          existingResources.push(...updatedResources);
+          console.log(`⚠️  Resource creation failed, attempting recovery...`);
           
-          resource = existingResources.find(r => 
-            r.parentId === parentId && r.pathPart === part
-          );
-          
-          if (!resource) {
-            throw error; // Re-throw if we still can't find the resource
+          // Check if it's a ConflictException
+          if (error.stderr && error.stderr.includes('ConflictException')) {
+            console.log(`🔍 ConflictException detected for resource: ${part}`);
+            
+            // Refresh the resources list to get the latest state
+            console.log(`🔄 Refreshing resources list...`);
+            const updatedResources = getResources(apiId);
+            existingResources.length = 0;
+            existingResources.push(...updatedResources);
+            
+            // Try multiple ways to find the conflicting resource
+            resource = existingResources.find(r => r.parentId === parentId && r.pathPart === part) ||
+                      existingResources.find(r => r.path === currentPath) ||
+                      existingResources.find(r => r.pathPart === part && r.path.endsWith(`/${part}`));
+            
+            if (resource) {
+              console.log(`✅ Found existing conflicting resource: ${currentPath} (id: ${resource.id})`);
+            } else {
+              // Debug information to help diagnose the issue
+              console.error(`❌ Could not find conflicting resource after refresh:`);
+              console.error(`   Looking for: parentId=${parentId}, pathPart="${part}", currentPath="${currentPath}"`);
+              console.error(`   Available resources under parent ${parentId}:`);
+              existingResources
+                .filter(r => r.parentId === parentId)
+                .forEach(r => console.error(`     - ${r.pathPart} (path: ${r.path}, id: ${r.id})`));
+              
+              throw new Error(`Resource conflict detected but could not resolve: ${error.message}`);
+            }
+          } else {
+            throw error; // Re-throw if it's not a ConflictException
           }
-          console.log(`Found existing resource after refresh: ${currentPath} (id: ${resource.id})`);
         }
       }
     } else {
-      console.log(`Using existing resource: ${currentPath} (id: ${resource.id})`);
+      console.log(`✅ Using existing resource: ${currentPath} (id: ${resource.id})`);
     }
     
     parentId = resource.id;
@@ -327,9 +357,51 @@ function deployAPIGateway() {
   existingResources.forEach(resource => {
     console.log(`  ${resource.path} (id: ${resource.id}, parentId: ${resource.parentId}, pathPart: ${resource.pathPart})`);
   });
+
+  // Check for potential conflicts with current endpoint paths
+  const currentPaths = Object.values(endpoints).map(e => e.path);
+  const potentialConflicts = [];
+  
+  existingResources.forEach(resource => {
+    // Skip root resource
+    if (resource.path === '/') return;
+    
+    currentPaths.forEach(currentPath => {
+      const currentParts = currentPath.split('/').filter(p => p);
+      const resourceParts = resource.path.split('/').filter(p => p);
+      
+      // Check if paths have similar structure but different parameter positions
+      if (resourceParts.length === currentParts.length) {
+        let conflicts = 0;
+        for (let i = 0; i < resourceParts.length; i++) {
+          const resourcePart = resourceParts[i];
+          const currentPart = currentParts[i];
+          
+          // Check for parameter mismatches
+          if ((resourcePart.startsWith('{') && !currentPart.startsWith('{')) ||
+              (!resourcePart.startsWith('{') && currentPart.startsWith('{'))) {
+            conflicts++;
+          }
+        }
+        
+        if (conflicts > 0 && !potentialConflicts.includes(resource.path)) {
+          potentialConflicts.push(resource.path);
+        }
+      }
+    });
+  });
+  
+  if (potentialConflicts.length > 0) {
+    console.log(`\n⚠️  Detected ${potentialConflicts.length} potentially conflicting legacy resources:`);
+    potentialConflicts.forEach(path => {
+      console.log(`  📍 ${path}`);
+    });
+    console.log('💡 These may cause conflicts during deployment. Consider using RECREATE_API=true if issues occur.\n');
+  }
   
   // Create resources and methods for each endpoint
   const resourcesWithOptions = new Set();
+  const errors = [];
   
   Object.keys(endpoints).forEach(handlerName => {
     const endpoint = endpoints[handlerName];
@@ -348,10 +420,36 @@ function deployAPIGateway() {
         resourcesWithOptions.add(resourceId);
       }
     } catch (error) {
-      console.error(`Error setting up endpoint ${endpoint.method} ${endpoint.path}:`, error.message);
-      // Continue with other endpoints instead of failing completely
+      const errorMsg = `❌ Failed to setup endpoint ${endpoint.method} ${endpoint.path}: ${error.message}`;
+      console.error(errorMsg);
+      errors.push(errorMsg);
     }
   });
+
+  // Check if there were any critical errors
+  if (errors.length > 0) {
+    console.error('\n💥 API Gateway deployment failed with the following errors:');
+    errors.forEach(error => console.error(`  ${error}`));
+    console.error('\n📝 To fix resource conflicts, you may need to:');
+    console.error('  1. Set RECREATE_API=true to recreate the API Gateway from scratch:');
+    console.error('     RECREATE_API=true node scripts/deploy-api-gateway.js');
+    console.error('  2. Or manually clean up conflicting resources in AWS Console');
+    console.error('  3. Check for path conflicts in endpoint definitions');
+    console.error('  4. Remove conflicting legacy resources that may have different path structures');
+    
+    const criticalErrors = errors.filter(error => 
+      error.includes('ConflictException') || 
+      error.includes('Another resource with the same parent already has this name')
+    );
+    
+    if (criticalErrors.length > 0) {
+      console.error(`\n🚨 ${criticalErrors.length} critical resource conflicts detected!`);
+      console.error('💡 Quick fix: Run with RECREATE_API=true to recreate the API Gateway:');
+      console.error('   RECREATE_API=true node scripts/deploy-api-gateway.js');
+      
+      throw new Error(`Critical API Gateway deployment errors detected. ${criticalErrors.length} endpoints failed due to resource conflicts.`);
+    }
+  }
   
   // Deploy the API
   const deployment = deployAPI(apiId);
@@ -389,7 +487,12 @@ function deployAPIGateway() {
 }
 
 if (require.main === module) {
-  deployAPIGateway();
+  try {
+    deployAPIGateway();
+  } catch (error) {
+    console.error(`\n💥 Deployment failed: ${error.message}`);
+    process.exit(1);
+  }
 }
 
 module.exports = { deployAPIGateway }; 

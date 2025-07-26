@@ -60,8 +60,8 @@ jobs:
 
       - name: Deploy API Gateway
         run: node scripts/deploy-api-gateway.js
+        # Uncomment the env block below if you need to recreate the API Gateway from scratch
         # env:
-        #   # Set RECREATE_API=true if you need to recreate the API Gateway from scratch
         #   RECREATE_API: 'true'
 
       - name: Deploy Frontend to S3
