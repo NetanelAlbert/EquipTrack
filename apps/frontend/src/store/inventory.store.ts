@@ -20,7 +20,7 @@ interface InventoryState {
   inventory: Record<string, InventoryItem[]>;
   wareHouseInventory: InventoryItem[];
   loading: boolean;
-  error?: string;
+  error: string | undefined;
 }
 
 const initialState: InventoryState = {

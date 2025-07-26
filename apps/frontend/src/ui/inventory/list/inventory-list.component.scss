@@ -1,135 +1,307 @@
 @import '../../../styles/mixins.scss';
 
-:host {
-    ::ng-deep {
-        .dynamic-height-list.mat-mdc-list {
-            .dynamic-height-item.mat-mdc-list-item {
-                @include card-base;
-                height: auto;
-                align-items: flex-start;
+// Screen reader only text
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
-                &.upi {
-                    @include upi-theme;
-                }
+// Performance optimization: Use transform instead of changing layout properties
+.dynamic-height-list {
+  padding: 0;
+  background: transparent;
+  contain: layout style paint; // CSS containment for better performance
+  
+  .dynamic-height-item {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: white;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    overflow: hidden;
+    cursor: default;
+    position: relative;
+    will-change: transform, box-shadow; // Optimize for animations
 
-                &.clickable {
-                    cursor: pointer;
-                    
-                    &::before {
-                        content: '';
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        background-color: transparent;
-                        transition: background-color 0.2s ease;
-                        pointer-events: none;
-                        z-index: 1;
-                    }
-                    
-                    &:hover::before {
-                        background-color: rgba(255, 255, 255, 0.05);
-                    }
-                    
-                    &:active::before {
-                        background-color: rgba(0, 0, 0, 0.1);
-                    }
-                }
+    &.clickable {
+      cursor: pointer;
+      
+      &:hover {
+        border-color: rgba(25, 118, 210, 0.3);
+        background: rgba(25, 118, 210, 0.02);
+      }
 
-                .main-row {
-                    display: flex;
-                    flex-direction: row;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 1rem;
-                    width: 100%;
-                    margin-bottom: 1rem;
-                    position: relative;
-                    z-index: 2;
+      &:focus-visible {
+        outline: 2px solid #1976d2;
+        outline-offset: 2px;
+        border-color: #1976d2;
+      }
 
-                    .product-field {
-                        flex-grow: 1;
-                        display: flex;
-                        flex-direction: column;
-                        gap: 0.5rem;
-
-                        .product-name {
-                            font-size: 1.1rem;
-                            font-weight: 500;
-                        }
-
-                        .product-id {
-                            font-size: 0.9rem;
-                            color: rgba(255, 255, 255, 0.7);
-                        }
-                    }
-
-                    .quantity-field {
-                        .quantity {
-                            font-size: 1.2rem;
-                            font-weight: 500;
-                        }
-                    }
-                    
-                    .expand-indicator {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        color: var(--color-accent);
-                        opacity: 0.8;
-                        transition: all 0.3s ease;
-                        
-                        .mat-icon {
-                            transition: transform 0.3s ease;
-                        }
-                        
-                        .clickable:hover & {
-                            opacity: 1;
-                            
-                            .mat-icon {
-                                transform: scale(1.2);
-                            }
-                        }
-                    }
-                    
-                    .expand-indicator-placeholder {
-                        display: flex;
-                        width: 24px; /* Same width as a mat-icon */
-                        height: 24px;
-                        align-items: center;
-                        justify-content: center;
-                    }
-                }
-
-                .upis {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1rem;
-                    margin-top: 0.5rem;
-                    width: 100%;
-                    padding-top: 10px;
-                    border-top: 1px solid var(--color-border-light);
-                    animation: fadeIn 0.3s ease-in-out;
-                    position: relative;
-                    z-index: 2;
-
-                    p {
-                        font-size: 0.85em;
-                        color: var(--color-accent);
-                        margin-bottom: 5px;
-                    }
-
-                    .mat-mdc-list {
-                        padding: 0;
-                    }
-
-                    .mat-mdc-list-item {
-                        height: auto;
-                        padding: 8px 0;
-                    }
-                }
-            }
-        }
+      &.expanded {
+        border-color: rgba(25, 118, 210, 0.5);
+        background: rgba(25, 118, 210, 0.05);
+      }
     }
+
+    &.upi {
+      border-left: 4px solid #4caf50;
+    }
+
+    // Material Design elevation on hover
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .main-row {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      min-height: 56px;
+      gap: 16px;
+      position: relative;
+
+      .product-field {
+        flex: 1;
+        min-width: 0; // Allow text truncation
+        
+        .product-name {
+          display: block;
+          font-weight: 500;
+          font-size: 16px;
+          color: rgba(0, 0, 0, 0.87);
+          line-height: 1.2;
+          margin-bottom: 2px;
+          
+          // Truncate long names
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .product-id {
+          display: block;
+          font-size: 14px;
+          color: rgba(0, 0, 0, 0.6);
+          font-family: 'Roboto Mono', monospace;
+        }
+      }
+
+      .quantity-field {
+        flex-shrink: 0;
+        text-align: right;
+        min-width: 60px;
+        
+        .quantity {
+          display: inline-block;
+          font-size: 18px;
+          font-weight: 600;
+          color: #1976d2;
+          background: rgba(25, 118, 210, 0.1);
+          padding: 4px 12px;
+          border-radius: 16px;
+          min-width: 40px;
+          text-align: center;
+          transition: all 0.2s ease;
+          will-change: transform; // Optimize for pulse animation
+        }
+      }
+
+      .expand-indicator {
+        flex-shrink: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        mat-icon {
+          transition: transform 0.2s ease-in-out;
+          color: rgba(0, 0, 0, 0.54);
+          will-change: transform; // Optimize for rotation animation
+        }
+      }
+
+      .expand-indicator-placeholder {
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+      }
+    }
+
+    // UPI details section
+    .upis-container {
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.02);
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+      will-change: height, opacity, transform; // Optimize for expand/collapse animation
+    }
+
+    .upis {
+      padding: 16px;
+      
+      .upi-title {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        font-weight: 500;
+        color: rgba(0, 0, 0, 0.6);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .upi-list {
+        padding: 0;
+        background: transparent;
+        contain: layout; // Optimize large UPI lists
+        
+        .upi-item {
+          padding: 8px 12px;
+          border-radius: 4px;
+          margin-bottom: 4px;
+          background: white;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          transition: all 0.15s ease;
+          will-change: transform, background-color; // Optimize for hover animations
+          
+          &:hover {
+            background: rgba(76, 175, 80, 0.05);
+            border-color: rgba(76, 175, 80, 0.3);
+            transform: translateX(4px);
+          }
+
+          .upi-code {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 13px;
+            color: #2e7d32;
+            font-weight: 500;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Loading and empty states
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .dynamic-height-list {
+    .dynamic-height-item {
+      margin-bottom: 12px;
+      
+      .main-row {
+        padding: 16px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        
+        .product-field {
+          width: 100%;
+          
+          .product-name {
+            font-size: 18px;
+          }
+          
+          .product-id {
+            font-size: 16px;
+          }
+        }
+        
+        .quantity-field {
+          align-self: flex-end;
+          
+          .quantity {
+            font-size: 20px;
+            padding: 6px 16px;
+          }
+        }
+      }
+      
+      .upis {
+        padding: 20px;
+        
+        .upi-list .upi-item {
+          padding: 12px 16px;
+          
+          .upi-code {
+            font-size: 14px;
+          }
+        }
+      }
+    }
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .dynamic-height-list .dynamic-height-item {
+    border-width: 2px;
+    
+    &.clickable:hover {
+      border-color: #000;
+    }
+    
+    .main-row .quantity-field .quantity {
+      border: 1px solid #1976d2;
+    }
+    
+    .upis .upi-list .upi-item {
+      border-width: 2px;
+    }
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .dynamic-height-list .dynamic-height-item {
+    transition: none;
+    will-change: auto; // Disable performance hints for reduced motion
+    
+    .main-row .expand-indicator mat-icon {
+      transition: none;
+      will-change: auto;
+    }
+    
+    .main-row .quantity-field .quantity {
+      transition: none;
+      will-change: auto;
+    }
+    
+    .upis {
+      .upi-list .upi-item {
+        transition: none;
+        will-change: auto;
+      }
+    }
+    
+    .upis-container {
+      will-change: auto;
+    }
+  }
+}
+
+// Performance optimizations for large lists
+@media (min-width: 1200px) {
+  .dynamic-height-list {
+    // Use CSS Grid for large screens if many items
+    &[data-large-list="true"] {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 16px;
+      
+      .dynamic-height-item {
+        margin-bottom: 0;
+      }
+    }
+  }
 }

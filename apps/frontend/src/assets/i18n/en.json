@@ -41,6 +41,9 @@
     "yes": "Yes",
     "no": "No",
     "ok": "OK",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "loading": "Loading...",
     "copied-to-clipboard": "Copied to clipboard",
     "signature": {
       "signature-pad": "Signature Pad",
@@ -91,10 +94,45 @@
     "quantity": "Quantity",
     "location": "Location",
     "status": "Status",
+    "loading": "Loading inventory...",
     "views": {
       "warehouse": "Warehouse",
       "organization": "Organization",
       "selectUser": "Select User"
+    },
+    "users": {
+      "loading": "Loading users...",
+      "errorLoading": "Error loading users",
+      "noUsers": "No users available",
+      "errorMessage": "Failed to load users"
+    },
+    "search": {
+      "placeholder": "Search inventory items...",
+      "clear": "Clear search",
+      "sortBy": "Sort by",
+      "sortByProductId": "Product ID",
+      "sortByQuantity": "Quantity",
+      "sortByName": "Name",
+      "sortDirection": "Sort direction",
+      "sortAscending": "Sort ascending (A-Z, 0-9)",
+      "sortDescending": "Sort descending (Z-A, 9-0)",
+      "results": "{{count}} items found",
+      "clearFilters": "Clear All Filters",
+      "selectUserFirst": "Please select a user to view their inventory"
+    },
+    "item": {
+      "expandable": "Inventory item {{name}} - Click to expand {{count}} UPI details",
+      "static": "Inventory item {{name}} - No additional details"
+    },
+    "quantity": {
+      "value": "Quantity: {{quantity}} items"
+    },
+    "error": {
+      "failed_to_load": "Failed to load inventory"
+    },
+    "empty": {
+      "title": "No Inventory Items",
+      "description": "No inventory items found for this selection."
     },
     "form": {
       "product": "Product",
@@ -115,7 +153,9 @@
       "upi-required": "UPI is required"
     },
     "upi": {
-      "title": "UPI Information"
+      "title": "UPI Information",
+      "item": "UPI code: {{upi}}",
+      "help": "Contains {{count}} UPI codes. Press Enter or Space to expand."
     }
   },
   "checkout": {

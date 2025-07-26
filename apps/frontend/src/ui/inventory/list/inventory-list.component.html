@@ -1,36 +1,71 @@
-<mat-list class="dynamic-height-list">
+<mat-list class="dynamic-height-list" [@listAnimation]="inventoryItems()?.length">
     @if (inventoryItems()?.length) {
-        @for (item of inventoryItems(); track item.productId) {
-            @let product = organizationStore.getProduct(item.productId);
-            @let hasUPIs = !!item.upis?.length;
+        @for (item of inventoryItems(); track trackByProductId($index, item)) {
+            @let product = getProduct(item.productId);
+            @let hasUPIItems = hasUPIs(item);
+            @let upiCount = getUpiCount(item);
             <mat-list-item 
                 class="dynamic-height-item" 
-                [ngClass]="{upi: product?.hasUpi, clickable: hasUPIs}"
-                (click)="hasUPIs && toggleExpand(item)">
+                [ngClass]="{
+                  upi: product?.hasUpi, 
+                  clickable: hasUPIItems,
+                  expanded: isExpanded(item)
+                }"
+                [@itemHover]="getHoverState(item)"
+                (click)="hasUPIItems && toggleExpand(item)"
+                (mouseenter)="onItemHover(item, true)"
+                (mouseleave)="onItemHover(item, false)"
+                (keydown)="onKeyDown($event, item)"
+                [tabindex]="hasUPIItems ? 0 : -1"
+                [attr.aria-label]="hasUPIItems ? ('inventory.item.expandable' | translate : { name: product?.name, count: upiCount }) : ('inventory.item.static' | translate : { name: product?.name })"
+                [attr.aria-expanded]="hasUPIItems ? isExpanded(item) : null"
+                [attr.aria-describedby]="hasUPIItems ? 'upi-help-' + item.productId : null"
+                role="button">
                 <div class="main-row">
                     <div class="product-field">
-                        <span class="product-name">{{ product?.name }}</span>
+                        <span class="product-name">{{ product?.name || item.productId }}</span>
                         <span class="product-id">{{ item.productId }}</span>
                     </div>
                     <div class="quantity-field">
-                        <span class="quantity">{{ item.quantity }}</span>
+                        <span class="quantity" 
+                              [@quantityPulse]="item.quantity"
+                              [attr.aria-label]="'inventory.quantity.value' | translate : { quantity: item.quantity }">
+                          {{ item.quantity }}
+                        </span>
                     </div>
-                    @if (hasUPIs) {
+                    @if (hasUPIItems) {
                         <div class="expand-indicator">
-                            <mat-icon>{{ isExpanded(item) ? 'arrow_drop_up' : 'arrow_drop_down' }}</mat-icon>
+                            <mat-icon [@arrowRotation]="getExpansionState(item)"
+                                      [attr.aria-hidden]="true">
+                              arrow_drop_down
+                            </mat-icon>
                         </div>
+                        <!-- Hidden help text for screen readers -->
+                        <span [id]="'upi-help-' + item.productId" class="sr-only">
+                          {{ 'inventory.upi.help' | translate : { count: upiCount } }}
+                        </span>
                     } @else {
                         <div class="expand-indicator-placeholder"></div>
                     }
                 </div>
-                @if (hasUPIs && isExpanded(item)) {
-                    <div class="upis">
-                        <p>{{'inventory.upi.title' | translate}}</p>
-                        <mat-list>
-                            @for (upi of item.upis; track upi) {
-                                <mat-list-item>{{upi}}</mat-list-item>
-                            }
-                        </mat-list>
+                @if (hasUPIItems) {
+                    <div class="upis-container" 
+                         [@expandCollapse]="getExpansionState(item)"
+                         [attr.aria-hidden]="!isExpanded(item)">
+                        <div class="upis">
+                            <p class="upi-title">{{'inventory.upi.title' | translate}}</p>
+                            <mat-list class="upi-list" role="list">
+                                @for (upi of item.upis; track trackByUpi($index, upi)) {
+                                    <mat-list-item 
+                                        class="upi-item" 
+                                        [@upiItemAnimation]
+                                        role="listitem"
+                                        [attr.aria-label]="'inventory.upi.item' | translate : { upi: upi }">
+                                        <span class="upi-code">{{upi}}</span>
+                                    </mat-list-item>
+                                }
+                            </mat-list>
+                        </div>
                     </div>
                 }
             </mat-list-item>

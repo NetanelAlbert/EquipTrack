@@ -1,14 +1,41 @@
 <div class="container">
-  <mat-tab-group>
-    <mat-tab [label]="'inventory.views.warehouse' | translate">
-      <inventory-list
-        [inventoryItems]="warehouseItems()"
-      ></inventory-list>
-    </mat-tab>
-    <mat-tab [label]="'inventory.views.organization' | translate">
-      <inventory-list
-        [inventoryItems]="organizationItems()"
-      ></inventory-list>
-    </mat-tab>
-  </mat-tab-group>
+  <!-- Loading indicator -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p>{{ 'inventory.loading' | translate }}</p>
+    </div>
+  }
+  
+  <!-- Error state with retry button -->
+  @else if (errorMessage()) {
+    <div class="error-container">
+      <mat-icon color="warn">error</mat-icon>
+      <p>{{ 'inventory.error.failed_to_load' | translate }}</p>
+      <p class="error-details">{{ errorMessage() }}</p>
+      <button mat-raised-button color="primary" (click)="loadInventory()">
+        <mat-icon>refresh</mat-icon>
+        {{ 'common.retry' | translate }}
+      </button>
+    </div>
+  }
+  
+  <!-- Empty state -->
+  @else if (!hasInventory()) {
+    <div class="empty-container">
+      <mat-icon>inventory_2</mat-icon>
+      <h3>{{ 'inventory.empty.title' | translate }}</h3>
+      <p>{{ 'inventory.empty.description' | translate }}</p>
+    </div>
+  }
+  
+  <!-- Inventory content with search -->
+  @else {
+    <inventory-search
+      [items]="allInventoryItems()"
+      (filteredItems)="onFilteredItemsChange($event)"
+    ></inventory-search>
+    
+    <inventory-list [inventoryItems]="filteredItems()"></inventory-list>
+  }
 </div> 

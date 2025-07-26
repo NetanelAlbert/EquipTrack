@@ -123,6 +123,7 @@ export class InventoryAdapter {
   ): Promise<OrganizationInventory> {
     const command = new QueryCommand({
       TableName: this.tableName,
+      KeyConditionExpression: 'PK = :pk',
       ExpressionAttributeValues: {
         ':pk': `${ORG_PREFIX}${organizationId}`,
       },
@@ -153,6 +154,10 @@ export class InventoryAdapter {
           const existingItems = dbItemsByHolder.get(bulkItemDb.holderId) || [];
           existingItems.push(bulkItemDb);
           dbItemsByHolder.set(bulkItemDb.holderId, existingItems);
+          break;
+        }
+        case DbItemType.Lock: {
+          // Ignore locks
           break;
         }
         default:

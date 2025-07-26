@@ -1,1 +1,8 @@
-<inventory-list [inventoryItems]="userStore.checkedOut()"></inventory-list>
+<div class="my-items-container">
+  <inventory-search
+    [items]="currentUserInventory()"
+    (filteredItems)="onFilteredItemsChange($event)"
+  ></inventory-search>
+  
+  <inventory-list [inventoryItems]="filteredItems()"></inventory-list>
+</div>
