@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
+import { RouterModule } from '@angular/router';
 import { UserStore } from '../../store/user.store';
 import { AuthStore } from '../../store/auth.store';
 import { OrganizationStore } from '../../store';
@@ -27,6 +28,7 @@ import { AuthService } from '../../services/auth.service';
     MatMenuModule,
     MatDividerModule,
     TranslateModule,
+    RouterModule,
   ],
   templateUrl: './top-bar.component.html',
   styleUrl: './top-bar.component.scss',
@@ -114,5 +116,17 @@ export class TopBarComponent implements AfterViewInit {
   onSettings(): void {
     // TODO: Implement settings page
     console.log('Navigate to settings');
+  }
+
+  /**
+   * Handle organization switching
+   */
+  onSwitchOrganization(): void {
+    // Clear the persisted organization selection
+    this.userStore.clearPersistedOrganizationSelection();
+    // Update state to empty organization
+    this.userStore.selectOrganization('');
+    // Navigate to home page
+    this.routerService.navigate(['/']);
   }
 }
