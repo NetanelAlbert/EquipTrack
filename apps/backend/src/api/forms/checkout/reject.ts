@@ -1,12 +1,18 @@
-import { BasicResponse, FormStatus, RejectCheckOut } from '@equip-track/shared';
+import {
+  BasicResponse,
+  FormStatus,
+  JwtPayload,
+  RejectCheckOut,
+  UserRole,
+} from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
-import { badRequest } from '../../responses';
+import { badRequest, forbidden, internalServerError } from '../../responses';
 
 export const handler = async (
   req: RejectCheckOut,
   pathParams: APIGatewayProxyEventPathParameters,
-  userId?: string
+  jwtPayload?: JwtPayload
 ): Promise<BasicResponse> => {
   try {
     const organizationId = pathParams?.organizationId;
@@ -18,20 +24,27 @@ export const handler = async (
       throw badRequest('Form ID and rejection reason are required');
     }
 
-    if (!userId) {
+    if (!jwtPayload) {
       throw badRequest('User authentication required');
     }
 
     const formsAdapter = new FormsAdapter();
 
-    // Get all forms for the organization to find the specific form
-    const organizationForms = await formsAdapter.getOrganizationForms(
-      organizationId
+    const form = await formsAdapter.getForm(
+      jwtPayload.sub,
+      organizationId,
+      req.formID
     );
-    const form = organizationForms.find((f) => f.formID === req.formID);
 
     if (!form) {
       throw badRequest(`Form with ID ${req.formID} not found`);
+    }
+
+    if (form.userID !== jwtPayload.sub &&
+      jwtPayload.orgIdToRole[organizationId] !== UserRole.Admin &&
+      jwtPayload.orgIdToRole[organizationId] !== UserRole.WarehouseManager
+    ) {
+      throw forbidden('You are not authorized to reject this form');
     }
 
     // Update form status to rejected with reason and timestamp
@@ -47,6 +60,6 @@ export const handler = async (
     if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error; // Re-throw bad request errors
     }
-    return { status: false, errorMessage: 'Failed to reject form' };
+    throw internalServerError('Failed to reject form');
   }
 };
