@@ -45,7 +45,6 @@ export const handler = async (
       req.idToken
     );
 
-
     const response = {
       status: true,
       jwt: authResult.jwt,
@@ -57,25 +56,13 @@ export const handler = async (
     console.error('[GOOGLE_AUTH] Google authentication handler error:', error);
     console.error('[GOOGLE_AUTH] Error stack:', error.stack);
 
-    // Return user-friendly error messages
-    if (error.message.includes('Invalid Google ID token')) {
-      console.log('[GOOGLE_AUTH] Throwing: Invalid Google ID token');
-      throw badRequest('The provided Google ID token is invalid');
-    }
-    if (error.message.includes('expired')) {
-      console.log('[GOOGLE_AUTH] Throwing: Token expired');
-      throw badRequest('The Google ID token has expired');
-    }
-    if (error.message.includes('Wrong issuer')) {
-      console.log('[GOOGLE_AUTH] Throwing: Wrong issuer');
-      throw badRequest('The Google ID token is from an unauthorized source');
-    }
-    if (error.message.includes('Email not verified')) {
-      console.log('[GOOGLE_AUTH] Throwing: Email not verified');
-      throw badRequest('Google account email must be verified');
+    // If it's already a response object from the service, re-throw it
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      console.log('[GOOGLE_AUTH] Re-throwing response object from service');
+      throw error;
     }
 
-    // Generic error for unexpected issues
+    // For any unexpected errors, return a generic error
     console.log('[GOOGLE_AUTH] Throwing: Generic authentication error');
     throw badRequest('Google authentication failed. Please try again.');
   }

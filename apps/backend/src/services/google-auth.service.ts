@@ -3,6 +3,12 @@ import { JwtService } from './jwt.service';
 import { UsersAndOrganizationsAdapter } from '../db/tables/users-and-organizations.adapter';
 import { User, UserState, UserRole } from '@equip-track/shared';
 import { randomUUID } from 'crypto';
+import {
+  badRequest,
+  unauthorized,
+  forbidden,
+  emailVerificationRequired,
+} from '../api/responses';
 
 /**
  * Google ID token payload structure
@@ -53,6 +59,13 @@ export class GoogleAuthService {
       );
 
       if (userAndOrganizations) {
+        console.log('User exists', userAndOrganizations);
+        if (userAndOrganizations.user.state === UserState.Disabled) {
+          console.log('User is disabled, responding with error');
+          throw forbidden(
+            'Your account has been disabled. Please contact your administrator.'
+          );
+        }
         // User exists - handle state transition if needed
         if (userAndOrganizations.user.state === UserState.Invited) {
           console.log(
@@ -80,7 +93,7 @@ export class GoogleAuthService {
           id: newUserId,
           email: googlePayload.email,
           name: googlePayload.name,
-          state: UserState.Disabled, // New users start as Disabled until admin approval
+          state: UserState.Active,
         };
 
         // Store Google sub for future reference
@@ -106,23 +119,50 @@ export class GoogleAuthService {
         orgIdToRole
       );
 
-      console.log('successful google auth for user', userAndOrganizations.user.id);
+      console.log(
+        'successful google auth for user',
+        userAndOrganizations.user.id
+      );
 
       return {
         jwt,
       };
     } catch (error) {
       console.error('Google authentication error:', error);
+
+      // If it's already a response object, re-throw it
+      if (error && typeof error === 'object' && 'statusCode' in error) {
+        throw error;
+      }
+
+      // Handle specific error messages and convert to proper responses
       if (error.message.includes('Invalid token')) {
-        throw new Error('Invalid Google ID token');
+        throw badRequest('The provided Google ID token is invalid');
       }
       if (error.message.includes('Wrong issuer')) {
-        throw new Error('Google ID token from wrong issuer');
+        throw badRequest('The Google ID token is from an unauthorized source');
       }
       if (error.message.includes('Token used too late')) {
-        throw new Error('Google ID token has expired');
+        throw unauthorized(
+          'The Google ID token has expired. Please sign in again.'
+        );
       }
-      throw new Error('Google authentication failed');
+      if (error.message.includes('Email not verified')) {
+        throw emailVerificationRequired(
+          'Your Google account email must be verified to sign in'
+        );
+      }
+      if (error.message.includes('Wrong audience')) {
+        throw badRequest(
+          'The Google ID token is not valid for this application'
+        );
+      }
+      if (error.message.includes('Missing')) {
+        throw badRequest('The Google ID token is missing required information');
+      }
+
+      // Generic error for unexpected issues
+      throw badRequest('Google authentication failed. Please try again.');
     }
   }
 

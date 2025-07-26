@@ -44,6 +44,12 @@ export function forbidden(errorMessage = 'Forbidden'): ErrorResponse {
   return error('Forbidden', 403, errorMessage);
 }
 
+export function emailVerificationRequired(
+  errorMessage = 'Email verification required'
+): ErrorResponse {
+  return error('Email verification required', 422, errorMessage);
+}
+
 export function notImplemented(
   errorMessage = 'Not implemented'
 ): ErrorResponse {
