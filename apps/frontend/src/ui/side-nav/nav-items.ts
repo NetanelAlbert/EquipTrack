@@ -94,6 +94,26 @@ export const navItems: NavItem[] = [
       ),
   },
   {
+    icon: 'add_box',
+    labelKey: 'navigation.add-inventory',
+    route: 'add-inventory',
+    roles: [UserRole.WarehouseManager, UserRole.Admin],
+    loadComponent: () =>
+      import('../inventory/add/add-inventory.component').then(
+        (m) => m.AddInventoryComponent
+      ),
+  },
+  {
+    icon: 'remove_circle',
+    labelKey: 'navigation.remove-inventory',
+    route: 'remove-inventory',
+    roles: [UserRole.WarehouseManager, UserRole.Admin],
+    loadComponent: () =>
+      import('../inventory/remove/remove-inventory.component').then(
+        (m) => m.RemoveInventoryComponent
+      ),
+  },
+  {
     icon: 'list_alt',
     labelKey: 'navigation.checkout',
     route: 'checkout',

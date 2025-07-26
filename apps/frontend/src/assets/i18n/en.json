@@ -69,6 +69,8 @@
     "edit-users": "Edit Users",
     "all-inventory": "All Inventory",
     "inventory-by-users": "Inventory by Users",
+    "add-inventory": "Add Inventory",
+    "remove-inventory": "Remove Inventory",
     "checkout": "Checkout",
     "trace-product": "Trace Product",
     "admin-dashboard": "Admin Dashboard",
@@ -157,6 +159,25 @@
       "title": "UPI Information",
       "item": "UPI code: {{upi}}",
       "help": "Contains {{count}} UPI codes. Press Enter or Space to expand."
+    },
+    "add": {
+      "title": "Add Inventory",
+      "subtitle": "Add new items to warehouse inventory",
+      "adding": "Adding inventory items...",
+      "success": "Successfully added {{count}} inventory items",
+      "error": {
+        "no-items": "Please add at least one item before saving"
+      }
+    },
+    "remove": {
+      "title": "Remove Inventory",
+      "subtitle": "Remove items from warehouse inventory",
+      "warning": "Warning: This will permanently remove items from inventory. Make sure quantities and UPIs are correct.",
+      "removing": "Removing inventory items...",
+      "success": "Successfully removed {{count}} inventory items",
+      "error": {
+        "no-items": "Please add at least one item to remove"
+      }
     }
   },
   "checkout": {

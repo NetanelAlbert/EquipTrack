@@ -1,0 +1,54 @@
+<div class="remove-inventory-container">
+  <mat-card class="remove-inventory-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>remove_circle</mat-icon>
+        {{ 'inventory.remove.title' | translate }}
+      </mat-card-title>
+      <mat-card-subtitle>
+        {{ 'inventory.remove.subtitle' | translate }}
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (inventoryStore.removeInventoryError()) {
+        <div class="error-message" role="alert">
+          <mat-icon>error</mat-icon>
+          <span>{{ inventoryStore.removeInventoryError() }}</span>
+          <button 
+            mat-icon-button 
+            (click)="clearError()"
+            [attr.aria-label]="'common.close' | translate">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+
+      <div class="warning-message">
+        <mat-icon>warning</mat-icon>
+        <span>{{ 'inventory.remove.warning' | translate }}</span>
+      </div>
+
+      <editable-inventory
+        [originalItems]="[]"
+        (submitItems)="onSubmitItems($event)"
+      />
+    </mat-card-content>
+
+    <mat-card-actions align="end">
+      <button 
+        mat-button 
+        (click)="goBack()"
+        [disabled]="inventoryStore.removingInventory()">
+        {{ 'common.cancel' | translate }}
+      </button>
+    </mat-card-actions>
+  </mat-card>
+
+  @if (inventoryStore.removingInventory()) {
+    <div class="loading-overlay">
+      <mat-spinner></mat-spinner>
+      <p>{{ 'inventory.remove.removing' | translate }}</p>
+    </div>
+  }
+</div> 

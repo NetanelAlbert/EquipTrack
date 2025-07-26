@@ -21,6 +21,11 @@ interface InventoryState {
   wareHouseInventory: InventoryItem[];
   loading: boolean;
   error: string | undefined;
+  // Add states for add/remove operations
+  addingInventory: boolean;
+  removingInventory: boolean;
+  addInventoryError: string | undefined;
+  removeInventoryError: string | undefined;
 }
 
 const initialState: InventoryState = {
@@ -28,6 +33,10 @@ const initialState: InventoryState = {
   wareHouseInventory: [],
   loading: false,
   error: undefined,
+  addingInventory: false,
+  removingInventory: false,
+  addInventoryError: undefined,
+  removeInventoryError: undefined,
 };
 
 export const InventoryStore = signalStore(
@@ -134,6 +143,104 @@ export const InventoryStore = signalStore(
 
       getUserInventory(userID: string): InventoryItem[] {
         return store.inventory()[userID] ?? [];
+      },
+
+      async addInventory(items: InventoryItem[]): Promise<boolean> {
+        updateState({
+          addingInventory: true,
+          addInventoryError: undefined,
+        });
+
+        try {
+          const organizationId = userStore.selectedOrganizationId();
+          if (!organizationId) {
+            throw new Error('No organization selected');
+          }
+
+          const response = await firstValueFrom(
+            apiService.endpoints.addInventory.execute(
+              { items },
+              {
+                [ORGANIZATION_ID_PATH_PARAM]: organizationId,
+              }
+            )
+          );
+
+          if (!response.status) {
+            throw new Error(response.errorMessage || 'Failed to add inventory');
+          }
+
+          updateState({ addingInventory: false });
+
+          // Refresh inventory after successful add
+          await this.fetchInventory();
+
+          return true;
+        } catch (error) {
+          console.error('Error adding inventory:', error);
+          const errorMessage =
+            error instanceof Error ? error.message : 'Failed to add inventory';
+          updateState({
+            addInventoryError: errorMessage,
+            addingInventory: false,
+          });
+          return false;
+        }
+      },
+
+      async removeInventory(items: InventoryItem[]): Promise<boolean> {
+        updateState({
+          removingInventory: true,
+          removeInventoryError: undefined,
+        });
+
+        try {
+          const organizationId = userStore.selectedOrganizationId();
+          if (!organizationId) {
+            throw new Error('No organization selected');
+          }
+
+          const response = await firstValueFrom(
+            apiService.endpoints.removeInventory.execute(
+              { items },
+              {
+                [ORGANIZATION_ID_PATH_PARAM]: organizationId,
+              }
+            )
+          );
+
+          if (!response.status) {
+            throw new Error(
+              response.errorMessage || 'Failed to remove inventory'
+            );
+          }
+
+          updateState({ removingInventory: false });
+
+          // Refresh inventory after successful remove
+          await this.fetchInventory();
+
+          return true;
+        } catch (error) {
+          console.error('Error removing inventory:', error);
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'Failed to remove inventory';
+          updateState({
+            removeInventoryError: errorMessage,
+            removingInventory: false,
+          });
+          return false;
+        }
+      },
+
+      clearAddInventoryError() {
+        updateState({ addInventoryError: undefined });
+      },
+
+      clearRemoveInventoryError() {
+        updateState({ removeInventoryError: undefined });
       },
     };
   })
