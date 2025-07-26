@@ -45,7 +45,7 @@ export class TodayReportComponent implements OnInit {
   private focusedCardUpi: string | null = null;
 
   ngOnInit() {
-    this.reportsStore.fetcReports();
+    this.reportsStore.fetchReports();
     this.sortItems();
   }
 

@@ -53,6 +53,8 @@ export class ReportsHistoryComponent implements OnInit {
   private twoDaysAgo = new Date(this.yesterday.getTime() - 24 * 60 * 60 * 1000);
 
   ngOnInit() {
+    // Initialize with current reports data
+    this.reportsStore.fetchReports();
     this.loadReportForDate(this.selectedDate);
   }
 
@@ -75,8 +77,28 @@ export class ReportsHistoryComponent implements OnInit {
 
   loadReportForDate(date: Date) {
     const dateString = this.formatDateToString(date);
-    this.selectedReport = this.reportsStore.reportsByDate().get(dateString) || null;
-    this.sortItems();
+
+    // Check if we already have data for this date
+    const existingReport = this.reportsStore.reportsByDate().get(dateString);
+    if (existingReport) {
+      this.selectedReport = existingReport;
+      this.sortItems();
+      return;
+    }
+
+    // If not, fetch data for this specific date
+    this.reportsStore
+      .fetchReportsByDates([dateString])
+      .then(() => {
+        this.selectedReport =
+          this.reportsStore.reportsByDate().get(dateString) || null;
+        this.sortItems();
+      })
+      .catch((error) => {
+        console.error('Failed to fetch report for date:', dateString, error);
+        this.selectedReport = null;
+        this.sortItems();
+      });
   }
 
   private formatDateToString(date: Date): string {
