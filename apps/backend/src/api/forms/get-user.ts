@@ -1,5 +1,6 @@
 import {
   GetUserFormsResponse,
+  JwtPayload,
   ORGANIZATION_ID_PATH_PARAM,
 } from '@equip-track/shared';
 import { FormsAdapter } from '../../db/tables/forms.adapter';
@@ -11,9 +12,9 @@ const formsAdapter = new FormsAdapter();
 export const handler = async (
   _req: unknown,
   pathParams: APIGatewayProxyEventPathParameters,
-  userId?: string
+  jwtPayload?: JwtPayload
 ): Promise<GetUserFormsResponse> => {
-  if (!userId) {
+  if (!jwtPayload) {
     throw badRequest('User ID is required');
   }
 
@@ -21,6 +22,8 @@ export const handler = async (
   if (!organizationId) {
     throw badRequest('Organization ID is required');
   }
+
+  const userId = jwtPayload.sub;
 
   const forms = await formsAdapter.getUserForms(userId, organizationId);
 

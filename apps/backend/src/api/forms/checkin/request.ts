@@ -1,4 +1,4 @@
-import { BasicResponse, FormStatus, FormType } from '@equip-track/shared';
+import { BasicResponse, FormStatus, FormType, JwtPayload } from '@equip-track/shared';
 import { BasicUser } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
@@ -8,7 +8,7 @@ import { badRequest, internalServerError } from '../../responses';
 export const handler = async (
   req: BasicUser.RequestCheckIn,
   pathParams: APIGatewayProxyEventPathParameters,
-  userId?: string
+  jwtPayload?: JwtPayload
 ): Promise<BasicResponse> => {
   try {
     const organizationId = pathParams?.organizationId;
@@ -16,13 +16,15 @@ export const handler = async (
       throw badRequest('Organization ID is required');
     }
 
-    if (!userId) {
+    if (!jwtPayload) {
       throw badRequest('User ID is required');
     }
 
     const formsAdapter = new FormsAdapter();
     const formID = randomUUID();
     const now = Date.now();
+
+    const userId = jwtPayload.sub;
 
     const form = {
       userID: userId,
