@@ -17,7 +17,7 @@
                     </div>
                     @if (hasUPIs) {
                         <div class="expand-indicator">
-                            <mat-icon [svgIcon]="isExpanded(item) ? 'expand_less' : 'expand_more'"></mat-icon>
+                            <mat-icon>{{ isExpanded(item) ? 'arrow_drop_up' : 'arrow_drop_down' }}</mat-icon>
                         </div>
                     } @else {
                         <div class="expand-indicator-placeholder"></div>
