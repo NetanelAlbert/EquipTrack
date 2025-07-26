@@ -62,8 +62,8 @@ export const endpointMetas = {
     ],
     responseType: {} as BasicUser.StartResponse,
   } as EndpointMeta<undefined, BasicUser.StartResponse>,
-  approveCheckOut: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkout/approve`,
+  approveForm: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/approve`,
     method: 'POST',
     allowedRoles: [
       UserRole.WarehouseManager,
@@ -73,8 +73,8 @@ export const endpointMetas = {
     requestType: {} as BasicUser.ApproveCheckOut,
     responseType: {} as BasicResponse,
   } as EndpointMeta<BasicUser.ApproveCheckOut, BasicResponse>,
-  rejectCheckOut: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkout/reject`,
+  rejectForm: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/reject`,
     method: 'POST',
     allowedRoles: [
       UserRole.WarehouseManager,

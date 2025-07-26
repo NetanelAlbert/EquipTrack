@@ -218,7 +218,7 @@ export const FormsStore = signalStore(
         try {
           // Call the backend API to approve the form
           const response = await firstValueFrom(
-            apiService.endpoints.approveCheckOut.execute(
+            apiService.endpoints.approveForm.execute(
               {
                 formID,
                 signature,
@@ -261,7 +261,7 @@ export const FormsStore = signalStore(
         try {
           // Call the backend API to reject the form
           const response = await firstValueFrom(
-            apiService.endpoints.rejectCheckOut.execute(
+            apiService.endpoints.rejectForm.execute(
               { formID, reason },
               {
                 [ORGANIZATION_ID_PATH_PARAM]:

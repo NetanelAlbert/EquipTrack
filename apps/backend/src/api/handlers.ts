@@ -49,9 +49,11 @@ export const handlers: HandlersDefinition = {
 
   // Basic User
   start: startHandler,
-  approveCheckOut: approveCheckOutHandler, // TODO: Implement this
-  rejectCheckOut: rejectCheckOutHandler, // TODO: Implement this
-  requestCheckIn: requestCheckInHandler, // TODO: Implement this
+
+  // Forms
+  approveForm: approveCheckOutHandler,
+  rejectForm: rejectCheckOutHandler,
+  requestCheckIn: requestCheckInHandler,
 
   // Warehouse
   setProduct: setProductHandler,
