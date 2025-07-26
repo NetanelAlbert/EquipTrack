@@ -21,9 +21,10 @@ export interface InventoryForm {
   status: FormStatus;
   createdAtTimestamp: number;
   approvedAtTimestamp?: number;
-  approvedByUserID?: string;
-  signatureURI?: string;
-  pdfURI?: string;
+  approvedByUserId?: string;
+  signatureUri?: string;
+  pdfUri?: string;
+  rejectionReason?: string;
   lastUpdated: number;
 }
 

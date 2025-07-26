@@ -110,9 +110,10 @@ export class FormsAdapter {
       status: item.status,
       createdAtTimestamp: item.createdAtTimestamp,
       approvedAtTimestamp: item.approvedAtTimestamp,
-      approvedByUserID: item.approvedByUserID,
-      signatureURI: item.signatureURI,
-      pdfURI: item.pdfURI,
+      approvedByUserId: item.approvedByUserId,
+      signatureUri: item.signatureUri,
+      pdfUri: item.pdfUri,
+      rejectionReason: item.rejectionReason,
       lastUpdated: item.lastUpdated,
     };
   }
