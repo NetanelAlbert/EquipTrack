@@ -1,5 +1,7 @@
 import { signalStore, withState, withMethods, patchState } from '@ngrx/signals';
 import { InventoryForm, InventoryItem } from '@equip-track/shared';
+import { inject } from '@angular/core';
+import { FormsStore } from '../../store/forms.store';
 
 interface CheckoutState {
   sending: boolean;
@@ -14,21 +16,29 @@ const initialState: CheckoutState = {
 export const CheckoutStore = signalStore(
   { providedIn: 'root' },
   withState(initialState),
-  withMethods((store) => ({
-    async createCheckoutForm(userId: string, form: InventoryForm) {
-      console.log('createCheckoutForm', userId, form);
-      // TODO: Replace with actual API call
+  withMethods((store) => {
+    const formsStore = inject(FormsStore);
 
-      patchState(store, { sending: true });
-      try {
-        // TODO: Replace with actual API call
-        await new Promise((resolve, reject) => setTimeout(resolve, 1000));
-      } catch (error) {
-        console.error('Failed to create checkout form', error);
-        patchState(store, { error: 'Failed to create checkout form' });
-      } finally {
-        patchState(store, { sending: false });
-      }
-    },
-  }))
+    return {
+      async createCheckoutForm(userId: string, form: InventoryForm) {
+        console.log('createCheckoutForm', userId, form);
+
+        patchState(store, { sending: true, error: undefined });
+
+        try {
+          // ✅ Use real API through forms store
+          await formsStore.addCheckOutForm(form.items, userId);
+
+          patchState(store, { sending: false });
+        } catch (error) {
+          console.error('Failed to create checkout form', error);
+          patchState(store, {
+            error: 'Failed to create checkout form',
+            sending: false,
+          });
+          throw error;
+        }
+      },
+    };
+  })
 );
