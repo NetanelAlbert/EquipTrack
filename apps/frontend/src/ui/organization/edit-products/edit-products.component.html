@@ -33,9 +33,29 @@
               {{ 'organization.editProducts.upi' | translate }}
             </mat-checkbox>
 
-            <button mat-icon-button color="warn" (click)="removeProduct(i)" type="button">
-              <mat-icon>delete</mat-icon>
-            </button>
+            <div class="row-actions">
+              <button 
+                mat-raised-button 
+                color="accent" 
+                (click)="saveProduct(i)" 
+                type="button"
+                [disabled]="!isProductFormValid(i) || isProductSaving(i)">
+                <mat-spinner diameter="16" *ngIf="isProductSaving(i)"></mat-spinner>
+                <mat-icon *ngIf="!isProductSaving(i)">save</mat-icon>
+                <span *ngIf="!isProductSaving(i)">{{ 'common.save' | translate }}</span>
+                <span *ngIf="isProductSaving(i)">{{ 'common.saving' | translate }}</span>
+              </button>
+
+              <button 
+                mat-icon-button 
+                color="warn" 
+                (click)="removeProduct(i)" 
+                type="button"
+                [disabled]="isProductDeleting(i)">
+                <mat-spinner diameter="16" *ngIf="isProductDeleting(i)"></mat-spinner>
+                <mat-icon *ngIf="!isProductDeleting(i)">delete</mat-icon>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -43,17 +63,10 @@
           {{ 'organization.editProducts.duplicateIds' | translate }}
         </div>
 
-        <div class="error-message" *ngIf="errorUpdatingProducts">
-          {{ errorUpdatingProducts() }}
-        </div>
-
         <div class="actions">
-          <button mat-raised-button color="primary" (click)="addProduct()" type="button" [disabled]="updatingProducts()">
+          <button mat-raised-button color="primary" (click)="addProduct()" type="button">
+            <mat-icon>add</mat-icon>
             {{ 'organization.editProducts.addProduct' | translate }}
-          </button>
-          <button mat-raised-button color="accent" (click)="save()" [disabled]="!form.valid || updatingProducts()">
-            <mat-spinner diameter="20" *ngIf="updatingProducts()"></mat-spinner>
-            <span *ngIf="!updatingProducts()">{{ 'organization.editProducts.save' | translate }}</span>
           </button>
         </div>
       </form>

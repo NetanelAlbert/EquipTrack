@@ -34,6 +34,7 @@
     "close": "Close",
     "cancel": "Cancel",
     "save": "Save",
+    "saving": "Saving...",
     "delete": "Delete",
     "edit": "Edit",
     "add": "Add",
@@ -178,6 +179,17 @@
       "duplicateIds": "Duplicate product IDs are not allowed",
       "addProduct": "Add Product",
       "save": "Save Products"
+    },
+    "products": {
+      "get": {
+        "error": "Failed to fetch products"
+      },
+      "save": {
+        "error": "Failed to save product"
+      },
+      "delete": {
+        "error": "Failed to delete product"
+      }
     },
     "users": {
       "title": "Edit Users",

@@ -13,6 +13,10 @@ import {
 import { BasicResponse } from './basic';
 
 // PRODUCTS
+export interface GetProductsResponse extends BasicResponse {
+  products: Product[];
+}
+
 export interface SetProduct {
   product: Product;
 }

@@ -55,20 +55,118 @@ export class OrganizationService {
     }
   }
 
-  async editProducts(products: Product[]): Promise<void> {
-    this.organizationStore.setUpdatingProducts(true);
+  async fetchProducts(): Promise<void> {
+    const organizationId = this.userStore.selectedOrganizationId();
+    if (!organizationId) {
+      throw new Error('No organization selected');
+    }
 
     try {
-      // todo - call api to update products
-      await new Promise((resolve, reject) => setTimeout(reject, 1000));
-      this.organizationStore.setProducts(products);
-      this.organizationStore.setUpdatingProductsSuccess();
-    } catch (error: unknown) {
-      console.error('Error updating products', error);
-      // TODO: get error message translation key from api response
-      this.organizationStore.setUpdatingProductsError(
-        'Error updating products'
+      this.organizationStore.setGetProductsLoading();
+      const result = await firstValueFrom(
+        this.apiService.endpoints.getProducts.execute(undefined, {
+          [ORGANIZATION_ID_PATH_PARAM]: organizationId,
+        })
       );
+      if (result.status) {
+        this.organizationStore.setProducts(result.products);
+        this.organizationStore.setGetProductsSuccess();
+      } else {
+        const errorMessage =
+          result.errorMessage ||
+          this.translateService.instant('organization.products.get.error');
+        console.error(
+          'Error response from fetching products:',
+          result.errorMessage
+        );
+        this.organizationStore.setGetProductsError(errorMessage);
+      }
+    } catch (error: unknown) {
+      console.error('Error fetching products', error);
+      const errorMessage = this.translateService.instant(
+        'organization.products.get.error'
+      );
+      this.organizationStore.setGetProductsError(errorMessage);
+    }
+  }
+
+  async saveProduct(product: Product): Promise<boolean> {
+    try {
+      const organizationId = this.userStore.selectedOrganizationId();
+      if (!organizationId) {
+        throw new Error('No organization selected');
+      }
+
+      const result = await firstValueFrom(
+        this.apiService.endpoints.setProduct.execute(
+          { product },
+          { [ORGANIZATION_ID_PATH_PARAM]: organizationId }
+        )
+      );
+
+      if (result.status) {
+        // Update the product in the store
+        const currentProducts = this.organizationStore.products();
+        const existingIndex = currentProducts.findIndex(
+          (p) => p.id === product.id
+        );
+
+        if (existingIndex >= 0) {
+          // Update existing product
+          const updatedProducts = [...currentProducts];
+          updatedProducts[existingIndex] = product;
+          this.organizationStore.setProducts(updatedProducts);
+        } else {
+          // Add new product
+          this.organizationStore.setProducts([...currentProducts, product]);
+        }
+
+        return true;
+      } else {
+        const errorMessage =
+          result.errorMessage ||
+          this.translateService.instant('organization.products.save.error');
+        console.error('Error saving product:', errorMessage);
+        return false;
+      }
+    } catch (error: unknown) {
+      console.error('Error saving product:', error);
+      return false;
+    }
+  }
+
+  async deleteProduct(productId: string): Promise<boolean> {
+    try {
+      const organizationId = this.userStore.selectedOrganizationId();
+      if (!organizationId) {
+        throw new Error('No organization selected');
+      }
+
+      const result = await firstValueFrom(
+        this.apiService.endpoints.deleteProduct.execute(
+          { productId },
+          { [ORGANIZATION_ID_PATH_PARAM]: organizationId }
+        )
+      );
+
+      if (result.status) {
+        // Remove the product from the store
+        const currentProducts = this.organizationStore.products();
+        const updatedProducts = currentProducts.filter(
+          (p) => p.id !== productId
+        );
+        this.organizationStore.setProducts(updatedProducts);
+        return true;
+      } else {
+        const errorMessage =
+          result.errorMessage ||
+          this.translateService.instant('organization.products.delete.error');
+        console.error('Error deleting product:', errorMessage);
+        return false;
+      }
+    } catch (error: unknown) {
+      console.error('Error deleting product:', error);
+      return false;
     }
   }
 

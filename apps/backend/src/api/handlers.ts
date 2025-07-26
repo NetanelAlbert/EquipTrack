@@ -8,6 +8,7 @@ import { handler as rejectCheckOutHandler } from './user/checkout/reject';
 import { handler as requestCheckInHandler } from './user/checkin/request';
 import { handler as setProductHandler } from './warehouse/products/set';
 import { handler as deleteProductHandler } from './warehouse/products/delete';
+import { handler as getProductsHandler } from './warehouse/products/get';
 import { handler as addInventoryHandler } from './warehouse/inventory/add';
 import { handler as removeInventoryHandler } from './warehouse/inventory/remove';
 import { handler as getInventoryHandler } from './warehouse/inventory/get';
@@ -53,6 +54,7 @@ export const handlers: HandlersDefinition = {
   // Warehouse
   setProduct: setProductHandler,
   deleteProduct: deleteProductHandler,
+  getProducts: getProductsHandler,
   addInventory: addInventoryHandler,
   removeInventory: removeInventoryHandler,
   getInventory: getInventoryHandler,

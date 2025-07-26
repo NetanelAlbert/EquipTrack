@@ -111,6 +111,12 @@ export const endpointMetas = {
     requestType: {} as Wharehouse.DeleteProduct,
     responseType: {} as BasicResponse,
   } as EndpointMeta<Wharehouse.DeleteProduct, BasicResponse>,
+  getProducts: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products`,
+    method: 'GET',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    responseType: {} as Wharehouse.GetProductsResponse,
+  } as EndpointMeta<undefined, Wharehouse.GetProductsResponse>,
   addInventory: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/inventory/add`,
     method: 'POST',

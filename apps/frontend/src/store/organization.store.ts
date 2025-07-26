@@ -18,17 +18,10 @@ interface OrganizationState {
   products: Product[];
   predefinedForms: PredefinedForm[];
 
-  // Enhanced loading states
-  loadingOrganizationData: boolean;
-  errorLoadingOrganization?: string;
-
   // Actions state
-  updatingProducts: boolean;
-  errorUpdatingProducts?: string;
-
-  // Invite user state
   invitingUserStatus: ApiStatus;
   getUsersStatus: ApiStatus;
+  getProductsStatus: ApiStatus;
 
   // Organization switching state
   switchingOrganization: boolean;
@@ -38,14 +31,16 @@ const emptyState: OrganizationState = {
   users: [],
   products: [],
   predefinedForms: [],
-  loadingOrganizationData: false,
-  updatingProducts: false,
   switchingOrganization: false,
   invitingUserStatus: {
     isLoading: false,
     error: undefined,
   },
   getUsersStatus: {
+    isLoading: false,
+    error: undefined,
+  },
+  getProductsStatus: {
     isLoading: false,
     error: undefined,
   },
@@ -88,18 +83,6 @@ export const OrganizationStore = signalStore(
         updateState({ products });
       },
 
-      // Enhanced error handling
-      setOrganizationError(error: string) {
-        updateState({
-          errorLoadingOrganization: error,
-          loadingOrganizationData: false,
-        });
-      },
-
-      clearOrganizationError() {
-        updateState({ errorLoadingOrganization: undefined });
-      },
-
       // Get users state management
       setGetUsersLoading(isLoading: boolean) {
         updateState({
@@ -119,25 +102,22 @@ export const OrganizationStore = signalStore(
         });
       },
 
-      // Update products state management
-      setUpdatingProducts(updating: boolean) {
+      // Get products state management
+      setGetProductsLoading() {
         updateState({
-          updatingProducts: updating,
-          ...(updating && { errorUpdatingProducts: undefined }),
+          getProductsStatus: { isLoading: true, error: undefined },
         });
       },
 
-      setUpdatingProductsSuccess() {
+      setGetProductsSuccess() {
         updateState({
-          updatingProducts: false,
-          errorUpdatingProducts: undefined,
+          getProductsStatus: { isLoading: false, error: undefined },
         });
       },
 
-      setUpdatingProductsError(error: string) {
+      setGetProductsError(error: string) {
         updateState({
-          updatingProducts: false,
-          errorUpdatingProducts: error,
+          getProductsStatus: { isLoading: false, error },
         });
       },
 

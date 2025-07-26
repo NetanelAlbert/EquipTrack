@@ -73,11 +73,15 @@ export class EditProductsComponent {
   private organizationService = inject(OrganizationService);
 
   products = this.organizationStore.products;
-  updatingProducts = this.organizationStore.updatingProducts;
-  errorUpdatingProducts = this.organizationStore.errorUpdatingProducts;
   form: FormGroup = this.fb.group({
     products: this.fb.array<ProductFormGroup>([], [duplicateIdValidator()]),
   });
+
+  // Track loading states per product row
+  productLoadingStates = new Map<
+    number,
+    { saving: boolean; deleting: boolean }
+  >();
 
   constructor() {
     this.initializeForm();
@@ -85,8 +89,9 @@ export class EditProductsComponent {
 
   private initializeForm() {
     const productsArray = this.fb.array<ProductFormGroup>([]);
-    this.products().forEach((product) => {
+    this.products().forEach((product, index) => {
       productsArray.push(this.createProductFormGroup(product));
+      this.productLoadingStates.set(index, { saving: false, deleting: false });
     });
     this.form.setControl('products', productsArray);
   }
@@ -109,27 +114,122 @@ export class EditProductsComponent {
       name: '',
       hasUpi: false,
     };
+    const newIndex = this.productsArray.length;
     this.productsArray.push(this.createProductFormGroup(newProduct));
+    this.productLoadingStates.set(newIndex, { saving: false, deleting: false });
   }
 
-  removeProduct(index: number) {
-    this.productsArray.removeAt(index);
-    this.productsArray.updateValueAndValidity();
-  }
-
-  save() {
-    if (this.form.valid) {
-      const updatedProducts: Product[] = this.productsArray.value.map(
-        (formValue: any) => ({
-          id: formValue.id,
-          name: formValue.name,
-          hasUpi: formValue.upi,
-        })
-      );
-      // Use service instead of store method
-      void this.organizationService.editProducts(updatedProducts);
-    } else {
-      this.form.markAllAsTouched();
+  async saveProduct(index: number) {
+    const productForm = this.productsArray.at(index);
+    if (!productForm || productForm.invalid) {
+      productForm?.markAllAsTouched();
+      return;
     }
+
+    // Set loading state
+    const loadingState = this.productLoadingStates.get(index) || {
+      saving: false,
+      deleting: false,
+    };
+    loadingState.saving = true;
+    this.productLoadingStates.set(index, loadingState);
+
+    try {
+      const formValue = productForm.value;
+      if (!formValue.id || !formValue.name || formValue.upi === undefined) {
+        console.error('Invalid product form value:', formValue);
+        return;
+      }
+      const product: Product = {
+        id: formValue.id,
+        name: formValue.name,
+        hasUpi: formValue.upi,
+      };
+
+      const success = await this.organizationService.saveProduct(product);
+      if (success) {
+        // Product was saved successfully and store was updated by the service
+        console.log('Product saved successfully:', product.id);
+      } else {
+        console.error('Failed to save product:', product.id);
+      }
+    } catch (error) {
+      console.error('Error saving product:', error);
+    } finally {
+      // Clear loading state
+      loadingState.saving = false;
+      this.productLoadingStates.set(index, loadingState);
+    }
+  }
+
+  async removeProduct(index: number) {
+    const productForm = this.productsArray.at(index);
+    if (!productForm) return;
+
+    const productId = productForm.get('id')?.value;
+
+    // If this is a new product (empty ID), just remove from form
+    if (!productId || productId.trim() === '') {
+      this.productsArray.removeAt(index);
+      this.productLoadingStates.delete(index);
+      // Reindex the remaining products
+      this.reindexLoadingStates(index);
+      return;
+    }
+
+    // Set loading state for existing product deletion
+    const loadingState = this.productLoadingStates.get(index) || {
+      saving: false,
+      deleting: false,
+    };
+    loadingState.deleting = true;
+    this.productLoadingStates.set(index, loadingState);
+
+    try {
+      const success = await this.organizationService.deleteProduct(productId);
+      if (success) {
+        // Product was deleted successfully and store was updated by the service
+        this.productsArray.removeAt(index);
+        this.productLoadingStates.delete(index);
+        // Reindex the remaining products
+        this.reindexLoadingStates(index);
+        console.log('Product deleted successfully:', productId);
+      } else {
+        console.error('Failed to delete product:', productId);
+        // Clear loading state on failure
+        loadingState.deleting = false;
+        this.productLoadingStates.set(index, loadingState);
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      // Clear loading state on error
+      loadingState.deleting = false;
+      this.productLoadingStates.set(index, loadingState);
+    }
+  }
+
+  private reindexLoadingStates(removedIndex: number) {
+    const newStates = new Map<number, { saving: boolean; deleting: boolean }>();
+    this.productLoadingStates.forEach((state, index) => {
+      if (index < removedIndex) {
+        newStates.set(index, state);
+      } else if (index > removedIndex) {
+        newStates.set(index - 1, state);
+      }
+    });
+    this.productLoadingStates = newStates;
+  }
+
+  isProductSaving(index: number): boolean {
+    return this.productLoadingStates.get(index)?.saving || false;
+  }
+
+  isProductDeleting(index: number): boolean {
+    return this.productLoadingStates.get(index)?.deleting || false;
+  }
+
+  isProductFormValid(index: number): boolean {
+    const productForm = this.productsArray.at(index);
+    return productForm ? productForm.valid : false;
   }
 }
