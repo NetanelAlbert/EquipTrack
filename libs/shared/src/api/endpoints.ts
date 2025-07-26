@@ -97,26 +97,26 @@ export const endpointMetas = {
   } as EndpointMeta<BasicUser.RequestCheckIn, BasicResponse>,
 
   // Warehouse
-  setProduct: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products/set`,
-    method: 'POST',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
-    requestType: {} as Wharehouse.SetProduct,
-    responseType: {} as BasicResponse,
-  } as EndpointMeta<Wharehouse.SetProduct, BasicResponse>,
-  deleteProduct: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products/delete`,
-    method: 'POST',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
-    requestType: {} as Wharehouse.DeleteProduct,
-    responseType: {} as BasicResponse,
-  } as EndpointMeta<Wharehouse.DeleteProduct, BasicResponse>,
   getProducts: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products`,
     method: 'GET',
     allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
     responseType: {} as Wharehouse.GetProductsResponse,
   } as EndpointMeta<undefined, Wharehouse.GetProductsResponse>,
+  setProduct: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products`,
+    method: 'POST',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    requestType: {} as Wharehouse.SetProduct,
+    responseType: {} as BasicResponse,
+  } as EndpointMeta<Wharehouse.SetProduct, BasicResponse>,
+  deleteProduct: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products`,
+    method: 'DELETE',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    requestType: {} as Wharehouse.DeleteProduct,
+    responseType: {} as BasicResponse,
+  } as EndpointMeta<Wharehouse.DeleteProduct, BasicResponse>,
   addInventory: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/inventory/add`,
     method: 'POST',

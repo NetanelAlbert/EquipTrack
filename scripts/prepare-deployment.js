@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 const fs = require('fs');
-const path = require('path');
 
 const STAGE = process.env.STAGE || 'production';
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
@@ -10,11 +9,11 @@ function loadEndpointMetas() {
   
   // Try to load from built files first
   try {
-    const { endpointMetas } = require('../dist/libs/shared/src/api/endpoints');
+    const { endpointMetas } = require('../libs/shared/src/api/endpoints');
     console.log('✅ Loaded endpoints from built files');
     return endpointMetas;
   } catch (error) {
-    console.log('⚠️  Could not load from built files, trying source files...');
+    console.log('⚠️  Could not load from built files, trying source files...', error);
   }
 
   // Try to load from source TypeScript files using ts-node
@@ -119,7 +118,8 @@ function loadEndpointMetas() {
       allowedRoles: ['WarehouseManager', 'Admin']
     }
   };
-  
+  console.log('🔍 Fallback endpoints:', fallbackEndpoints);
+
   return fallbackEndpoints;
 }
 

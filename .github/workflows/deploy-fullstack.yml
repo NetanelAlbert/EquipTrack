@@ -58,11 +58,18 @@ jobs:
         run: node scripts/deploy-lambdas.js
 
 
-      - name: Deploy API Gateway
+      - name: Deploy API Gateway (first attempt)
+        id: deploy-api-gateway-first
         run: node scripts/deploy-api-gateway.js
-        # Uncomment the env block below if you need to recreate the API Gateway from scratch
-        # env:
-        #   RECREATE_API: 'true'
+        continue-on-error: true
+
+      - name: Deploy API Gateway (retry with RECREATE_API=true)
+        if: steps.deploy-api-gateway-first.outcome == 'failure'
+        run: |
+          echo "First API Gateway deployment failed. Retrying with RECREATE_API=true to rebuild from scratch..."
+          node scripts/deploy-api-gateway.js
+        env:
+          RECREATE_API: 'true'
 
       - name: Deploy Frontend to S3
         run: node scripts/deploy-frontend.js

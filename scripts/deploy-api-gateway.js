@@ -142,18 +142,68 @@ function createResourcePath(apiId, path, existingResources) {
                       existingResources.find(r => r.path === currentPath) ||
                       existingResources.find(r => r.pathPart === part && r.path.endsWith(`/${part}`));
             
+            if (!resource) {
+              // Additional strategy: look for child resources that reference this missing resource as parent
+              const childResources = existingResources.filter(r => r.path && r.path.startsWith(currentPath + '/'));
+              if (childResources.length > 0) {
+                const inferredParentId = childResources[0].parentId;
+                console.log(`🔧 Inferred resource from child: ${currentPath} (id: ${inferredParentId})`);
+                resource = {
+                  id: inferredParentId,
+                  path: currentPath,
+                  pathPart: part,
+                  parentId: parentId
+                };
+                existingResources.push(resource);
+              }
+            }
+            
             if (resource) {
               console.log(`✅ Found existing conflicting resource: ${currentPath} (id: ${resource.id})`);
             } else {
-              // Debug information to help diagnose the issue
-              console.error(`❌ Could not find conflicting resource after refresh:`);
-              console.error(`   Looking for: parentId=${parentId}, pathPart="${part}", currentPath="${currentPath}"`);
-              console.error(`   Available resources under parent ${parentId}:`);
-              existingResources
-                .filter(r => r.parentId === parentId)
-                .forEach(r => console.error(`     - ${r.pathPart} (path: ${r.path}, id: ${r.id})`));
+              // Last resort: try to get the resource directly by ID if we can find any reference to it
+              console.log(`🔍 Attempting to resolve conflict by finding resource ID...`);
               
-              throw new Error(`Resource conflict detected but could not resolve: ${error.message}`);
+              // Look for any child resources that might reference the missing parent
+              const potentialChildren = existingResources.filter(r => 
+                r.path && r.path.includes(currentPath) && r.path.length > currentPath.length
+              );
+              
+              if (potentialChildren.length > 0) {
+                console.log(`Found ${potentialChildren.length} potential child resources:`);
+                potentialChildren.forEach(child => {
+                  console.log(`  - ${child.path} (parentId: ${child.parentId})`);
+                });
+                
+                // Try to use the first child's parentId as our resource ID
+                const childParentId = potentialChildren[0].parentId;
+                if (childParentId && childParentId !== parentId) {
+                  console.log(`🎯 Using inferred resource ID: ${childParentId}`);
+                  resource = {
+                    id: childParentId,
+                    path: currentPath,
+                    pathPart: part,
+                    parentId: parentId
+                  };
+                  existingResources.push(resource);
+                }
+              }
+              
+              if (!resource) {
+                // Debug information to help diagnose the issue
+                console.error(`❌ Could not find conflicting resource after refresh:`);
+                console.error(`   Looking for: parentId=${parentId}, pathPart="${part}", currentPath="${currentPath}"`);
+                console.error(`   Available resources under parent ${parentId}:`);
+                existingResources
+                  .filter(r => r.parentId === parentId)
+                  .forEach(r => console.error(`     - ${r.pathPart} (path: ${r.path}, id: ${r.id})`));
+                console.error(`   All resources with similar paths:`);
+                existingResources
+                  .filter(r => r.path && (r.path.includes(part) || r.pathPart === part))
+                  .forEach(r => console.error(`     - ${r.pathPart} (path: ${r.path}, id: ${r.id}, parentId: ${r.parentId})`));
+                
+                throw new Error(`Resource conflict detected but could not resolve: ${error.message}`);
+              }
             }
           } else {
             throw error; // Re-throw if it's not a ConflictException
@@ -178,7 +228,7 @@ function methodExists(apiId, resourceId, method) {
     );
     return true;
   } catch (error) {
-    console.log('Error checking if method exists. returning false', error);
+    console.log('Error checking if method exists. returning false');
     return false;
   }
 }
