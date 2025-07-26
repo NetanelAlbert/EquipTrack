@@ -24,6 +24,7 @@ import {
   METADATA_SK,
   ORGANIZATION_TO_USERS_INDEX,
   ORGANIZATION_TO_USERS_INDEX_PK,
+  ORGANIZATION_TO_USERS_INDEX_SK,
 } from '../constants';
 import {
   Organization,
@@ -297,15 +298,18 @@ export class UsersAndOrganizationsAdapter {
   /**
    * Get all users in an organization
    */
-  async getUsersByOrganization(organizationId: string): Promise<UserAndUserInOrganization[]> {
+  async getUsersByOrganization(
+    organizationId: string
+  ): Promise<UserAndUserInOrganization[]> {
     // First, get all UserInOrganization records for this organization
-    // organizationToUserQueryKey format: ORG#<orgId>#USER#<userId>
+    // Query using organizationId as GSI PK, GSI SK will be the main table's PK (USER#<userId>)
     const userOrgQuery = new QueryCommand({
       TableName: this.tableName,
       IndexName: ORGANIZATION_TO_USERS_INDEX,
-      KeyConditionExpression: `begins_with(${ORGANIZATION_TO_USERS_INDEX_PK}, :orgPrefix)`,
+      KeyConditionExpression: `${ORGANIZATION_TO_USERS_INDEX_PK} = :orgId AND begins_with(${ORGANIZATION_TO_USERS_INDEX_SK}, :userPrefix)`,
       ExpressionAttributeValues: {
-        ':orgPrefix': `${ORG_PREFIX}${organizationId}#`,
+        ':orgId': organizationId,
+        ':userPrefix': USER_PREFIX,
       },
     });
 
@@ -336,7 +340,9 @@ export class UsersAndOrganizationsAdapter {
 
     return users.map((user) => ({
       user,
-      userInOrganization: userInOrganizations.find((uio) => uio.userId === user.id),
+      userInOrganization: userInOrganizations.find(
+        (uio) => uio.userId === user.id
+      ),
     }));
   }
 
@@ -370,7 +376,8 @@ export class UsersAndOrganizationsAdapter {
       PK: `${USER_PREFIX}${userInOrganization.userId}`,
       SK: `${ORG_PREFIX}${userInOrganization.organizationId}`,
       dbItemType: DbItemType.UserInOrganization,
-      organizationToUserQueryKey: `${ORG_PREFIX}${userInOrganization.organizationId}#${USER_PREFIX}${userInOrganization.userId}`,
+      // organizationId is included from userInOrganization for GSI PK
+      // PK will be used as GSI SK automatically
     };
 
     const command = new PutCommand({

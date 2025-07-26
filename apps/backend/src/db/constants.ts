@@ -54,7 +54,8 @@ export const PRODUCTS_BY_ORGANIZATION_INDEX = 'ProductsByOrganizationIndex';
 export const PRODUCTS_BY_ORGANIZATION_INDEX_PK = 'organizationId';
 
 export const ORGANIZATION_TO_USERS_INDEX = 'OrganizationToUsersIndex';
-export const ORGANIZATION_TO_USERS_INDEX_PK = 'organizationToUserQueryKey';
+export const ORGANIZATION_TO_USERS_INDEX_PK = 'organizationId';
+export const ORGANIZATION_TO_USERS_INDEX_SK = 'PK';
 
 export const TRANSACTIONS_INDEX = 'TransactionsIndex';
 export const ITEM_REPORT_HISTORY_INDEX = 'ItemReportHistoryIndex';

@@ -50,7 +50,7 @@ export interface UserDb extends User, DbItem {
  * Represents the link between a User and an Organization in the database.
  */
 export interface UserInOrganizationDb extends UserInOrganization, DbItem {
-  organizationToUserQueryKey: string;
+  // GSI attributes: organizationId (from UserInOrganization) and PK (from DbItem) are used automatically
 }
 
 /**
