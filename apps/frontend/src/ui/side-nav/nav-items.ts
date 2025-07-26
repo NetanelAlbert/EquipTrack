@@ -129,18 +129,19 @@ export const navItems: NavItem[] = [
     loadComponent: () =>
       import('../forms/forms.component').then((m) => m.FormsComponent),
   },
-  {
-    icon: 'track_changes',
-    labelKey: 'navigation.trace-product',
-    route: 'trace-product',
-    roles: [UserRole.WarehouseManager, UserRole.Admin],
-    // loadComponent omitted - will use DummyComponent (eager loaded)
-  },
-  {
-    icon: 'admin_panel_settings',
-    labelKey: 'navigation.admin-dashboard',
-    route: 'admin',
-    roles: [UserRole.Admin],
-    // loadComponent omitted - will use DummyComponent (eager loaded)
-  },
+  // TODO: Implement trace product and admin dashboard
+  // {
+  //   icon: 'track_changes',
+  //   labelKey: 'navigation.trace-product',
+  //   route: 'trace-product',
+  //   roles: [UserRole.WarehouseManager, UserRole.Admin],
+  //   // loadComponent omitted - will use DummyComponent (eager loaded)
+  // },
+  // {
+  //   icon: 'admin_panel_settings',
+  //   labelKey: 'navigation.admin-dashboard',
+  //   route: 'admin',
+  //   roles: [UserRole.Admin],
+  //   // loadComponent omitted - will use DummyComponent (eager loaded)
+  // },
 ];
