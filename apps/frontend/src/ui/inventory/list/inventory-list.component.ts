@@ -91,7 +91,6 @@ import {
         style({
           height: '0px',
           opacity: 0,
-          overflow: 'hidden',
           transform: 'scaleY(0)',
           transformOrigin: 'top',
         })
@@ -101,7 +100,6 @@ import {
         style({
           height: '*',
           opacity: 1,
-          overflow: 'visible',
           transform: 'scaleY(1)',
           transformOrigin: 'top',
         })
