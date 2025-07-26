@@ -3,6 +3,7 @@ import { CreateCheckOutForm } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
 import { randomUUID } from 'crypto';
+import { badRequest, internalServerError } from '../../responses';
 
 export const handler = async (
   req: CreateCheckOutForm,
@@ -11,8 +12,13 @@ export const handler = async (
   try {
     const organizationId = pathParams?.organizationId;
     if (!organizationId) {
-      return { status: false, errorMessage: 'Organization ID is required' };
+      throw badRequest('Organization ID is required');
     }
+    req.items.forEach((item) => {
+      if (item.upis && item.upis.length !== item.quantity) {
+        throw badRequest(`Item ${item.productId} has a quantity of ${item.quantity} which is not equal to the number of UPI's ${item.upis.length}`);
+      }
+    });
 
     const formsAdapter = new FormsAdapter();
     const formID = randomUUID();
@@ -34,6 +40,6 @@ export const handler = async (
     return { status: true };
   } catch (error) {
     console.error('Error creating checkout form:', error);
-    return { status: false, errorMessage: 'Failed to create checkout form' };
+    throw internalServerError('Failed to create checkout form');
   }
 };

@@ -70,7 +70,7 @@ This table manages check-in/check-out forms and predefined forms.
 
 | Entity / Purpose       | `PK` (Partition Key)      | `SK` (Sort Key)                   | `organizationId`           |
 | :--------------------- | :------------------------ | :-------------------------------- | :-------------------------- |
-| **User Form**          | `USER#<id>`               | `FORM#<id>`                       | `ORG#<id>`                  |
+| **User Form**          | `ORG#<orgId>#USER#<userId>` | `FORM#<id>`                     | `ORG#<id>`                  |
 | **Predefined Form**    | `ORG#<id>`                | `FORM#<id>`                       | `ORG#<id>`                  |
 
 ---

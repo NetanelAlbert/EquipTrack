@@ -286,6 +286,31 @@ export class InventoryAdapter {
   }
 
   /**
+   * Updates the holder information for a unique inventory item
+   */
+  async updateUniqueInventoryItemHolder(
+    productId: string,
+    upi: string,
+    organizationId: string,
+    newHolderId: string
+  ): Promise<void> {
+    const key = this.getUniqueProductKey(productId, upi, organizationId);
+
+    const command = new UpdateCommand({
+      TableName: this.tableName,
+      Key: key,
+      UpdateExpression:
+        'SET holderId = :holderId, holderIdQueryKey = :holderIdQueryKey',
+      ExpressionAttributeValues: {
+        ':holderId': newHolderId,
+        ':holderIdQueryKey': `${HOLDER_PREFIX}${organizationId}#${newHolderId}`,
+      },
+    });
+
+    await this.docClient.send(command);
+  }
+
+  /**
    * Deletes a unique inventory item
    */
   async deleteUniqueInventoryItem(

@@ -22,7 +22,7 @@ export const handler = async (
     throw badRequest('Organization ID is required');
   }
 
-  const forms = await formsAdapter.getUserForms(userId);
+  const forms = await formsAdapter.getUserForms(userId, organizationId);
 
   return { status: true, forms };
 };

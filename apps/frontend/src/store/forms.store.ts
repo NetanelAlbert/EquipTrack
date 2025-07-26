@@ -214,16 +214,27 @@ export const FormsStore = signalStore(
         }
       },
 
-      async approveForm(formID: string, signature?: string) {
+      async approveForm(formID: string, signature: string) {
         try {
-          // TODO: API call to approve form (backend returns notImplemented)
-          // When available, use:
-          // await firstValueFrom(apiService.endpoints.approveCheckOut.execute(
-          //   { formID, imageData: signature },
-          //   { [ORGANIZATION_ID_PATH_PARAM]: userStore.selectedOrganizationId() }
-          // ));
+          // Call the backend API to approve the form
+          const response = await firstValueFrom(
+            apiService.endpoints.approveCheckOut.execute(
+              {
+                formID,
+                signature,
+              },
+              {
+                [ORGANIZATION_ID_PATH_PARAM]:
+                  userStore.selectedOrganizationId(),
+              }
+            )
+          );
 
-          // Optimistically update local state
+          if (!response.status) {
+            throw new Error(response.errorMessage || 'Failed to approve form');
+          }
+
+          // Optimistically update local state on success
           patchState(state, (currentState) => ({
             ...currentState,
             forms: currentState.forms.map((form) =>
@@ -232,15 +243,14 @@ export const FormsStore = signalStore(
                     ...form,
                     status: FormStatus.Approved,
                     approvedAtTimestamp: Date.now(),
+                    approvedByUserId: userStore.user()?.id,
+                    signatureUri: signature ? 'embedded-in-pdf' : undefined,
                   }
                 : form
             ),
           }));
 
-          console.log(
-            'Form approved locally (API not implemented yet):',
-            formID
-          );
+          console.log('Form approved successfully:', formID);
         } catch (error) {
           console.error('Error approving form:', error);
           throw error;
@@ -249,14 +259,22 @@ export const FormsStore = signalStore(
 
       async rejectForm(formID: string, reason: string) {
         try {
-          // TODO: API call to reject form (backend returns notImplemented)
-          // When available, use:
-          // await firstValueFrom(apiService.endpoints.rejectCheckOut.execute(
-          //   { formID, reason },
-          //   { [ORGANIZATION_ID_PATH_PARAM]: userStore.selectedOrganizationId() }
-          // ));
+          // Call the backend API to reject the form
+          const response = await firstValueFrom(
+            apiService.endpoints.rejectCheckOut.execute(
+              { formID, reason },
+              {
+                [ORGANIZATION_ID_PATH_PARAM]:
+                  userStore.selectedOrganizationId(),
+              }
+            )
+          );
 
-          // Optimistically update local state
+          if (!response.status) {
+            throw new Error(response.errorMessage || 'Failed to reject form');
+          }
+
+          // Optimistically update local state on success
           patchState(state, (currentState) => ({
             ...currentState,
             forms: currentState.forms.map((form) =>
@@ -265,16 +283,13 @@ export const FormsStore = signalStore(
                     ...form,
                     status: FormStatus.Rejected,
                     rejectionReason: reason,
+                    lastUpdated: Date.now(),
                   }
                 : form
             ),
           }));
 
-          console.log(
-            'Form rejected locally (API not implemented yet):',
-            formID,
-            reason
-          );
+          console.log('Form rejected successfully:', formID, reason);
         } catch (error) {
           console.error('Error rejecting form:', error);
           throw error;
