@@ -49,6 +49,7 @@
   @if (selectedUserID()) {
     <inventory-search
       [items]="userItems()"
+      [productsMap]="organizationStore.productsMap()"
       (filteredItems)="onFilteredItemsChange($event)"
     ></inventory-search>
     

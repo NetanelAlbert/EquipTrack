@@ -2,7 +2,8 @@ import { Component, inject, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { InventoryListComponent } from '../inventory/list/inventory-list.component';
 import { InventorySearchComponent } from '../inventory/search/inventory-search.component';
-import { UserStore, InventoryStore } from '../../store';
+import { UserStore, InventoryStore, OrganizationStore } from '../../store';
+import { InventoryItem } from '@equip-track/shared';
 
 @Component({
   selector: 'app-my-items',
@@ -14,9 +15,10 @@ import { UserStore, InventoryStore } from '../../store';
 export class MyItemsComponent implements OnInit {
   userStore = inject(UserStore);
   inventoryStore = inject(InventoryStore);
+  organizationStore = inject(OrganizationStore);
 
   // Signal for filtered items from search component
-  filteredItems = signal<any[]>([]);
+  filteredItems = signal<InventoryItem[]>([]);
 
   // Computed property for current user's inventory items
   currentUserInventory = computed(() => {
@@ -30,7 +32,7 @@ export class MyItemsComponent implements OnInit {
   }
 
   // Handle filtered items from search component
-  onFilteredItemsChange(filtered: any[]) {
+  onFilteredItemsChange(filtered: InventoryItem[]) {
     this.filteredItems.set(filtered);
   }
 }

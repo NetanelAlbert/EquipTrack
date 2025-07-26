@@ -16,7 +16,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatChipsModule } from '@angular/material/chips';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
-import { InventoryItem } from '@equip-track/shared';
+import { InventoryItem, Product } from '@equip-track/shared';
 import {
   trigger,
   state,
@@ -278,7 +278,8 @@ export interface InventorySearchFilters {
 })
 export class InventorySearchComponent {
   // Input properties
-  items = input<InventoryItem[]>([]);
+  items = input.required<InventoryItem[]>();
+  productsMap = input.required<Map<string, Product>>();
 
   // Output events
   filteredItems = output<InventoryItem[]>();
@@ -308,6 +309,7 @@ export class InventorySearchComponent {
       filtered = filtered.filter(
         (item) =>
           item.productId.toLowerCase().includes(search) ||
+          this.productsMap().get(item.productId)?.name.toLowerCase().includes(search) ||
           (item.upis &&
             item.upis.some((upi) => upi.toLowerCase().includes(search)))
       );
@@ -331,8 +333,8 @@ export class InventorySearchComponent {
           bValue = b.quantity;
           break;
         case 'name':
-          aValue = a.productId.toLowerCase(); // Use productId as name for now
-          bValue = b.productId.toLowerCase();
+          aValue = this.productsMap().get(a.productId)?.name.toLowerCase();
+          bValue = this.productsMap().get(b.productId)?.name.toLowerCase();
           break;
         default:
           return 0;

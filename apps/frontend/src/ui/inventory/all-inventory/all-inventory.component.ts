@@ -12,6 +12,7 @@ import { InventoryListComponent } from '../list/inventory-list.component';
 import { InventorySearchComponent } from '../search/inventory-search.component';
 import { InventoryStore } from '../../../store/inventory.store';
 import { OrganizationStore } from '../../../store/organization.store';
+import { InventoryItem } from '@equip-track/shared';
 
 @Component({
   selector: 'app-all-inventory',
@@ -35,48 +36,21 @@ import { OrganizationStore } from '../../../store/organization.store';
 export class AllInventoryComponent implements OnInit {
   inventoryStore = inject(InventoryStore);
   organizationStore = inject(OrganizationStore);
-
-  // Signal for filtered items from search component
-  filteredItems = signal<any[]>([]);
-
-  // Computed properties for safer signal access
+  allInventoryItems = this.inventoryStore.totalOrganizationItems;
+  filteredItems = signal<InventoryItem[]>([]);
+  hasInventory = computed(() => this.allInventoryItems().length > 0);
   isLoading = this.inventoryStore.loading;
   errorMessage = this.inventoryStore.error;
-
-  // Computed property to check if inventory is empty
-  hasInventory = computed(() => {
-    const items = this.inventoryStore.inventory();
-    return Array.isArray(items) && items.length > 0;
-  });
-
-  // Computed property to flatten inventory into a single array for search
-  allInventoryItems = computed(() => {
-    const inventoryRecord = this.inventoryStore.inventory();
-    if (!inventoryRecord || typeof inventoryRecord !== 'object') {
-      return [];
-    }
-
-    const allItems: any[] = [];
-    Object.values(inventoryRecord).forEach((itemsArray) => {
-      if (Array.isArray(itemsArray)) {
-        allItems.push(...itemsArray);
-      }
-    });
-
-    return allItems;
-  });
 
   ngOnInit() {
     this.loadInventory();
   }
 
-  // Method to load/retry inventory
   loadInventory() {
     this.inventoryStore.fetchInventory();
   }
 
-  // Handle filtered items from search component
-  onFilteredItemsChange(filtered: any[]) {
+  onFilteredItemsChange(filtered: InventoryItem[]) {
     this.filteredItems.set(filtered);
   }
 }

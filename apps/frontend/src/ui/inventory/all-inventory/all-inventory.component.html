@@ -33,6 +33,7 @@
   @else {
     <inventory-search
       [items]="allInventoryItems()"
+      [productsMap]="organizationStore.productsMap()"
       (filteredItems)="onFilteredItemsChange($event)"
     ></inventory-search>
     

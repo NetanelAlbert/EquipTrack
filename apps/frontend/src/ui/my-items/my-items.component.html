@@ -1,6 +1,7 @@
 <div class="my-items-container">
   <inventory-search
     [items]="currentUserInventory()"
+    [productsMap]="organizationStore.productsMap()"
     (filteredItems)="onFilteredItemsChange($event)"
   ></inventory-search>
   
