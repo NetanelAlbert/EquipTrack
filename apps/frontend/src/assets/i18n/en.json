@@ -7,6 +7,8 @@
     "welcome-message": "Please sign in to access your equipment management dashboard.",
     "signin-methods": "Sign-in methods",
     "google-signin-group": "Google sign-in options",
+    "google-signin-section": "Google sign-in section",
+    "google-signin-button-group": "Google sign-in button group",
     "or-separator": "Alternative sign-in methods separator",
     "or": "or",
     "help-section": "Help and support options",
@@ -14,7 +16,19 @@
     "contact-admin": "Contact Administrator",
     "security-icon": "Security and privacy information",
     "security-note": "Your data is protected with enterprise-grade security.",
-    "signing-in": "Signing you in..."
+    "signing-in": "Signing you in...",
+    "loading": "Loading...",
+    "fallback-signin": "Fallback sign-in",
+    "sign-in-with-google": "Sign in with Google",
+    "sign-in-with-google-fallback": "Sign in with Google (fallback)",
+    "fallback-description": "If the button above doesn't work, try this alternative method.",
+    "error-icon": "Error icon",
+    "signin-error": "Sign-in Error",
+    "google-unavailable": "Google Sign-In is currently unavailable. Please try again later.",
+    "try-again": "Try Again",
+    "try-again-detailed": "Try signing in again",
+    "error": "Authentication Error",
+    "success": "Authentication Successful"
   },
   "common": {
     "close": "Close",
@@ -26,7 +40,11 @@
     "yes": "Yes",
     "no": "No",
     "ok": "OK",
-    "copied-to-clipboard": "Copied to clipboard"
+    "copied-to-clipboard": "Copied to clipboard",
+    "signature": {
+      "signature-pad": "Signature Pad",
+      "clear": "Clear"
+    }
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -61,7 +79,8 @@
     "approved-at": "Approved At",
     "approve": "Approve",
     "reject": "Reject",
-    "check-in": "Check In"
+    "check-in": "Check In",
+    "check-out": "Check Out"
   },
   "inventory": {
     "title": "Inventory",
@@ -70,7 +89,56 @@
     "remove-item": "Remove Item",
     "quantity": "Quantity",
     "location": "Location",
-    "status": "Status"
+    "status": "Status",
+    "views": {
+      "warehouse": "Warehouse",
+      "organization": "Organization",
+      "selectUser": "Select User"
+    },
+    "form": {
+      "product": "Product",
+      "quantity": "Quantity",
+      "upi": "UPI",
+      "upi-placeholder": "Enter UPI code"
+    },
+    "button": {
+      "add-item": "Add Item",
+      "save": "Save"
+    },
+    "validation": {
+      "duplicate": "Duplicate items found: {{duplicates}}",
+      "product-required": "Product is required",
+      "quantity-required": "Quantity is required",
+      "quantity-min": "Quantity must be at least 1",
+      "quantity-pattern": "Quantity must be a valid number",
+      "upi-required": "UPI is required"
+    },
+    "upi": {
+      "title": "UPI Information"
+    }
+  },
+  "checkout": {
+    "title": "Checkout",
+    "select-user": "Select User",
+    "predefined-forms": "Predefined Forms",
+    "items": "Items"
+  },
+  "reports": {
+    "title": "Reports",
+    "historyTitle": "Reports History",
+    "sortBy": "Sort By",
+    "sortByLocation": "Location",
+    "sortByProduct": "Product",
+    "selectDate": "Select Date",
+    "items": "items",
+    "upiLabel": "UPI",
+    "reported": "Reported",
+    "notReported": "Not Reported",
+    "lastLocation": "Last Location",
+    "useLastLocation": "Use Last Location",
+    "enterLocation": "Enter Location",
+    "noReportForDate": "No Report Available",
+    "noReportForDateDescription": "No report has been generated for the selected date."
   },
   "errors": {
     "not-allowed": {
@@ -98,6 +166,19 @@
       "request-body": "Hello,\n\nI would like to request access to EquipTrack for my organization.\n\nMy email: {{email}}\nApp URL: {{appUrl}}\n\nPlease add me to an organization so I can start using the equipment tracking system.\n\nThank you!",
       "copied": "Invitation message copied to clipboard"
     },
+    "editProducts": {
+      "title": "Edit Products",
+      "id": "Product ID",
+      "name": "Product Name",
+      "upi": "Requires UPI",
+      "idRequired": "Product ID is required",
+      "idMinLength": "Product ID must be at least 3 characters",
+      "nameRequired": "Product name is required",
+      "nameMinLength": "Product name must be at least 2 characters",
+      "duplicateIds": "Duplicate product IDs are not allowed",
+      "addProduct": "Add Product",
+      "save": "Save Products"
+    },
     "users": {
       "title": "Edit Users",
       "subtitle": "Manage organization users and send invitations",
@@ -114,7 +195,8 @@
         "button-send": "Send Invitation",
         "success": "Invitation sent to {{email}}",
         "email-required": "Email is required",
-        "email-invalid": "Please enter a valid email address"
+        "email-invalid": "Please enter a valid email address",
+        "error": "Failed to send invitation"
       },
       "table": {
         "title": "Organization Users",
