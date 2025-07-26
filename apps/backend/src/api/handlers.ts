@@ -1,4 +1,4 @@
-import { endpointMetas, EndpointMeta } from '@equip-track/shared';
+import { endpointMetas, EndpointMeta, JwtPayload } from '@equip-track/shared';
 import { handler as googleAuthHandler } from './auth/google';
 import { handler as getUsersHandler } from './admin/users/get';
 import { handler as setUserHandler } from './admin/users/set';
@@ -26,7 +26,7 @@ import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 export type HandlerFunction<Req, Res> = (
   req: Req,
   pathParams?: APIGatewayProxyEventPathParameters,
-  userId?: string
+  jwtPayload?: JwtPayload
 ) => Promise<Res>;
 
 type HandlersDefinition = {

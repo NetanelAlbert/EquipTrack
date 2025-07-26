@@ -16,11 +16,11 @@ export interface GoogleAuthResponse extends BasicResponse {
 }
 
 /**
- * JWT payload interface matching backend implementation
+ * JWT payload interface with user, organization, and role information
  */
 export interface JwtPayload {
-  userId: string;
+  sub: string; // User ID
   orgIdToRole: Record<string, UserRole>;
-  iat: number;
-  exp: number;
+  iat: number; // Issued at
+  exp: number; // Expiration time
 }

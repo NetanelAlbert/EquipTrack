@@ -2,6 +2,8 @@ import {
   BasicResponse,
   FormStatus,
   ApproveCheckOut,
+  JwtPayload,
+  UserRole,
 } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
@@ -9,12 +11,12 @@ import { UsersAndOrganizationsAdapter } from '../../../db/tables/users-and-organ
 import { InventoryTransferService } from '../../../services/inventory-transfer.service';
 import { PdfService } from '../../../services/pdf.service';
 import { S3Service } from '../../../services/s3.service';
-import { badRequest } from '../../responses';
+import { badRequest, forbidden } from '../../responses';
 
 export const handler = async (
   req: ApproveCheckOut,
   pathParams: APIGatewayProxyEventPathParameters,
-  userId?: string
+  jwtPayload?: JwtPayload
 ): Promise<BasicResponse> => {
   try {
     const organizationId = pathParams?.organizationId;
@@ -26,7 +28,7 @@ export const handler = async (
       throw badRequest('Form ID is required');
     }
 
-    if (!userId) {
+    if (!jwtPayload) {
       throw badRequest('User authentication required');
     }
 
@@ -41,7 +43,16 @@ export const handler = async (
     const s3Service = new S3Service();
 
     // Step 1: Get the form and validate it exists
+    const userId = jwtPayload.sub;
+    const userRole = jwtPayload.orgIdToRole[organizationId];
     const form = await formsAdapter.getForm(userId, organizationId, req.formID);
+    if (
+      form.userID !== userId &&
+      userRole !== UserRole.Admin &&
+      userRole !== UserRole.WarehouseManager
+    ) {
+      throw forbidden('You are not authorized to approve this form');
+    }
 
     if (!form) {
       throw badRequest(`Form with ID ${req.formID} not found`);

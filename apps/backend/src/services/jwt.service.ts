@@ -3,17 +3,7 @@ import {
   GetSecretValueCommand,
 } from '@aws-sdk/client-secrets-manager';
 import * as jwt from 'jsonwebtoken';
-import { UserRole } from '@equip-track/shared';
-
-/**
- * JWT payload interface with user, organization, and role information
- */
-export interface JwtPayload {
-  sub: string; // User ID
-  orgIdToRole: Record<string, UserRole>;
-  iat: number; // Issued at
-  exp: number; // Expiration time
-}
+import { UserRole, JwtPayload } from '@equip-track/shared';
 
 /**
  * JWT service for token generation and validation using RS256 algorithm

@@ -7,15 +7,16 @@ import {
 } from '@equip-track/shared';
 import { APIGatewayProxyEvent } from 'aws-lambda';
 import { badRequest, forbidden, unauthorized } from './responses';
-import { JwtService, JwtPayload } from '../services/jwt.service';
+import { JwtService } from '../services/jwt.service';
+import { JwtPayload } from '@equip-track/shared';
 
 const jwtService = new JwtService();
 const rolesAllowedToAccessOtherUsers = [UserRole.Admin];
 
-export async function authenticateAndGetUserId(
+export async function authenticateAndGetJwt(
   meta: EndpointMeta<any, any>,
   event: APIGatewayProxyEvent
-): Promise<string> {
+): Promise<JwtPayload> {
   console.log(`[AUTH] Authenticating endpoint: ${meta.path}`);
   console.log(`[AUTH] Required roles:`, meta.allowedRoles);
 
@@ -28,7 +29,7 @@ export async function authenticateAndGetUserId(
   validateUserAccess(jwtPayload, meta, event, organization);
   console.log(`[AUTH] User access validated successfully`);
 
-  return jwtPayload.sub;
+  return jwtPayload;
 }
 
 /**
