@@ -151,11 +151,8 @@ export const UserStore = signalStore(
 
       // Organization selection with enhanced functionality
       selectOrganization(organizationId: string, persistSelection = true) {
-        const userOrgRelation = store
-          .userInOrganizations()
-          .find((uio) => uio.organizationId === organizationId);
-
-        if (!userOrgRelation) {
+        // Validate organization access for non-empty organizationId
+        if (organizationId && !this.hasAccessToOrganization(organizationId)) {
           console.error(
             `User does not have access to organization: ${organizationId}`
           );
@@ -300,5 +297,5 @@ export const UserStore = signalStore(
         }
       },
     };
-  }),
+  })
 );

@@ -9,7 +9,7 @@
   <div class="organizations-section" *ngIf="hasOrganizations(); else noOrganizations">
     <mat-grid-list 
       [cols]="getGridCols()" 
-      rowHeight="200px" 
+      [rowHeight]="getRowHeight()" 
       gutterSize="16px"
       class="organizations-grid">
       
@@ -67,3 +67,6 @@
     </div>
   </ng-template>
 </div> 
+@if (isLoading()) {
+  <mat-spinner></mat-spinner> 
+}

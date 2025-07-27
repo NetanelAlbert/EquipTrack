@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal } from '@angular/core';
+import { Component, inject, computed, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -11,6 +11,7 @@ import { UserStore } from '../../store';
 import { OrganizationService } from '../../services/organization.service';
 import { Organization } from '@equip-track/shared';
 import { UserRole } from '@equip-track/shared';
+import { MatProgressSpinner } from '@angular/material/progress-spinner';
 
 @Component({
   selector: 'app-home',
@@ -22,42 +23,41 @@ import { UserRole } from '@equip-track/shared';
     MatIconModule,
     MatGridListModule,
     TranslateModule,
+    MatProgressSpinner,
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit {
   private userStore = inject(UserStore);
-  private organizationService = inject(OrganizationService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private translateService = inject(TranslateService);
 
   // State signals
-  isLoading = signal(false);
+  isRedirecting = signal(false);
+  isLoading = computed<boolean>(
+    () => this.userStore.startDataStatus()?.isLoading || this.isRedirecting()
+  );
   selectedOrgId = signal<string | null>(null);
 
   // Get user organizations from user store
-  userOrganizations = this.userStore.userInOrganizations;
   currentUser = this.userStore.user;
 
-  // Computed properties for template
-  hasOrganizations = computed(() => this.userOrganizations().length > 0);
-
   // Get actual organization objects from user organization relationships
-  availableOrganizations = computed(() => {
-    // For now, we need to get organizations from the user store's organizations list
-    // This will be enhanced when we integrate with the full organizations store
-    const userOrgIds = this.userOrganizations().map((uo) => uo.organizationId);
+  availableOrganizations = this.userStore.organizations;
 
-    // TODO: In future iterations, get actual organization data from AllOrganizationsStore
-    // For now, create mock organizations based on user organization relationships
-    return this.userOrganizations().map((uo) => ({
-      id: uo.organizationId,
-      name: `Organization ${uo.organizationId}`, // Mock name
-      imageUrl: null,
-    }));
-  });
+  // Computed properties for template
+  hasOrganizations = computed(() => this.availableOrganizations().length > 0);
+
+  ngOnInit(): void {
+    if (!this.hasOrganizations()) {
+      this.userStore.loadStartData();
+    }
+    if (this.userStore.selectedOrganizationId()) {
+      this.navigateToDefaultRoute(this.userStore.currentRole() ?? UserRole.Customer);
+    }
+  }
 
   /**
    * Get responsive grid columns based on screen size
@@ -69,6 +69,18 @@ export class HomeComponent {
     if (width < 600) return 1; // Mobile
     if (width < 960) return 2; // Tablet
     return 3; // Desktop
+  }
+
+  /**
+   * Get responsive row height based on screen size
+   */
+  getRowHeight(): string {
+    if (typeof window === 'undefined') return '260px'; // SSR fallback
+
+    const width = window.innerWidth;
+    if (width < 600) return '240px'; // Mobile - slightly smaller
+    if (width < 960) return '250px'; // Tablet
+    return '260px'; // Desktop
   }
 
   /**
@@ -93,7 +105,7 @@ export class HomeComponent {
       return; // Prevent multiple selections
     }
 
-    this.isLoading.set(true);
+    this.isRedirecting.set(true);
     this.selectedOrgId.set(organizationId);
 
     try {
@@ -121,7 +133,7 @@ export class HomeComponent {
 
       // Small delay to ensure stores are updated before navigation
       setTimeout(() => {
-        this.isLoading.set(false);
+        this.isRedirecting.set(false);
         this.selectedOrgId.set(null);
 
         // Navigate to the appropriate route based on role
@@ -129,7 +141,7 @@ export class HomeComponent {
       }, 100);
     } catch (error: unknown) {
       console.error('Error selecting organization:', error);
-      this.isLoading.set(false);
+      this.isRedirecting.set(false);
       this.selectedOrgId.set(null);
 
       const errorMessage =
