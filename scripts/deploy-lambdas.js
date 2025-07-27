@@ -51,7 +51,7 @@ function ensureRole() {
       `aws iam attach-role-policy --role-name ${roleName} --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole`
     );
     
-    // Create and attach least-privilege DynamoDB and Secrets Manager policy
+    // Create and attach least-privilege DynamoDB, Secrets Manager, and S3 policy
     const policyName = `equip-track-lambda-policy-${STAGE}`;
     const lambdaPolicy = {
       Version: '2012-10-17',
@@ -83,6 +83,18 @@ function ensureRole() {
           ],
           Resource: [
             `arn:aws:secretsmanager:${AWS_REGION}:*:secret:equip-track/jwt-private-key*`
+          ]
+        },
+        {
+          Effect: 'Allow',
+          Action: [
+            's3:PutObject',
+            's3:GetObject',
+            's3:DeleteObject'
+          ],
+          Resource: [
+            `arn:aws:s3:::equip-track-forms/*`,
+            `arn:aws:s3:::equip-track-forms-${STAGE}/*`
           ]
         }
       ]
