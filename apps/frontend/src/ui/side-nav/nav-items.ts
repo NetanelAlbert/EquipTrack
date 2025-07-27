@@ -45,14 +45,15 @@ export const navItems: NavItem[] = [
     loadComponent: () =>
       import('../forms/forms.component').then((m) => m.FormsComponent),
   },
-  {
-    icon: 'login',
-    labelKey: 'navigation.check-in',
-    route: 'check-in',
-    roles: [UserRole.Customer],
-    loadComponent: () =>
-      import('../check-in/check-in.component').then((m) => m.CheckInComponent),
-  },
+  // TODO: Implement check-in
+  // {
+  //   icon: 'login',
+  //   labelKey: 'navigation.check-in',
+  //   route: 'check-in',
+  //   roles: [UserRole.Customer],
+  //   loadComponent: () =>
+  //     import('../check-in/check-in.component').then((m) => m.CheckInComponent),
+  // },
   {
     icon: 'edit',
     labelKey: 'navigation.edit-products',
