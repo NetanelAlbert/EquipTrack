@@ -143,59 +143,10 @@ function uploadToS3(bucketName) {
   console.log('✅ Frontend files uploaded to S3 with proper content types');
 }
 
-function updateEnvironmentFile() {
-  console.log('Updating environment configuration...');
-  
-  // Load deployment info to get API URL
-  if (!fs.existsSync('deployment-info.json')) {
-    console.log('⚠️  Warning: deployment-info.json not found. Skipping API URL replacement.');
-    return;
-  }
-  
-  const deploymentInfo = JSON.parse(fs.readFileSync('deployment-info.json', 'utf8'));
-  
-  // Try new structure first, fallback to legacy
-  const apiUrl = deploymentInfo.backend?.apiGateway?.apiUrl;
-  
-  if (!apiUrl) {
-    console.log('⚠️  Warning: API URL not found in deployment info. Skipping API URL replacement.');
-    return;
-  }
-  
-  // Find the hashed main.js file (e.g., main-TOSE4JP4.js)
-  let mainJsFile = null;
-  try {
-    const files = fs.readdirSync(FRONTEND_DIST_PATH);
-    mainJsFile = files.find(file => file.startsWith('main') && file.endsWith('.js'));
-  } catch (error) {
-    console.log('⚠️  Warning: Could not read frontend build directory');
-    return;
-  }
-  
-  if (!mainJsFile) {
-    console.log('⚠️  Warning: Could not find main JavaScript file');
-    return;
-  }
-  
-  const envProdFile = path.join(FRONTEND_DIST_PATH, mainJsFile);
-  
-  if (fs.existsSync(envProdFile)) {
-    try {
-      let content = fs.readFileSync(envProdFile, 'utf8');
-      content = content.replace(/API_URL_PLACEHOLDER/g, apiUrl);
-      fs.writeFileSync(envProdFile, content);
-      console.log(`✅ Updated API URL to: ${apiUrl} in ${mainJsFile}`);
-    } catch (error) {
-      console.log('⚠️  Warning: Could not update API URL in built files');
-    }
-  }
-}
+
 
 function deployFrontend() {
   console.log('Deploying frontend to S3...');
-  
-  // Update environment configuration with actual API URL
-  updateEnvironmentFile();
   
   const bucketName = createS3Bucket();
   uploadToS3(bucketName);
