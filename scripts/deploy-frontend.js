@@ -151,7 +151,7 @@ function deployFrontend() {
   const bucketName = createS3Bucket();
   uploadToS3(bucketName);
   
-  const s3WebsiteUrl = `http://${bucketName}.s3-website-${AWS_REGION}.amazonaws.com`;
+  const s3WebsiteUrl = `http://${bucketName}.s3-website.${AWS_REGION}.amazonaws.com`;
   
   // Load existing deployment info
   let deploymentInfo = {};
