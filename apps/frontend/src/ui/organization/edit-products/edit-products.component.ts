@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormArray,
@@ -64,7 +64,10 @@ export class EditProductsComponent {
   >();
 
   constructor() {
-    this.initializeForm();
+    // NOTE: This will cause the form to be re-initialized when the products change
+    effect(() => {
+      this.initializeForm();
+    });
   }
 
   private initializeForm() {
