@@ -114,7 +114,7 @@ export class FormsAdapter {
     userId: string,
     organizationId: string,
     updates: Partial<InventoryForm>
-  ): Promise<void> {
+  ): Promise<InventoryForm> {
     const key = this.getFormKey(userId, organizationId, formID);
 
     // Build dynamic update expression
@@ -156,10 +156,16 @@ export class FormsAdapter {
       }),
       // Ensure the form exists before updating
       ConditionExpression: 'attribute_exists(PK)',
+      // Return all attributes after the update
+      ReturnValues: 'ALL_NEW',
     });
 
     try {
-      await this.docClient.send(command);
+      const result = await this.docClient.send(command);
+      if (!result.Attributes) {
+        throw new Error(`Form with ID ${formID} for user ${userId} not found`);
+      }
+      return this.getInventoryForm(result.Attributes);
     } catch (error: any) {
       if (error.name === 'ConditionalCheckFailedException') {
         throw new Error(`Form with ID ${formID} for user ${userId} not found`);

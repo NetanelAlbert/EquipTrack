@@ -71,8 +71,8 @@ export const endpointMetas = {
       UserRole.Customer,
     ],
     requestType: {} as BasicUser.ApproveCheckOut,
-    responseType: {} as BasicResponse,
-  } as EndpointMeta<BasicUser.ApproveCheckOut, BasicResponse>,
+    responseType: {} as BasicUser.ApproveCheckOutResponse,
+  } as EndpointMeta<BasicUser.ApproveCheckOut, BasicUser.ApproveCheckOutResponse>,
   rejectForm: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/reject`,
     method: 'POST',

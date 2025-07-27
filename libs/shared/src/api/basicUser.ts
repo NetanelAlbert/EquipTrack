@@ -1,4 +1,5 @@
 import {
+  InventoryForm,
   InventoryItem,
   ItemReport,
   Organization,
@@ -16,6 +17,10 @@ export interface StartResponse extends BasicResponse {
 export interface ApproveCheckOut {
   formID: string;
   signature: string;
+}
+
+export interface ApproveCheckOutResponse extends BasicResponse {
+  updatedForm: InventoryForm;
 }
 
 export interface RejectCheckOut {

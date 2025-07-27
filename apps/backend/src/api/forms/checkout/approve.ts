@@ -1,5 +1,5 @@
 import {
-  BasicResponse,
+  BasicUser,
   FormStatus,
   ApproveCheckOut,
   JwtPayload,
@@ -11,13 +11,13 @@ import { UsersAndOrganizationsAdapter } from '../../../db/tables/users-and-organ
 import { InventoryTransferService } from '../../../services/inventory-transfer.service';
 import { PdfService } from '../../../services/pdf.service';
 import { S3Service } from '../../../services/s3.service';
-import { badRequest, forbidden } from '../../responses';
+import { badRequest, forbidden, internalServerError } from '../../responses';
 
 export const handler = async (
   req: ApproveCheckOut,
   pathParams: APIGatewayProxyEventPathParameters,
   jwtPayload?: JwtPayload
-): Promise<BasicResponse> => {
+): Promise<BasicUser.ApproveCheckOutResponse> => {
   try {
     const organizationId = pathParams?.organizationId;
     if (!organizationId) {
@@ -46,16 +46,17 @@ export const handler = async (
     const userId = jwtPayload.sub;
     const userRole = jwtPayload.orgIdToRole[organizationId];
     const form = await formsAdapter.getForm(userId, organizationId, req.formID);
+
+    if (!form) {
+      throw badRequest(`Form with ID ${req.formID} not found`);
+    }
+
     if (
       form.userID !== userId &&
       userRole !== UserRole.Admin &&
       userRole !== UserRole.WarehouseManager
     ) {
       throw forbidden('You are not authorized to approve this form');
-    }
-
-    if (!form) {
-      throw badRequest(`Form with ID ${req.formID} not found`);
     }
 
     if (form.status !== FormStatus.Pending) {
@@ -73,32 +74,20 @@ export const handler = async (
     });
 
     // Step 2: Get user data for PDF generation
-    const usersByOrganization = await usersAdapter.getUsersByOrganization(
-      organizationId
-    );
-    const userAndOrg = usersByOrganization.find(
-      (uo) => uo.user.id === form.userID
-    );
+    const user = await usersAdapter.getUserFromDB(form.userID);
 
-    if (!userAndOrg) {
+    if (!user) {
       throw badRequest(`User ${form.userID} not found in organization`);
     }
 
-    const formUser = userAndOrg.user;
-
     console.log(`Starting approval process for form ${req.formID}`);
 
-    // Step 3: Transfer inventory items (with locking)
-    console.log('Transferring inventory items...');
-    await inventoryTransferService.transferInventoryItems(form, organizationId);
-    console.log('Inventory transfer completed successfully');
-
-    // Step 4: Generate PDF
+    // Step 3: Generate PDF
     console.log('Generating PDF...');
-    const pdfBuffer = PdfService.generateFormPDF(form, formUser, req.signature);
+    const pdfBuffer = PdfService.generateFormPDF(form, user, req.signature);
     console.log('PDF generated successfully');
 
-    // Step 5: Upload PDF to S3
+    // Step 4: Upload PDF to S3
     console.log('Uploading PDF to S3...');
     const pdfUrl = await s3Service.uploadFormPDF(
       pdfBuffer,
@@ -109,19 +98,26 @@ export const handler = async (
     );
     console.log(`PDF uploaded successfully: ${pdfUrl}`);
 
+    // Step 5: Transfer inventory items (with locking)
+    console.log('Transferring inventory items...');
+    await inventoryTransferService.transferInventoryItems(form, organizationId);
+    console.log('Inventory transfer completed successfully');
+
     // Step 6: Update form with approval metadata
     console.log('Updating form status...');
     const now = Date.now();
-    await formsAdapter.updateForm(req.formID, form.userID, organizationId, {
+    const updatedForm = await formsAdapter.updateForm(req.formID, form.userID, organizationId, {
       status: FormStatus.Approved,
       approvedAtTimestamp: now,
       approvedByUserId: userId,
       pdfUri: pdfUrl,
       lastUpdated: now,
     });
+
+    
     console.log('Form approval completed successfully');
 
-    return { status: true };
+    return { status: true, updatedForm };
   } catch (error) {
     console.error('Error approving form:', error);
 
@@ -141,11 +137,10 @@ export const handler = async (
     }
 
     // Generic error response
-    return {
-      status: false,
-      errorMessage: `Failed to approve form: ${
+    throw internalServerError(
+      `An error occurred while approving the form: ${
         error instanceof Error ? error.message : 'Unknown error'
-      }`,
-    };
+      }`
+    );
   }
 };

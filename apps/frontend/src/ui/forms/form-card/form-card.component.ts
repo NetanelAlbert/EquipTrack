@@ -59,7 +59,6 @@ export class FormCardComponent {
             this.form.formID
           );
 
-          // ✅ Use real API through forms store
           await this.formsStore.approveForm(this.form.formID, signature);
         } catch (error) {
           console.error('Failed to approve form:', error);

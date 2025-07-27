@@ -16,6 +16,7 @@ import {
   QueryCommand,
   PutCommand,
   UpdateCommand,
+  GetCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
   USERS_AND_ORGANIZATIONS_TABLE_NAME,
@@ -344,6 +345,18 @@ export class UsersAndOrganizationsAdapter {
         (uio) => uio.userId === user.id
       ),
     }));
+  }
+
+  async getUserFromDB(userId: string): Promise<User | undefined> {
+    const command = new GetCommand({
+      TableName: this.tableName,
+      Key: this.getUserKey(userId),
+    });
+    const result = await this.docClient.send(command);
+    if (!result.Item) {
+      return undefined;
+    }
+    return this.getUser(result.Item as UserDb);
   }
 
   /**

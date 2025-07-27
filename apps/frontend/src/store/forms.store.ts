@@ -235,20 +235,11 @@ export const FormsStore = signalStore(
           }
 
           // Optimistically update local state on success
-          patchState(state, (currentState) => ({
-            ...currentState,
-            forms: currentState.forms.map((form) =>
-              form.formID === formID
-                ? {
-                    ...form,
-                    status: FormStatus.Approved,
-                    approvedAtTimestamp: Date.now(),
-                    approvedByUserId: userStore.user()?.id,
-                    signatureUri: signature ? 'embedded-in-pdf' : undefined,
-                  }
-                : form
+          patchState(state, {
+            forms: state.forms().map((form) =>
+              form.formID === formID ? response.updatedForm : form
             ),
-          }));
+          });
 
           console.log('Form approved successfully:', formID);
         } catch (error) {
