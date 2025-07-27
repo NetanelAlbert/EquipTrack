@@ -100,7 +100,7 @@ export const endpointMetas = {
   getProducts: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products`,
     method: 'GET',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
     responseType: {} as Wharehouse.GetProductsResponse,
   } as EndpointMeta<undefined, Wharehouse.GetProductsResponse>,
   setProduct: {
@@ -174,6 +174,9 @@ export const endpointMetas = {
   } as EndpointMeta<Wharehouse.CreateCheckOutForm, BasicResponse>,
 
   // Reports
+  /**
+   * @deprecated Use getReportsByDates instead
+   */
   getReports: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports`,
     method: 'GET',
@@ -183,7 +186,7 @@ export const endpointMetas = {
   getReportsByDates: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports/by-dates`,
     method: 'POST',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
     requestType: {} as Reports.GetReportsByDatesRequest,
     responseType: {} as Reports.GetReportsByDatesResponse,
   } as EndpointMeta<

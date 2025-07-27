@@ -6,7 +6,7 @@ import {
   withState,
 } from '@ngrx/signals';
 import { computed, inject } from '@angular/core';
-import { ItemReport, ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
+import { formatDateToString, ItemReport, ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
 import { ApiService } from '../services/api.service';
 import { UserStore } from './user.store';
 import { firstValueFrom } from 'rxjs';
@@ -46,61 +46,7 @@ export const ReportsStore = signalStore(
     };
 
     return {
-      async fetchReports() {
-        updateState({ loading: true, error: null });
-
-        try {
-          const organizationId = userStore.selectedOrganizationId();
-          if (!organizationId) {
-            throw new Error('No organization selected');
-          }
-
-          // ✅ API call to fetch reports for last 30 days
-          const reportsResponse = await firstValueFrom(
-            apiService.endpoints.getReports.execute(undefined, {
-              [ORGANIZATION_ID_PATH_PARAM]: organizationId,
-            })
-          );
-
-          if (!reportsResponse.status) {
-            throw new Error('Failed to fetch reports');
-          }
-
-          const reportsByDate = new Map(
-            Object.entries(reportsResponse.reportsByDate || {})
-          );
-
-          // Extract today's and yesterday's reports for quick access
-          const today = new Date().toISOString().split('T')[0];
-          const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split('T')[0];
-
-          const todayReport = reportsByDate.get(today) || [];
-          const lastReport = reportsByDate.get(yesterday) || [];
-
-          updateState({
-            reportsByDate,
-            todayReport,
-            lastReport,
-            loading: false,
-          });
-
-          console.log('Reports fetched successfully from API:', {
-            totalDates: reportsByDate.size,
-            todayItems: todayReport.length,
-            lastItems: lastReport.length,
-          });
-        } catch (error) {
-          console.error('Failed to fetch reports:', error);
-          updateState({
-            error: 'Failed to fetch reports',
-            loading: false,
-          });
-        }
-      },
-
-      async fetchReportsByDates(dates: string[]) {
+      async fetchReports(dates: string[]) {
         updateState({ loading: true, error: null });
 
         try {
@@ -144,7 +90,7 @@ export const ReportsStore = signalStore(
       },
 
       async updateItemReport(itemReport: ItemReport, date?: string) {
-        const reportDate = date || new Date().toISOString().split('T')[0];
+        const reportDate = date || formatDateToString(new Date());
 
         // Optimistically update UI
         const currentReportsByDate = new Map(store.reportsByDate());
@@ -164,7 +110,7 @@ export const ReportsStore = signalStore(
         currentReportsByDate.set(reportDate, updatedReports);
 
         // Update today's report if it's today's date
-        const today = new Date().toISOString().split('T')[0];
+        const today = formatDateToString(new Date());
         const todayReport =
           reportDate === today ? updatedReports : store.todayReport();
 
@@ -230,7 +176,7 @@ export const ReportsStore = signalStore(
       },
 
       async publishMultipleItems(items: ItemReport[], date?: string) {
-        const reportDate = date || new Date().toISOString().split('T')[0];
+        const reportDate = date || formatDateToString(new Date());
         updateState({ loading: true, error: null });
 
         try {
@@ -255,7 +201,7 @@ export const ReportsStore = signalStore(
           }
 
           // Refresh reports after publishing
-          await this.fetchReports();
+          await this.fetchReports([reportDate]);
 
           console.log('Multiple items published successfully:', {
             date: reportDate,

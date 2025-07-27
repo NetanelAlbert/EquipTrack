@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
@@ -12,7 +12,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
-import { ItemReport } from '@equip-track/shared';
+import { formatDateToString, ItemReport } from '@equip-track/shared';
 
 @Component({
   selector: 'app-today-report',
@@ -44,9 +44,22 @@ export class TodayReportComponent implements OnInit {
   private expandedItems = new Set<string>();
   private focusedCardUpi: string | null = null;
 
+  constructor() {
+    effect(() => {
+      if (this.reportsStore.todayReport() && this.reportsStore.lastReport()) {
+        this.sortItems();
+      }
+    });
+  }
+
   ngOnInit() {
-    this.reportsStore.fetchReports();
-    this.sortItems();
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    this.reportsStore.fetchReports([
+      formatDateToString(today),
+      formatDateToString(yesterday),
+    ]);
   }
 
   getProductName(productId: string): string {

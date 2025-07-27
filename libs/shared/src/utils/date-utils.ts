@@ -16,3 +16,12 @@ export function formatDateToUi(date: Date): string {
     year: 'numeric',
   });
 }
+
+/**
+ * Format date to string (YYYY-MM-DD)
+ * @param date - Date to format
+ * @returns Formatted date string
+ */
+export function formatDateToString(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
