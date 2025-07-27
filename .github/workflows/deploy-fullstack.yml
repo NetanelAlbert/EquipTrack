@@ -71,10 +71,19 @@ jobs:
         env:
           RECREATE_API: 'true'
 
-      - name: Deploy Frontend to S3
-        run: node scripts/deploy-frontend.js
+      - name: Deploy Frontend to S3 (Fast - first attempt)
+        id: deploy-frontend-fast
+        run: node scripts/deploy-frontend-fast.js
+        continue-on-error: true
 
-      - name: Create CloudFront Distribution
+      - name: Deploy Frontend to S3 (Full setup on fast failure)
+        if: steps.deploy-frontend-fast.outcome == 'failure'
+        run: |
+          echo "Fast frontend deployment failed. Deploying with full infrastructure setup..."
+          node scripts/deploy-frontend.js
+
+      - name: Create CloudFront Distribution (if needed)
+        if: steps.deploy-frontend-fast.outcome == 'failure'
         run: node scripts/setup-cloudfront.js
 
       - name: Output URLs

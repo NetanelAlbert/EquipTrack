@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const { execSync } = require('child_process');
 const fs = require('fs');
+const { setupAPICustomDomain } = require('./setup-api-custom-domain');
 
 // Disable AWS CLI pager to prevent interactive prompts
 process.env.AWS_PAGER = '';
@@ -31,6 +32,14 @@ process.env.AWS_PAGER = '';
 const STAGE = process.env.STAGE || 'dev';
 const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
 const RECREATE_API = process.env.RECREATE_API === 'true';
+const BASE_DOMAIN = process.env.BASE_DOMAIN || 'equip-track.com';
+
+// Stage-aware API domain selection  
+function getAPIDomain(stage, baseDomain) {
+  return stage === 'production' ? `api.${baseDomain}` : `${stage}-api.${baseDomain}`;
+}
+
+const API_DOMAIN = process.env.API_DOMAIN || getAPIDomain(STAGE, BASE_DOMAIN);
 
 // Load endpoint definitions from config file
 function loadEndpoints() {
@@ -50,8 +59,139 @@ function loadEndpoints() {
   }
 }
 
-function createOrUpdateAPI() {
+// Custom Domain Management Functions for RECREATE_API support
+
+function detectExistingCustomDomainMappings(apiId) {
+  console.log(`🔍 Detecting custom domain mappings for API: ${apiId}...`);
+  
+  try {
+    // Check if our expected custom domain exists
+    const domainResult = execSync(
+      `aws apigateway get-domain-name --domain-name ${API_DOMAIN}`,
+      { encoding: 'utf8', stdio: 'pipe' }
+    );
+    
+    const domainInfo = JSON.parse(domainResult);
+    console.log(`✅ Found custom domain: ${API_DOMAIN}`);
+    
+    // Check base path mappings for this domain
+    const mappingsResult = execSync(
+      `aws apigateway get-base-path-mappings --domain-name ${API_DOMAIN}`,
+      { encoding: 'utf8' }
+    );
+    
+    let mappings = [];
+    if (mappingsResult && mappingsResult.trim()) {
+      const mappingsData = JSON.parse(mappingsResult);
+      mappings = mappingsData.items || [];
+    }
+    
+    // Filter mappings that belong to our API
+    const apiMappings = mappings.filter(mapping => mapping.restApiId === apiId);
+    
+    if (apiMappings.length > 0) {
+      console.log(`✅ Found ${apiMappings.length} domain mappings for API ${apiId}:`);
+      apiMappings.forEach(mapping => {
+        console.log(`   - Base path: "${mapping.basePath || '(root)'}" -> Stage: ${mapping.stage}`);
+      });
+      
+      return {
+        domainInfo,
+        mappings: apiMappings,
+        hasCustomDomain: true
+      };
+    } else {
+      console.log(`ℹ️  Custom domain exists but no mappings found for API ${apiId}`);
+      return { domainInfo, mappings: [], hasCustomDomain: false };
+    }
+    
+  } catch (error) {
+    if (error.stderr && error.stderr.includes('NotFoundException')) {
+      console.log(`ℹ️  No custom domain found: ${API_DOMAIN}`);
+      return { hasCustomDomain: false, mappings: [] };
+    }
+    
+    console.log(`⚠️  Error detecting custom domain mappings: ${error.message}`);
+    return { hasCustomDomain: false, mappings: [], error: error.message };
+  }
+}
+
+function cleanupCustomDomainMappings(apiId, customDomainState) {
+  if (!customDomainState.hasCustomDomain || customDomainState.mappings.length === 0) {
+    console.log(`ℹ️  No custom domain mappings to clean up for API ${apiId}`);
+    return;
+  }
+  
+  console.log(`🧹 Cleaning up custom domain mappings for API ${apiId}...`);
+  
+  for (const mapping of customDomainState.mappings) {
+    try {
+      // For empty/root base path, don't include --base-path parameter at all
+      if (mapping.basePath && mapping.basePath.trim()) {
+        execSync(
+          `aws apigateway delete-base-path-mapping --domain-name ${API_DOMAIN} --base-path "${mapping.basePath}"`,
+          { stdio: 'inherit' }
+        );
+      } else {
+        // Root path mapping - no base path parameter needed
+        execSync(
+          `aws apigateway delete-base-path-mapping --domain-name ${API_DOMAIN}`,
+          { stdio: 'inherit' }
+        );
+      }
+      console.log(`✅ Deleted mapping: "${mapping.basePath || '(root)'}"`);
+    } catch (error) {
+      console.log(`⚠️  Could not delete mapping "${mapping.basePath || '(root)'}": ${error.message}`);
+    }
+  }
+}
+
+async function restoreCustomDomainMappings(newApiId, customDomainState) {
+  if (!customDomainState.hasCustomDomain || customDomainState.mappings.length === 0) {
+    console.log(`ℹ️  No custom domain mappings to restore for new API ${newApiId}`);
+    return;
+  }
+  
+  console.log(`🔄 Restoring custom domain mappings for new API ${newApiId}...`);
+  
+  try {
+    // Use our existing custom domain setup function to create the mapping
+    await setupAPICustomDomain(newApiId);
+    
+    console.log(`✅ Custom domain mappings restored successfully for API ${newApiId}`);
+    
+    // Update deployment info with the new API ID in custom domain section
+    updateCustomDomainDeploymentInfo(newApiId);
+    
+  } catch (error) {
+    console.error(`❌ Failed to restore custom domain mappings: ${error.message}`);
+    console.error(`🔧 Manual fix required: Run "node scripts/setup-api-custom-domain.js --api-id ${newApiId}"`);
+    throw error;
+  }
+}
+
+function updateCustomDomainDeploymentInfo(apiId) {
+  try {
+    if (fs.existsSync('deployment-info.json')) {
+      const deploymentInfo = JSON.parse(fs.readFileSync('deployment-info.json', 'utf8'));
+      
+      // Update custom domain API ID reference
+      if (deploymentInfo.customDomains && deploymentInfo.customDomains[API_DOMAIN]) {
+        deploymentInfo.customDomains[API_DOMAIN].apiId = apiId;
+        deploymentInfo.customDomains[API_DOMAIN].lastUpdated = new Date().toISOString();
+        
+        fs.writeFileSync('deployment-info.json', JSON.stringify(deploymentInfo, null, 2));
+        console.log(`✅ Updated deployment-info.json custom domain API ID to ${apiId}`);
+      }
+    }
+  } catch (error) {
+    console.log(`⚠️  Could not update deployment info: ${error.message}`);
+  }
+}
+
+async function createOrUpdateAPI() {
   const apiName = `equip-track-api-${STAGE}`;
+  let customDomainState = { hasCustomDomain: false, mappings: [] };
   
   try {
     // Try to find existing API
@@ -63,27 +203,62 @@ function createOrUpdateAPI() {
       console.log(`Using existing API: ${existingAPI.id}`);
       return existingAPI.id;
     } else if (existingAPI && RECREATE_API) {
-      console.log(`Deleting existing API: ${existingAPI.id} (RECREATE_API=true)`);
+      console.log(`\n🔄 RECREATE_API=true: Rebuilding API Gateway with custom domain preservation...`);
+      console.log(`Existing API: ${existingAPI.id}`);
+      
+      // Step 1: Detect existing custom domain mappings BEFORE deletion
+      customDomainState = detectExistingCustomDomainMappings(existingAPI.id);
+      
+      if (customDomainState.hasCustomDomain) {
+        console.log(`🎯 Custom domain detected - will preserve: ${API_DOMAIN}`);
+        
+        // Step 2: Clean up custom domain mappings (but preserve the domain itself)
+        cleanupCustomDomainMappings(existingAPI.id, customDomainState);
+      }
+      
+      // Step 3: Delete the existing API
+      console.log(`🗑️  Deleting existing API: ${existingAPI.id}`);
       try {
         execSync(`aws apigateway delete-rest-api --rest-api-id ${existingAPI.id}`, { stdio: 'inherit' });
         console.log(`✅ Deleted existing API: ${existingAPI.id}`);
       } catch (deleteError) {
-        console.log(`Warning: Could not delete existing API: ${deleteError.message}`);
+        console.log(`⚠️  Warning: Could not delete existing API: ${deleteError.message}`);
+        
+        // If deletion fails but we had custom domains, we're in a problematic state
+        if (customDomainState.hasCustomDomain) {
+          console.error(`🚨 Critical: API deletion failed but custom domain mappings were removed!`);
+          console.error(`🔧 Manual fix: Check API Gateway console and restore domain mappings if needed`);
+        }
+        throw deleteError;
       }
     }
   } catch (error) {
     console.log('Error checking for existing APIs, will create new one', error);
   }
   
-  // Create new API
-  console.log(`Creating new API: ${apiName}`);
+  // Step 4: Create new API
+  console.log(`\n📝 Creating new API: ${apiName}`);
   const createResult = execSync(
     `aws apigateway create-rest-api --name ${apiName} --description "EquipTrack API - ${STAGE}"`,
     { encoding: 'utf8' }
   );
-  const apiId = JSON.parse(createResult).id;
-  console.log(`✅ Created API: ${apiId}`);
-  return apiId;
+  const newApiId = JSON.parse(createResult).id;
+  console.log(`✅ Created new API: ${newApiId}`);
+  
+  // Step 5: Store the new API ID for later custom domain restoration
+  if (customDomainState.hasCustomDomain) {
+    // We'll restore custom domain mappings after the API is fully deployed
+    // Store the state for later use
+    global.pendingCustomDomainRestore = {
+      newApiId,
+      customDomainState,
+      needsRestore: true
+    };
+    
+    console.log(`📋 Custom domain restoration scheduled for after API deployment`);
+  }
+  
+  return newApiId;
 }
 
 function getAccountId() {
@@ -388,7 +563,7 @@ function deployAPI(apiId) {
   return { apiId, deploymentId, apiUrl };
 }
 
-function deployAPIGateway() {
+async function deployAPIGateway() {
   console.log('Deploying API Gateway...');
   
   // Load deployment info
@@ -399,7 +574,7 @@ function deployAPIGateway() {
   const deploymentInfo = JSON.parse(fs.readFileSync('deployment-info.json', 'utf8'));
   const endpoints = loadEndpoints();
   
-  const apiId = createOrUpdateAPI();
+  const apiId = await createOrUpdateAPI();
   const existingResources = getResources(apiId);
   
   // Debug: Show existing resources
@@ -518,8 +693,43 @@ function deployAPIGateway() {
   
   fs.writeFileSync('deployment-info.json', JSON.stringify(deploymentInfo, null, 2));
   
+  // Check if we need to restore custom domain mappings after RECREATE_API
+  if (global.pendingCustomDomainRestore && global.pendingCustomDomainRestore.needsRestore) {
+    console.log(`\n🔄 Restoring custom domain mappings after API recreation...`);
+    
+    try {
+      await restoreCustomDomainMappings(
+        global.pendingCustomDomainRestore.newApiId,
+        global.pendingCustomDomainRestore.customDomainState
+      );
+      
+      console.log(`✅ Custom domain restoration completed successfully!`);
+      console.log(`🌐 Custom API URL: https://${API_DOMAIN}`);
+      
+      // Clear the pending restore state
+      global.pendingCustomDomainRestore = null;
+      
+    } catch (error) {
+      console.error(`❌ Custom domain restoration failed: ${error.message}`);
+      console.error(`🔧 Manual fix required: Run "node scripts/setup-api-custom-domain.js --api-id ${deployment.apiId}"`);
+      // Don't fail the entire deployment for domain restoration issues
+    }
+  }
+  
   console.log('\n🎉 API Gateway deployment completed!');
   console.log(`API URL: ${deployment.apiUrl}`);
+  
+  // If custom domain is active, show it too
+  try {
+    if (fs.existsSync('deployment-info.json')) {
+      const updatedInfo = JSON.parse(fs.readFileSync('deployment-info.json', 'utf8'));
+      if (updatedInfo.customDomains && updatedInfo.customDomains[API_DOMAIN]) {
+        console.log(`Custom API URL: https://${API_DOMAIN}`);
+      }
+    }
+  } catch (error) {
+    // Ignore errors reading updated deployment info
+  }
   
   // Clean up temporary files
   try {
@@ -537,12 +747,14 @@ function deployAPIGateway() {
 }
 
 if (require.main === module) {
-  try {
-    deployAPIGateway();
-  } catch (error) {
-    console.error(`\n💥 Deployment failed: ${error.message}`);
-    process.exit(1);
-  }
+  (async () => {
+    try {
+      await deployAPIGateway();
+    } catch (error) {
+      console.error(`\n💥 Deployment failed: ${error.message}`);
+      process.exit(1);
+    }
+  })();
 }
 
 module.exports = { deployAPIGateway }; 

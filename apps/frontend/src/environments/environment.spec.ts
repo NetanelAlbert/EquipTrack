@@ -12,12 +12,14 @@ describe('Environment Configuration', () => {
     expect(environment.production).toBe(false);
   });
 
-  it('should have localhost API URL for development', () => {
-    expect(environment.apiUrl).toBe('http://localhost:3000');
+  it('should have development API URL', () => {
+    expect(environment.apiUrl).toBe('https://dev-api.equip-track.com');
   });
 
-  it('should have Google Client ID placeholder', () => {
-    expect(environment.googleClientId).toBe('YOUR_GOOGLE_CLIENT_ID_HERE');
+  it('should have Google Client ID configured', () => {
+    expect(environment.googleClientId).toBe(
+      '64930861221-3571tfrilm698f11h0p15ph8hi4klt1j.apps.googleusercontent.com'
+    );
   });
 
   it('should warn if Google Client ID is not configured', () => {
