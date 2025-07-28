@@ -17,11 +17,11 @@
 
 <div class="button-container">
   <button mat-raised-button color="primary" class="add-item-button" (click)="addItem()">
-    <mat-icon svgIcon="add"></mat-icon>
+    <mat-icon>add</mat-icon>
     {{ 'inventory.button.add-item' | translate }}
   </button>
   <button mat-raised-button color="accent" class="save-button" (click)="save()" [disabled]="!form.valid && !formChanged">
-    <mat-icon svgIcon="save"></mat-icon>
+    <mat-icon>save</mat-icon>
     {{ 'inventory.button.save' | translate }}
   </button>
 </div>

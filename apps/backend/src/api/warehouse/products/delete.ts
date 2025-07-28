@@ -29,18 +29,17 @@ export const handler = async (
     throw badRequest('Invalid product ID format');
   }
 
-  inventoryAdapter.withInventoryLock(organizationId, async () => {
-
+  await inventoryAdapter.withInventoryLock(organizationId, async () => {
     // Check if the product is used in any inventory items
     const isProductUsed = await inventoryAdapter.isProductUsedInInventory(
-        productId,
-        organizationId
+      productId,
+      organizationId
     );
 
     if (isProductUsed) {
-        throw badRequest(
+      throw badRequest(
         'Cannot delete product: it is currently used in inventory items'
-        );
+      );
     }
 
     // Delete the product

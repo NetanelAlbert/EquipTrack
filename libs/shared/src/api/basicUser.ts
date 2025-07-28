@@ -1,4 +1,11 @@
-import { InventoryItem, ItemReport, Organization, User, UserInOrganization } from '../elements';
+import {
+  InventoryForm,
+  InventoryItem,
+  ItemReport,
+  Organization,
+  User,
+  UserInOrganization,
+} from '../elements';
 import { BasicResponse } from './basic';
 
 export interface StartResponse extends BasicResponse {
@@ -9,7 +16,11 @@ export interface StartResponse extends BasicResponse {
 
 export interface ApproveCheckOut {
   formID: string;
-  imageData: Blob; // todo check if this is correct
+  signature: string;
+}
+
+export interface ApproveCheckOutResponse extends BasicResponse {
+  updatedForm: InventoryForm;
 }
 
 export interface RejectCheckOut {

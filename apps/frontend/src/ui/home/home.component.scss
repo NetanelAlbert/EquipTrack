@@ -1,0 +1,233 @@
+.home-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+
+  h1 {
+    color: var(--color-text-primary);
+    font-size: 2.5rem;
+    font-weight: 300;
+    margin: 0 0 16px 0;
+  }
+
+  .subtitle {
+    color: var(--color-text-secondary);
+    font-size: 1.1rem;
+    margin: 0;
+  }
+}
+
+.organizations-section {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.organizations-grid {
+  width: 100%;
+  max-width: 900px;
+}
+
+.organization-card {
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  &.selecting {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+
+  .card-header {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 24px;
+  }
+
+  .organization-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #1976d2, #42a5f5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    mat-icon {
+      font-size: 40px;
+      width: 40px;
+      height: 40px;
+      color: white;
+    }
+  }
+
+  .card-content {
+    padding: 16px 24px 8px;
+    text-align: center;
+    
+    .organization-name {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .card-actions {
+    padding: 8px 24px 20px;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    
+    .select-button {
+      width: 100%;
+      
+      mat-icon {
+        margin-right: 8px;
+        animation: spin 1s linear infinite;
+      }
+    }
+  }
+}
+
+.no-organizations {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+
+  .no-org-icon {
+    font-size: 80px;
+    width: 80px;
+    height: 80px;
+    color: var(--color-text-secondary);
+    margin-bottom: 24px;
+  }
+
+  h2 {
+    color: var(--color-text-primary);
+    font-size: 1.8rem;
+    font-weight: 400;
+    margin: 0 0 16px 0;
+  }
+
+  p {
+    color: var(--color-text-secondary);
+    font-size: 1rem;
+    line-height: 1.6;
+    max-width: 500px;
+    margin: 0 0 32px 0;
+  }
+
+  .actions {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    
+    button {
+      mat-icon {
+        margin-right: 8px;
+      }
+    }
+  }
+}
+
+// Responsive breakpoints
+@media (max-width: 768px) {
+  .home-container {
+    padding: 16px;
+  }
+
+  .header {
+    margin-bottom: 32px;
+    
+    h1 {
+      font-size: 2rem;
+    }
+    
+    .subtitle {
+      font-size: 1rem;
+    }
+  }
+
+  .organization-card {
+    .card-header {
+      padding: 16px 24px;
+    }
+
+    .organization-avatar {
+      width: 60px;
+      height: 60px;
+      
+      mat-icon {
+        font-size: 30px;
+        width: 30px;
+        height: 30px;
+      }
+    }
+    
+    .card-content .organization-name {
+      font-size: 1.1rem;
+    }
+
+    .card-actions {
+      padding: 8px 24px 16px;
+    }
+  }
+
+  .no-organizations {
+    padding: 32px 16px;
+    
+    .no-org-icon {
+      font-size: 60px;
+      width: 60px;
+      height: 60px;
+    }
+    
+    h2 {
+      font-size: 1.5rem;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .header h1 {
+    font-size: 1.75rem;
+  }
+  
+  .organization-card .card-content .organization-name {
+    font-size: 1rem;
+  }
+}
+
+// Animation for loading spinner
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+} 

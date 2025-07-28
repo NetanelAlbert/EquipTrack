@@ -123,6 +123,7 @@ export class InventoryAdapter {
   ): Promise<OrganizationInventory> {
     const command = new QueryCommand({
       TableName: this.tableName,
+      KeyConditionExpression: 'PK = :pk',
       ExpressionAttributeValues: {
         ':pk': `${ORG_PREFIX}${organizationId}`,
       },
@@ -153,6 +154,10 @@ export class InventoryAdapter {
           const existingItems = dbItemsByHolder.get(bulkItemDb.holderId) || [];
           existingItems.push(bulkItemDb);
           dbItemsByHolder.set(bulkItemDb.holderId, existingItems);
+          break;
+        }
+        case DbItemType.Lock: {
+          // Ignore locks
           break;
         }
         default:
@@ -188,7 +193,7 @@ export class InventoryAdapter {
       name: product.name,
       hasUpi: product.hasUpi,
       // Additional DB-specific fields
-      organizationId,
+      organizationId: `${ORG_PREFIX}${organizationId}`,
     };
 
     const command = new PutCommand({
@@ -197,6 +202,22 @@ export class InventoryAdapter {
     });
 
     await this.docClient.send(command);
+  }
+
+  async getProductFromDB(
+    productId: string,
+    organizationId: string
+  ): Promise<Product | undefined> {
+    const command = new GetCommand({
+      TableName: this.tableName,
+      Key: this.getProductKey(productId, organizationId),
+    });
+    const result = await this.docClient.send(command);
+    if (!result.Item) {
+      return undefined;
+    }
+    const productDb = result.Item as ProductDb;
+    return this.getProduct(productDb);
   }
 
   /**
@@ -281,6 +302,31 @@ export class InventoryAdapter {
   }
 
   /**
+   * Updates the holder information for a unique inventory item
+   */
+  async updateUniqueInventoryItemHolder(
+    productId: string,
+    upi: string,
+    organizationId: string,
+    newHolderId: string
+  ): Promise<void> {
+    const key = this.getUniqueProductKey(productId, upi, organizationId);
+
+    const command = new UpdateCommand({
+      TableName: this.tableName,
+      Key: key,
+      UpdateExpression:
+        'SET holderId = :holderId, holderIdQueryKey = :holderIdQueryKey',
+      ExpressionAttributeValues: {
+        ':holderId': newHolderId,
+        ':holderIdQueryKey': `${HOLDER_PREFIX}${organizationId}#${newHolderId}`,
+      },
+    });
+
+    await this.docClient.send(command);
+  }
+
+  /**
    * Deletes a unique inventory item
    */
   async deleteUniqueInventoryItem(
@@ -326,14 +372,17 @@ export class InventoryAdapter {
     const command = new QueryCommand({
       TableName: this.tableName,
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+      FilterExpression: 'dbItemType <> :type',
       ExpressionAttributeValues: {
         ':pk': `${ORG_PREFIX}${organizationId}`,
         ':sk': `${PRODUCT_PREFIX}${productId}#`,
+        ':type': DbItemType.Product,
       },
       Limit: 1, // We only need to know if any exist
     });
 
     const result = await this.docClient.send(command);
+
     return (result.Items?.length ?? 0) > 0;
   }
 

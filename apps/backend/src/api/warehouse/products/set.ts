@@ -29,9 +29,23 @@ export const handler = async (
     throw badRequest('Invalid product data: id, name, and hasUpi are required');
   }
 
-  inventoryAdapter.withInventoryLock(organizationId, async () => {
+  const isProductUsed = await inventoryAdapter.isProductUsedInInventory(
+    product.id,
+    organizationId
+  );
+  if (isProductUsed) {
+    const productFromDB = await inventoryAdapter.getProductFromDB(
+      product.id,
+      organizationId
+    );
+    if (productFromDB && productFromDB.hasUpi !== product.hasUpi) {
+      throw badRequest(
+        `Can't change the hasUpi flag for a product that is used in inventory`
+      );
+    }
+  }
 
-    // Create the product
+  await inventoryAdapter.withInventoryLock(organizationId, async () => {
     await inventoryAdapter.createProduct(product, organizationId);
   });
 

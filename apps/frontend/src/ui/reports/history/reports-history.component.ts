@@ -15,6 +15,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
 import { ItemReport } from '@equip-track/shared';
+import { formatDateToString } from '@equip-track/shared';
 
 @Component({
   selector: 'app-reports-history',
@@ -50,9 +51,13 @@ export class ReportsHistoryComponent implements OnInit {
 
   private today = new Date();
   private yesterday = new Date(this.today.getTime() - 24 * 60 * 60 * 1000);
-  private twoDaysAgo = new Date(this.yesterday.getTime() - 24 * 60 * 60 * 1000);
 
   ngOnInit() {
+    // Initialize with current reports data
+    this.reportsStore.fetchReports([
+      formatDateToString(this.selectedDate),
+      formatDateToString(this.yesterday),
+    ]);
     this.loadReportForDate(this.selectedDate);
   }
 
@@ -74,13 +79,29 @@ export class ReportsHistoryComponent implements OnInit {
   }
 
   loadReportForDate(date: Date) {
-    const dateString = this.formatDateToString(date);
-    this.selectedReport = this.reportsStore.reportsByDate().get(dateString) || null;
-    this.sortItems();
-  }
+    const dateString = formatDateToString(date);
 
-  private formatDateToString(date: Date): string {
-    return date.toISOString().split('T')[0];
+    // Check if we already have data for this date
+    const existingReport = this.reportsStore.reportsByDate().get(dateString);
+    if (existingReport) {
+      this.selectedReport = existingReport;
+      this.sortItems();
+      return;
+    }
+
+    // If not, fetch data for this specific date
+    this.reportsStore
+      .fetchReports([dateString])
+      .then(() => {
+        this.selectedReport =
+          this.reportsStore.reportsByDate().get(dateString) || null;
+        this.sortItems();
+      })
+      .catch((error) => {
+        console.error('Failed to fetch report for date:', dateString, error);
+        this.selectedReport = null;
+        this.sortItems();
+      });
   }
 
   getProductName(productId: string): string {
@@ -106,7 +127,7 @@ export class ReportsHistoryComponent implements OnInit {
   }
 
   getReportDate(): string {
-    return this.formatDateToString(this.selectedDate);
+    return formatDateToString(this.selectedDate);
   }
 
   getItemCount(): number {

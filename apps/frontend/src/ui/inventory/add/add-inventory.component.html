@@ -1,0 +1,49 @@
+<div class="add-inventory-container">
+  <mat-card class="add-inventory-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>add_box</mat-icon>
+        {{ 'inventory.add.title' | translate }}
+      </mat-card-title>
+      <mat-card-subtitle>
+        {{ 'inventory.add.subtitle' | translate }}
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (inventoryStore.addInventoryError()) {
+        <div class="error-message" role="alert">
+          <mat-icon>error</mat-icon>
+          <span>{{ inventoryStore.addInventoryError() }}</span>
+          <button 
+            mat-icon-button 
+            (click)="clearError()"
+            [attr.aria-label]="'common.close' | translate">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+
+      <editable-inventory
+        [originalItems]="[]"
+        (submitItems)="onSubmitItems($event)"
+      />
+    </mat-card-content>
+
+    <mat-card-actions align="end">
+      <button 
+        mat-button 
+        (click)="goBack()"
+        [disabled]="inventoryStore.addingInventory()">
+        {{ 'common.cancel' | translate }}
+      </button>
+    </mat-card-actions>
+  </mat-card>
+
+  @if (inventoryStore.addingInventory()) {
+    <div class="loading-overlay">
+      <mat-spinner></mat-spinner>
+      <p>{{ 'inventory.add.adding' | translate }}</p>
+    </div>
+  }
+</div> 

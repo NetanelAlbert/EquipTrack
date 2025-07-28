@@ -1,5 +1,6 @@
 import { UserRole } from '../elements/users';
 import * as Admin from './admin';
+import * as Auth from './auth';
 import * as BasicUser from './basicUser';
 import * as Wharehouse from './wharehouse';
 import * as Reports from './reports';
@@ -19,11 +20,20 @@ export const ORGANIZATION_ID_PATH_PARAM = 'organizationId';
 export const USER_ID_PATH_PARAM = 'userId';
 
 export const endpointMetas = {
+  // Authentication
+  googleAuth: {
+    path: `/api/auth/google`,
+    method: 'POST',
+    allowedRoles: [], // No authentication required for this endpoint
+    requestType: {} as Auth.GoogleAuthRequest,
+    responseType: {} as Auth.GoogleAuthResponse,
+  } as EndpointMeta<Auth.GoogleAuthRequest, Auth.GoogleAuthResponse>,
+
   // Admin Users
   getUsers: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/users`,
     method: 'GET',
-    allowedRoles: [UserRole.Admin],
+    allowedRoles: [UserRole.Admin, UserRole.WarehouseManager],
     responseType: {} as Admin.GetUsersResponse,
   } as EndpointMeta<undefined, Admin.GetUsersResponse>,
   setUser: {
@@ -33,10 +43,17 @@ export const endpointMetas = {
     requestType: {} as Admin.SetUser,
     responseType: {} as BasicResponse,
   } as EndpointMeta<Admin.SetUser, BasicResponse>,
+  inviteUser: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/users/invite`,
+    method: 'POST',
+    allowedRoles: [UserRole.Admin],
+    requestType: {} as Admin.InviteUser,
+    responseType: {} as BasicResponse,
+  } as EndpointMeta<Admin.InviteUser, BasicResponse>,
 
   // Basic User
   start: {
-    path: `/api/users/{${USER_ID_PATH_PARAM}}/start`,
+    path: `/api/users/start`,
     method: 'GET',
     allowedRoles: [
       UserRole.Admin,
@@ -45,8 +62,8 @@ export const endpointMetas = {
     ],
     responseType: {} as BasicUser.StartResponse,
   } as EndpointMeta<undefined, BasicUser.StartResponse>,
-  approveCheckOut: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkout/approve`,
+  approveForm: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/approve`,
     method: 'POST',
     allowedRoles: [
       UserRole.WarehouseManager,
@@ -54,10 +71,10 @@ export const endpointMetas = {
       UserRole.Customer,
     ],
     requestType: {} as BasicUser.ApproveCheckOut,
-    responseType: {} as BasicResponse,
-  } as EndpointMeta<BasicUser.ApproveCheckOut, BasicResponse>,
-  rejectCheckOut: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkout/reject`,
+    responseType: {} as BasicUser.ApproveCheckOutResponse,
+  } as EndpointMeta<BasicUser.ApproveCheckOut, BasicUser.ApproveCheckOutResponse>,
+  rejectForm: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/reject`,
     method: 'POST',
     allowedRoles: [
       UserRole.WarehouseManager,
@@ -80,16 +97,22 @@ export const endpointMetas = {
   } as EndpointMeta<BasicUser.RequestCheckIn, BasicResponse>,
 
   // Warehouse
+  getProducts: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products`,
+    method: 'GET',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    responseType: {} as Wharehouse.GetProductsResponse,
+  } as EndpointMeta<undefined, Wharehouse.GetProductsResponse>,
   setProduct: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products/set`,
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products`,
     method: 'POST',
     allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
     requestType: {} as Wharehouse.SetProduct,
     responseType: {} as BasicResponse,
   } as EndpointMeta<Wharehouse.SetProduct, BasicResponse>,
   deleteProduct: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products/delete`,
-    method: 'POST',
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products`,
+    method: 'DELETE',
     allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
     requestType: {} as Wharehouse.DeleteProduct,
     responseType: {} as BasicResponse,
@@ -124,6 +147,24 @@ export const endpointMetas = {
     ],
     responseType: {} as Wharehouse.GetUserInventoryResponse,
   } as EndpointMeta<undefined, Wharehouse.GetUserInventoryResponse>,
+
+  // Forms
+  getUserForms: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/my-forms`,
+    method: 'GET',
+    allowedRoles: [
+      UserRole.WarehouseManager,
+      UserRole.Admin,
+      UserRole.Customer,
+    ],
+    responseType: {} as Wharehouse.GetUserFormsResponse,
+  } as EndpointMeta<undefined, Wharehouse.GetUserFormsResponse>,
+  getAllForms: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/all-forms`,
+    method: 'GET',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    responseType: {} as Wharehouse.GetAllFormsResponse,
+  } as EndpointMeta<undefined, Wharehouse.GetAllFormsResponse>,
   createCheckOutForm: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkout/create`,
     method: 'POST',
@@ -133,6 +174,9 @@ export const endpointMetas = {
   } as EndpointMeta<Wharehouse.CreateCheckOutForm, BasicResponse>,
 
   // Reports
+  /**
+   * @deprecated Use getReportsByDates instead
+   */
   getReports: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports`,
     method: 'GET',
@@ -142,7 +186,7 @@ export const endpointMetas = {
   getReportsByDates: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports/by-dates`,
     method: 'POST',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
     requestType: {} as Reports.GetReportsByDatesRequest,
     responseType: {} as Reports.GetReportsByDatesResponse,
   } as EndpointMeta<

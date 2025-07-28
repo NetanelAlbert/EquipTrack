@@ -1,35 +1,41 @@
-import { inject, Injectable } from '@angular/core';
-import { MatIconRegistry } from '@angular/material/icon';
-import { DomSanitizer } from '@angular/platform-browser';
+import { effect, Injectable, inject } from '@angular/core';
+import { AuthService } from '../services/auth.service';
+import { UserStore } from '../store/user.store';
+import { AuthStore } from '../store';
+import { OrganizationService } from '../services/organization.service';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class AppInitService {
-  iconRegistry = inject(MatIconRegistry);
-  sanitizer = inject(DomSanitizer);
-  private icons = ['delete', 'add', 'expand_more', 'expand_less', 'save'];
+  private authService = inject(AuthService);
+  private userStore = inject(UserStore);
+  private authStore = inject(AuthStore);
+  private organizationService = inject(OrganizationService);
 
-  initializeApp(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      try {
-        this.initIcons();
-        resolve();
-      } catch (error) {
-        console.error(`Failed to initialize app: ${error}`);
-        reject(`Error: ${error}`);
-      }
-    });
+  constructor() {
+    this.listenToOrganizationSelection();
   }
 
-  private initIcons() {
-    this.icons.forEach((icon) => {
-      this.iconRegistry.addSvgIcon(
-        icon,
-        this.sanitizer.bypassSecurityTrustResourceUrl(
-          `assets/icons/${icon}.svg`
-        )
-      );
+  async initialize(): Promise<void> {
+    try {
+      await this.authService.initializeAuth();
+      await this.userStore.loadStartData();
+      // load org selection after start data is loaded to not reset it,
+      // due to missing organization in the user store
+      this.userStore.loadPersistedOrganizationSelection();
+    } catch (error) {
+      console.error('Failed to initialize application:', error);
+    }
+  }
+
+  private async listenToOrganizationSelection(): Promise<void> {
+    effect(async () => {
+      const organizationId = this.userStore.selectedOrganizationId();
+      if (organizationId && this.authStore.isAuthenticated()) {
+        setTimeout(async () => {
+          this.organizationService.fetchProducts();
+          this.organizationService.getUsers();
+        });
+      }
     });
   }
 }

@@ -1,7 +1,47 @@
 .container {
-  padding: 20px;
+  padding: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .user-select {
-  margin: 20px;
+  margin-bottom: 24px;
+}
+
+.user-select mat-form-field {
+  width: 100%;
+  max-width: 400px;
+}
+
+.no-user-selected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    color: #999;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 8px;
+  }
+  
+  .user-select mat-form-field {
+    max-width: none;
+  }
 } 

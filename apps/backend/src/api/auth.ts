@@ -5,53 +5,90 @@ import {
   UserInOrganization,
   UserRole,
 } from '@equip-track/shared';
-import { UserAndAllOrganizations, UsersAndOrganizationsAdapter } from '../db';
 import { APIGatewayProxyEvent } from 'aws-lambda';
 import { badRequest, forbidden, unauthorized } from './responses';
+import { JwtService } from '../services/jwt.service';
+import { JwtPayload } from '@equip-track/shared';
 
-const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
+const jwtService = new JwtService();
 const rolesAllowedToAccessOtherUsers = [UserRole.Admin];
 
-export async function authenticate(
+export async function authenticateAndGetJwt(
   meta: EndpointMeta<any, any>,
   event: APIGatewayProxyEvent
-): Promise<boolean> {
-  const userId = getUserId(event);
-  const { user, userInOrganizations } = await getUser(userId);
-  if (!user) {
-    throw unauthorized('User not found');
-  }
-  if (!userInOrganizations) {
-    throw unauthorized('User not found in any organization');
-  }
-  const organization = validateOrganizationAccess(
-    userInOrganizations,
-    meta,
-    event
-  );
-  validateUserAccess(userInOrganizations, meta, event, organization);
-  return true;
+): Promise<JwtPayload> {
+  console.log(`[AUTH] Authenticating endpoint: ${meta.path}`);
+  console.log(`[AUTH] Required roles:`, meta.allowedRoles);
+
+  const jwtPayload = await validateAndExtractJwt(event);
+  console.log(`[AUTH] JWT validated for user:`, jwtPayload.sub);
+
+  const organization = validateOrganizationAccess(jwtPayload, meta, event);
+  console.log(`[AUTH] Organization access validated:`, organization);
+
+  validateUserAccess(jwtPayload, meta, event, organization);
+  console.log(`[AUTH] User access validated successfully`);
+
+  return jwtPayload;
 }
 
-function getUserId(event: APIGatewayProxyEvent) {
-  // return event.requestContext.authorizer.claims.sub;
-  // TODO: Implement real authentication
-  return 'dummy';
-}
-
-async function getUser(userId: string): Promise<UserAndAllOrganizations> {
+/**
+ * Extract and validate JWT token from Authorization header
+ * Returns the JWT payload if the token is valid, throws an error if not
+ */
+async function validateAndExtractJwt(
+  event: APIGatewayProxyEvent
+): Promise<JwtPayload> {
   try {
-    return await usersAndOrganizationsAdapter.getUserAndAllOrganizations(
-      userId
-    );
+    // Extract Authorization header
+    const authHeader =
+      event.headers?.['Authorization'] || event.headers?.['authorization'];
+
+    if (!authHeader) {
+      throw unauthorized('Authorization header is required');
+    }
+
+    // Extract Bearer token
+    const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (!bearerMatch) {
+      throw unauthorized(
+        'Authorization header must be in format: Bearer <token>'
+      );
+    }
+
+    const token = bearerMatch[1];
+
+    // Validate JWT token and return payload
+    const payload = await jwtService.validateToken(token);
+
+    if (!payload.sub) {
+      throw unauthorized('Invalid token: user ID not found');
+    }
+
+    return payload;
   } catch (error) {
-    console.error(`Error getting user ${userId}`, error);
-    throw unauthorized('User not found');
+    // If it's already an unauthorized error, rethrow it
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      throw error;
+    }
+
+    // Handle JWT validation errors
+    if (error instanceof Error) {
+      if (error.message.includes('expired')) {
+        throw unauthorized('Authentication token has expired');
+      }
+      if (error.message.includes('Invalid')) {
+        throw unauthorized('Invalid authentication token');
+      }
+    }
+
+    console.error('JWT validation error:', error);
+    throw unauthorized('Authentication failed');
   }
 }
 
 function validateOrganizationAccess(
-  userInOrganizations: UserInOrganization[],
+  jwtPayload: JwtPayload,
   meta: EndpointMeta<any, any>,
   event: APIGatewayProxyEvent
 ): UserInOrganization | undefined {
@@ -60,31 +97,37 @@ function validateOrganizationAccess(
     if (!organizationId) {
       throw badRequest('Organization ID is required');
     }
-    const organization = userInOrganizations.find(
-      (org) => org.organizationId === organizationId
-    );
-    if (!organization) {
+
+    // Check if user has access to this organization from JWT payload
+    const userRole = jwtPayload.orgIdToRole[organizationId];
+    if (!userRole) {
       throw forbidden('User is not a member of the organization');
     }
-    if (!meta.allowedRoles.includes(organization.role)) {
+
+    // Check if user's role is allowed for this endpoint
+    const allowedRoles = meta.allowedRoles || [];
+    if (!allowedRoles.includes(userRole)) {
       throw forbidden(
-        `User Role ${organization.role} is not allowed to access this endpoint`
+        `User Role ${userRole} is not allowed to access this endpoint`
       );
     }
-    return organization;
+
+    // Return organization info constructed from JWT payload
+    return {
+      userId: jwtPayload.sub,
+      organizationId: organizationId,
+      role: userRole,
+    };
   }
   return undefined;
 }
 
 function validateUserAccess(
-  userInOrganizations: UserInOrganization[],
+  jwtPayload: JwtPayload,
   meta: EndpointMeta<any, any>,
   event: APIGatewayProxyEvent,
   organization?: UserInOrganization
 ) {
-  if (!organization) {
-    throw forbidden('Global access is not allowed');
-  }
   if (meta.path.includes(`{${USER_ID_PATH_PARAM}}`)) {
     const userId = event.pathParameters?.[USER_ID_PATH_PARAM];
     if (!userId) {
@@ -93,7 +136,7 @@ function validateUserAccess(
     if (rolesAllowedToAccessOtherUsers.includes(organization.role)) {
       return;
     }
-    if (userId === organization.userId) {
+    if (userId === jwtPayload.sub) {
       return;
     }
     throw forbidden(

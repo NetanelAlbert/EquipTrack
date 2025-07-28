@@ -82,7 +82,7 @@ export class CheckoutComponent {
 
       const formData: InventoryForm = {
         userID: userId,
-        organizationID: this.organizationStore.organization.id(),
+        organizationID: this.userStore.selectedOrganizationId(),
         type: FormType.CheckOut,
         formID: crypto.randomUUID(),
         items,

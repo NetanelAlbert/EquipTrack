@@ -1,112 +1,209 @@
 {
+  "title": "EquipTrack",
+  "auth": {
+    "login-page": "Sign in to EquipTrack",
+    "sign-in-title": "Welcome to EquipTrack",
+    "sign-in-subtitle": "Track and manage your equipment inventory",
+    "welcome-message": "Please sign in to access your equipment management dashboard.",
+    "signin-methods": "Sign-in methods",
+    "google-signin-group": "Google sign-in options",
+    "google-signin-section": "Google sign-in section",
+    "google-signin-button-group": "Google sign-in button group",
+    "or-separator": "Alternative sign-in methods separator",
+    "or": "or",
+    "help-section": "Help and support options",
+    "need-help": "Need help accessing your account?",
+    "contact-admin": "Contact Administrator",
+    "security-icon": "Security and privacy information",
+    "security-note": "Your data is protected with enterprise-grade security.",
+    "signing-in": "Signing you in...",
+    "loading": "Loading...",
+    "fallback-signin": "Fallback sign-in",
+    "sign-in-with-google": "Sign in with Google",
+    "sign-in-with-google-fallback": "Sign in with Google (fallback)",
+    "fallback-description": "If the button above doesn't work, try this alternative method.",
+    "error-icon": "Error icon",
+    "signin-error": "Sign-in Error",
+    "google-unavailable": "Google Sign-In is currently unavailable. Please try again later.",
+    "try-again": "Try Again",
+    "try-again-detailed": "Try signing in again",
+    "error": "Authentication Error",
+    "success": "Authentication Successful"
+  },
+  "common": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "loading": "Loading...",
+    "copied-to-clipboard": "Copied to clipboard",
+    "signature": {
+      "signature-pad": "Signature Pad",
+      "clear": "Clear"
+    }
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "inventory": "Inventory",
+    "forms": "Forms",
+    "reports": "Reports",
+    "settings": "Settings",
+    "user-menu": "User menu",
+    "view-profile": "View Profile",
+    "sign-out": "Sign Out",
+    "sign-in": "Sign In",
+    "my-items": "My Items",
+    "today-report": "Today Report",
+    "reports-history": "Reports History",
+    "my-forms": "My Forms",
+    "check-in": "Check In",
+    "edit-products": "Edit Products",
+    "edit-users": "Edit Users",
+    "all-inventory": "All Inventory",
+    "inventory-by-users": "Inventory by Users",
+    "add-inventory": "Add Inventory",
+    "remove-inventory": "Remove Inventory",
+    "checkout": "Checkout",
+    "trace-product": "Trace Product",
+    "admin-dashboard": "Admin Dashboard",
+    "switch-organization": "Switch Organization"
+  },
+  "forms": {
+    "form-id": "Form ID",
+    "status": "Status",
+    "status-pending": "Pending",
+    "status-approved": "Approved", 
+    "status-rejected": "Rejected",
+    "created-at": "Created At",
+    "approved-at": "Approved At",
+    "approve": "Approve",
+    "reject": "Reject",
+    "check-in": "Check In",
+    "check-out": "Check Out",
+    "empty-check-in": "No check-in forms available.",
+    "empty-check-out": "No check-out forms available."
+  },
   "inventory": {
-    "name": "Name",
-    "pid": "Product ID",
-    "upi": {
-      "title": "UPIs"
+    "title": "Inventory",
+    "add-item": "Add Item",
+    "edit-item": "Edit Item",
+    "remove-item": "Remove Item",
+    "location": "Location",
+    "status": "Status",
+    "loading": "Loading inventory...",
+    "views": {
+      "warehouse": "Warehouse",
+      "organization": "Organization",
+      "selectUser": "Select User"
     },
-    "button": {
-      "add-item": "Add Item",
-      "save": "Save"
+    "users": {
+      "loading": "Loading users...",
+      "errorLoading": "Error loading users",
+      "noUsers": "No users available",
+      "errorMessage": "Failed to load users"
+    },
+    "search": {
+      "placeholder": "Search inventory items...",
+      "clear": "Clear search",
+      "sortBy": "Sort by",
+      "sortByProductId": "Product ID",
+      "sortByQuantity": "Quantity",
+      "sortByName": "Name",
+      "sortDirection": "Sort direction",
+      "sortAscending": "Sort ascending (A-Z, 0-9)",
+      "sortDescending": "Sort descending (Z-A, 9-0)",
+      "results": "{{count}} items found",
+      "clearFilters": "Clear All Filters",
+      "selectUserFirst": "Please select a user to view their inventory"
+    },
+    "item": {
+      "expandable": "Inventory item {{name}} - Click to expand {{count}} UPI details",
+      "static": "Inventory item {{name}} - No additional details"
+    },
+    "quantity": {
+      "value": "Quantity: {{quantity}} items"
+    },
+    "error": {
+      "failed_to_load": "Failed to load inventory"
+    },
+    "empty": {
+      "title": "No Inventory Items",
+      "description": "No inventory items found for this selection.",
+      "empty-state": "No inventory items available."
     },
     "form": {
       "product": "Product",
       "quantity": "Quantity",
       "upi": "UPI",
-      "upi-placeholder": "UPI"
+      "upi-placeholder": "Enter UPI code"
     },
-    "list": {
-      "items": "Items"
+    "button": {
+      "add-item": "Add Item",
+      "save": "Save"
     },
     "validation": {
+      "duplicate": "Duplicate items found: {{duplicates}}",
       "product-required": "Product is required",
       "quantity-required": "Quantity is required",
       "quantity-min": "Quantity must be at least 1",
-      "quantity-pattern": "Quantity must be a positive number",
-      "upi-required": "UPI is required",
-      "duplicate": "Duplicate products: {{ duplicates }}"
+      "quantity-pattern": "Quantity must be a valid number",
+      "upi-required": "UPI is required"
     },
-    "views": {
-      "warehouse": "Warehouse Inventory",
-      "organization": "Organization Inventory",
-      "user": "User Inventory",
-      "selectUser": "Select User"
+    "upi": {
+      "title": "UPI Information",
+      "item": "UPI code: {{upi}}",
+      "help": "Contains {{count}} UPI codes. Press Enter or Space to expand."
     },
-    "empty-state": "No items found"
-  },
-  "organization": {
-    "editProducts": {
-      "title": "Edit Products",
-      "id": "Product ID",
-      "name": "Product Name",
-      "upi": "Has UPI",
-      "addProduct": "Add Product",
-      "save": "Save Changes",
-      "idRequired": "Product ID is required",
-      "idMinLength": "Product ID must be at least 2 characters long",
-      "nameRequired": "Product name is required",
-      "nameMinLength": "Product name must be at least 2 characters long",
-      "duplicateIds": "Duplicate product IDs are not allowed"
+    "add": {
+      "title": "Add Inventory",
+      "subtitle": "Add new items to warehouse inventory",
+      "adding": "Adding inventory items...",
+      "success": "Successfully added {{count}} inventory items",
+      "error": {
+        "no-items": "Please add at least one item before saving"
+      }
+    },
+    "remove": {
+      "title": "Remove Inventory",
+      "subtitle": "Remove items from warehouse inventory",
+      "warning": "Warning: This will permanently remove items from inventory. Make sure quantities and UPIs are correct.",
+      "removing": "Removing inventory items...",
+      "success": "Successfully removed {{count}} inventory items",
+      "error": {
+        "no-items": "Please add at least one item to remove"
+      }
     }
   },
+  "checkout": {
+    "title": "Checkout",
+    "select-user": "Select User",
+    "predefined-forms": "Predefined Forms",
+    "items": "Items"
+  },
   "reports": {
-    "title": "Daily Inventory Report",
+    "title": "Reports",
     "historyTitle": "Reports History",
     "sortBy": "Sort By",
     "sortByLocation": "Location",
     "sortByProduct": "Product",
-    "noLocation": "No Location Set",
+    "selectDate": "Select Date",
+    "items": "items",
+    "upiLabel": "UPI",
+    "reported": "Reported",
+    "notReported": "Not Reported",
     "lastLocation": "Last Location",
     "useLastLocation": "Use Last Location",
     "enterLocation": "Enter Location",
-    "reported": "Reported",
-    "notReported": "Not Reported",
-    "loading": "Loading reports...",
-    "error": "Error loading reports",
-    "upiLabel": "UPI",
-    "selectDate": "Select Date",
-    "items": "items",
     "noReportForDate": "No Report Available",
-    "noReportForDateDescription": "No inventory report was found for the selected date. Please choose a different date."
-  },
-  "forms": {
-    "check-in": "Check In",
-    "check-out": "Check Out",
-    "form-id": "Form ID",
-    "status": "Status",
-    "status-pending": "Pending",
-    "status-approved": "Approved",
-    "status-rejected": "Rejected",
-    "empty-check-in": "No check-in forms available",
-    "empty-check-out": "No check-out forms available",
-    "created-at": "Created At",
-    "approved-at": "Approved At",
-    "approve": "Approve",
-    "reject": "Reject",
-    "reject-dialog": {
-      "title": "Reject Form",
-      "reason": "Reason for Rejection",
-      "reason-placeholder": "Please provide a reason for rejecting this form...",
-      "cancel": "Cancel",
-      "confirm": "Confirm Rejection"
-    }
-  },
-  "buttons": {
-    "delete": "Delete"
-  },
-  "navigation": {
-    "my-items": "My Items",
-    "today-report": "Today's Report",
-    "reports-history": "Reports History",
-    "my-forms": "My Forms",
-    "check-in": "Check In",
-    "edit-products": "Edit Products",
-    "all-inventory": "All Inventory",
-    "inventory-by-users": "Inventory by Users",
-    "checkout": "Checkout",
-    "forms": "Forms",
-    "trace-product": "Trace Product",
-    "admin-dashboard": "Admin Dashboard"
+    "noReportForDateDescription": "No report has been generated for the selected date."
   },
   "errors": {
     "not-allowed": {
@@ -115,26 +212,93 @@
       "back-home": "Back to Home"
     }
   },
-  "checkout": {
-    "title": "Checkout Items",
-    "select-user": "Select User",
-    "predefined-forms": "Predefined Forms",
-    "items": "Items",
-    "quantity": "Quantity",
-    "upis": "UPIs",
-    "add-form": "Add Form",
-    "submit": "Submit",
-    "success": "Checkout form created successfully",
-    "error": "Error creating checkout form"
-  },
-  "common": {
-    "close": "Close",
-    "signature": {
-      "clear": "Clear",
-      "signature-pad": "Sign here",
-      "title": "Signature"
+  "organization": {
+    "select": {
+      "title": "Select Organization",
+      "subtitle": "Choose the organization you'd like to work with",
+      "select-button": "Select",
+      "no-organizations": {
+        "title": "No Organizations Available",
+        "message": "You are not currently a member of any organization. Please contact your administrator to be added to an organization.",
+        "contact-admin": "Contact Administrator"
+      },
+      "loading": "Loading organizations...",
+      "error": "Failed to load organizations",
+      "success": "Organization selected successfully!"
     },
-    "ok": "OK",
-    "cancel": "Cancel"
+    "invitation": {
+      "request-subject": "Request Access to EquipTrack",
+      "request-body": "Hello,\n\nI would like to request access to EquipTrack for my organization.\n\nMy email: {{email}}\nApp URL: {{appUrl}}\n\nPlease add me to an organization so I can start using the equipment tracking system.\n\nThank you!",
+      "copied": "Invitation message copied to clipboard"
+    },
+    "editProducts": {
+      "title": "Edit Products",
+      "id": "Product ID",
+      "name": "Product Name",
+      "upi": "Requires UPI",
+      "idRequired": "Product ID is required",
+      "idMinLength": "Product ID must be at least 3 characters",
+      "nameRequired": "Product name is required",
+      "nameMinLength": "Product name must be at least 2 characters",
+      "duplicateIds": "Duplicate product IDs are not allowed",
+      "addProduct": "Add Product",
+      "save": "Save Products"
+    },
+    "products": {
+      "get": {
+        "error": "Failed to fetch products"
+      },
+      "save": {
+        "error": "Failed to save product"
+      },
+      "delete": {
+        "error": "Failed to delete product"
+      }
+    },
+    "users": {
+      "title": "Edit Users",
+      "subtitle": "Manage organization users and send invitations",
+      "get": {
+        "error": "Failed to get users"
+      },
+      "invite": {
+        "title": "Invite New User",
+        "subtitle": "Send an invitation to join this organization",
+        "email-label": "Email Address",
+        "email-placeholder": "user@example.com",
+        "role-label": "Role",
+        "button-sending": "Sending...",
+        "button-send": "Send Invitation",
+        "success": "Invitation sent to {{email}}",
+        "email-required": "Email is required",
+        "email-invalid": "Please enter a valid email address",
+        "error": "Failed to send invitation"
+      },
+      "table": {
+        "title": "Organization Users",
+        "subtitle": "Current members of this organization",
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "actions": "Actions",
+        "edit-tooltip": "Edit User",
+        "edit-coming-soon": "User editing functionality coming soon"
+      },
+      "roles": {
+        "admin": "Administrator",
+        "warehouse-manager": "Warehouse Manager",
+        "customer": "Customer"
+      },
+      "states": {
+        "active": "Active",
+        "invited": "Invited",
+        "disabled": "Disabled"
+      },
+      "empty": {
+        "title": "No Users Found",
+        "message": "Start by inviting users to your organization using the form above."
+      }
+    }
   }
 } 

@@ -8,6 +8,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { RejectFormDialogComponent } from '../reject-form-dialog/reject-form-dialog.component';
 import { SignatureDialogComponent } from '../signature-dialog/signature-dialog.component';
 import { UserStore } from '../../../store/user.store';
+import { FormsStore } from '../../../store/forms.store';
 import { UserRole, FormStatus, FormType } from '@equip-track/shared';
 
 @Component({
@@ -27,9 +28,10 @@ export class FormCardComponent {
 
   dialog = inject(MatDialog);
   userStore = inject(UserStore);
+  formsStore = inject(FormsStore);
 
   get isAdminOrWarehouseManager(): boolean {
-    const role = this.userStore.role();
+    const role = this.userStore.currentRole();
     return role === UserRole.Admin || role === UserRole.WarehouseManager;
   }
 
@@ -41,40 +43,62 @@ export class FormCardComponent {
     );
   }
 
-  onApprove() {
+  async onApprove() {
     const dialogRef = this.dialog.open(SignatureDialogComponent, {
       data: { signature: '' },
     });
 
-    dialogRef.afterClosed().subscribe((signature: string | undefined) => {
+    dialogRef.afterClosed().subscribe(async (signature: string | undefined) => {
       if (signature) {
-        console.log(
-          'Form approved with signature.',
-          'signature size',
-          signature.length,
-          'for form:',
-          this.form.formID
-        );
-        // TODO: Implement form approval logic
+        try {
+          console.log(
+            'Form approved with signature.',
+            'signature size',
+            signature.length,
+            'for form:',
+            this.form.formID
+          );
+
+          await this.formsStore.approveForm(this.form.formID, signature);
+        } catch (error) {
+          console.error('Failed to approve form:', error);
+          // TODO: Show error message to user via snackbar or toast
+        }
       }
     });
   }
 
-  onReject() {
+  async onReject() {
     const dialogRef = this.dialog.open(RejectFormDialogComponent, {
       data: { formId: this.form.formID },
     });
 
-    dialogRef.afterClosed().subscribe((reason: string | undefined) => {
+    dialogRef.afterClosed().subscribe(async (reason: string | undefined) => {
       if (reason) {
-        console.log('Form rejected with reason:', reason);
-        // TODO: Implement form rejection logic
+        try {
+          console.log('Form rejected with reason:', reason);
+
+          // ✅ Use real API through forms store
+          await this.formsStore.rejectForm(this.form.formID, reason);
+        } catch (error) {
+          console.error('Failed to reject form:', error);
+          // TODO: Show error message to user via snackbar or toast
+        }
       }
     });
   }
 
-  onCheckIn() {
-    // TODO: Implement check-in logic for returning items
-    console.log('Check in clicked for form:', this.form.formID);
+  async onCheckIn() {
+    try {
+      console.log('Check in clicked for form:', this.form.formID);
+
+      // ✅ Use real API through forms store to create check-in form
+      await this.formsStore.addCheckInForm(this.form.items);
+
+      console.log('Check-in form created for returned items');
+    } catch (error) {
+      console.error('Failed to create check-in form:', error);
+      // TODO: Show error message to user via snackbar or toast
+    }
   }
 }

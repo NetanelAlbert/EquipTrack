@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { TranslateModule, TranslateStore } from '@ngx-translate/core';
+import { TranslateModule } from '@ngx-translate/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatIconTestingModule } from '@angular/material/icon/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
@@ -27,7 +27,7 @@ describe('AppComponent', () => {
         HttpClientTestingModule,
       ],
       declarations: [AppComponent],
-      providers: [TranslateStore],
+      providers: [],
     }).compileComponents();
 
     fixture = TestBed.createComponent(AppComponent);
@@ -37,7 +37,7 @@ describe('AppComponent', () => {
 
   afterEach(() => {
     // Clean up the mock
-    delete global.fetch;
+    delete (global as any).fetch;
   });
 
   it('should create', () => {

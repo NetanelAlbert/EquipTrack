@@ -1,0 +1,65 @@
+<div class="google-sign-in-container" role="region" [attr.aria-label]="'auth.google-signin-section' | translate">
+  <!-- Loading indicator -->
+  @if (isLoading) {
+    <div class="loading-overlay" role="status" [attr.aria-label]="'auth.signing-in' | translate">
+      <mat-spinner diameter="32" [attr.aria-label]="'auth.loading' | translate"></mat-spinner>
+      <span class="loading-text" aria-live="polite">{{ 'auth.signing-in' | translate }}</span>
+    </div>
+  }
+
+  <!-- Google Sign-In Button Container -->
+  <div 
+    #googleButtonContainer 
+    class="google-button-container"
+    role="group"
+    [attr.aria-label]="'auth.google-signin-button-group' | translate"
+    [class.disabled]="disabled() || isLoading"
+    [class.hidden]="!isGoogleLoaded && !fallbackClicked"
+    [attr.aria-hidden]="!isGoogleLoaded && !fallbackClicked">
+  </div>
+
+  <!-- Fallback Button (shown if Google Sign-In fails to load) -->
+  @if (showFallbackButton() && !isGoogleLoaded && !fallbackClicked) {
+    <section class="fallback-section" aria-labelledby="fallback-heading">
+      <h3 id="fallback-heading" class="sr-only">{{ 'auth.fallback-signin' | translate }}</h3>
+      <button
+        mat-raised-button
+        color="primary"
+        class="fallback-button"
+        type="button"
+        [disabled]="disabled() || isLoading"
+        [attr.aria-label]="'auth.sign-in-with-google-fallback' | translate"
+        [attr.aria-describedby]="'fallback-description'"
+        (click)="onFallbackButtonClick()">
+        <mat-icon aria-hidden="true">account_circle</mat-icon>
+        <span>{{ 'auth.sign-in-with-google' | translate }}</span>
+      </button>
+      <p id="fallback-description" class="sr-only">
+        {{ 'auth.fallback-description' | translate }}
+      </p>
+    </section>
+  }
+
+  <!-- Error state fallback -->
+  @if (fallbackClicked) {
+    <div class="error-state" role="alert" aria-live="assertive">
+      <div class="error-content">
+        <mat-icon color="warn" [attr.aria-label]="'auth.error-icon' | translate">error_outline</mat-icon>
+        <h3 class="error-title">{{ 'auth.signin-error' | translate }}</h3>
+        <p class="error-message">{{ 'auth.google-unavailable' | translate }}</p>
+        <button 
+          mat-raised-button 
+          color="primary" 
+          class="retry-button"
+          type="button"
+          [attr.aria-label]="'auth.try-again-detailed' | translate"
+          (click)="initializeGoogleSignIn()">
+          <mat-icon aria-hidden="true">refresh</mat-icon>
+          {{ 'auth.try-again' | translate }}
+        </button>
+      </div>
+    </div>
+  }
+
+
+</div> 

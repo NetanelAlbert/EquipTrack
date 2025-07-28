@@ -3,24 +3,61 @@
     <mat-form-field>
       <mat-label>{{ 'inventory.views.selectUser' | translate }}</mat-label>
       <mat-select
-        [(ngModel)]="selectedUserID"
+        [ngModel]="selectedUserID()"
+        (ngModelChange)="selectedUserID.set($event)"
         (selectionChange)="onUserChange()"
+        [disabled]="isLoadingUsers()"
       >
-        <!-- TODO: user proper warehouse value -->
-        <mat-option
-          value="WAREHOUSE"
-        >
+        <mat-option value="WAREHOUSE">
           {{ 'inventory.views.warehouse' | translate }}
         </mat-option>
 
-        @for (user of organizationStore.users(); track user.id) {
-          <mat-option [value]="user.id">
-            {{ user.name }}
+        @if (isLoadingUsers()) {
+          <mat-option disabled>
+            {{ 'inventory.users.loading' | translate }}
           </mat-option>
+        } @else if (usersError()) {
+          <mat-option disabled>
+            {{ 'inventory.users.errorLoading' | translate }}
+          </mat-option>
+        } @else if (!hasUsers()) {
+          <mat-option disabled>
+            {{ 'inventory.users.noUsers' | translate }}
+          </mat-option>
+        } @else {
+          @for (user of organizationStore.users(); track user.user.id) {
+            <mat-option [value]="user.user.id">
+              {{ user.user.name }}
+            </mat-option>
+          }
         }
-        <!-- TODO: Add other users -->
       </mat-select>
+      
+      <!-- Error message for users loading -->
+      @if (usersError()) {
+        <mat-error>
+          {{ 'inventory.users.errorMessage' | translate }}: {{ usersError() }}
+          <button mat-button (click)="loadUsers()" color="primary">
+            {{ 'common.retry' | translate }}
+          </button>
+        </mat-error>
+      }
     </mat-form-field>
   </div>
-  <inventory-list [inventoryItems]="userItems()"></inventory-list>
+  
+  <!-- Search and Inventory Display -->
+  @if (selectedUserID()) {
+    <inventory-search
+      [items]="userItems()"
+      [productsMap]="organizationStore.productsMap()"
+      (filteredItems)="onFilteredItemsChange($event)"
+    ></inventory-search>
+    
+    <inventory-list [inventoryItems]="filteredItems()"></inventory-list>
+  } @else {
+    <div class="no-user-selected">
+      <mat-icon>person_search</mat-icon>
+      <p>{{ 'inventory.search.selectUserFirst' | translate }}</p>
+    </div>
+  }
 </div> 

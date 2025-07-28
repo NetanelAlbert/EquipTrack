@@ -1,10 +1,22 @@
-import { User } from '../elements';
+import {
+  UserRole,
+  UserInOrganization,
+  UserAndUserInOrganization,
+} from '../elements';
 import { BasicResponse } from './basic';
 
 export interface GetUsersResponse extends BasicResponse {
-  users: User[];
+  users: UserAndUserInOrganization[];
 }
 
 export interface SetUser {
-  user: User;
+  userInOrganization: UserInOrganization;
+}
+
+export interface InviteUser {
+  email: string;
+  organizationId: string;
+  role: UserRole;
+  department?: string;
+  departmentRole?: string;
 }

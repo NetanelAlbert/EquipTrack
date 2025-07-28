@@ -1,24 +1,21 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { UserStore } from '../../store';
 import { UserRole } from '@equip-track/shared';
+import { UserStore } from '../../store/user.store';
+import { AuthService } from '../../services/auth.service';
 
 export const createRoleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
   return () => {
-    const userStore = inject(UserStore);
     const router = inject(Router);
+    const userStore = inject(UserStore);
+    const authService = inject(AuthService);
 
-    // Get user's role from the first organization (assuming single organization for now)
-    const userRole = userStore.role();
-    if (!userRole) {
-      router.navigate(['/not-allowed']);
+    if (!authService.isUserAuthenticated()) {
+      router.navigate(['/login']);
       return false;
     }
 
-    // Check if user's role is allowed to access this route
-    const hasAccess = allowedRoles.includes(userRole);
-
-    if (!hasAccess) {
+    if (!userStore.hasRole(allowedRoles)) {
       router.navigate(['/not-allowed']);
       return false;
     }

@@ -2,7 +2,7 @@ import {
   StartResponse,
   UserInOrganization,
   Organization,
-  USER_ID_PATH_PARAM,
+  JwtPayload,
 } from '@equip-track/shared';
 import { UsersAndOrganizationsAdapter } from '../db';
 import { badRequest, resourceNotFound } from './responses';
@@ -10,11 +10,17 @@ import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 
 const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
 
-export const handler = async (_req: unknown, pathParams: APIGatewayProxyEventPathParameters): Promise<StartResponse> => {
-  const userId = pathParams[USER_ID_PATH_PARAM];
-  if (!userId) {
+export const handler = async (
+  _req: unknown,
+  pathParams: APIGatewayProxyEventPathParameters,
+  jwtPayload?: JwtPayload
+): Promise<StartResponse> => {
+  if (!jwtPayload) {
     throw badRequest('User ID is required');
   }
+
+  const userId = jwtPayload.sub;
+
   const userAndAllOrganizations =
     await usersAndOrganizationsAdapter.getUserAndAllOrganizations(userId);
   if (!userAndAllOrganizations) {

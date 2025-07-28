@@ -1,11 +1,40 @@
-import { GetUsersResponse } from '@equip-track/shared';
+import {
+  GetUsersResponse,
+  ORGANIZATION_ID_PATH_PARAM,
+} from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { notImplemented } from '../../responses';
-// import { OrganizationAdapter } from '../../../db/tables/organization.adapter';
+import { badRequest } from '../../responses';
+import { UsersAndOrganizationsAdapter } from '../../../db';
+
+const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
 
 export const handler = async (
-  _req: any,
+  _req: undefined,
   pathParams: APIGatewayProxyEventPathParameters
 ): Promise<GetUsersResponse> => {
-  throw notImplemented('Get users endpoint is not yet implemented');
+  const organizationId = pathParams[ORGANIZATION_ID_PATH_PARAM];
+
+  if (!organizationId) {
+    throw badRequest('Organization ID is required');
+  }
+
+  try {
+    console.log(`Getting users for organization: ${organizationId}`);
+
+    const users = await usersAndOrganizationsAdapter.getUsersByOrganization(
+      organizationId
+    );
+
+    console.log(
+      `Found ${users.length} users in organization ${organizationId}`
+    );
+
+    return {
+      status: true,
+      users,
+    };
+  } catch (error) {
+    console.error('Error getting users:', error);
+    throw new Error('Failed to get users');
+  }
 };

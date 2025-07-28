@@ -5,35 +5,38 @@ import {
   patchState,
   withComputed,
 } from '@ngrx/signals';
-import { InventoryItem } from '@equip-track/shared';
-import { computed } from '@angular/core';
+import {
+  InventoryItem,
+  ORGANIZATION_ID_PATH_PARAM,
+  USER_ID_PATH_PARAM,
+} from '@equip-track/shared';
+import { computed, inject } from '@angular/core';
+import { ApiService } from '../services/api.service';
+import { UserStore } from './user.store';
+import { firstValueFrom } from 'rxjs';
 
 interface InventoryState {
   // key is userID, value is inventory items for that user
   inventory: Record<string, InventoryItem[]>;
   wareHouseInventory: InventoryItem[];
   loading: boolean;
-  error?: string;
+  error: string | undefined;
+  // Add states for add/remove operations
+  addingInventory: boolean;
+  removingInventory: boolean;
+  addInventoryError: string | undefined;
+  removeInventoryError: string | undefined;
 }
-
-const mockInventory: InventoryItem[] = [
-  {
-    productId: '1',
-    quantity: 10,
-    upis: [],
-  },
-  {
-    productId: '2',
-    quantity: 2,
-    upis: ['UPIS1', 'UPIS2'],
-  },
-];
 
 const initialState: InventoryState = {
   inventory: {},
   wareHouseInventory: [],
   loading: false,
   error: undefined,
+  addingInventory: false,
+  removingInventory: false,
+  addInventoryError: undefined,
+  removeInventoryError: undefined,
 };
 
 export const InventoryStore = signalStore(
@@ -49,6 +52,9 @@ export const InventoryStore = signalStore(
     };
   }),
   withMethods((store) => {
+    const apiService = inject(ApiService);
+    const userStore = inject(UserStore);
+
     const updateState = (newState: Partial<InventoryState>) => {
       patchState(store, (state) => {
         return {
@@ -57,26 +63,184 @@ export const InventoryStore = signalStore(
         };
       });
     };
+
     return {
       async fetchInventory() {
-        updateState({ loading: true });
+        updateState({ loading: true, error: undefined });
         try {
+          const organizationId = userStore.selectedOrganizationId();
+          if (!organizationId) {
+            throw new Error('No organization selected');
+          }
+
+          const inventoryResponse = await firstValueFrom(
+            apiService.endpoints.getInventory.execute(undefined, {
+              [ORGANIZATION_ID_PATH_PARAM]: organizationId,
+            })
+          );
+
+          if (!inventoryResponse.status) {
+            throw new Error('Failed to fetch inventory');
+          }
+
+          // Convert users Map to Record for compatibility with existing code
+          const usersInventory: Record<string, InventoryItem[]> = {};
+          if (inventoryResponse.items.users) {
+            // Handle the users Map from backend response
+            Object.entries(inventoryResponse.items.users).forEach(
+              ([userId, items]) => {
+                usersInventory[userId] = items;
+              }
+            );
+          }
+
           updateState({
-            inventory: {
-              '1': [...mockInventory],
-              '2': [...mockInventory],
-            },
-            wareHouseInventory: [...mockInventory],
+            inventory: usersInventory,
+            wareHouseInventory: inventoryResponse.items.warehouse || [],
+            loading: false,
           });
         } catch (error) {
-          console.error('error fetching inventory', error);
-          // TODO: Add error handling
-          updateState({ error: 'Error fetching inventory' });
+          console.error('Error fetching inventory:', error);
+          updateState({
+            error: 'Failed to fetch inventory',
+            loading: false,
+          });
         }
-        updateState({ loading: false });
       },
+
+      async fetchUserInventory(userId: string): Promise<InventoryItem[]> {
+        try {
+          const organizationId = userStore.selectedOrganizationId();
+          if (!organizationId) {
+            throw new Error('No organization selected');
+          }
+
+          const userInventoryResponse = await firstValueFrom(
+            apiService.endpoints.getUserInventory.execute(undefined, {
+              [ORGANIZATION_ID_PATH_PARAM]: organizationId,
+              [USER_ID_PATH_PARAM]: userId,
+            })
+          );
+
+          if (!userInventoryResponse.status) {
+            throw new Error('Failed to fetch user inventory');
+          }
+
+          // Update the specific user's inventory in the store
+          updateState({
+            inventory: {
+              ...store.inventory(),
+              [userId]: userInventoryResponse.items || [],
+            },
+          });
+
+          return userInventoryResponse.items || [];
+        } catch (error) {
+          console.error('Error fetching user inventory:', error);
+          throw error;
+        }
+      },
+
       getUserInventory(userID: string): InventoryItem[] {
         return store.inventory()[userID] ?? [];
+      },
+
+      async addInventory(items: InventoryItem[]): Promise<boolean> {
+        updateState({
+          addingInventory: true,
+          addInventoryError: undefined,
+        });
+
+        try {
+          const organizationId = userStore.selectedOrganizationId();
+          if (!organizationId) {
+            throw new Error('No organization selected');
+          }
+
+          const response = await firstValueFrom(
+            apiService.endpoints.addInventory.execute(
+              { items },
+              {
+                [ORGANIZATION_ID_PATH_PARAM]: organizationId,
+              }
+            )
+          );
+
+          if (!response.status) {
+            throw new Error(response.errorMessage || 'Failed to add inventory');
+          }
+
+          updateState({ addingInventory: false });
+
+          // Refresh inventory after successful add
+          await this.fetchInventory();
+
+          return true;
+        } catch (error) {
+          console.error('Error adding inventory:', error);
+          const errorMessage =
+            error instanceof Error ? error.message : 'Failed to add inventory';
+          updateState({
+            addInventoryError: errorMessage,
+            addingInventory: false,
+          });
+          return false;
+        }
+      },
+
+      async removeInventory(items: InventoryItem[]): Promise<boolean> {
+        updateState({
+          removingInventory: true,
+          removeInventoryError: undefined,
+        });
+
+        try {
+          const organizationId = userStore.selectedOrganizationId();
+          if (!organizationId) {
+            throw new Error('No organization selected');
+          }
+
+          const response = await firstValueFrom(
+            apiService.endpoints.removeInventory.execute(
+              { items },
+              {
+                [ORGANIZATION_ID_PATH_PARAM]: organizationId,
+              }
+            )
+          );
+
+          if (!response.status) {
+            throw new Error(
+              response.errorMessage || 'Failed to remove inventory'
+            );
+          }
+
+          updateState({ removingInventory: false });
+
+          // Refresh inventory after successful remove
+          await this.fetchInventory();
+
+          return true;
+        } catch (error) {
+          console.error('Error removing inventory:', error);
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'Failed to remove inventory';
+          updateState({
+            removeInventoryError: errorMessage,
+            removingInventory: false,
+          });
+          return false;
+        }
+      },
+
+      clearAddInventoryError() {
+        updateState({ addInventoryError: undefined });
+      },
+
+      clearRemoveInventoryError() {
+        updateState({ removeInventoryError: undefined });
       },
     };
   })
