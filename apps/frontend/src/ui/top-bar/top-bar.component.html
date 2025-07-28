@@ -61,9 +61,9 @@
     }
   } @else {
     <!-- Unauthenticated State -->
-    <button mat-button color="accent" routerLink="/login">
-      <mat-icon>login</mat-icon>
-      <span>{{ 'navigation.sign-in' | translate }}</span>
+    <button mat-button color="accent" (click)="onSignOut()">
+      <mat-icon>logout</mat-icon>
+      <span>{{ 'navigation.sign-out' | translate }}</span>
     </button>
   }
 </mat-toolbar>
