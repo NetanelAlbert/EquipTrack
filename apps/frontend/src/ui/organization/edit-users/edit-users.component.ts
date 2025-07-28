@@ -75,10 +75,10 @@ export class EditUsersComponent implements OnInit {
    * Invite a new user to the organization
    */
   async inviteUser(): Promise<void> {
-    const email = this.inviteEmail().trim();
+    const rawEmail = this.inviteEmail().trim();
     const role = this.selectedRole();
 
-    if (!email) {
+    if (!rawEmail) {
       this.showError(
         this.translateService.instant(
           'organization.users.invite.email-required'
@@ -86,6 +86,9 @@ export class EditUsersComponent implements OnInit {
       );
       return;
     }
+
+    // Normalize email: trim whitespace and convert to lowercase
+    const email = rawEmail.toLowerCase();
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

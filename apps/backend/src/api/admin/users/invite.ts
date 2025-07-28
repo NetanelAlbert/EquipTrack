@@ -26,9 +26,12 @@ export const handler = async (
     throw badRequest('Email and role are required');
   }
 
+  // Normalize email: trim whitespace and convert to lowercase
+  const normalizedEmail = req.email.trim().toLowerCase();
+
   // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(req.email)) {
+  if (!emailRegex.test(normalizedEmail)) {
     throw badRequest('Invalid email format');
   }
 
@@ -40,7 +43,7 @@ export const handler = async (
   try {
     // Check if user with this email already exists
     const existingUser = await usersAndOrganizationsAdapter.getUserByEmail(
-      req.email
+      normalizedEmail
     );
 
     let userId: string;
@@ -63,8 +66,8 @@ export const handler = async (
       // Create new user in Invited state
       const newUser = {
         id: uuidv4(),
-        name: req.email.split('@')[0], // Use email prefix as default name - user can update later
-        email: req.email,
+        name: normalizedEmail.split('@')[0], // Use email prefix as default name - user can update later
+        email: normalizedEmail,
         state: UserState.Invited,
       };
 
@@ -84,7 +87,7 @@ export const handler = async (
     // TODO: Send email to user
 
     console.log(
-      `User invited successfully: ${req.email} to organization ${organizationId} with role ${req.role}`
+      `User invited successfully: ${normalizedEmail} to organization ${organizationId} with role ${req.role}`
     );
 
     return {

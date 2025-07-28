@@ -150,14 +150,18 @@ export class UsersAndOrganizationsAdapter {
    * Create a new user with UUID and external auth provider info
    */
   async createUser(user: User, googleSub?: string): Promise<void> {
+    // Normalize email before checking existence and storing
+    const normalizedEmail = user.email.trim().toLowerCase();
+    
     // First check if a user with this email already exists
-    const existingUser = await this.getUserByEmail(user.email);
+    const existingUser = await this.getUserByEmail(normalizedEmail);
     if (existingUser) {
-      throw new Error(`User with email ${user.email} already exists`);
+      throw new Error(`User with email ${normalizedEmail} already exists`);
     }
 
     const userDb: UserDb = {
       ...user,
+      email: normalizedEmail, // Store normalized email
       PK: `${USER_PREFIX}${user.id}`,
       SK: METADATA_SK,
       dbItemType: DbItemType.User,
@@ -257,13 +261,16 @@ export class UsersAndOrganizationsAdapter {
   async getUserByEmail(
     email: string
   ): Promise<UserAndAllOrganizations | undefined> {
+    // Normalize email before querying
+    const normalizedEmail = email.trim().toLowerCase();
+    
     // First, get the user record using the email GSI
     const userQuery = new QueryCommand({
       TableName: this.tableName,
       IndexName: 'UsersByEmailIndex',
       KeyConditionExpression: 'email = :email AND SK = :sk',
       ExpressionAttributeValues: {
-        ':email': email,
+        ':email': normalizedEmail,
         ':sk': METADATA_SK,
       },
     });
