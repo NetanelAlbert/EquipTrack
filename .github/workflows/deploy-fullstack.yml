@@ -57,19 +57,34 @@ jobs:
       - name: Deploy Lambda functions
         run: node scripts/deploy-lambdas.js
 
-
-      - name: Deploy API Gateway (first attempt)
-        id: deploy-api-gateway-first
-        run: node scripts/deploy-api-gateway.js
-        continue-on-error: true
-
-      - name: Deploy API Gateway (retry with RECREATE_API=true)
-        if: steps.deploy-api-gateway-first.outcome == 'failure'
+      - name: Deploy API Gateway
+        id: deploy-api-gateway
         run: |
-          echo "First API Gateway deployment failed. Retrying with RECREATE_API=true to rebuild from scratch..."
-          node scripts/deploy-api-gateway.js
-        env:
-          RECREATE_API: 'true'
+          echo "🚀 Deploying API Gateway for stage: ${{ env.STAGE }}"
+          
+          # First attempt: Normal deployment
+          if node scripts/deploy-api-gateway.js; then
+            echo "✅ API Gateway deployed successfully"
+            exit 0
+          fi
+          
+          # If first attempt fails, check if it's a resource conflict
+          echo "⚠️ First API Gateway deployment failed, analyzing error..."
+          
+          # Wait a moment for AWS to stabilize
+          sleep 10
+          
+          # Second attempt: Use RECREATE_API to clean up conflicts
+          echo "🔄 Retrying with RECREATE_API=true to resolve conflicts..."
+          if RECREATE_API=true node scripts/deploy-api-gateway.js; then
+            echo "✅ API Gateway deployed successfully after recreation"
+            exit 0
+          fi
+          
+          # If both attempts fail, exit with error
+          echo "❌ API Gateway deployment failed after two attempts"
+          echo "🔧 Manual intervention may be required"
+          exit 1
 
       - name: Deploy Frontend to S3 (Fast - first attempt)
         id: deploy-frontend-fast

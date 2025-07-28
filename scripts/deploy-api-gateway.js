@@ -190,62 +190,85 @@ function updateCustomDomainDeploymentInfo(apiId) {
 }
 
 async function createOrUpdateAPI() {
-  const apiName = `equip-track-api-${STAGE}`;
+  const baseApiName = `equip-track-api-${STAGE}`;
   let customDomainState = { hasCustomDomain: false, mappings: [] };
   
   try {
     // Try to find existing API
     const result = execSync(`aws apigateway get-rest-apis --no-paginate`, { encoding: 'utf8' });
     const apis = JSON.parse(result).items;
-    const existingAPI = apis.find(api => api.name === apiName);
+    
+    // Find ALL APIs that match our naming pattern (including old ones)
+    const matchingAPIs = apis.filter(api => 
+      api.name === baseApiName || 
+      api.name.startsWith(`${baseApiName}-recreated-`) ||
+      api.name.startsWith(`equip-track-api-${STAGE}`)
+    );
+    
+    console.log(`🔍 Found ${matchingAPIs.length} APIs matching pattern for stage '${STAGE}':`);
+    matchingAPIs.forEach(api => {
+      console.log(`   - ${api.name} (${api.id})`);
+    });
+    
+    // Use the most recent API if we're not recreating
+    const existingAPI = matchingAPIs.find(api => api.name === baseApiName);
     
     if (existingAPI && !RECREATE_API) {
-      console.log(`Using existing API: ${existingAPI.id}`);
+      console.log(`✅ Using existing API: ${existingAPI.id}`);
       return existingAPI.id;
-    } else if (existingAPI && RECREATE_API) {
+    } else if (RECREATE_API) {
       console.log(`\n🔄 RECREATE_API=true: Rebuilding API Gateway with custom domain preservation...`);
-      console.log(`Existing API: ${existingAPI.id}`);
       
-      // Step 1: Detect existing custom domain mappings BEFORE deletion
-      customDomainState = detectExistingCustomDomainMappings(existingAPI.id);
-      
-      if (customDomainState.hasCustomDomain) {
-        console.log(`🎯 Custom domain detected - will preserve: ${API_DOMAIN}`);
+      // Step 1: Handle custom domain mappings for ALL matching APIs
+      for (const api of matchingAPIs) {
+        console.log(`\n🔍 Checking custom domain mappings for API: ${api.id}`);
+        const domainState = detectExistingCustomDomainMappings(api.id);
         
-        // Step 2: Clean up custom domain mappings (but preserve the domain itself)
-        cleanupCustomDomainMappings(existingAPI.id, customDomainState);
-      }
-      
-      // Step 3: Delete the existing API
-      console.log(`🗑️  Deleting existing API: ${existingAPI.id}`);
-      try {
-        execSync(`aws apigateway delete-rest-api --rest-api-id ${existingAPI.id}`, { stdio: 'inherit' });
-        console.log(`✅ Deleted existing API: ${existingAPI.id}`);
-      } catch (deleteError) {
-        console.log(`⚠️  Warning: Could not delete existing API: ${deleteError.message}`);
-        
-        // If deletion fails but we had custom domains, we're in a problematic state
-        if (customDomainState.hasCustomDomain) {
-          console.error(`🚨 Critical: API deletion failed but custom domain mappings were removed!`);
-          console.error(`🔧 Manual fix: Check API Gateway console and restore domain mappings if needed`);
+        if (domainState.hasCustomDomain) {
+          console.log(`🎯 Custom domain detected for API ${api.id} - will preserve: ${API_DOMAIN}`);
+          customDomainState = domainState; // Keep the domain state for restoration
+          
+          // Clean up custom domain mappings
+          cleanupCustomDomainMappings(api.id, domainState);
         }
-        throw deleteError;
+        
+        // Step 2: Delete the API
+        console.log(`🗑️  Deleting API: ${api.id} (${api.name})`);
+        try {
+          execSync(`aws apigateway delete-rest-api --rest-api-id ${api.id}`, { stdio: 'inherit' });
+          console.log(`✅ Deleted API: ${api.id}`);
+        } catch (deleteError) {
+          console.log(`⚠️  Warning: Could not delete API ${api.id}: ${deleteError.message}`);
+          
+          // If deletion fails but we had custom domains, we're in a problematic state
+          if (domainState.hasCustomDomain) {
+            console.error(`🚨 Critical: API deletion failed but custom domain mappings were removed!`);
+            console.error(`🔧 Manual fix: Check API Gateway console and restore domain mappings if needed`);
+          }
+        }
       }
+      
+      // Add a small delay to ensure AWS has processed the deletions
+      console.log(`⏳ Waiting for AWS to process deletions...`);
+      await new Promise(resolve => setTimeout(resolve, 5000));
     }
   } catch (error) {
     console.log('Error checking for existing APIs, will create new one', error);
   }
   
-  // Step 4: Create new API
-  console.log(`\n📝 Creating new API: ${apiName}`);
+  // Step 3: Create new API with a unique name to avoid any conflicts
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const newApiName = RECREATE_API ? `${baseApiName}-recreated-${timestamp}` : baseApiName;
+  
+  console.log(`\n📝 Creating new API: ${newApiName}`);
   const createResult = execSync(
-    `aws apigateway create-rest-api --name ${apiName} --description "EquipTrack API - ${STAGE}"`,
+    `aws apigateway create-rest-api --name "${newApiName}" --description "EquipTrack API - ${STAGE}"`,
     { encoding: 'utf8' }
   );
   const newApiId = JSON.parse(createResult).id;
   console.log(`✅ Created new API: ${newApiId}`);
   
-  // Step 5: Store the new API ID for later custom domain restoration
+  // Step 4: Store the new API ID for later custom domain restoration
   if (customDomainState.hasCustomDomain) {
     // We'll restore custom domain mappings after the API is fully deployed
     // Store the state for later use
