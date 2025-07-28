@@ -53,9 +53,12 @@ export class GoogleAuthService {
       // Step 1: Validate the Google ID token
       const googlePayload = await this.validateGoogleIdToken(idToken);
 
+      // Normalize email: trim whitespace and convert to lowercase
+      const normalizedEmail = googlePayload.email.trim().toLowerCase();
+
       // Step 2: Check if user exists in our system by email
       let userAndOrganizations = await this.usersAdapter.getUserByEmail(
-        googlePayload.email
+        normalizedEmail
       );
 
       if (userAndOrganizations) {
@@ -91,7 +94,7 @@ export class GoogleAuthService {
         const newUserId = randomUUID();
         const newUser: User = {
           id: newUserId,
-          email: googlePayload.email,
+          email: normalizedEmail,
           name: googlePayload.name,
           state: UserState.Active,
         };
