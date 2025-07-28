@@ -15,6 +15,111 @@ const LAMBDA_CONFIG = {
   memorySize: 256,
 };
 
+function getLambdaPolicyDocument() {
+  return {
+    Version: '2012-10-17',
+    Statement: [
+      {
+        Effect: 'Allow',
+        Action: [
+          'dynamodb:GetItem',
+          'dynamodb:PutItem',
+          'dynamodb:Query',
+          'dynamodb:Scan',
+          'dynamodb:UpdateItem',
+          'dynamodb:DeleteItem',
+          'dynamodb:BatchGetItem',
+          'dynamodb:BatchWriteItem'
+        ],
+        Resource: [
+          `arn:aws:dynamodb:${AWS_REGION}:*:table/UsersAndOrganizations*`,
+          `arn:aws:dynamodb:${AWS_REGION}:*:table/Inventory*`,
+          `arn:aws:dynamodb:${AWS_REGION}:*:table/Forms*`,
+          `arn:aws:dynamodb:${AWS_REGION}:*:table/EquipTrackReport*`,
+          `arn:aws:dynamodb:${AWS_REGION}:*:table/*/index/*`
+        ]
+      },
+      {
+        Effect: 'Allow',
+        Action: [
+          'secretsmanager:GetSecretValue'
+        ],
+        Resource: [
+          `arn:aws:secretsmanager:${AWS_REGION}:*:secret:equip-track/jwt-private-key*`,
+          `arn:aws:secretsmanager:${AWS_REGION}:*:secret:equip-track/jwt-public-key*`
+        ]
+      },
+      {
+        Effect: 'Allow',
+        Action: [
+          's3:PutObject',
+          's3:GetObject',
+          's3:DeleteObject'
+        ],
+        Resource: [
+          `arn:aws:s3:::equip-track-forms/*`,
+          `arn:aws:s3:::equip-track-forms-${STAGE}/*`
+        ]
+      }
+    ]
+  };
+}
+
+function updateRolePolicy(roleName) {
+  const policyName = `equip-track-lambda-policy-${STAGE}`;
+  const lambdaPolicy = getLambdaPolicyDocument();
+  
+  console.log(`Updating policy for existing role: ${roleName}`);
+  
+  // Create temporary policy file
+  fs.writeFileSync('lambda-policy-update.json', JSON.stringify(lambdaPolicy));
+  
+  try {
+    // Try to update existing policy
+    const accountId = JSON.parse(execSync('aws sts get-caller-identity', { encoding: 'utf8' })).Account;
+    const policyArn = `arn:aws:iam::${accountId}:policy/${policyName}`;
+    
+    // Get current policy version
+    const policyVersions = JSON.parse(execSync(
+      `aws iam list-policy-versions --policy-arn ${policyArn}`,
+      { encoding: 'utf8' }
+    ));
+    
+    // Create new policy version
+    execSync(
+      `aws iam create-policy-version --policy-arn ${policyArn} --policy-document file://lambda-policy-update.json --set-as-default`,
+      { stdio: 'pipe' }
+    );
+    
+    console.log(`✅ Updated policy: ${policyName}`);
+    
+    // Clean up old versions (keep only the latest and one previous)
+    const versionsToDelete = policyVersions.Versions
+      .filter(v => !v.IsDefaultVersion)
+      .sort((a, b) => new Date(b.CreateDate) - new Date(a.CreateDate))
+      .slice(1); // Keep the most recent non-default version
+    
+    for (const version of versionsToDelete) {
+      try {
+        execSync(
+          `aws iam delete-policy-version --policy-arn ${policyArn} --version-id ${version.VersionId}`,
+          { stdio: 'pipe' }
+        );
+      } catch (error) {
+        // Ignore errors when deleting old versions
+      }
+    }
+    
+  } catch (error) {
+    console.log(`Policy ${policyName} might not exist yet, will be created with role`);
+  } finally {
+    // Clean up temporary file
+    if (fs.existsSync('lambda-policy-update.json')) {
+      fs.unlinkSync('lambda-policy-update.json');
+    }
+  }
+}
+
 function ensureRole() {
   const roleName = `equip-track-lambda-role-${STAGE}`;
   const policyDocument = {
@@ -35,6 +140,10 @@ function ensureRole() {
     const result = execSync(`aws iam get-role --role-name ${roleName}`, { encoding: 'utf8' });
     const roleArn = JSON.parse(result).Role.Arn;
     console.log(`Using existing role: ${roleArn}`);
+    
+    // Update policy for existing role to ensure it has latest permissions
+    updateRolePolicy(roleName);
+    
     return roleArn;
   } catch (error) {
     console.log(`Creating new role: ${roleName}`);
@@ -53,52 +162,7 @@ function ensureRole() {
     
     // Create and attach least-privilege DynamoDB, Secrets Manager, and S3 policy
     const policyName = `equip-track-lambda-policy-${STAGE}`;
-    const lambdaPolicy = {
-      Version: '2012-10-17',
-      Statement: [
-        {
-          Effect: 'Allow',
-          Action: [
-            'dynamodb:GetItem',
-            'dynamodb:PutItem',
-            'dynamodb:Query',
-            'dynamodb:Scan',
-            'dynamodb:UpdateItem',
-            'dynamodb:DeleteItem',
-            'dynamodb:BatchGetItem',
-            'dynamodb:BatchWriteItem'
-          ],
-          Resource: [
-            `arn:aws:dynamodb:${AWS_REGION}:*:table/UsersAndOrganizations*`,
-            `arn:aws:dynamodb:${AWS_REGION}:*:table/Inventory*`,
-            `arn:aws:dynamodb:${AWS_REGION}:*:table/Forms*`,
-            `arn:aws:dynamodb:${AWS_REGION}:*:table/EquipTrackReport*`,
-            `arn:aws:dynamodb:${AWS_REGION}:*:table/*/index/*`
-          ]
-        },
-        {
-          Effect: 'Allow',
-          Action: [
-            'secretsmanager:GetSecretValue'
-          ],
-          Resource: [
-            `arn:aws:secretsmanager:${AWS_REGION}:*:secret:equip-track/jwt-private-key*`
-          ]
-        },
-        {
-          Effect: 'Allow',
-          Action: [
-            's3:PutObject',
-            's3:GetObject',
-            's3:DeleteObject'
-          ],
-          Resource: [
-            `arn:aws:s3:::equip-track-forms/*`,
-            `arn:aws:s3:::equip-track-forms-${STAGE}/*`
-          ]
-        }
-      ]
-    };
+    const lambdaPolicy = getLambdaPolicyDocument();
     
     // Create the policy
     fs.writeFileSync('lambda-policy.json', JSON.stringify(lambdaPolicy));
