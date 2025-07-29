@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, NotificationService } from '../../services';
 import { UserStore, OrganizationStore } from '../../store';
-import { ItemReport, TraceItemRequest, TraceItemResponse } from '@equip-track/shared';
+import { ItemReport, TraceItemRequest } from '@equip-track/shared';
 import { firstValueFrom } from 'rxjs';
 
 interface TraceResult {

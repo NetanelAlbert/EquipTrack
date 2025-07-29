@@ -138,12 +138,12 @@ export const navItems: NavItem[] = [
     loadComponent: () =>
       import('../trace-product/trace-product.component').then((m) => m.TraceProductComponent),
   },
-  // TODO: Implement admin dashboard
-  // {
-  //   icon: 'admin_panel_settings',
-  //   labelKey: 'navigation.admin-dashboard',
-  //   route: 'admin',
-  //   roles: [UserRole.Admin],
-  //   // loadComponent omitted - will use DummyComponent (eager loaded)
-  // },
+  {
+    icon: 'admin_panel_settings',
+    labelKey: 'navigation.admin-dashboard',
+    route: 'admin',
+    roles: [UserRole.Admin],
+    loadComponent: () =>
+      import('../admin-dashboard/admin-dashboard.component').then((m) => m.AdminDashboardComponent),
+  },
 ];

@@ -1,4 +1,5 @@
 // NOTE: the order of the exports is important. Dependencies should be exported first.
+export * from './admin-dashboard/admin-dashboard.component';
 export * from './auth/google-sign-in.component';
 export * from './check-in/check-in.component';
 export * from './checkout/checkout.component';
