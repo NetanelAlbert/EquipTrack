@@ -15,29 +15,39 @@ import { ApiService } from '../services/api.service';
 import { NotificationService } from '../services/notification.service';
 import { UserStore } from './user.store';
 import { firstValueFrom } from 'rxjs';
+import { ApiStatus } from './stores.models';
 
 interface InventoryState {
   // key is userID, value is inventory items for that user
   inventory: Record<string, InventoryItem[]>;
   wareHouseInventory: InventoryItem[];
-  loading: boolean;
-  error: string | undefined;
-  // Add states for add/remove operations
-  addingInventory: boolean;
-  removingInventory: boolean;
-  addInventoryError: string | undefined;
-  removeInventoryError: string | undefined;
+  
+  // API status for operations using ApiStatus
+  fetchInventoryStatus: ApiStatus;
+  fetchUserInventoryStatus: ApiStatus;
+  addInventoryStatus: ApiStatus;
+  removeInventoryStatus: ApiStatus;
 }
 
 const initialState: InventoryState = {
   inventory: {},
   wareHouseInventory: [],
-  loading: false,
-  error: undefined,
-  addingInventory: false,
-  removingInventory: false,
-  addInventoryError: undefined,
-  removeInventoryError: undefined,
+  fetchInventoryStatus: {
+    isLoading: false,
+    error: undefined,
+  },
+  fetchUserInventoryStatus: {
+    isLoading: false,
+    error: undefined,
+  },
+  addInventoryStatus: {
+    isLoading: false,
+    error: undefined,
+  },
+  removeInventoryStatus: {
+    isLoading: false,
+    error: undefined,
+  },
 };
 
 export const InventoryStore = signalStore(
@@ -50,6 +60,13 @@ export const InventoryStore = signalStore(
         const warehouseItems = store.wareHouseInventory();
         return mergeInventoryItems([...usersItems, ...warehouseItems]);
       }),
+      // Convenience computed properties for loading states
+      isLoading: computed(() => 
+        store.fetchInventoryStatus().isLoading ||
+        store.fetchUserInventoryStatus().isLoading ||
+        store.addInventoryStatus().isLoading ||
+        store.removeInventoryStatus().isLoading
+      ),
     };
   }),
   withMethods((store) => {
@@ -68,7 +85,10 @@ export const InventoryStore = signalStore(
 
     return {
       async fetchInventory() {
-        updateState({ loading: true, error: undefined });
+        updateState({ 
+          fetchInventoryStatus: { isLoading: true, error: undefined } 
+        });
+        
         try {
           const organizationId = userStore.selectedOrganizationId();
           if (!organizationId) {
@@ -87,8 +107,10 @@ export const InventoryStore = signalStore(
               inventoryResponse.errorMessage
             );
             updateState({
-              error: 'Failed to fetch inventory',
-              loading: false,
+              fetchInventoryStatus: {
+                isLoading: false,
+                error: 'Failed to fetch inventory',
+              },
             });
             return;
           }
@@ -107,7 +129,7 @@ export const InventoryStore = signalStore(
           updateState({
             inventory: usersInventory,
             wareHouseInventory: inventoryResponse.items.warehouse || [],
-            loading: false,
+            fetchInventoryStatus: { isLoading: false, error: undefined },
           });
         } catch (error) {
           console.error('Error fetching inventory:', error);
@@ -116,13 +138,19 @@ export const InventoryStore = signalStore(
             'errors.inventory.fetch-failed'
           );
           updateState({
-            error: 'Failed to fetch inventory',
-            loading: false,
+            fetchInventoryStatus: {
+              isLoading: false,
+              error: 'Failed to fetch inventory',
+            },
           });
         }
       },
 
       async fetchUserInventory(userId: string): Promise<InventoryItem[]> {
+        updateState({ 
+          fetchUserInventoryStatus: { isLoading: true, error: undefined } 
+        });
+
         try {
           const organizationId = userStore.selectedOrganizationId();
           if (!organizationId) {
@@ -141,6 +169,12 @@ export const InventoryStore = signalStore(
               'errors.inventory.fetch-failed',
               userInventoryResponse.errorMessage
             );
+            updateState({
+              fetchUserInventoryStatus: {
+                isLoading: false,
+                error: 'Failed to fetch user inventory',
+              },
+            });
             throw new Error('Failed to fetch user inventory');
           }
 
@@ -150,6 +184,7 @@ export const InventoryStore = signalStore(
               ...store.inventory(),
               [userId]: userInventoryResponse.items || [],
             },
+            fetchUserInventoryStatus: { isLoading: false, error: undefined },
           });
 
           return userInventoryResponse.items || [];
@@ -159,6 +194,13 @@ export const InventoryStore = signalStore(
             error,
             'errors.inventory.fetch-failed'
           );
+          const errorMessage = error instanceof Error ? error.message : 'Failed to fetch user inventory';
+          updateState({
+            fetchUserInventoryStatus: {
+              isLoading: false,
+              error: errorMessage,
+            },
+          });
           throw error;
         }
       },
@@ -169,8 +211,7 @@ export const InventoryStore = signalStore(
 
       async addInventory(items: InventoryItem[]): Promise<boolean> {
         updateState({
-          addingInventory: true,
-          addInventoryError: undefined,
+          addInventoryStatus: { isLoading: true, error: undefined },
         });
 
         try {
@@ -194,14 +235,17 @@ export const InventoryStore = signalStore(
               response.errorMessage
             );
             updateState({
-              addInventoryError:
-                response.errorMessage || 'Failed to add inventory',
-              addingInventory: false,
+              addInventoryStatus: {
+                isLoading: false,
+                error: response.errorMessage || 'Failed to add inventory',
+              },
             });
             return false;
           }
 
-          updateState({ addingInventory: false });
+          updateState({ 
+            addInventoryStatus: { isLoading: false, error: undefined } 
+          });
           notificationService.showSuccess(
             'inventory.add.success',
             'Inventory items added successfully'
@@ -220,8 +264,7 @@ export const InventoryStore = signalStore(
           const errorMessage =
             error instanceof Error ? error.message : 'Failed to add inventory';
           updateState({
-            addInventoryError: errorMessage,
-            addingInventory: false,
+            addInventoryStatus: { isLoading: false, error: errorMessage },
           });
           return false;
         }
@@ -229,8 +272,7 @@ export const InventoryStore = signalStore(
 
       async removeInventory(items: InventoryItem[]): Promise<boolean> {
         updateState({
-          removingInventory: true,
-          removeInventoryError: undefined,
+          removeInventoryStatus: { isLoading: true, error: undefined },
         });
 
         try {
@@ -254,14 +296,17 @@ export const InventoryStore = signalStore(
               response.errorMessage
             );
             updateState({
-              removeInventoryError:
-                response.errorMessage || 'Failed to remove inventory',
-              removingInventory: false,
+              removeInventoryStatus: {
+                isLoading: false,
+                error: response.errorMessage || 'Failed to remove inventory',
+              },
             });
             return false;
           }
 
-          updateState({ removingInventory: false });
+          updateState({ 
+            removeInventoryStatus: { isLoading: false, error: undefined } 
+          });
           notificationService.showSuccess(
             'inventory.remove.success',
             'Inventory items removed successfully'
@@ -282,19 +327,47 @@ export const InventoryStore = signalStore(
               ? error.message
               : 'Failed to remove inventory';
           updateState({
-            removeInventoryError: errorMessage,
-            removingInventory: false,
+            removeInventoryStatus: { isLoading: false, error: errorMessage },
           });
           return false;
         }
       },
 
+      // Clear error methods
+      clearFetchInventoryError() {
+        updateState({ 
+          fetchInventoryStatus: { 
+            ...store.fetchInventoryStatus(), 
+            error: undefined 
+          } 
+        });
+      },
+
+      clearFetchUserInventoryError() {
+        updateState({ 
+          fetchUserInventoryStatus: { 
+            ...store.fetchUserInventoryStatus(), 
+            error: undefined 
+          } 
+        });
+      },
+
       clearAddInventoryError() {
-        updateState({ addInventoryError: undefined });
+        updateState({ 
+          addInventoryStatus: { 
+            ...store.addInventoryStatus(), 
+            error: undefined 
+          } 
+        });
       },
 
       clearRemoveInventoryError() {
-        updateState({ removeInventoryError: undefined });
+        updateState({ 
+          removeInventoryStatus: { 
+            ...store.removeInventoryStatus(), 
+            error: undefined 
+          } 
+        });
       },
     };
   })

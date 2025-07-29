@@ -11,10 +11,10 @@
     </mat-card-header>
 
     <mat-card-content>
-      @if (inventoryStore.addInventoryError()) {
+      @if (inventoryStore.addInventoryStatus().error) {
         <div class="error-message" role="alert">
           <mat-icon>error</mat-icon>
-          <span>{{ inventoryStore.addInventoryError() }}</span>
+          <span>{{ inventoryStore.addInventoryStatus().error }}</span>
           <button 
             mat-icon-button 
             (click)="clearError()"
@@ -34,13 +34,13 @@
       <button 
         mat-button 
         (click)="goBack()"
-        [disabled]="inventoryStore.addingInventory()">
+        [disabled]="inventoryStore.addInventoryStatus().isLoading">
         {{ 'common.cancel' | translate }}
       </button>
     </mat-card-actions>
   </mat-card>
 
-  @if (inventoryStore.addingInventory()) {
+  @if (inventoryStore.addInventoryStatus().isLoading) {
     <div class="loading-overlay">
       <mat-spinner></mat-spinner>
       <p>{{ 'inventory.add.adding' | translate }}</p>

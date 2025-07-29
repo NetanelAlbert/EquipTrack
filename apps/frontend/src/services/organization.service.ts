@@ -106,6 +106,9 @@ export class OrganizationService {
   }
 
   async saveProduct(product: Product): Promise<boolean> {
+    // Add loading indicator for save product operation
+    this.organizationStore.setSaveProductLoading(true);
+
     try {
       const organizationId = this.userStore.selectedOrganizationId();
       if (!organizationId) {
@@ -140,6 +143,7 @@ export class OrganizationService {
           'organization.products.save-success',
           'Product saved successfully'
         );
+        this.organizationStore.setSaveProductSuccess();
         return true;
       } else {
         const errorMessage =
@@ -150,6 +154,7 @@ export class OrganizationService {
           'errors.products.save-failed',
           errorMessage
         );
+        this.organizationStore.setSaveProductError(errorMessage);
         return false;
       }
     } catch (error: unknown) {
@@ -158,11 +163,18 @@ export class OrganizationService {
         error,
         'errors.products.save-failed'
       );
+      const errorMessage = this.translateService.instant(
+        'organization.products.save.error'
+      );
+      this.organizationStore.setSaveProductError(errorMessage);
       return false;
     }
   }
 
   async deleteProduct(productId: string): Promise<boolean> {
+    // Add loading indicator for delete product operation
+    this.organizationStore.setDeleteProductLoading(true);
+
     try {
       const organizationId = this.userStore.selectedOrganizationId();
       if (!organizationId) {
@@ -187,6 +199,7 @@ export class OrganizationService {
           'organization.products.delete-success',
           'Product deleted successfully'
         );
+        this.organizationStore.setDeleteProductSuccess();
         return true;
       } else {
         const errorMessage =
@@ -197,6 +210,7 @@ export class OrganizationService {
           'errors.products.delete-failed',
           errorMessage
         );
+        this.organizationStore.setDeleteProductError(errorMessage);
         return false;
       }
     } catch (error: unknown) {
@@ -205,6 +219,10 @@ export class OrganizationService {
         error,
         'errors.products.delete-failed'
       );
+      const errorMessage = this.translateService.instant(
+        'organization.products.delete.error'
+      );
+      this.organizationStore.setDeleteProductError(errorMessage);
       return false;
     }
   }

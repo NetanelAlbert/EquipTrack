@@ -11,15 +11,15 @@
     </div>
   </div>
 
-  @if (reportsStore.loading()) {
+  @if (reportsStore.isLoading()) {
     <div class="loading-spinner">
       <mat-spinner></mat-spinner>
     </div>
   }
 
-  @if (reportsStore.error()) {
+  @if (reportsStore.fetchReportsStatus().error) {
     <div class="error-message">
-      {{ reportsStore.error() }}
+      {{ reportsStore.fetchReportsStatus().error }}
     </div>
   }
 
