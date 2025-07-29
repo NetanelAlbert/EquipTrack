@@ -70,34 +70,203 @@ function deployToS3(bucketName) {
   return deployTime;
 }
 
-function invalidateCloudFront(distributionId) {
-  console.log(`🔄 Invalidating CloudFront cache: ${distributionId}...`);
-  
-  const startTime = Date.now();
+function validateDistributionExists(distributionId) {
+  console.log(`🔍 Validating CloudFront distribution: ${distributionId}...`);
   
   try {
     const result = execSync(
-      `aws cloudfront create-invalidation --distribution-id ${distributionId} --paths "/*"`,
-      { encoding: 'utf8' }
+      `aws cloudfront get-distribution --id ${distributionId}`,
+      { encoding: 'utf8', stdio: 'pipe' }
     );
     
-    const invalidation = JSON.parse(result);
-    const invalidationTime = ((Date.now() - startTime) / 1000).toFixed(1);
+    const distribution = JSON.parse(result);
+    const status = distribution.Distribution.Status;
     
-    console.log(`✅ Cache invalidation created in ${invalidationTime}s`);
-    console.log(`📋 Invalidation ID: ${invalidation.Invalidation.Id}`);
-    console.log(`⏳ Propagation time: 1-2 minutes`);
+    console.log(`✅ Distribution found with status: ${status}`);
     
-    return {
-      invalidationId: invalidation.Invalidation.Id,
-      invalidationTime
-    };
+    if (status !== 'Deployed') {
+      console.log(`⚠️ Distribution status is '${status}', invalidation may not work properly`);
+      return { exists: true, status, warning: `Distribution not fully deployed (${status})` };
+    }
+    
+    return { exists: true, status };
     
   } catch (error) {
-    console.log(`⚠️  Cache invalidation failed: ${error.message}`);
-    console.log(`ℹ️  Your deployment is still live, but cache may take longer to update`);
-    return null;
+    console.log(`❌ Distribution validation failed: ${error.message}`);
+    return { exists: false, error: error.message };
   }
+}
+
+function createInvalidationWithRetry(distributionId, maxRetries = 3) {
+  console.log(`🔄 Creating CloudFront invalidation: ${distributionId}...`);
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`📝 Attempt ${attempt}/${maxRetries}: Creating invalidation...`);
+      
+      const result = execSync(
+        `aws cloudfront create-invalidation --distribution-id ${distributionId} --paths "/*"`,
+        { encoding: 'utf8', stdio: 'pipe' }
+      );
+      
+      const invalidation = JSON.parse(result);
+      console.log(`✅ Invalidation created successfully`);
+      console.log(`📋 Invalidation ID: ${invalidation.Invalidation.Id}`);
+      
+      return {
+        success: true,
+        invalidationId: invalidation.Invalidation.Id,
+        attempt
+      };
+      
+    } catch (error) {
+      console.log(`❌ Attempt ${attempt} failed: ${error.message}`);
+      
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+        console.log(`⏳ Waiting ${delay/1000}s before retry...`);
+        execSync(`sleep ${delay/1000}`);
+      }
+    }
+  }
+  
+  return { success: false, attempts: maxRetries };
+}
+
+function waitForInvalidationCompletion(distributionId, invalidationId, timeoutMs = 120000) {
+  console.log(`⏳ Monitoring invalidation completion: ${invalidationId}...`);
+  
+  const startTime = Date.now();
+  const pollInterval = 10000; // Check every 10 seconds
+  
+  while (Date.now() - startTime < timeoutMs) {
+    try {
+      const result = execSync(
+        `aws cloudfront get-invalidation --distribution-id ${distributionId} --id ${invalidationId}`,
+        { encoding: 'utf8', stdio: 'pipe' }
+      );
+      
+      const data = JSON.parse(result);
+      const status = data.Invalidation.Status;
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      
+      console.log(`🔄 Invalidation status: ${status} (${elapsed}s elapsed)`);
+      
+      if (status === 'Completed') {
+        console.log(`✅ Invalidation completed successfully in ${elapsed}s`);
+        return { completed: true, duration: elapsed };
+      }
+      
+      if (status === 'InProgress') {
+        console.log(`⏳ Waiting ${pollInterval/1000}s for completion...`);
+        execSync(`sleep ${pollInterval/1000}`);
+        continue;
+      }
+      
+      console.log(`⚠️ Unexpected invalidation status: ${status}`);
+      return { completed: false, status, duration: elapsed };
+      
+    } catch (error) {
+      console.log(`⚠️ Error checking invalidation status: ${error.message}`);
+      break;
+    }
+  }
+  
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`⏰ Invalidation monitoring timed out after ${elapsed}s`);
+  return { completed: false, timeout: true, duration: elapsed };
+}
+
+function addCacheBustingFallback(deploymentInfo) {
+  console.log(`🔧 Adding cache-busting fallback strategy...`);
+  
+  // Add timestamp parameter to URLs for cache busting
+  const timestamp = Date.now();
+  const cacheBuster = `?v=${timestamp}`;
+  
+  if (deploymentInfo.frontend?.cloudfront?.cloudfrontUrl) {
+    const originalUrl = deploymentInfo.frontend.cloudfront.cloudfrontUrl;
+    const cacheBustedUrl = `${originalUrl}${cacheBuster}`;
+    
+    deploymentInfo.frontend.cloudfront.cacheBustedUrl = cacheBustedUrl;
+    deploymentInfo.frontend.cloudfront.cacheBuster = cacheBuster;
+    
+    console.log(`✅ Cache-busting URL: ${cacheBustedUrl}`);
+    console.log(`💡 Use this URL to bypass cache during validation`);
+  }
+  
+  return { timestamp, cacheBuster };
+}
+
+function invalidateCloudFront(distributionId) {
+  console.log(`🔄 Starting enhanced CloudFront invalidation: ${distributionId}...`);
+  
+  const startTime = Date.now();
+  
+  // Step 1: Validate distribution exists
+  const validation = validateDistributionExists(distributionId);
+  if (!validation.exists) {
+    console.log(`❌ Cannot invalidate - distribution does not exist or is inaccessible`);
+    return {
+      success: false,
+      error: 'Distribution validation failed',
+      details: validation.error,
+      fallbackApplied: false
+    };
+  }
+  
+  if (validation.warning) {
+    console.log(`⚠️ ${validation.warning}`);
+  }
+  
+  // Step 2: Create invalidation with retry logic
+  const invalidationResult = createInvalidationWithRetry(distributionId, 3);
+  
+  if (!invalidationResult.success) {
+    console.log(`❌ All invalidation attempts failed`);
+    console.log(`🔧 Applying fallback cache-busting strategy...`);
+    
+    // Apply fallback strategy
+    const deploymentInfo = loadDeploymentInfo();
+    const fallback = addCacheBustingFallback(deploymentInfo);
+    saveDeploymentInfo(deploymentInfo);
+    
+    return {
+      success: false,
+      error: 'Invalidation failed after retries',
+      attempts: invalidationResult.attempts,
+      fallbackApplied: true,
+      fallback
+    };
+  }
+  
+  const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+  
+  console.log(`✅ CloudFront invalidation initiated successfully`);
+  console.log(`📊 Summary:`);
+  console.log(`   - Distribution: ${distributionId}`);
+  console.log(`   - Invalidation ID: ${invalidationResult.invalidationId}`);
+  console.log(`   - Attempts: ${invalidationResult.attempt}`);
+  console.log(`   - Setup time: ${totalTime}s`);
+  console.log(`⏳ Cache will refresh within 1-2 minutes globally`);
+  
+  // Optional: Wait for completion (with timeout)
+  const waitForCompletion = process.env.WAIT_FOR_INVALIDATION === 'true';
+  let completionResult = null;
+  
+  if (waitForCompletion) {
+    console.log(`🔄 Waiting for invalidation completion...`);
+    completionResult = waitForInvalidationCompletion(distributionId, invalidationResult.invalidationId);
+  }
+  
+  return {
+    success: true,
+    invalidationId: invalidationResult.invalidationId,
+    invalidationTime: totalTime,
+    attempts: invalidationResult.attempt,
+    distributionStatus: validation.status,
+    completion: completionResult
+  };
 }
 
 function updateDeploymentInfo(deploymentInfo, deployTime, invalidationResult) {
@@ -169,10 +338,23 @@ async function deployFrontendFast() {
     // Deploy to S3
     const deployTime = deployToS3(bucketName);
     
-    // Invalidate CloudFront cache
+    // Invalidate CloudFront cache with enhanced reliability
     let invalidationResult = null;
     if (distributionId) {
       invalidationResult = invalidateCloudFront(distributionId);
+      
+      // Handle invalidation failure
+      if (!invalidationResult || !invalidationResult.success) {
+        console.log('⚠️ CloudFront invalidation failed, but deployment continues');
+        if (invalidationResult?.fallbackApplied) {
+          console.log('✅ Cache-busting fallback strategy applied');
+          console.log('💡 Test your deployment with the cache-busted URL shown above');
+        }
+        console.log('🔧 Manual invalidation may be required if cache issues persist');
+      }
+    } else {
+      console.log('⚠️ CloudFront distribution not found - skipping cache invalidation');
+      console.log('🔍 Check that CloudFront distribution was created successfully');
     }
     
     // Update deployment info
@@ -185,8 +367,12 @@ async function deployFrontendFast() {
     console.log(`📊 Summary:`);
     console.log(`   - Total time: ${totalTime}s`);
     console.log(`   - S3 deployment: ${deployTime}s`);
-    console.log(`   - Cache invalidation: ${invalidationResult ? invalidationResult.invalidationTime + 's' : 'skipped'}`);
-    console.log(`   - Method: Smart cache invalidation`);
+    console.log(`   - Cache invalidation: ${invalidationResult?.success ? invalidationResult.invalidationTime + 's' : 'skipped'}`);
+    if (invalidationResult?.success) {
+      console.log(`   - Invalidation ID: ${invalidationResult.invalidationId}`);
+      console.log(`   - Attempts: ${invalidationResult.attempts}`);
+    }
+    console.log(`   - Method: Enhanced cache invalidation with validation`);
     
     console.log(`\n🌐 Your frontend is live at:`);
     console.log(`   - Custom domain: https://${customDomain}`);
