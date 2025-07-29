@@ -34,7 +34,11 @@ import {
   WAREHOUSE_SUFFIX,
   LOCK_PREFIX,
 } from '../constants';
-import { InventoryItem, Product } from '@equip-track/shared';
+import {
+  InventoryItem,
+  mergeInventoryItem,
+  Product,
+} from '@equip-track/shared';
 
 export interface OrganizationInventory {
   products: Product[];
@@ -66,7 +70,7 @@ export class InventoryAdapter {
   }
 
   private getUserInventoryItems(items: InventoryItemDb[]): InventoryItem[] {
-    const inventoryItems: InventoryItem[] = [];
+    const inventoryItemsMap = new Map<string, InventoryItem>();
     // Map of productId to upis
     const uniqueMap = new Map<string, string[]>();
 
@@ -81,15 +85,23 @@ export class InventoryAdapter {
         }
       } else if (item.dbItemType === DbItemType.InventoryBulkItem) {
         const bulkItem = item as BulkInventoryItemDb;
-        inventoryItems.push({
-          productId: bulkItem.productId,
-          quantity: bulkItem.quantity,
-        });
+        const existingItem = inventoryItemsMap.get(bulkItem.productId);
+        if (existingItem) {
+          inventoryItemsMap.set(
+            bulkItem.productId,
+            mergeInventoryItem(existingItem, bulkItem)
+          );
+        } else {
+          inventoryItemsMap.set(bulkItem.productId, bulkItem);
+        }
       } else {
         throw new Error(`Invalid item type: ${item.dbItemType}`);
       }
     });
 
+    const inventoryItems: InventoryItem[] = Array.from(
+      inventoryItemsMap.values()
+    );
     uniqueMap.forEach((upis, productId) => {
       inventoryItems.push({
         productId,
