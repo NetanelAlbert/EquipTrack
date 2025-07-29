@@ -24,3 +24,12 @@ export interface JwtPayload {
   iat: number; // Issued at
   exp: number; // Expiration time
 }
+
+/**
+ * Response from token refresh containing new JWT
+ */
+export interface RefreshTokenResponse extends BasicResponse {
+  jwt: string;
+  organizationsCount: number;
+  message: string;
+}

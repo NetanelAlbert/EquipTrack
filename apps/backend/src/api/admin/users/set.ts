@@ -6,8 +6,10 @@ import {
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { badRequest } from '../../responses';
 import { UsersAndOrganizationsAdapter } from '../../../db';
+import { DynamicAuthService } from '../../../services/dynamic-auth.service';
 
 const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
+const dynamicAuthService = new DynamicAuthService();
 
 export const handler = async (
   req: SetUser,
@@ -47,6 +49,10 @@ export const handler = async (
     );
 
     await usersAndOrganizationsAdapter.setUserInOrganization(userInOrganization);
+
+    // Invalidate permission cache for the user since their permissions may have changed
+    dynamicAuthService.invalidateUserCache(userInOrganization.userId);
+    console.log(`Cache invalidated for user ${userInOrganization.userId} due to permission change`);
 
     console.log(`Successfully updated user ${userInOrganization.userId}`);
 

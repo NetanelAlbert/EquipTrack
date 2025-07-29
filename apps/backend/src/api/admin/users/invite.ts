@@ -7,10 +7,12 @@ import {
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { badRequest } from '../../responses';
 import { UsersAndOrganizationsAdapter } from '../../../db';
+import { DynamicAuthService } from '../../../services/dynamic-auth.service';
 import { ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
 import { v4 as uuidv4 } from 'uuid';
 
 const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
+const dynamicAuthService = new DynamicAuthService();
 
 export const handler = async (
   req: InviteUser,
@@ -83,6 +85,10 @@ export const handler = async (
       department: req.department,
       departmentRole: req.departmentRole,
     });
+
+    // Invalidate permission cache for the user since they now have new permissions
+    dynamicAuthService.invalidateUserCache(userId);
+    console.log(`Cache invalidated for user ${userId} due to new organization membership`);
 
     // TODO: Send email to user
 

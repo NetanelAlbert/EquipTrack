@@ -28,6 +28,12 @@ export const endpointMetas = {
     requestType: {} as Auth.GoogleAuthRequest,
     responseType: {} as Auth.GoogleAuthResponse,
   } as EndpointMeta<Auth.GoogleAuthRequest, Auth.GoogleAuthResponse>,
+  refreshToken: {
+    path: `/api/auth/refresh`,
+    method: 'POST',
+    allowedRoles: [UserRole.Admin, UserRole.WarehouseManager, UserRole.Customer], // All authenticated users
+    responseType: {} as Auth.RefreshTokenResponse,
+  } as EndpointMeta<undefined, Auth.RefreshTokenResponse>,
 
   // Admin Users
   getUsers: {

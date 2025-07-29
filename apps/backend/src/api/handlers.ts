@@ -1,5 +1,6 @@
 import { endpointMetas, EndpointMeta, JwtPayload } from '@equip-track/shared';
 import { handler as googleAuthHandler } from './auth/google';
+import { handler as refreshTokenHandler } from './auth/refresh';
 import { handler as getUsersHandler } from './admin/users/get';
 import { handler as setUserHandler } from './admin/users/set';
 import { handler as inviteUserHandler } from './admin/users/invite';
@@ -41,6 +42,7 @@ type HandlersDefinition = {
 export const handlers: HandlersDefinition = {
   // Authentication
   googleAuth: googleAuthHandler,
+  refreshToken: refreshTokenHandler,
 
   // Admin Users
   getUsers: getUsersHandler,
