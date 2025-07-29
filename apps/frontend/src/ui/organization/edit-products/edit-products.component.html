@@ -4,19 +4,18 @@
       <mat-card-title>{{ 'organization.editProducts.title' | translate }}</mat-card-title>
     </mat-card-header>
     <mat-card-content>
-      <form [formGroup]="form">
-        <div formArrayName="products">
-          <div *ngFor="let product of productsArray.controls; let i = index" [formGroupName]="i" class="product-item">
+      <form [formGroup]="newProductForm">
+          <div class="product-item">
             <mat-form-field appearance="outline">
               <mat-label>{{ 'organization.editProducts.id' | translate }}</mat-label>
               <input matInput formControlName="id" required>
-              <mat-error *ngIf="product.get('id')?.hasError('required')">
+              <mat-error *ngIf="newProductForm.get('id')?.hasError('required')">
                 {{ 'organization.editProducts.idRequired' | translate }}
               </mat-error>
-              <mat-error *ngIf="product.get('id')?.hasError('minlength')">
+              <mat-error *ngIf="newProductForm.get('id')?.hasError('minlength')">
                 {{ 'organization.editProducts.idMinLength' | translate }}
               </mat-error>
-              <mat-error *ngIf="product.get('id')?.hasError('duplicateId')">
+              <mat-error *ngIf="newProductForm.get('id')?.hasError('duplicateId')">
                 {{ 'organization.editProducts.duplicateIds' | translate }}
               </mat-error>
             </mat-form-field>
@@ -24,10 +23,10 @@
             <mat-form-field appearance="outline">
               <mat-label>{{ 'organization.editProducts.name' | translate }}</mat-label>
               <input matInput formControlName="name" required>
-              <mat-error *ngIf="product.get('name')?.hasError('required')">
+              <mat-error *ngIf="newProductForm.get('name')?.hasError('required')">
                 {{ 'organization.editProducts.nameRequired' | translate }}
               </mat-error>
-              <mat-error *ngIf="product.get('name')?.hasError('minlength')">
+              <mat-error *ngIf="newProductForm.get('name')?.hasError('minlength')">
                 {{ 'organization.editProducts.nameMinLength' | translate }}
               </mat-error>
             </mat-form-field>
@@ -40,39 +39,75 @@
               <button 
                 mat-raised-button 
                 color="accent" 
-                (click)="saveProduct(i)" 
+                (click)="saveNewProduct()" 
                 type="button"
-                [disabled]="!isProductFormValid(i) || isProductSaving(i)">
-                <mat-spinner diameter="16" *ngIf="isProductSaving(i)"></mat-spinner>
-                <mat-icon *ngIf="!isProductSaving(i)">save</mat-icon>
-                <span *ngIf="!isProductSaving(i)">{{ 'common.save' | translate }}</span>
-                <span *ngIf="isProductSaving(i)">{{ 'common.saving' | translate }}</span>
+                [disabled]="!newProductForm.valid">
+                <mat-spinner diameter="16" *ngIf="isProductSaving(newProductId)"></mat-spinner>
+                <mat-icon *ngIf="!isProductSaving(newProductId)">save</mat-icon>
+                <span *ngIf="!isProductSaving(newProductId)">{{ 'common.save' | translate }}</span>
+                <span *ngIf="isProductSaving(newProductId)">{{ 'common.saving' | translate }}</span>
               </button>
 
               <button 
                 mat-icon-button 
                 color="warn" 
-                (click)="removeProduct(i)" 
+                (click)="newProductForm.reset()" 
                 type="button"
-                [disabled]="isProductDeleting(i)">
-                <mat-spinner diameter="16" *ngIf="isProductDeleting(i)"></mat-spinner>
-                <mat-icon *ngIf="!isProductDeleting(i)">delete</mat-icon>
+                >
+                <mat-icon *ngIf="!isProductDeleting(newProductId)">delete</mat-icon>
               </button>
             </div>
           </div>
-        </div>
-
-        <div class="error-message" *ngIf="form.get('products')?.hasError('duplicateIds')">
-          {{ 'organization.editProducts.duplicateIds' | translate }}
-        </div>
-
-        <div class="actions">
-          <button mat-raised-button color="primary" (click)="addProduct()" type="button">
-            <mat-icon>add</mat-icon>
-            {{ 'organization.editProducts.addProduct' | translate }}
-          </button>
-        </div>
       </form>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>{{ 'organization.editProducts.existing' | translate }}</mat-card-title>
+      <mat-card-subtitle>{{ 'organization.editProducts.existingSubtitle' | translate }}</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content class="existing-products-list">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'organization.editProducts.search' | translate }}</mat-label>
+        <input 
+          matInput 
+          type="text" 
+          [ngModel]="searchTerm()" 
+          (ngModelChange)="searchTerm.set($event)"
+          name="searchTerm"
+        >
+      </mat-form-field>
+      <mat-radio-group [ngModel]="upiFilter()" (ngModelChange)="upiFilter.set($event)" name="upiFilter">
+        <mat-radio-button value="upi">{{ 'organization.editProducts.filter.upi' | translate }}</mat-radio-button>
+        <mat-radio-button value="no-upi">{{ 'organization.editProducts.filter.noUpi' | translate }}</mat-radio-button>
+        <mat-radio-button value="all">{{ 'organization.editProducts.filter.all' | translate }}</mat-radio-button>
+      </mat-radio-group>
+      @for (product of filteredProducts(); track product.id; let i = $index) {
+        <mat-card [ngClass]="{'existing-product-item': true, 'upi': product.hasUpi}">
+            <span class="existing-product-details">
+              <span class="product-name">{{ product.name }}</span>
+              <span class="product-id">({{ product.id }})</span>
+            </span>
+            <span class="row-actions">
+              <button mat-icon-button (click)="editProductName(product)" type="button">
+                @if (isProductSaving(product.id)) {
+                  <mat-spinner diameter="32"></mat-spinner>
+                } @else {
+                  <mat-icon>edit</mat-icon>
+                }
+                <mat-spinner diameter="32" *ngIf="isProductSaving(product.id)"></mat-spinner>
+              </button>
+              <button mat-icon-button color="warn" (click)="removeProduct(product.id)">
+                @if (isProductDeleting(product.id)) {
+                  <mat-spinner diameter="32"></mat-spinner>
+                } @else {
+                  <mat-icon>delete</mat-icon>
+                }
+              </button>
+            </span>
+        </mat-card>
+      }
     </mat-card-content>
   </mat-card>
 </div> 

@@ -305,7 +305,10 @@
       "copied": "Invitation message copied to clipboard"
     },
     "editProducts": {
-      "title": "Edit Products",
+      "title": "Add Product",
+      "existing": "Existing Products",
+      "existingSubtitle": "Products that are already in the system. You can edit their names by clicking on the pencil icon.",
+      "search": "Search for a product",
       "id": "Product ID",
       "name": "Product Name",
       "upi": "Requires UPI",
@@ -315,7 +318,19 @@
       "nameMinLength": "Product name must be at least 2 characters",
       "duplicateIds": "Duplicate product IDs are not allowed",
       "addProduct": "Add Product",
-      "save": "Save Products"
+      "save": "Save Products",
+      "filter": {
+        "upi": "UPI",
+        "noUpi": "No UPI",
+        "all": "All"
+      },
+      "editDialog": {
+        "title": "Edit Product Name",
+        "currentName": "Current Name",
+        "newName": "New Product Name",
+        "cancel": "Cancel",
+        "save": "Save"
+      }
     },
     "products": {
       "get": {

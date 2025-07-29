@@ -1,3 +1,5 @@
+@import '../../../styles/mixins.scss';
+
 .edit-products-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -155,3 +157,30 @@
     }
   }
 } 
+
+.existing-products-list {
+  padding-top: 16px;
+}
+
+.existing-product-item {
+  @include card-base;
+  flex-direction: row;
+  justify-content: space-between;
+
+  .existing-product-details {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 22px;
+    color: var(--color-text-primary);
+
+    .product-name {
+      font-weight: 800;
+    }
+    
+  }
+
+  &.upi {
+    @include upi-theme;
+  }
+}

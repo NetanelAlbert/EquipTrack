@@ -1,11 +1,11 @@
-import { Component, effect, inject } from '@angular/core';
+import { Component, computed, inject, model } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
-  FormArray,
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
   Validators,
+  FormsModule,
 } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
@@ -19,15 +19,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Product } from '@equip-track/shared';
 import { OrganizationStore } from '../../../store/organization.store';
 import { OrganizationService } from '../../../services/organization.service';
-import { FormControl } from '@angular/forms';
 import { AbstractControl, ValidatorFn } from '@angular/forms';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatDialog } from '@angular/material/dialog';
+import { EditProductNameDialogComponent } from './edit-product-name-dialog.component';
 
-type ProductFormGroup = FormGroup<{
-  id: FormControl<string>;
-  name: FormControl<string>;
-  upi: FormControl<boolean>;
-}>;
-
+type upiFilterOptions = 'upi' | 'no-upi' | 'all';
 @Component({
   selector: 'app-edit-products',
   standalone: true,
@@ -43,6 +40,8 @@ type ProductFormGroup = FormGroup<{
     ReactiveFormsModule,
     TranslateModule,
     MatProgressSpinnerModule,
+    FormsModule,
+    MatRadioModule,
   ],
   templateUrl: './edit-products.component.html',
   styleUrls: ['./edit-products.component.scss'],
@@ -51,88 +50,96 @@ export class EditProductsComponent {
   private fb = inject(FormBuilder);
   private organizationStore = inject(OrganizationStore);
   private organizationService = inject(OrganizationService);
+  private dialog = inject(MatDialog);
 
   products = this.organizationStore.products;
-  form: FormGroup = this.fb.group({
-    products: this.fb.array<ProductFormGroup>([]),
+  newProductForm: FormGroup = this.fb.group({
+    id: ['', [Validators.required, this.duplicateIdValidator()]],
+    name: ['', [Validators.required]],
+    upi: [false],
+  });
+  searchTerm = model<string>('');
+  upiFilter = model<upiFilterOptions>('all');
+  filteredProducts = computed(() => {
+    return this.products().filter((product) => {
+      if (this.upiFilter() === 'upi' && !product.hasUpi) {
+        return false;
+      }
+      if (this.upiFilter() === 'no-upi' && product.hasUpi) {
+        return false;
+      }
+      const searchTerm = this.searchTerm().toLowerCase();
+      if (!searchTerm) {
+        return true;
+      }
+      return (
+        product.name.toLowerCase().includes(searchTerm) ||
+        product.id.toLowerCase().includes(searchTerm)
+      );
+    });
   });
 
-  // Track loading states per product row
+  // Track loading states per product id
   productLoadingStates = new Map<
-    number,
+    string,
     { saving: boolean; deleting: boolean }
   >();
 
-  constructor() {
-    // NOTE: This will cause the form to be re-initialized when the products change
-    effect(() => {
-      this.initializeForm();
-    });
-  }
-
-  private initializeForm() {
-    const productsArray = this.fb.array<ProductFormGroup>([]);
-    this.products().forEach((product, index) => {
-      productsArray.push(this.createProductFormGroup(product, index));
-      this.productLoadingStates.set(index, { saving: false, deleting: false });
-    });
-    this.form.setControl('products', productsArray);
-  }
-
-  private createProductFormGroup(
-    product: Product,
-    index: number
-  ): ProductFormGroup {
-    return this.fb.group({
-      id: [product.id, [Validators.required, this.duplicateIdValidator(index)]],
-      name: [product.name, [Validators.required, Validators.minLength(2)]],
-      upi: [product.hasUpi],
-    }) as ProductFormGroup;
-  }
-
-  get productsArray(): FormArray<ProductFormGroup> {
-    return this.form.get('products') as FormArray<ProductFormGroup>;
-  }
-
-  addProduct() {
-    const newProduct: Product = {
-      id: '',
-      name: '',
-      hasUpi: false,
-    };
-    const newIndex = this.productsArray.length;
-    this.productsArray.push(this.createProductFormGroup(newProduct, newIndex));
-    this.productLoadingStates.set(newIndex, { saving: false, deleting: false });
-  }
-
-  async saveProduct(index: number) {
-    const productForm = this.productsArray.at(index);
-    if (!productForm || productForm.invalid) {
-      productForm?.markAllAsTouched();
+  async saveNewProduct() {
+    if (!this.newProductForm.valid) {
+      this.newProductForm.markAllAsTouched();
       return;
     }
 
-    // Set loading state
-    const loadingState = this.productLoadingStates.get(index) || {
+    const formValue = this.newProductForm.value;
+    if (!formValue.id || !formValue.name || formValue.upi === undefined) {
+      console.error('Invalid product form value:', formValue);
+      return;
+    }
+
+    const product: Product = {
+      id: formValue.id,
+      name: formValue.name,
+      hasUpi: formValue.upi,
+    };
+
+    const success = await this.saveProduct(product);
+    if (success) {
+      this.newProductForm.reset();
+    }
+  }
+
+  async editProductName(product: Product) {
+    const dialogRef = this.dialog.open(EditProductNameDialogComponent, {
+      data: { product },
+      width: '500px',
+      disableClose: false,
+    });
+
+    dialogRef.afterClosed().subscribe(async (newName: string) => {
+      if (newName && newName.trim() !== product.name) {
+        // Create a copy of the product with the new name
+        const updatedProduct: Product = {
+          ...product,
+          name: newName.trim(),
+        };
+        await this.saveProduct(updatedProduct);
+      }
+    });
+  }
+
+  async saveProduct(product: Product): Promise<boolean> {
+    const productId = product.id;
+    const loadingState = this.productLoadingStates.get(productId) || {
       saving: false,
       deleting: false,
     };
     loadingState.saving = true;
-    this.productLoadingStates.set(index, loadingState);
+    this.productLoadingStates.set(productId, loadingState);
 
+    let success = false;
     try {
-      const formValue = productForm.value;
-      if (!formValue.id || !formValue.name || formValue.upi === undefined) {
-        console.error('Invalid product form value:', formValue);
-        return;
-      }
-      const product: Product = {
-        id: formValue.id,
-        name: formValue.name,
-        hasUpi: formValue.upi,
-      };
-
-      const success = await this.organizationService.saveProduct(product);
+      success = await this.organizationService.saveProduct(product);
       if (success) {
         // Product was saved successfully and store was updated by the service
         console.log('Product saved successfully:', product.id);
@@ -144,92 +151,61 @@ export class EditProductsComponent {
     } finally {
       // Clear loading state
       loadingState.saving = false;
-      this.productLoadingStates.set(index, loadingState);
+      this.productLoadingStates.set(productId, loadingState);
     }
+
+    return success;
   }
 
-  async removeProduct(index: number) {
-    const productForm = this.productsArray.at(index);
-    if (!productForm) return;
-
-    const productId = productForm.get('id')?.value;
-
-    // If this is a new product (empty ID), just remove from form
-    if (!productId || productId.trim() === '') {
-      this.productsArray.removeAt(index);
-      this.productLoadingStates.delete(index);
-      // Reindex the remaining products
-      this.reindexLoadingStates(index);
-      return;
-    }
-
+  async removeProduct(productId: string) {
     // Set loading state for existing product deletion
-    const loadingState = this.productLoadingStates.get(index) || {
+    const loadingState = this.productLoadingStates.get(productId) || {
       saving: false,
       deleting: false,
     };
     loadingState.deleting = true;
-    this.productLoadingStates.set(index, loadingState);
+    this.productLoadingStates.set(productId, loadingState);
 
     try {
       const success = await this.organizationService.deleteProduct(productId);
       if (success) {
         // Product was deleted successfully and store was updated by the service
-        this.productsArray.removeAt(index);
-        this.productLoadingStates.delete(index);
-        // Reindex the remaining products
-        this.reindexLoadingStates(index);
+        this.productLoadingStates.delete(productId);
         console.log('Product deleted successfully:', productId);
       } else {
         console.error('Failed to delete product:', productId);
         // Clear loading state on failure
         loadingState.deleting = false;
-        this.productLoadingStates.set(index, loadingState);
+        this.productLoadingStates.set(productId, loadingState);
       }
     } catch (error) {
       console.error('Error deleting product:', error);
       // Clear loading state on error
       loadingState.deleting = false;
-      this.productLoadingStates.set(index, loadingState);
+      this.productLoadingStates.set(productId, loadingState);
     }
   }
 
-  private reindexLoadingStates(removedIndex: number) {
-    const newStates = new Map<number, { saving: boolean; deleting: boolean }>();
-    this.productLoadingStates.forEach((state, index) => {
-      if (index < removedIndex) {
-        newStates.set(index, state);
-      } else if (index > removedIndex) {
-        newStates.set(index - 1, state);
-      }
-    });
-    this.productLoadingStates = newStates;
+  get newProductId(): string {
+    return this.newProductForm.get('id')?.value;
   }
 
-  isProductSaving(index: number): boolean {
-    return this.productLoadingStates.get(index)?.saving || false;
+  isProductSaving(productId: string): boolean {
+    return this.productLoadingStates.get(productId)?.saving || false;
   }
 
-  isProductDeleting(index: number): boolean {
-    return this.productLoadingStates.get(index)?.deleting || false;
+  isProductDeleting(productId: string): boolean {
+    return this.productLoadingStates.get(productId)?.deleting || false;
   }
 
-  isProductFormValid(index: number): boolean {
-    const productForm = this.productsArray.at(index);
-    return productForm ? productForm.valid : false;
-  }
-
-  private duplicateIdValidator(index: number): ValidatorFn {
+  private duplicateIdValidator(): ValidatorFn {
     return (idControl: AbstractControl) => {
       const id = idControl.value;
-      const firstIndexWithSameId = this.productsArray.controls.findIndex(
-        (ctrl) => {
-          const ctrlId = ctrl.get('id')?.value;
-          return ctrlId === id && ctrlId !== '';
-        }
+      const existingIndexWithSameId = this.products().findIndex(
+        (product) => product.id === id
       );
 
-      return firstIndexWithSameId !== index ? { duplicateId: true } : null;
+      return existingIndexWithSameId !== -1 ? { duplicateId: true } : null;
     };
   }
 }
