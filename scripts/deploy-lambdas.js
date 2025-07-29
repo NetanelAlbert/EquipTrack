@@ -5,7 +5,7 @@ const path = require('path');
 const { getHandlerNames } = require('./create-lambda-packages');
 
 const STAGE = process.env.STAGE || 'dev';
-const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
+const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
 const PACKAGES_DIR = 'lambda-packages';
 
 // Lambda configuration

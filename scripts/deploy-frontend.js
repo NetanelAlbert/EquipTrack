@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const STAGE = process.env.STAGE || 'dev';
-const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
+const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
 const FRONTEND_DIST_PATH = 'dist/apps/frontend/browser';
 
 // Configurable settings
