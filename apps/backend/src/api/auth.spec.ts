@@ -17,7 +17,7 @@ jest.mock('../services/jwt.service', () => ({
 }));
 
 // Import after mocking
-import { authenticate } from './auth';
+import { authenticateAndGetJwt } from './auth';
 
 describe('Optimized JWT Authentication System', () => {
   let mockEvent: APIGatewayProxyEvent;
@@ -66,10 +66,10 @@ describe('Optimized JWT Authentication System', () => {
       });
 
       // Act
-      const result = await authenticate(mockMeta, mockEvent);
+      const result = await authenticateAndGetJwt(mockMeta, mockEvent);
 
       // Assert
-      expect(result).toBe(true);
+      expect(result).toBeTruthy();
       expect(mockJwtService.validateToken).toHaveBeenCalledWith(validToken);
       // No database calls should be made
       expect(mockJwtService.validateToken).toHaveBeenCalledTimes(1);
@@ -80,7 +80,7 @@ describe('Optimized JWT Authentication System', () => {
       // No Authorization header in mockEvent
 
       // Act & Assert
-      await expect(authenticate(mockMeta, mockEvent)).rejects.toEqual(
+      await expect(authenticateAndGetJwt(mockMeta, mockEvent)).rejects.toEqual(
         unauthorized('Authorization header is required')
       );
       expect(mockJwtService.validateToken).not.toHaveBeenCalled();
@@ -91,7 +91,7 @@ describe('Optimized JWT Authentication System', () => {
       mockEvent.headers['Authorization'] = 'InvalidFormat token';
 
       // Act & Assert
-      await expect(authenticate(mockMeta, mockEvent)).rejects.toEqual(
+      await expect(authenticateAndGetJwt(mockMeta, mockEvent)).rejects.toEqual(
         unauthorized('Authorization header must be in format: Bearer <token>')
       );
       expect(mockJwtService.validateToken).not.toHaveBeenCalled();
@@ -107,7 +107,7 @@ describe('Optimized JWT Authentication System', () => {
       );
 
       // Act & Assert
-      await expect(authenticate(mockMeta, mockEvent)).rejects.toEqual(
+      await expect(authenticateAndGetJwt(mockMeta, mockEvent)).rejects.toEqual(
         unauthorized('Authentication token has expired')
       );
       expect(mockJwtService.validateToken).toHaveBeenCalledWith(expiredToken);
@@ -123,7 +123,7 @@ describe('Optimized JWT Authentication System', () => {
       );
 
       // Act & Assert
-      await expect(authenticate(mockMeta, mockEvent)).rejects.toEqual(
+      await expect(authenticateAndGetJwt(mockMeta, mockEvent)).rejects.toEqual(
         unauthorized('Invalid authentication token')
       );
       expect(mockJwtService.validateToken).toHaveBeenCalledWith(invalidToken);
@@ -142,7 +142,7 @@ describe('Optimized JWT Authentication System', () => {
       });
 
       // Act & Assert
-      await expect(authenticate(mockMeta, mockEvent)).rejects.toEqual(
+      await expect(authenticateAndGetJwt(mockMeta, mockEvent)).rejects.toEqual(
         unauthorized('Invalid token: user ID not found')
       );
     });
@@ -160,10 +160,10 @@ describe('Optimized JWT Authentication System', () => {
       });
 
       // Act
-      const result = await authenticate(mockMeta, mockEvent);
+      const result = await authenticateAndGetJwt(mockMeta, mockEvent);
 
       // Assert
-      expect(result).toBe(true);
+      expect(result).toBeTruthy();
       expect(mockJwtService.validateToken).toHaveBeenCalledWith(validToken);
     });
   });
@@ -182,7 +182,7 @@ describe('Optimized JWT Authentication System', () => {
       });
 
       // Act & Assert
-      await expect(authenticate(mockMeta, mockEvent)).rejects.toEqual(
+      await expect(authenticateAndGetJwt(mockMeta, mockEvent)).rejects.toEqual(
         forbidden('User is not a member of the organization')
       );
     });
@@ -201,7 +201,7 @@ describe('Optimized JWT Authentication System', () => {
       });
 
       // Act & Assert
-      await expect(authenticate(mockMeta, mockEvent)).rejects.toEqual(
+      await expect(authenticateAndGetJwt(mockMeta, mockEvent)).rejects.toEqual(
         forbidden(
           `User Role ${UserRole.WarehouseManager} is not allowed to access this endpoint`
         )
@@ -221,10 +221,10 @@ describe('Optimized JWT Authentication System', () => {
       });
 
       // Act
-      const result = await authenticate(mockMeta, mockEvent);
+      const result = await authenticateAndGetJwt(mockMeta, mockEvent);
 
       // Assert
-      expect(result).toBe(true);
+      expect(result).toBeTruthy();
     });
   });
 
@@ -239,7 +239,7 @@ describe('Optimized JWT Authentication System', () => {
       );
 
       // Act & Assert
-      await expect(authenticate(mockMeta, mockEvent)).rejects.toEqual(
+      await expect(authenticateAndGetJwt(mockMeta, mockEvent)).rejects.toEqual(
         unauthorized('Authentication failed')
       );
     });
@@ -253,7 +253,7 @@ describe('Optimized JWT Authentication System', () => {
       mockJwtService.validateToken.mockRejectedValue(existingError);
 
       // Act & Assert
-      await expect(authenticate(mockMeta, mockEvent)).rejects.toEqual(
+      await expect(authenticateAndGetJwt(mockMeta, mockEvent)).rejects.toEqual(
         existingError
       );
     });

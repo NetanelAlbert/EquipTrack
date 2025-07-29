@@ -91,8 +91,8 @@ export class AuthService {
     this.clearAuthenticationState();
 
     // Disable auto-select for Google Sign-In
-    if (window.google?.accounts?.id) {
-      window.google.accounts.id.disableAutoSelect();
+    if ((window as any).google?.accounts?.id) {
+      (window as any).google.accounts.id.disableAutoSelect();
     }
 
     // Navigate to login
