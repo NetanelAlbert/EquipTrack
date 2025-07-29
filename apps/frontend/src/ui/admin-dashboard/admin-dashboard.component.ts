@@ -2,8 +2,8 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ApiService, NotificationService } from '../../services';
-import { UserStore, OrganizationStore } from '../../store';
-import { Organization } from '@equip-track/shared';
+import { UserStore } from '../../store';
+import { Organization, ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
 import { firstValueFrom } from 'rxjs';
 
 interface DashboardStats {
@@ -139,7 +139,6 @@ export class AdminDashboardComponent implements OnInit {
   apiService = inject(ApiService);
   notificationService = inject(NotificationService);
   userStore = inject(UserStore);
-  organizationStore = inject(OrganizationStore);
 
   loading = signal(true);
   error = signal<string | null>(null);
@@ -206,7 +205,7 @@ export class AdminDashboardComponent implements OnInit {
     this.error.set(null);
 
     try {
-      const selectedOrganization = this.organizationStore.selectedOrganization();
+      const selectedOrganization = this.userStore.currentOrganization();
       if (!selectedOrganization) {
         this.error.set('Please select an organization to view dashboard');
         return;
@@ -233,13 +232,15 @@ export class AdminDashboardComponent implements OnInit {
     try {
       // Simulate getting users for the organization
       const usersResponse = await firstValueFrom(
-        this.apiService.endpoints.getUsers({}, organization.id)
+        this.apiService.endpoints.getUsers.execute(undefined, {
+          [ORGANIZATION_ID_PATH_PARAM]: organization.id,
+        })
       );
 
       if (usersResponse.status && usersResponse.users) {
         const users = usersResponse.users;
-        const activeUsers = users.filter(user => user.state === 'active').length;
-        const invitedUsers = users.filter(user => user.state === 'invited').length;
+        const activeUsers = users.filter(user => user.user.state === 'active').length;
+        const invitedUsers = users.filter(user => user.user.state === 'invited').length;
 
         this.stats.update(current => ({
           ...current,
@@ -251,7 +252,9 @@ export class AdminDashboardComponent implements OnInit {
 
       // Simulate getting products
       const productsResponse = await firstValueFrom(
-        this.apiService.endpoints.getProducts({}, organization.id)
+        this.apiService.endpoints.getProducts.execute(undefined, {
+          [ORGANIZATION_ID_PATH_PARAM]: organization.id,
+        })
       );
 
       if (productsResponse.status && productsResponse.products) {

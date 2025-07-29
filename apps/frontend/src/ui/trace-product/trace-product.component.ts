@@ -2,8 +2,8 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, NotificationService } from '../../services';
-import { UserStore, OrganizationStore } from '../../store';
-import { ItemReport, TraceItemRequest } from '@equip-track/shared';
+import { UserStore } from '../../store';
+import { ItemReport, TraceItemRequest, ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
 import { firstValueFrom } from 'rxjs';
 
 interface TraceResult {
@@ -110,7 +110,6 @@ export class TraceProductComponent {
   apiService = inject(ApiService);
   notificationService = inject(NotificationService);
   userStore = inject(UserStore);
-  organizationStore = inject(OrganizationStore);
 
   searchCriteria = {
     productId: '',
@@ -122,8 +121,8 @@ export class TraceProductComponent {
   result = signal<TraceResult | null>(null);
 
   async searchProduct(): Promise<void> {
-    const selectedOrganization = this.organizationStore.selectedOrganization();
-    if (!selectedOrganization) {
+    const selectedOrganizationId = this.userStore.selectedOrganizationId();
+    if (!selectedOrganizationId) {
       this.notificationService.showError('Please select an organization first');
       return;
     }
@@ -144,7 +143,9 @@ export class TraceProductComponent {
       };
 
       const response = await firstValueFrom(
-        this.apiService.endpoints.traceItem(request, selectedOrganization.id)
+        this.apiService.endpoints.traceItem.execute(request, {
+          [ORGANIZATION_ID_PATH_PARAM]: selectedOrganizationId,
+        })
       );
 
       if (response.status) {
