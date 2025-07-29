@@ -7,6 +7,9 @@
       [matAutocomplete]="productAutocomplete"
       [placeholder]="'inventory.form.product-search-placeholder' | translate"
     />
+    <button mat-icon-button matSuffix (click)="searchControl.reset()">
+      <mat-icon>close</mat-icon>
+    </button>
     <mat-autocomplete 
       #productAutocomplete="matAutocomplete" 
       [displayWith]="displayProduct"
@@ -57,6 +60,7 @@
           [formControl]="upi" 
           type="text" 
           [placeholder]="'inventory.form.upi-placeholder' | translate" 
+          (keydown.enter)="$event.preventDefault()"
         />
         @if (getUpiErrors(upiIndex)['required']) {
           <mat-error>{{ 'inventory.validation.upi-required' | translate }}</mat-error>

@@ -12,6 +12,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { InventoryItem, Product } from '@equip-track/shared';
 import { OrganizationStore } from '../../../store';
 import {
@@ -29,9 +30,11 @@ import {
   FormInventoryItemMapperFromItem,
   emptyItem,
 } from './form.mudels';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EditableItemComponent } from './item/editable-item.component';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { Inject } from '@angular/core';
 
 const formDuplicateValidator: ValidatorFn = (formArray: AbstractControl) => {
   if (!(formArray instanceof FormArray)) {
@@ -63,6 +66,7 @@ const formDuplicateValidator: ValidatorFn = (formArray: AbstractControl) => {
     EditableItemComponent,
     MatButtonModule,
     MatIconModule,
+    MatDialogModule,
     TranslateModule,
   ],
   templateUrl: './editable-inventory.component.html',
@@ -80,6 +84,8 @@ export class EditableInventoryComponent {
   organizationStore = inject(OrganizationStore);
   products: Signal<Product[]> = this.organizationStore.products;
   fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private translateService = inject(TranslateService);
   form: FormGroup = this.fb.group({
     items: this.fb.array<FormGroup<FormInventoryItem>>(
       [],
@@ -115,8 +121,30 @@ export class EditableInventoryComponent {
   }
 
   removeItem(index: number) {
-    this.items.removeAt(index);
-    this.items.updateValueAndValidity();
+    const itemControl = this.items.at(index);
+    const productName =
+      itemControl?.get('product')?.value?.name || 'Unknown Product';
+
+    // Create a simple confirmation dialog
+    const dialogRef = this.dialog.open(ConfirmDeleteDialogComponent, {
+      data: {
+        title: this.translateService.instant('inventory.remove-item'),
+        message: this.translateService.instant(
+          'inventory.form.confirm-remove',
+          { product: productName }
+        ),
+        confirmText: this.translateService.instant('common.delete'),
+        cancelText: this.translateService.instant('common.cancel'),
+      },
+      width: '400px',
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+      if (confirmed) {
+        this.items.removeAt(index);
+        this.items.updateValueAndValidity();
+      }
+    });
   }
 
   save() {
@@ -148,5 +176,53 @@ export class EditableInventoryComponent {
     effect(() => {
       this.resetItems();
     });
+  }
+}
+
+@Component({
+  selector: 'app-confirm-delete-dialog',
+  standalone: true,
+  imports: [CommonModule, MatDialogModule, MatButtonModule, TranslateModule],
+  template: `
+    <h2 mat-dialog-title>{{ data.title }}</h2>
+    <mat-dialog-content>
+      <p>{{ data.message }}</p>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button (click)="onCancel()">
+        {{ data.cancelText }}
+      </button>
+      <button mat-raised-button color="warn" (click)="onConfirm()">
+        {{ data.confirmText }}
+      </button>
+    </mat-dialog-actions>
+  `,
+  styles: [
+    `
+      mat-dialog-content {
+        min-width: 300px;
+        padding: 20px 0;
+      }
+    `,
+  ],
+})
+export class ConfirmDeleteDialogComponent {
+  constructor(
+    public dialogRef: MatDialogRef<ConfirmDeleteDialogComponent>,
+    @Inject(MAT_DIALOG_DATA)
+    public data: {
+      title: string;
+      message: string;
+      confirmText: string;
+      cancelText: string;
+    }
+  ) {}
+
+  onCancel(): void {
+    this.dialogRef.close(false);
+  }
+
+  onConfirm(): void {
+    this.dialogRef.close(true);
   }
 }
