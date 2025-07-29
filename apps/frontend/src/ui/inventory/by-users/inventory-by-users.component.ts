@@ -72,8 +72,11 @@ export class InventoryByUsersComponent implements OnInit {
     effect(() => {
       const userId = this.selectedUserID();
       if (userId && userId !== 'WAREHOUSE') {
+        // A workaround to update signals from effect
+        setTimeout(() => {
         // Fetch user inventory when a specific user is selected
         this.inventoryStore.fetchUserInventory(userId);
+        });
       }
     });
   }
