@@ -213,45 +213,121 @@
 // Responsive design
 @media (max-width: 768px) {
   .top-bar {
-    padding: 0 12px;
-    gap: 12px;
+    padding: 0 8px;
+    gap: 8px;
+    min-height: 56px;
 
     .organization-name {
-      font-size: 16px;
+      font-size: 14px;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .separator {
+      font-size: 14px;
+      margin: 0 2px;
     }
 
     .page-title {
-      font-size: 14px;
+      font-size: 12px;
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .user-menu-button .user-avatar {
-      width: 32px;
-      height: 32px;
-      font-size: 12px;
+    .user-menu-button {
+      margin-left: 4px;
+      
+      .user-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 11px;
+      }
     }
   }
 
   :host ::ng-deep .user-menu .mat-mdc-menu-panel {
-    min-width: 260px;
+    min-width: 240px;
+    max-width: calc(100vw - 32px);
 
     .user-info {
-      padding: 12px !important;
+      padding: 10px !important;
 
       .user-avatar-large {
-        width: 40px;
-        height: 40px;
-        font-size: 16px;
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
       }
 
       .user-details {
         .user-name {
-          font-size: 14px;
+          font-size: 13px;
         }
 
         .user-email {
-          font-size: 12px;
+          font-size: 11px;
         }
       }
+    }
+
+    .mat-mdc-menu-item {
+      padding: 10px 12px;
+      font-size: 13px;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+}
+
+// Extra small screens (iPhone SE, etc.)
+@media (max-width: 480px) {
+  .top-bar {
+    padding: 0 6px;
+    gap: 6px;
+
+    .organization-name {
+      font-size: 13px;
+      max-width: 80px;
+    }
+
+    .page-title {
+      font-size: 11px;
+      max-width: 70px;
+    }
+
+    .user-menu-button {
+      margin-left: 2px;
+      
+      .user-avatar {
+        width: 26px;
+        height: 26px;
+        font-size: 10px;
+      }
+    }
+  }
+
+  :host ::ng-deep .user-menu .mat-mdc-menu-panel {
+    min-width: 200px;
+    max-width: calc(100vw - 24px);
+  }
+}
+
+// Very small screens (narrow phones)
+@media (max-width: 360px) {
+  .top-bar {
+    .organization-name {
+      max-width: 60px;
+    }
+
+    .page-title {
+      max-width: 50px;
     }
   }
 }

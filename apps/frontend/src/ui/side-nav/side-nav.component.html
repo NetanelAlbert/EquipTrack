@@ -1,6 +1,6 @@
 <mat-sidenav-container class="sidenav-container">
   <mat-sidenav #sidenav
-               mode="side"
+               [mode]="getSidenavMode()"
                [opened]="isExpanded()"
                (openedChange)="onOpenedChange($event)"
                [fixedInViewport]="true"
@@ -10,7 +10,7 @@
 
     <mat-nav-list>
       @for (item of filteredNavItems(); track item.route) {
-        <a mat-list-item [routerLink]="item.route" routerLinkActive="active">
+        <a mat-list-item [routerLink]="item.route" routerLinkActive="active" (click)="onNavItemClick()">
           <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
           <!-- consider removing the if this as the bad dissapear -->
           @if (isExpanded()) {
