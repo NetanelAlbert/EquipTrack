@@ -113,3 +113,187 @@
         }
     }
 }
+
+/* Mobile responsiveness - Main responsive breakpoint */
+@media (max-width: 960px) {
+    :host {
+        padding: 12px;
+        margin-bottom: 8px;
+
+        .main-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+
+            .product-field {
+                width: 100%;
+                order: 1;
+            }
+
+            .quantity-field {
+                width: 100%;
+                max-width: none;
+                order: 2;
+            }
+
+            .delete-button {
+                order: 3;
+                align-self: center;
+                margin-bottom: 0;
+                margin-top: 8px;
+            }
+        }
+
+        .upis {
+            gap: 12px;
+            margin-top: 12px;
+            
+            .upi-title {
+                font-size: 0.8em;
+                margin-bottom: 8px;
+            }
+        }
+    }
+}
+
+/* Medium mobile devices */
+@media (max-width: 768px) {
+    :host {
+        padding: 10px;
+
+        .main-row {
+            gap: 10px;
+
+            .delete-button {
+                width: 100%;
+                max-width: 200px;
+                border-radius: 24px;
+                margin-top: 6px;
+                
+                mat-icon {
+                    margin-right: 8px;
+                }
+                
+                &::after {
+                    content: "Remove Item";
+                    font-size: 12px;
+                    font-weight: 500;
+                }
+            }
+        }
+
+        .upis {
+            gap: 10px;
+            
+            mat-form-field {
+                ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+                    min-height: 18px;
+                }
+            }
+        }
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+    :host {
+        padding: 8px;
+
+        .main-row {
+            gap: 8px;
+
+            mat-form-field {
+                ::ng-deep {
+                    .mat-mdc-form-field-subscript-wrapper {
+                        min-height: 16px;
+                    }
+                    
+                    .mdc-text-field {
+                        font-size: 14px;
+                    }
+                    
+                    .mat-mdc-form-field-label {
+                        font-size: 14px;
+                    }
+                }
+            }
+
+            .delete-button {
+                margin-top: 4px;
+                height: 36px;
+                font-size: 12px;
+                
+                mat-icon {
+                    font-size: 18px;
+                    width: 18px;
+                    height: 18px;
+                }
+            }
+        }
+
+        .upis {
+            gap: 8px;
+            margin-top: 8px;
+            
+            .upi-title {
+                font-size: 0.75em;
+                margin-bottom: 6px;
+            }
+            
+            mat-form-field {
+                ::ng-deep {
+                    .mdc-text-field {
+                        font-size: 13px;
+                    }
+                    
+                    .mat-mdc-form-field-label {
+                        font-size: 13px;
+                    }
+                    
+                    .mat-mdc-form-field-subscript-wrapper {
+                        min-height: 14px;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* Landscape orientation on mobile - keep horizontal layout but adjust sizing */
+@media (max-width: 960px) and (orientation: landscape) and (max-height: 600px) {
+    :host {
+        .main-row {
+            flex-direction: row;
+            align-items: center;
+
+            .product-field {
+                flex: 2;
+                order: 1;
+            }
+
+            .quantity-field {
+                flex: 1;
+                max-width: 120px;
+                order: 2;
+            }
+
+            .delete-button {
+                order: 3;
+                align-self: center;
+                margin-bottom: 22px;
+                margin-top: 0;
+                width: auto;
+                max-width: none;
+                border-radius: 50%;
+                
+                &::after {
+                    display: none;
+                }
+                
+                mat-icon {
+                    margin-right: 0;
+                }
+            }
+        }
+    }
+}

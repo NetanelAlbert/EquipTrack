@@ -68,8 +68,63 @@
 
 @media (max-width: shared.$mobile-breakpoint) {
     :host {
+        .sidenav {
+            // Ensure the sidebar has proper styling for overlay mode on mobile
+            z-index: 1001;
+            box-shadow: 0 4px 12px var(--color-shadow-medium);
+        }
+
         .content {
             margin: 12px;
+            padding: 0;
+        }
+
+        mat-list-item {
+            height: 44px;
+            margin: 2px 6px;
+
+            mat-icon {
+                margin-right: 12px;
+            }
+        }
+    }
+}
+
+// Mobile-specific improvements
+@media (max-width: 768px) {
+    :host {
+        .content {
+            margin: 8px;
+        }
+
+        mat-list-item {
+            height: 40px;
+            font-size: 14px;
+
+            mat-icon {
+                font-size: 20px;
+                margin-right: 10px;
+            }
+        }
+    }
+}
+
+// Extra small screens
+@media (max-width: 480px) {
+    :host {
+        .content {
+            margin: 6px;
+        }
+
+        mat-list-item {
+            height: 36px;
+            margin: 1px 4px;
+            font-size: 13px;
+
+            mat-icon {
+                font-size: 18px;
+                margin-right: 8px;
+            }
         }
     }
 }

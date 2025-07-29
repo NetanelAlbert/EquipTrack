@@ -128,4 +128,82 @@ app-root {
   }
 }
 
+/* Mobile responsiveness improvements */
+@media (max-width: 960px) {
+  // Ensure buttons are touch-friendly
+  .mat-mdc-button, .mat-mdc-raised-button, .mat-mdc-icon-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  // Improve form field spacing on mobile
+  .mat-mdc-form-field {
+    margin-bottom: 16px;
+  }
+
+  // Better card spacing on mobile
+  .mat-mdc-card {
+    margin: 8px 0;
+  }
+
+  // Improve dialog responsiveness
+  .mat-mdc-dialog-container {
+    max-width: calc(100vw - 32px) !important;
+    max-height: calc(100vh - 64px) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  // Smaller touch targets for very small screens but still accessible
+  .mat-mdc-button, .mat-mdc-raised-button {
+    font-size: 13px;
+    padding: 8px 16px;
+  }
+
+  .mat-mdc-icon-button {
+    min-height: 40px;
+    min-width: 40px;
+  }
+
+  // Improve table responsiveness
+  .mat-mdc-table {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  // Even more compact for very small screens
+  .mat-mdc-button, .mat-mdc-raised-button {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .mat-mdc-icon-button {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  // Improve form field responsiveness
+  .mat-mdc-form-field {
+    width: 100%;
+  }
+}
+
+/* Improve touch interactions */
+@media (hover: none) and (pointer: coarse) {
+  // Remove hover effects on touch devices
+  .mat-mdc-button:hover, 
+  .mat-mdc-raised-button:hover,
+  .mat-mdc-list-item:hover {
+    background-color: transparent !important;
+  }
+
+  // Improve focus states for touch
+  .mat-mdc-button:focus-visible,
+  .mat-mdc-raised-button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
 

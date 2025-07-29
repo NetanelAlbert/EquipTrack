@@ -1,11 +1,23 @@
 <div class="main-row">
   <mat-form-field class="product-field">
     <mat-label>{{ 'inventory.form.product' | translate }}</mat-label>
-    <mat-select [formControl]="productControl()">
-      @for (p of products(); track p.id) {
-      <mat-option [value]="p">{{ p.name }}</mat-option>
+    <input
+      matInput
+      [formControl]="searchControl"
+      [matAutocomplete]="productAutocomplete"
+      [placeholder]="'inventory.form.product-search-placeholder' | translate"
+    />
+    <mat-autocomplete 
+      #productAutocomplete="matAutocomplete" 
+      [displayWith]="displayProduct"
+      (optionSelected)="onProductSelected($event.option.value)"
+    >
+      @for (product of filteredProducts(); track product.id) {
+        <mat-option [value]="product">
+          {{ displayProduct(product) }}
+        </mat-option>
       }
-    </mat-select>
+    </mat-autocomplete>
     @if (productErrors()['required']) {
       <mat-error>{{ 'inventory.validation.product-required' | translate }}</mat-error>
     }
@@ -44,7 +56,7 @@
           matInput 
           [formControl]="upi" 
           type="text" 
-          placeholder="{{ 'inventory.form.upi-placeholder' | translate }}" 
+          [placeholder]="'inventory.form.upi-placeholder' | translate" 
         />
         @if (getUpiErrors(upiIndex)['required']) {
           <mat-error>{{ 'inventory.validation.upi-required' | translate }}</mat-error>

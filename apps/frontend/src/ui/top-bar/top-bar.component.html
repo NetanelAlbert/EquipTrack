@@ -53,6 +53,14 @@
 
         <mat-divider></mat-divider>
 
+        <!-- App Version -->
+        <div class="version-info" mat-menu-item disabled>
+          <mat-icon>info</mat-icon>
+          <span class="version-text">{{ 'navigation.app-version' | translate }}: v{{ appVersion }}</span>
+        </div>
+
+        <mat-divider></mat-divider>
+
         <button mat-menu-item (click)="onSignOut()" class="sign-out-button">
           <mat-icon>logout</mat-icon>
           <span>{{ 'navigation.sign-out' | translate }}</span>

@@ -82,7 +82,8 @@
     "checkout": "Checkout",
     "trace-product": "Trace Product",
     "admin-dashboard": "Admin Dashboard",
-    "switch-organization": "Switch Organization"
+    "switch-organization": "Switch Organization",
+    "app-version": "App Version"
   },
   "forms": {
     "form-id": "Form ID",
@@ -155,7 +156,8 @@
       "product": "Product",
       "quantity": "Quantity",
       "upi": "UPI",
-      "upi-placeholder": "Enter UPI code"
+      "upi-placeholder": "Enter UPI code",
+      "product-search-placeholder": "Search for a product"
     },
     "button": {
       "add-item": "Add Item",

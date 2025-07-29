@@ -3,8 +3,9 @@ name: Deploy Full Stack to AWS
 on:
   push:
     branches:
-      - master
       - develop
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 env:
@@ -12,12 +13,13 @@ env:
   AWS_REGION: il-central-1
   NODE_VERSION: '20'
   # Stage name is used by several deployment scripts (defaults to "dev" if omitted).
-  STAGE: ${{ github.ref == 'refs/heads/master' && 'production' || 'dev' }}
+  STAGE: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'dev' }}
 
 jobs:
   deploy:
     name: Deploy Full Stack
     runs-on: ubuntu-latest
+    # Run for develop pushes, tag creation (master releases), or manual trigger
     
     steps:
       - name: Checkout code
@@ -101,7 +103,12 @@ jobs:
         if: steps.deploy-frontend-fast.outcome == 'failure'
         run: node scripts/setup-cloudfront.js
 
+      - name: Setup Frontend Custom Domain
+        run: node scripts/setup-frontend-custom-domain.js
+        continue-on-error: true
+
       - name: Output URLs
         run: |
           echo "API deployed to: $(cat deployment-info.json | jq -r '.api.apiUrl')"
-          echo "Frontend deployed to: $(cat deployment-info.json | jq -r '.frontend.cloudfrontUrl')" 
+          echo "Frontend deployed to: $(cat deployment-info.json | jq -r '.frontend.cloudfrontUrl')"
+          echo "Custom domain: https://$(cat deployment-info.json | jq -r 'if .customDomains then (.customDomains | keys | map(select(test("api") | not)))[0] else "not-configured" end')" 

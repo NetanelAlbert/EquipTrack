@@ -25,12 +25,15 @@ import { Product } from '@equip-track/shared';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { OrganizationStore } from '../../../../store';
 import { FormInventoryItem, emptyItem } from '../form.mudels';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
+@UntilDestroy()
 @Component({
   selector: 'editable-item',
   standalone: true,
@@ -39,6 +42,7 @@ import { TranslateModule } from '@ngx-translate/core';
     MatSelectModule,
     MatFormFieldModule,
     MatInputModule,
+    MatAutocompleteModule,
     ReactiveFormsModule,
     MatIconModule,
     MatButtonModule,
@@ -54,6 +58,19 @@ export class EditableItemComponent implements OnInit {
   @Output() remove = new EventEmitter<void>();
 
   products: Signal<Product[]> = this.organizationStore.products;
+  searchControl = new FormControl<string>('');
+  searchTerm = signal<string>('');
+
+  filteredProducts: Signal<Product[]> = computed(() => {
+    const searchTerm = this.searchTerm();
+    if (!searchTerm) {
+      return this.products();
+    }
+    return this.products().filter(product => 
+      product.name.toLowerCase().includes(searchTerm) ||
+      product.id.toLowerCase().includes(searchTerm)
+    );
+  });
 
   @HostBinding('class.upi-item') get isUpiItem() {
     return this.isUPI();
@@ -62,10 +79,23 @@ export class EditableItemComponent implements OnInit {
   constructor() {
     this.initialResizeUPIs();
     this.initialIsUPI();
+    this.initialSearchTerm();
+  }
+
+  onProductSelected(product: Product): void {
+    this.productControl().setValue(product);
+  }
+
+  displayProduct(product: Product | null): string {
+    return product ? `${product.name} (${product.id})` : '';
   }
 
   ngOnInit(): void {
     this.isUPI.set(this.productControl().value?.hasUpi ?? false);
+    const currentProduct = this.productControl().value;
+    if (currentProduct) {
+      this.searchControl.setValue(this.displayProduct(currentProduct));
+    }
   }
 
   productControl: Signal<FormControl<Product | null>> = computed(
@@ -146,6 +176,12 @@ export class EditableItemComponent implements OnInit {
         );
       })
     );
+  }
+
+  private initialSearchTerm() {
+    this.searchControl.valueChanges.pipe(untilDestroyed(this)).subscribe((value) => {
+      this.searchTerm.set(value as string);
+    });
   }
 
   private setUPIValidations(control: FormControl<string | null>) {
