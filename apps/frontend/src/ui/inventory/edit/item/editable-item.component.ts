@@ -34,7 +34,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { first } from 'rxjs';
+import { first, map, distinctUntilChanged, filter } from 'rxjs';
 
 @UntilDestroy()
 @Component({
@@ -69,9 +69,10 @@ export class EditableItemComponent implements OnInit {
     if (!searchTerm) {
       return this.products();
     }
-    return this.products().filter(product => 
-      product.name.toLowerCase().includes(searchTerm) ||
-      product.id.toLowerCase().includes(searchTerm)
+    return this.products().filter(
+      (product) =>
+        product.name.toLowerCase().includes(searchTerm) ||
+        product.id.toLowerCase().includes(searchTerm)
     );
   });
 
@@ -158,34 +159,67 @@ export class EditableItemComponent implements OnInit {
         }
 
         while (upisControl.length < value) {
-          const newControl = new FormControl('');
-          const nextIndex = upisControl.length;
-          this.setUPIValidations(newControl, nextIndex);
-          upisControl.push(newControl);
+          this.addUpi(false);
         }
 
         while (upisControl.length > value) {
-          upisControl.removeAt(upisControl.length - 1);
+          if (!this.removeEmptyUpi()) {
+            break;
+          }
+        }
+
+        if (upisControl.length > value) {
+          quantityControl.setValue(upisControl.length, { emitEvent: false });
         }
       });
+
+      upisControl.valueChanges
+        .pipe(
+          filter((value) => value !== null),
+          map((value) => value.length),
+          distinctUntilChanged()
+        )
+        .subscribe((length) => {
+          if (length !== quantityControl.value) {
+            quantityControl.setValue(length, { emitEvent: false });
+          }
+        });
     });
+  }
+
+  private removeEmptyUpi(): boolean {
+    const index = this.upisControl().controls.findIndex(
+      (control) => !control.value
+    );
+    if (index !== -1) {
+      this.upisControl().removeAt(index, { emitEvent: false });
+      //
+      return true;
+    }
+    return false;
+  }
+
+  private updateUpisValidations(fromIndex: number) {
+    for (let i = fromIndex; i < this.upisControl().length; i++) {
+      this.setUPIValidations(this.upisControl().at(i), i);
+    }
   }
 
   private initialIsUPI() {
     effect(() =>
       this.productControl().valueChanges.subscribe(() => {
         this.isUPI.set(this.productControl().value?.hasUpi ?? false);
-        this.upisControl().controls.forEach((control, index) =>
-          this.setUPIValidations(control, index)
-        );
+        this.updateUpisValidations(0);
       })
     );
   }
 
   private initialSearchTerm() {
-    this.searchControl.valueChanges.pipe(untilDestroyed(this)).subscribe((value) => {
-      this.searchTerm.set(value as string);
-    });
+    this.searchControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((value) => {
+        this.searchTerm.set(value as string);
+      });
   }
 
   private watchDuplicate(firstIndex: number, duplicateIndex: number) {
@@ -201,24 +235,36 @@ export class EditableItemComponent implements OnInit {
     return (control: AbstractControl) => {
       const value = control.value;
       if (!value) return null;
-      const otherMatchIndex = this.upisControl().controls.findIndex((upi, i) => i !== index && upi.value === value);
+      const otherMatchIndex = this.upisControl().controls.findIndex(
+        (upi, i) => i !== index && upi.value === value
+      );
       if (otherMatchIndex !== -1) {
         this.watchDuplicate(otherMatchIndex, index);
         return { duplicate: true };
       }
       return null;
     };
-  } 
+  }
 
-  private setUPIValidations(control: FormControl<string | null>, index: number) {
+  private setUPIValidations(
+    control: FormControl<string | null>,
+    index: number
+  ) {
+    control.clearValidators();
     if (this.isUPI()) {
       control.addValidators([
         Validators.required,
-        this.createUpiDuplicateValidator(index)
+        this.createUpiDuplicateValidator(index),
       ]);
-    } else {
-      control.clearValidators();
     }
     control.updateValueAndValidity();
+  }
+
+  protected addUpi(emitEvent = true) {
+    const control = new FormControl('');
+    const newIndex = this.upisControl().length;
+    this.setUPIValidations(control, newIndex);
+    this.upisControl().push(control, { emitEvent });
+    return newIndex;
   }
 }
