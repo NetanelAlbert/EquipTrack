@@ -20,8 +20,8 @@
     <mat-icon>add</mat-icon>
     {{ 'inventory.button.add-item' | translate }}
   </button>
-  <button mat-raised-button color="accent" class="save-button" (click)="save()" [disabled]="!form.valid && !formChanged">
-    <mat-icon>save</mat-icon>
-    {{ 'inventory.button.save' | translate }}
+  <button mat-raised-button [color]="submitButton().color" class="save-button" (click)="save()" [disabled]="!form.valid && !formChanged">
+    <mat-icon>{{ submitButton().icon }}</mat-icon>
+    {{ submitButton().text | translate }}
   </button>
 </div>

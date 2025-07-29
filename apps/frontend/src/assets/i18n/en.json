@@ -161,7 +161,11 @@
     },
     "button": {
       "add-item": "Add Item",
-      "save": "Save"
+      "save": "Save",
+      "create-check-in": "Create Check-in",
+      "create-checkout": "Create Checkout",
+      "remove-items": "Remove Items",
+      "add-items": "Save new items"
     },
     "validation": {
       "duplicate": "Duplicate items found: {{duplicates}}",

@@ -46,9 +46,8 @@ export class CheckoutComponent {
   private organizationStore = inject(OrganizationStore);
   public checkoutStore = inject(CheckoutStore);
   private notificationService = inject(NotificationService);
-  private translate = inject(TranslateService);
   private userStore = inject(UserStore);
-
+  submitButton = { text: 'inventory.button.create-checkout', icon: 'check', color: 'primary' };
   form = this.fb.group({
     userID: ['', Validators.required],
   });

@@ -70,6 +70,11 @@ const formDuplicateValidator: ValidatorFn = (formArray: AbstractControl) => {
 })
 export class EditableInventoryComponent {
   originalItems = input<InventoryItem[]>([]);
+  submitButton = input<{ text: string; icon: string; color: string }>({
+    text: 'inventory.button.save',
+    icon: 'save',
+    color: 'accent',
+  });
   editedItems = output<InventoryItem[]>();
   submitItems = output<InventoryItem[]>();
   organizationStore = inject(OrganizationStore);

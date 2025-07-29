@@ -31,6 +31,7 @@ export class RemoveInventoryComponent {
   private notificationService = inject(NotificationService);
   private translateService = inject(TranslateService);
   private router = inject(Router);
+  submitButton = { text: 'inventory.button.remove-items', icon: 'delete', color: 'warn' };
 
   async onSubmitItems(items: InventoryItem[]) {
     if (items.length === 0) {

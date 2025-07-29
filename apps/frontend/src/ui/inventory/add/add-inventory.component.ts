@@ -31,6 +31,7 @@ export class AddInventoryComponent {
   private notificationService = inject(NotificationService);
   private translateService = inject(TranslateService);
   private router = inject(Router);
+  submitButton = { text: 'inventory.button.add-items', icon: 'save', color: 'accent' };
 
   async onSubmitItems(items: InventoryItem[]) {
     if (items.length === 0) {

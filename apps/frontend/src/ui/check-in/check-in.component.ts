@@ -15,6 +15,7 @@ import { FormsStore } from '../../store/forms.store';
 export class CheckInComponent {
   userStore = inject(UserStore);
   formsStore = inject(FormsStore);
+  submitButton = { text: 'inventory.button.create-check-in', icon: 'check', color: 'primary' };
 
   onEditedItems(items: InventoryItem[]) {
     // TODO: Implement check-in logic
