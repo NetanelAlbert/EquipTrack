@@ -6,7 +6,6 @@ on:
       - develop
     tags:
       - 'v*'
-  workflow_dispatch:
 
 env:
   # Use the correct lowercase AWS region identifier.
