@@ -26,8 +26,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # Use a token that can push to protected branches
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Use a PAT to allow triggering other workflows
+          token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 0
 
       - name: Setup Node.js
