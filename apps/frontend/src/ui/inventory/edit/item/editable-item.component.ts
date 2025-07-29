@@ -25,6 +25,7 @@ import { Product } from '@equip-track/shared';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { OrganizationStore } from '../../../../store';
 import { FormInventoryItem, emptyItem } from '../form.mudels';
 import { MatButtonModule } from '@angular/material/button';
@@ -39,6 +40,7 @@ import { TranslateModule } from '@ngx-translate/core';
     MatSelectModule,
     MatFormFieldModule,
     MatInputModule,
+    MatAutocompleteModule,
     ReactiveFormsModule,
     MatIconModule,
     MatButtonModule,
@@ -54,6 +56,17 @@ export class EditableItemComponent implements OnInit {
   @Output() remove = new EventEmitter<void>();
 
   products: Signal<Product[]> = this.organizationStore.products;
+  searchControl = new FormControl('');
+  filteredProducts: Signal<Product[]> = computed(() => {
+    const searchTerm = this.searchControl.value?.toLowerCase() || '';
+    if (!searchTerm) {
+      return this.products();
+    }
+    return this.products().filter(product => 
+      product.name.toLowerCase().includes(searchTerm) ||
+      product.id.toLowerCase().includes(searchTerm)
+    );
+  });
 
   @HostBinding('class.upi-item') get isUpiItem() {
     return this.isUPI();
@@ -64,8 +77,21 @@ export class EditableItemComponent implements OnInit {
     this.initialIsUPI();
   }
 
+  onProductSelected(product: Product): void {
+    this.productControl().setValue(product);
+    this.searchControl.setValue(product ? `${product.id} - ${product.name}` : '');
+  }
+
+  displayProduct(product: Product | null): string {
+    return product ? `${product.id} - ${product.name}` : '';
+  }
+
   ngOnInit(): void {
     this.isUPI.set(this.productControl().value?.hasUpi ?? false);
+    const currentProduct = this.productControl().value;
+    if (currentProduct) {
+      this.searchControl.setValue(`${currentProduct.id} - ${currentProduct.name}`);
+    }
   }
 
   productControl: Signal<FormControl<Product | null>> = computed(
