@@ -155,7 +155,8 @@
       "product": "Product",
       "quantity": "Quantity",
       "upi": "UPI",
-      "upi-placeholder": "Enter UPI code"
+      "upi-placeholder": "Enter UPI code",
+      "product-search-placeholder": "Search for a product"
     },
     "button": {
       "add-item": "Add Item",

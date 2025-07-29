@@ -5,7 +5,7 @@
       matInput
       [formControl]="searchControl"
       [matAutocomplete]="productAutocomplete"
-      placeholder="{{ 'inventory.form.product-search-placeholder' | translate }}"
+      [placeholder]="'inventory.form.product-search-placeholder' | translate"
     />
     <mat-autocomplete 
       #productAutocomplete="matAutocomplete" 
@@ -14,7 +14,7 @@
     >
       @for (product of filteredProducts(); track product.id) {
         <mat-option [value]="product">
-          {{ product.id }} - {{ product.name }}
+          {{ displayProduct(product) }}
         </mat-option>
       }
     </mat-autocomplete>
@@ -56,7 +56,7 @@
           matInput 
           [formControl]="upi" 
           type="text" 
-          placeholder="{{ 'inventory.form.upi-placeholder' | translate }}" 
+          [placeholder]="'inventory.form.upi-placeholder' | translate" 
         />
         @if (getUpiErrors(upiIndex)['required']) {
           <mat-error>{{ 'inventory.validation.upi-required' | translate }}</mat-error>

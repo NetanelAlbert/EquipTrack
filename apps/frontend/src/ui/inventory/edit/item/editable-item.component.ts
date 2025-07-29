@@ -31,7 +31,9 @@ import { FormInventoryItem, emptyItem } from '../form.mudels';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
+@UntilDestroy()
 @Component({
   selector: 'editable-item',
   standalone: true,
@@ -56,9 +58,11 @@ export class EditableItemComponent implements OnInit {
   @Output() remove = new EventEmitter<void>();
 
   products: Signal<Product[]> = this.organizationStore.products;
-  searchControl = new FormControl('');
+  searchControl = new FormControl<string>('');
+  searchTerm = signal<string>('');
+
   filteredProducts: Signal<Product[]> = computed(() => {
-    const searchTerm = this.searchControl.value?.toLowerCase() || '';
+    const searchTerm = this.searchTerm();
     if (!searchTerm) {
       return this.products();
     }
@@ -75,22 +79,22 @@ export class EditableItemComponent implements OnInit {
   constructor() {
     this.initialResizeUPIs();
     this.initialIsUPI();
+    this.initialSearchTerm();
   }
 
   onProductSelected(product: Product): void {
     this.productControl().setValue(product);
-    this.searchControl.setValue(product ? `${product.id} - ${product.name}` : '');
   }
 
   displayProduct(product: Product | null): string {
-    return product ? `${product.id} - ${product.name}` : '';
+    return product ? `${product.name} (${product.id})` : '';
   }
 
   ngOnInit(): void {
     this.isUPI.set(this.productControl().value?.hasUpi ?? false);
     const currentProduct = this.productControl().value;
     if (currentProduct) {
-      this.searchControl.setValue(`${currentProduct.id} - ${currentProduct.name}`);
+      this.searchControl.setValue(this.displayProduct(currentProduct));
     }
   }
 
@@ -172,6 +176,12 @@ export class EditableItemComponent implements OnInit {
         );
       })
     );
+  }
+
+  private initialSearchTerm() {
+    this.searchControl.valueChanges.pipe(untilDestroyed(this)).subscribe((value) => {
+      this.searchTerm.set(value as string);
+    });
   }
 
   private setUPIValidations(control: FormControl<string | null>) {
