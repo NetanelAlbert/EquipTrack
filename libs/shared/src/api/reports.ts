@@ -1,5 +1,5 @@
-import { ItemReport } from '../elements/reports';
 import { BasicResponse } from './basic';
+import { ItemReport } from '../elements/reports';
 
 export interface GetReportsResponse extends BasicResponse {
   reportsByDate: Map<string, ItemReport[]>;
@@ -13,16 +13,23 @@ export interface GetReportsByDatesResponse extends BasicResponse {
   reportsByDate: Map<string, ItemReport[]>;
 }
 
-export interface PublishPartialReportRequest {
-  date: string; // YYYY-MM-DD format
-  items: {
-    productId: string;
-    upi: string;
-    location: string;
-    reportedBy: string;
-  }[];
+export interface PublishReportRequest {
+  reportDate: string;
 }
 
-export interface PublishPartialReportResponse extends BasicResponse {
-  publishedCount: number;
+export interface PublishReportResponse extends BasicResponse {
+  message: string;
+}
+
+export interface TraceItemRequest {
+  productId: string;
+  upi: string;
+}
+
+export interface TraceItemResponse extends BasicResponse {
+  productId: string;
+  upi: string;
+  history: ItemReport[];
+  currentLocation?: string;
+  lastReportedAt?: string;
 }

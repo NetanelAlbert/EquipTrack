@@ -16,6 +16,7 @@ import { handler as getUserInventoryHandler } from './warehouse/inventory/get-us
 import { handler as getReportsHandler } from './warehouse/reports/get';
 import { handler as getReportsByDatesHandler } from './warehouse/reports/get-by-dates';
 import { handler as publishPartialReportHandler } from './warehouse/reports/publish';
+import { handler as traceItemHandler } from './warehouse/reports/trace-item';
 import { handler as createCheckOutFormHandler } from './forms/checkout/create';
 import { handler as getUserFormsHandler } from './forms/get-user';
 import { handler as getAllFormsHandler } from './forms/get-all';
@@ -73,4 +74,5 @@ export const handlers: HandlersDefinition = {
   getReports: getReportsHandler, // needed?
   getReportsByDates: getReportsByDatesHandler,
   publishPartialReport: publishPartialReportHandler,
+  traceItem: traceItemHandler,
 };

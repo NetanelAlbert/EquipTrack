@@ -197,10 +197,20 @@ export const endpointMetas = {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports/publish`,
     method: 'POST',
     allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
-    requestType: {} as Reports.PublishPartialReportRequest,
-    responseType: {} as Reports.PublishPartialReportResponse,
+    requestType: {} as Reports.PublishReportRequest,
+    responseType: {} as Reports.PublishReportResponse,
   } as EndpointMeta<
-    Reports.PublishPartialReportRequest,
-    Reports.PublishPartialReportResponse
+    Reports.PublishReportRequest,
+    Reports.PublishReportResponse
+  >,
+  traceItem: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports/trace-item`,
+    method: 'POST',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    requestType: {} as Reports.TraceItemRequest,
+    responseType: {} as Reports.TraceItemResponse,
+  } as EndpointMeta<
+    Reports.TraceItemRequest,
+    Reports.TraceItemResponse
   >,
 };
