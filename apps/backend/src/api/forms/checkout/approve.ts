@@ -12,6 +12,7 @@ import { InventoryTransferService } from '../../../services/inventory-transfer.s
 import { PdfService } from '../../../services/pdf.service';
 import { S3Service } from '../../../services/s3.service';
 import { badRequest, forbidden, internalServerError } from '../../responses';
+import { validateInventoryItems } from '../../validate';
 
 export const handler = async (
   req: ApproveCheckOut,
@@ -65,13 +66,8 @@ export const handler = async (
       );
     }
 
-    form.items.forEach((item) => {
-      if (item.upis && item.upis.length !== item.quantity) {
-        throw badRequest(
-          `Item ${item.productId} has a quantity of ${item.quantity} which is not equal to the number of UPI's ${item.upis.length}`
-        );
-      }
-    });
+    // Validate form items
+    validateInventoryItems(form.items);
 
     // Step 2: Get user data for PDF generation
     const user = await usersAdapter.getUserFromDB(form.userID);
@@ -106,15 +102,19 @@ export const handler = async (
     // Step 6: Update form with approval metadata
     console.log('Updating form status...');
     const now = Date.now();
-    const updatedForm = await formsAdapter.updateForm(req.formID, form.userID, organizationId, {
-      status: FormStatus.Approved,
-      approvedAtTimestamp: now,
-      approvedByUserId: userId,
-      pdfUri: pdfUrl,
-      lastUpdated: now,
-    });
+    const updatedForm = await formsAdapter.updateForm(
+      req.formID,
+      form.userID,
+      organizationId,
+      {
+        status: FormStatus.Approved,
+        approvedAtTimestamp: now,
+        approvedByUserId: userId,
+        pdfUri: pdfUrl,
+        lastUpdated: now,
+      }
+    );
 
-    
     console.log('Form approval completed successfully');
 
     return { status: true, updatedForm };

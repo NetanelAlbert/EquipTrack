@@ -1,9 +1,15 @@
-import { BasicResponse, FormStatus, FormType, JwtPayload } from '@equip-track/shared';
+import {
+  BasicResponse,
+  FormStatus,
+  FormType,
+  JwtPayload,
+} from '@equip-track/shared';
 import { BasicUser } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
 import { randomUUID } from 'crypto';
 import { badRequest, internalServerError } from '../../responses';
+import { validateInventoryItems } from '../../validate';
 
 export const handler = async (
   req: BasicUser.RequestCheckIn,
@@ -19,6 +25,9 @@ export const handler = async (
     if (!jwtPayload) {
       throw badRequest('User ID is required');
     }
+
+    // Validate items
+    validateInventoryItems(req.items);
 
     const formsAdapter = new FormsAdapter();
     const formID = randomUUID();

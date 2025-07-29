@@ -7,6 +7,7 @@ import { InventoryAdapter } from '../../../db';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { badRequest } from '../../responses';
 import { WAREHOUSE_SUFFIX } from '../../../db/constants';
+import { validateInventoryItems } from '../../validate';
 
 const inventoryAdapter = new InventoryAdapter();
 
@@ -19,29 +20,8 @@ export const handler = async (
     throw badRequest('Organization ID is required');
   }
 
-  if (!req.items || !Array.isArray(req.items) || req.items.length === 0) {
-    throw badRequest('Items array is required and must not be empty');
-  }
-
   // Validate items
-  for (const item of req.items) {
-    if (!item.productId || typeof item.productId !== 'string') {
-      throw badRequest('Each item must have a valid productId');
-    }
-    if (typeof item.quantity !== 'number' || item.quantity <= 0) {
-      throw badRequest('Each item must have a positive quantity');
-    }
-    if (item.upis && !Array.isArray(item.upis)) {
-      throw badRequest('UPIs must be an array if provided');
-    }
-    if (item.upis && item.upis.length > 0) {
-      for (const upi of item.upis) {
-        if (!upi || typeof upi !== 'string') {
-          throw badRequest('Each UPI must be a valid string');
-        }
-      }
-    }
-  }
+  validateInventoryItems(req.items);
 
   try {
     const holderId = WAREHOUSE_SUFFIX;
@@ -94,7 +74,7 @@ export const handler = async (
       for (const item of req.items) {
         // We already validated this exists
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const currentItem = currentInventoryMap.get(item.productId)!; 
+        const currentItem = currentInventoryMap.get(item.productId)!;
 
         if (item.upis && item.upis.length > 0) {
           // Handle unique items (with UPI) - remove specific UPIs
