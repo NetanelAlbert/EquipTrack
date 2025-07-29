@@ -1,0 +1,90 @@
+name: Auto Version Bump
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'apps/frontend/src/environments/environment.ts'
+      - 'apps/frontend/src/environments/environment.prod.ts'
+
+jobs:
+  version-bump:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    
+    # Skip if the commit message contains [skip version]
+    if: ${{ !contains(github.event.head_commit.message, '[skip version]') }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Use a token that can push to protected branches
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Get current version
+        id: current-version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Bump patch version
+        id: bump-version
+        run: |
+          # Get current version for logging
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          
+          # Use npm version patch to update package.json and package-lock.json
+          npm version patch --no-git-tag-version
+          
+          # Get the new version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          
+          echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Bumping version from $CURRENT_VERSION to $NEW_VERSION"
+          
+          # Update environment files with new version
+          sed -i "s/version: '[^']*'/version: '$NEW_VERSION'/g" apps/frontend/src/environments/environment.ts
+          sed -i "s/version: '[^']*'/version: '$NEW_VERSION'/g" apps/frontend/src/environments/environment.prod.ts
+
+      - name: Commit version bump
+        run: |
+          git add package.json package-lock.json apps/frontend/src/environments/environment.ts apps/frontend/src/environments/environment.prod.ts
+          git commit -m "chore: bump version to ${{ steps.bump-version.outputs.new }} [skip version]"
+
+      - name: Create and push tag
+        run: |
+          git tag "v${{ steps.bump-version.outputs.new }}"
+          git push origin HEAD:master
+          git push origin "v${{ steps.bump-version.outputs.new }}"
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: "v${{ steps.bump-version.outputs.new }}"
+          release_name: "Release v${{ steps.bump-version.outputs.new }}"
+          body: |
+            Auto-generated release for version ${{ steps.bump-version.outputs.new }}
+            
+            Changes in this release:
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false 

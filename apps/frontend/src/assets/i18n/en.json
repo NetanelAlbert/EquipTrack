@@ -82,7 +82,8 @@
     "checkout": "Checkout",
     "trace-product": "Trace Product",
     "admin-dashboard": "Admin Dashboard",
-    "switch-organization": "Switch Organization"
+    "switch-organization": "Switch Organization",
+    "app-version": "App Version"
   },
   "forms": {
     "form-id": "Form ID",

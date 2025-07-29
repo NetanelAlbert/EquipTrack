@@ -16,6 +16,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { User } from '@equip-track/shared';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'top-bar',
@@ -46,6 +47,7 @@ export class TopBarComponent implements AfterViewInit {
   menuClicked = output<void>();
 
   pageTitle = '';
+  appVersion = environment.version;
 
   currentUser = this.userStore.user;
 
