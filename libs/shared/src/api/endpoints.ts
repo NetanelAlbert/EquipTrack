@@ -130,7 +130,7 @@ export const endpointMetas = {
     allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
     requestType: {} as Wharehouse.RemoveInventory,
     responseType: {} as BasicResponse,
-  } as EndpointMeta<Wharehouse.RemoveInventory, BasicResponse>,
+  } as EndpointMeta<Wharehouse.RemoveInventory, BasicResponse>, 
   getInventory: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/inventory`,
     method: 'GET',

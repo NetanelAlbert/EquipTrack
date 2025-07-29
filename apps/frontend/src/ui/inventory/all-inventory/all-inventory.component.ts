@@ -36,18 +36,22 @@ import { InventoryItem } from '@equip-track/shared';
 export class AllInventoryComponent implements OnInit {
   inventoryStore = inject(InventoryStore);
   organizationStore = inject(OrganizationStore);
-  allInventoryItems = this.inventoryStore.totalOrganizationItems;
+  allInventoryItems = this.inventoryStore.totalInventory;
   filteredItems = signal<InventoryItem[]>([]);
   hasInventory = computed(() => this.allInventoryItems().length > 0);
-  isLoading = computed(() => this.inventoryStore.fetchInventoryStatus().isLoading);
-  errorMessage = computed(() => this.inventoryStore.fetchInventoryStatus().error);
+  isLoading = computed(
+    () => this.inventoryStore.fetchInventoryStatus().isLoading
+  );
+  errorMessage = computed(
+    () => this.inventoryStore.fetchInventoryStatus().error
+  );
 
   ngOnInit() {
     this.loadInventory();
   }
 
   loadInventory() {
-    this.inventoryStore.fetchInventory();
+    this.inventoryStore.fetchTotalInventory();
   }
 
   onFilteredItemsChange(filtered: InventoryItem[]) {

@@ -74,17 +74,14 @@ export class InventoryByUsersComponent implements OnInit {
       if (userId && userId !== 'WAREHOUSE') {
         // A workaround to update signals from effect
         setTimeout(() => {
-        // Fetch user inventory when a specific user is selected
-        this.inventoryStore.fetchUserInventory(userId);
+          // Fetch user inventory when a specific user is selected
+          this.inventoryStore.fetchUserInventory(userId);
         });
       }
     });
   }
 
   ngOnInit() {
-    // Fetch initial inventory data
-    this.inventoryStore.fetchInventory();
-
     // Fetch organization users for dropdown
     this.loadUsers();
   }

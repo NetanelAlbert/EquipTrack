@@ -17,16 +17,10 @@ export const handler = async (
     throw badRequest('Organization ID is required');
   }
 
-  const { products, warehouseItems, usersItems } = await inventoryAdapter.getOrganizationInventory(
-    organizationId
-  );
+  const totalItems = await inventoryAdapter.getTotalInventory(organizationId);
 
   return {
-    items: {
-      warehouse: warehouseItems,
-      users: usersItems,
-    },
-    products,
+    totalItems,
     status: true,
   };
 };

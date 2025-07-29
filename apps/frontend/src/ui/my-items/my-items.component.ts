@@ -28,7 +28,10 @@ export class MyItemsComponent implements OnInit {
 
   ngOnInit() {
     // Fetch user inventory on component initialization
-    this.inventoryStore.fetchInventory();
+    const userId = this.userStore.user()?.id;
+    if (userId) {
+      this.inventoryStore.fetchUserInventory(userId);
+    }
   }
 
   // Handle filtered items from search component

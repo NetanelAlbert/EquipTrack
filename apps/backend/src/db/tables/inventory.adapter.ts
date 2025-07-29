@@ -182,6 +182,28 @@ export class InventoryAdapter {
   }
 
   /**
+   * Returns all inventory items for an organization
+   * @param organizationId The organization to get inventory for
+   * @returns All inventory items for the organization
+   */
+  async getTotalInventory(organizationId: string): Promise<InventoryItem[]> {
+    const command = new QueryCommand({
+      TableName: this.tableName,
+      KeyConditionExpression: 'PK = :pk',
+      FilterExpression: 'dbItemType = :bulk OR dbItemType = :unique',
+      ExpressionAttributeValues: {
+        ':pk': `${ORG_PREFIX}${organizationId}`,
+        ':bulk': DbItemType.InventoryBulkItem,
+        ':unique': DbItemType.InventoryUniqueItem,
+      },
+    });
+
+    const result = await this.docClient.send(command);
+    const items = (result.Items ?? []) as InventoryItemDb[];
+    return this.getUserInventoryItems(items);
+  }
+
+  /**
    * Creates a new product definition with flattened fields
    */
   async createProduct(product: Product, organizationId: string): Promise<void> {
