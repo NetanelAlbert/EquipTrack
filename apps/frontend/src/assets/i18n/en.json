@@ -45,6 +45,14 @@
     "refresh": "Refresh",
     "loading": "Loading...",
     "copied-to-clipboard": "Copied to clipboard",
+    "success": "Operation completed successfully",
+    "error": "An error occurred: {{error}}",
+    "error-simple": "An error occurred",
+    "info": "Information",
+    "user-info-unavailable": "User information not available",
+    "email-request-generated": "Email client opened with access request",
+    "email-request-failed": "Failed to generate access request",
+    "navigation-failed": "Navigation failed. Please try again.",
     "signature": {
       "signature-pad": "Signature Pad",
       "clear": "Clear"
@@ -89,7 +97,11 @@
     "check-in": "Check In",
     "check-out": "Check Out",
     "empty-check-in": "No check-in forms available.",
-    "empty-check-out": "No check-out forms available."
+    "empty-check-out": "No check-out forms available.",
+    "check-in-submitted": "Check-in request submitted successfully",
+    "check-out-submitted": "Check-out request submitted successfully",
+    "form-approved": "Form approved successfully",
+    "form-rejected": "Form rejected successfully"
   },
   "inventory": {
     "title": "Inventory",
@@ -177,6 +189,7 @@
       "warning": "Warning: This will permanently remove items from inventory. Make sure quantities and UPIs are correct.",
       "removing": "Removing inventory items...",
       "success": "Successfully removed {{count}} inventory items",
+      "success-simple": "Inventory items removed successfully",
       "error": {
         "no-items": "Please add at least one item to remove"
       }
@@ -186,7 +199,9 @@
     "title": "Checkout",
     "select-user": "Select User",
     "predefined-forms": "Predefined Forms",
-    "items": "Items"
+    "items": "Items",
+    "success": "Checkout completed successfully",
+    "error": "Checkout failed. Please try again."
   },
   "reports": {
     "title": "Reports",
@@ -203,13 +218,63 @@
     "useLastLocation": "Use Last Location",
     "enterLocation": "Enter Location",
     "noReportForDate": "No Report Available",
-    "noReportForDateDescription": "No report has been generated for the selected date."
+    "noReportForDateDescription": "No report has been generated for the selected date.",
+    "item-published": "Item report updated successfully",
+    "items-published": "Multiple item reports published successfully"
   },
   "errors": {
     "not-allowed": {
       "title": "Access Denied",
       "message": "You don't have permission to access this page.",
       "back-home": "Back to Home"
+    },
+    "api": {
+      "general": "An error occurred. Please try again.",
+      "unauthorized": "You are not authorized to perform this action.",
+      "forbidden": "You don't have permission to access this resource.",
+      "not-found": "The requested resource was not found.",
+      "bad-request": "Invalid request. Please check your input and try again.",
+      "email-verification-required": "Please verify your email address to continue.",
+      "internal-server-error": "A server error occurred. Please try again later.",
+      "not-implemented": "This feature is not yet implemented. Please try again later.",
+      "network-error": "Network error. Please check your connection and try again.",
+      "timeout": "Request timed out. Please try again."
+    },
+    "auth": {
+      "no-token": "Authentication required. Please sign in again.",
+      "session-expired": "Your session has expired. Please sign in again.",
+      "invalid-credentials": "Invalid credentials. Please try again."
+    },
+    "organization": {
+      "not-selected": "Please select an organization to continue.",
+      "access-denied": "You don't have access to this organization."
+    },
+    "forms": {
+      "fetch-failed": "Failed to load forms. Please try again.",
+      "submit-failed": "Failed to submit form. Please try again.",
+      "approve-failed": "Failed to approve form. Please try again.",
+      "reject-failed": "Failed to reject form. Please try again."
+    },
+    "inventory": {
+      "fetch-failed": "Failed to load inventory. Please try again.",
+      "add-failed": "Failed to add inventory items. Please try again.",
+      "remove-failed": "Failed to remove inventory items. Please try again.",
+      "update-failed": "Failed to update inventory. Please try again."
+    },
+    "reports": {
+      "fetch-failed": "Failed to load reports. Please try again.",
+      "generate-failed": "Failed to generate report. Please try again.",
+      "publish-failed": "Failed to publish report. Please try again."
+    },
+    "users": {
+      "fetch-failed": "Failed to load users. Please try again.",
+      "invite-failed": "Failed to send invitation. Please try again.",
+      "update-failed": "Failed to update user. Please try again."
+    },
+    "products": {
+      "fetch-failed": "Failed to load products. Please try again.",
+      "save-failed": "Failed to save products. Please try again.",
+      "delete-failed": "Failed to delete product. Please try again."
     }
   },
   "organization": {
@@ -253,7 +318,9 @@
       },
       "delete": {
         "error": "Failed to delete product"
-      }
+      },
+      "save-success": "Product saved successfully",
+      "delete-success": "Product deleted successfully"
     },
     "users": {
       "title": "Edit Users",
@@ -298,7 +365,8 @@
       "empty": {
         "title": "No Users Found",
         "message": "Start by inviting users to your organization using the form above."
-      }
+      },
+      "invite-success": "User invitation sent successfully"
     }
   }
 } 

@@ -15,11 +15,11 @@ import {
 } from '@equip-track/shared';
 import { OrganizationStore } from '../../store/organization.store';
 import { CheckoutStore } from './checkout.store';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { InventoryListComponent } from '../inventory/list/inventory-list.component';
 import { computedPrevious } from 'ngxtension/computed-previous';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { NotificationService } from '../../services/notification.service';
 import { UserStore } from '../../store/user.store';
 
 @Component({
@@ -45,7 +45,7 @@ export class CheckoutComponent {
   private fb = inject(FormBuilder);
   private organizationStore = inject(OrganizationStore);
   public checkoutStore = inject(CheckoutStore);
-  private snackBar = inject(MatSnackBar);
+  private notificationService = inject(NotificationService);
   private translate = inject(TranslateService);
   private userStore = inject(UserStore);
 
@@ -105,17 +105,15 @@ export class CheckoutComponent {
     effect(() => {
       if (previousSending()) {
         if (this.checkoutStore.error()) {
-          this.snackBar.open(
-            this.translate.instant('checkout.error'),
-            this.translate.instant('common.close'),
-            { duration: 3000 }
+          this.notificationService.showError(
+            'checkout.error',
+            'Checkout failed. Please try again.'
           );
         } else {
           this.resetForm();
-          this.snackBar.open(
-            this.translate.instant('checkout.success'),
-            this.translate.instant('common.close'),
-            { duration: 3000 }
+          this.notificationService.showSuccess(
+            'checkout.success',
+            'Checkout completed successfully'
           );
         }
       }

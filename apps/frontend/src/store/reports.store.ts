@@ -6,8 +6,13 @@ import {
   withState,
 } from '@ngrx/signals';
 import { computed, inject } from '@angular/core';
-import { formatDateToString, ItemReport, ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
+import {
+  formatDateToString,
+  ItemReport,
+  ORGANIZATION_ID_PATH_PARAM,
+} from '@equip-track/shared';
 import { ApiService } from '../services/api.service';
+import { NotificationService } from '../services/notification.service';
 import { UserStore } from './user.store';
 import { firstValueFrom } from 'rxjs';
 
@@ -36,6 +41,7 @@ export const ReportsStore = signalStore(
   })),
   withMethods((store) => {
     const apiService = inject(ApiService);
+    const notificationService = inject(NotificationService);
     const userStore = inject(UserStore);
 
     const updateState = (newState: Partial<ReportsState>) => {
@@ -64,7 +70,15 @@ export const ReportsStore = signalStore(
           );
 
           if (!reportsResponse.status) {
-            throw new Error('Failed to fetch reports by dates');
+            notificationService.showError(
+              'errors.reports.fetch-failed',
+              reportsResponse.errorMessage
+            );
+            updateState({
+              error: 'Failed to fetch reports by dates',
+              loading: false,
+            });
+            return;
           }
 
           const reportsByDate = new Map(
@@ -82,6 +96,10 @@ export const ReportsStore = signalStore(
           });
         } catch (error) {
           console.error('Failed to fetch reports by dates:', error);
+          notificationService.handleApiError(
+            error,
+            'errors.reports.fetch-failed'
+          );
           updateState({
             error: 'Failed to fetch reports by dates',
             loading: false,
@@ -139,7 +157,28 @@ export const ReportsStore = signalStore(
           );
 
           if (!publishResponse.status) {
-            throw new Error('Failed to publish item report');
+            notificationService.showError(
+              'errors.reports.publish-failed',
+              publishResponse.errorMessage
+            );
+
+            // Revert optimistic update on error
+            const originalReportsByDate = new Map(store.reportsByDate());
+            const originalDateReports =
+              originalReportsByDate.get(reportDate) || [];
+            const revertedReports = originalDateReports.filter(
+              (item) => item.upi !== itemReport.upi
+            );
+            originalReportsByDate.set(reportDate, revertedReports);
+
+            updateState({
+              reportsByDate: originalReportsByDate,
+              todayReport:
+                reportDate === today ? revertedReports : store.todayReport(),
+              error: 'Failed to update item report',
+              loading: false,
+            });
+            return;
           }
 
           updateState({
@@ -151,8 +190,16 @@ export const ReportsStore = signalStore(
             upi: itemReport.upi,
             publishedCount: publishResponse.publishedCount,
           });
+          notificationService.showSuccess(
+            'reports.item-published',
+            'Item report updated successfully'
+          );
         } catch (error) {
           console.error('Failed to publish item report:', error);
+          notificationService.handleApiError(
+            error,
+            'errors.reports.publish-failed'
+          );
 
           // Revert optimistic update on error
           const originalReportsByDate = new Map(store.reportsByDate());
@@ -197,7 +244,15 @@ export const ReportsStore = signalStore(
           );
 
           if (!publishResponse.status) {
-            throw new Error('Failed to publish multiple item reports');
+            notificationService.showError(
+              'errors.reports.publish-failed',
+              publishResponse.errorMessage
+            );
+            updateState({
+              error: 'Failed to publish multiple item reports',
+              loading: false,
+            });
+            return;
           }
 
           // Refresh reports after publishing
@@ -208,8 +263,16 @@ export const ReportsStore = signalStore(
             itemCount: items.length,
             publishedCount: publishResponse.publishedCount,
           });
+          notificationService.showSuccess(
+            'reports.items-published',
+            `Successfully published ${items.length} item reports`
+          );
         } catch (error) {
           console.error('Failed to publish multiple items:', error);
+          notificationService.handleApiError(
+            error,
+            'errors.reports.publish-failed'
+          );
           updateState({
             error: 'Failed to publish multiple item reports',
             loading: false,

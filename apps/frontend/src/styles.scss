@@ -82,4 +82,50 @@ app-root {
   font-size: 12px;
 }
 
+/* Snackbar notification styles */
+.error-snackbar {
+  --mat-snack-bar-button-color: #ffffff;
+  --mat-mdc-snack-bar-button-color: #ffffff;
+  background-color: var(--color-error, #f44336) !important;
+  color: #ffffff !important;
+  
+  .mat-mdc-snack-bar-action {
+    color: #ffffff !important;
+  }
+  
+  .mat-mdc-button {
+    color: #ffffff !important;
+  }
+}
+
+.success-snackbar {
+  --mat-snack-bar-button-color: #ffffff;
+  --mat-mdc-snack-bar-button-color: #ffffff;
+  background-color: var(--color-success, #4caf50) !important;
+  color: #ffffff !important;
+  
+  .mat-mdc-snack-bar-action {
+    color: #ffffff !important;
+  }
+  
+  .mat-mdc-button {
+    color: #ffffff !important;
+  }
+}
+
+.info-snackbar {
+  --mat-snack-bar-button-color: #ffffff;
+  --mat-mdc-snack-bar-button-color: #ffffff;
+  background-color: #2196f3 !important;
+  color: #ffffff !important;
+  
+  .mat-mdc-snack-bar-action {
+    color: #ffffff !important;
+  }
+  
+  .mat-mdc-button {
+    color: #ffffff !important;
+  }
+}
+
 

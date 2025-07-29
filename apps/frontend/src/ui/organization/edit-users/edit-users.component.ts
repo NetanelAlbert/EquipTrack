@@ -9,9 +9,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { NotificationService } from '../../../services/notification.service';
 import { OrganizationStore } from '../../../store/organization.store';
 import { OrganizationService } from '../../../services/organization.service';
 import { User, UserRole, UserState } from '@equip-track/shared';
@@ -40,7 +40,7 @@ export class EditUsersComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private organizationStore = inject(OrganizationStore);
   private organizationService = inject(OrganizationService);
-  private snackBar = inject(MatSnackBar);
+  private notificationService = inject(NotificationService);
   private translateService = inject(TranslateService);
 
   // State signals
@@ -79,11 +79,7 @@ export class EditUsersComponent implements OnInit {
     const role = this.selectedRole();
 
     if (!rawEmail) {
-      this.showError(
-        this.translateService.instant(
-          'organization.users.invite.email-required'
-        )
-      );
+      this.showError('organization.users.invite.email-required');
       return;
     }
 
@@ -93,28 +89,24 @@ export class EditUsersComponent implements OnInit {
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      this.showError(
-        this.translateService.instant('organization.users.invite.email-invalid')
-      );
+      this.showError('organization.users.invite.email-invalid');
       return;
     }
 
     const success = await this.organizationService.inviteUser(email, role);
 
     if (success) {
-      this.showSuccess(
-        this.translateService.instant('organization.users.invite.success', {
-          email,
-        })
-      );
+      this.showSuccess('organization.users.invite.success', { email });
       this.inviteEmail.set('');
       void this.organizationService.getUsers();
     } else {
       // Error handling is done in the store, but we can show additional UI feedback here if needed
-      const errorMessage =
-        this.organizationStore.invitingUserStatus()?.error ||
-        this.translateService.instant('organization.users.invite.error');
-      this.showError(errorMessage);
+      const errorMessage = this.organizationStore.invitingUserStatus()?.error;
+      if (errorMessage) {
+        this.showError('common.error', { error: errorMessage });
+      } else {
+        this.showError('organization.users.invite.error');
+      }
     }
   }
 
@@ -188,44 +180,40 @@ export class EditUsersComponent implements OnInit {
   }
 
   /**
-   * Show success message
+   * Show success message using translation key
    */
-  private showSuccess(message: string): void {
-    this.snackBar.open(
-      message,
-      this.translateService.instant('common.close') || 'Close',
-      {
-        duration: 3000,
-        panelClass: ['success-snackbar'],
-      }
+  private showSuccess(
+    messageKey: string,
+    translationParams?: Record<string, string | number>
+  ): void {
+    this.notificationService.showSuccess(
+      messageKey,
+      undefined,
+      translationParams
     );
   }
 
   /**
-   * Show error message
+   * Show error message using translation key
    */
-  private showError(message: string): void {
-    this.snackBar.open(
-      message,
-      this.translateService.instant('common.close') || 'Close',
-      {
-        duration: 5000,
-        panelClass: ['error-snackbar'],
-      }
+  private showError(
+    messageKey: string,
+    translationParams?: Record<string, string | number>
+  ): void {
+    this.notificationService.showError(
+      messageKey,
+      undefined,
+      translationParams
     );
   }
 
   /**
-   * Show info message
+   * Show info message using translation key
    */
-  private showInfo(message: string): void {
-    this.snackBar.open(
-      message,
-      this.translateService.instant('common.close') || 'Close',
-      {
-        duration: 4000,
-        panelClass: ['info-snackbar'],
-      }
-    );
+  private showInfo(
+    messageKey: string,
+    translationParams?: Record<string, string | number>
+  ): void {
+    this.notificationService.showInfo(messageKey, undefined, translationParams);
   }
 }

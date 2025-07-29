@@ -5,8 +5,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatGridListModule } from '@angular/material/grid-list';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { NotificationService } from '../../services/notification.service';
 import { UserStore } from '../../store';
 import { OrganizationService } from '../../services/organization.service';
 import { Organization } from '@equip-track/shared';
@@ -31,7 +31,7 @@ import { MatProgressSpinner } from '@angular/material/progress-spinner';
 export class HomeComponent implements OnInit {
   private userStore = inject(UserStore);
   private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
+  private notificationService = inject(NotificationService);
   private translateService = inject(TranslateService);
 
   // State signals
@@ -55,7 +55,9 @@ export class HomeComponent implements OnInit {
       this.userStore.loadStartData();
     }
     if (this.userStore.selectedOrganizationId()) {
-      this.navigateToDefaultRoute(this.userStore.currentRole() ?? UserRole.Customer);
+      this.navigateToDefaultRoute(
+        this.userStore.currentRole() ?? UserRole.Customer
+      );
     }
   }
 
@@ -129,7 +131,7 @@ export class HomeComponent implements OnInit {
         );
       }
 
-      this.showSuccess('Organization selected successfully');
+      this.showSuccess('organization.select.success');
 
       // Small delay to ensure stores are updated before navigation
       setTimeout(() => {
@@ -148,7 +150,7 @@ export class HomeComponent implements OnInit {
         error instanceof Error
           ? error.message
           : 'Failed to select organization';
-      this.showError(errorMessage);
+      this.showError('common.error', { error: errorMessage });
     }
   }
 
@@ -158,7 +160,7 @@ export class HomeComponent implements OnInit {
   requestAccess(): void {
     const user = this.currentUser();
     if (!user) {
-      this.showError('User information not available');
+      this.showError('common.user-info-unavailable');
       return;
     }
 
@@ -182,38 +184,38 @@ export class HomeComponent implements OnInit {
       // Open email client
       window.location.href = mailtoLink;
 
-      this.showSuccess('Email client opened with access request');
+      this.showSuccess('common.email-request-generated');
     } catch (error) {
       console.error('Failed to open email client:', error);
-      this.showError('Failed to generate access request');
+      this.showError('common.email-request-failed');
     }
   }
 
   /**
-   * Show success message
+   * Show success message using translation key
    */
-  private showSuccess(message: string): void {
-    this.snackBar.open(
-      this.translateService.instant(message) || message,
-      this.translateService.instant('common.close') || 'Close',
-      {
-        duration: 3000,
-        panelClass: ['success-snackbar'],
-      }
+  private showSuccess(
+    messageKey: string,
+    translationParams?: Record<string, string | number>
+  ): void {
+    this.notificationService.showSuccess(
+      messageKey,
+      undefined,
+      translationParams
     );
   }
 
   /**
-   * Show error message
+   * Show error message using translation key
    */
-  private showError(message: string): void {
-    this.snackBar.open(
-      this.translateService.instant(message) || message,
-      this.translateService.instant('common.close') || 'Close',
-      {
-        duration: 5000,
-        panelClass: ['error-snackbar'],
-      }
+  private showError(
+    messageKey: string,
+    translationParams?: Record<string, string | number>
+  ): void {
+    this.notificationService.showError(
+      messageKey,
+      undefined,
+      translationParams
     );
   }
 
@@ -243,7 +245,7 @@ export class HomeComponent implements OnInit {
       this.router.navigate([targetRoute]);
     } catch (navigationError) {
       console.error('Navigation failed:', navigationError);
-      this.showError('Navigation failed. Please try again.');
+      this.showError('common.navigation-failed');
     }
   }
 }

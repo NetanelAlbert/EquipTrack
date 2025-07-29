@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiService } from './api.service';
+import { NotificationService } from './notification.service';
 import { TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -23,6 +24,7 @@ export interface SelectedOrganizationInfo {
 export class OrganizationService {
   // Use a different key to avoid conflicts with UserStore
   private readonly apiService = inject(ApiService);
+  private readonly notificationService = inject(NotificationService);
   private readonly translateService = inject(TranslateService);
   private readonly organizationStore = inject(OrganizationStore);
   private readonly userStore = inject(UserStore);
@@ -44,10 +46,15 @@ export class OrganizationService {
         const error =
           getUsersResponse.errorMessage ||
           this.translateService.instant('organization.users.get.error');
+        this.notificationService.showError('errors.users.fetch-failed', error);
         this.organizationStore.setGetUsersError(error);
       }
     } catch (error: unknown) {
       console.error('Error getting users', error);
+      this.notificationService.handleApiError(
+        error,
+        'errors.users.fetch-failed'
+      );
       const errorMessage = this.translateService.instant(
         'organization.users.get.error'
       );
@@ -79,10 +86,18 @@ export class OrganizationService {
           'Error response from fetching products:',
           result.errorMessage
         );
+        this.notificationService.showError(
+          'errors.products.fetch-failed',
+          errorMessage
+        );
         this.organizationStore.setGetProductsError(errorMessage);
       }
     } catch (error: unknown) {
       console.error('Error fetching products', error);
+      this.notificationService.handleApiError(
+        error,
+        'errors.products.fetch-failed'
+      );
       const errorMessage = this.translateService.instant(
         'organization.products.get.error'
       );
@@ -121,16 +136,28 @@ export class OrganizationService {
           this.organizationStore.setProducts([...currentProducts, product]);
         }
 
+        this.notificationService.showSuccess(
+          'organization.products.save-success',
+          'Product saved successfully'
+        );
         return true;
       } else {
         const errorMessage =
           result.errorMessage ||
           this.translateService.instant('organization.products.save.error');
         console.error('Error saving product:', errorMessage);
+        this.notificationService.showError(
+          'errors.products.save-failed',
+          errorMessage
+        );
         return false;
       }
     } catch (error: unknown) {
       console.error('Error saving product:', error);
+      this.notificationService.handleApiError(
+        error,
+        'errors.products.save-failed'
+      );
       return false;
     }
   }
@@ -156,16 +183,28 @@ export class OrganizationService {
           (p) => p.id !== productId
         );
         this.organizationStore.setProducts(updatedProducts);
+        this.notificationService.showSuccess(
+          'organization.products.delete-success',
+          'Product deleted successfully'
+        );
         return true;
       } else {
         const errorMessage =
           result.errorMessage ||
           this.translateService.instant('organization.products.delete.error');
         console.error('Error deleting product:', errorMessage);
+        this.notificationService.showError(
+          'errors.products.delete-failed',
+          errorMessage
+        );
         return false;
       }
     } catch (error: unknown) {
       console.error('Error deleting product:', error);
+      this.notificationService.handleApiError(
+        error,
+        'errors.products.delete-failed'
+      );
       return false;
     }
   }
@@ -189,9 +228,17 @@ export class OrganizationService {
       );
 
       this.organizationStore.setInvitingUserSuccess();
+      this.notificationService.showSuccess(
+        'organization.users.invite-success',
+        'User invitation sent successfully'
+      );
       return true;
     } catch (error: unknown) {
       console.error('Error inviting user', error);
+      this.notificationService.handleApiError(
+        error,
+        'errors.users.invite-failed'
+      );
       const errorMessage = this.translateService.instant(
         'organization.users.invite.error'
       );

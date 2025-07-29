@@ -1,7 +1,11 @@
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideHttpClient, HttpClient } from '@angular/common/http';
+import {
+  provideHttpClient,
+  HttpClient,
+  withInterceptors,
+} from '@angular/common/http';
 import { MAT_SNACK_BAR_DEFAULT_OPTIONS } from '@angular/material/snack-bar';
 import { APP_INITIALIZER, importProvidersFrom } from '@angular/core';
 
@@ -9,6 +13,7 @@ import { appRoutes } from './app.routes';
 import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { appInitializer } from './app.init';
+import { errorInterceptor } from '../services/error-interceptor.service';
 
 // Factory function for TranslateHttpLoader
 export function HttpLoaderFactory(http: HttpClient) {
@@ -20,7 +25,7 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(appRoutes),
     provideAnimationsAsync(),
-    provideHttpClient(),
+    provideHttpClient(withInterceptors([errorInterceptor])),
     importProvidersFrom(
       TranslateModule.forRoot({
         loader: {

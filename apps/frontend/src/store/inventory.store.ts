@@ -12,6 +12,7 @@ import {
 } from '@equip-track/shared';
 import { computed, inject } from '@angular/core';
 import { ApiService } from '../services/api.service';
+import { NotificationService } from '../services/notification.service';
 import { UserStore } from './user.store';
 import { firstValueFrom } from 'rxjs';
 
@@ -53,6 +54,7 @@ export const InventoryStore = signalStore(
   }),
   withMethods((store) => {
     const apiService = inject(ApiService);
+    const notificationService = inject(NotificationService);
     const userStore = inject(UserStore);
 
     const updateState = (newState: Partial<InventoryState>) => {
@@ -80,7 +82,15 @@ export const InventoryStore = signalStore(
           );
 
           if (!inventoryResponse.status) {
-            throw new Error('Failed to fetch inventory');
+            notificationService.showError(
+              'errors.inventory.fetch-failed',
+              inventoryResponse.errorMessage
+            );
+            updateState({
+              error: 'Failed to fetch inventory',
+              loading: false,
+            });
+            return;
           }
 
           // Convert users Map to Record for compatibility with existing code
@@ -101,6 +111,10 @@ export const InventoryStore = signalStore(
           });
         } catch (error) {
           console.error('Error fetching inventory:', error);
+          notificationService.handleApiError(
+            error,
+            'errors.inventory.fetch-failed'
+          );
           updateState({
             error: 'Failed to fetch inventory',
             loading: false,
@@ -123,6 +137,10 @@ export const InventoryStore = signalStore(
           );
 
           if (!userInventoryResponse.status) {
+            notificationService.showError(
+              'errors.inventory.fetch-failed',
+              userInventoryResponse.errorMessage
+            );
             throw new Error('Failed to fetch user inventory');
           }
 
@@ -137,6 +155,10 @@ export const InventoryStore = signalStore(
           return userInventoryResponse.items || [];
         } catch (error) {
           console.error('Error fetching user inventory:', error);
+          notificationService.handleApiError(
+            error,
+            'errors.inventory.fetch-failed'
+          );
           throw error;
         }
       },
@@ -167,10 +189,23 @@ export const InventoryStore = signalStore(
           );
 
           if (!response.status) {
-            throw new Error(response.errorMessage || 'Failed to add inventory');
+            notificationService.showError(
+              'errors.inventory.add-failed',
+              response.errorMessage
+            );
+            updateState({
+              addInventoryError:
+                response.errorMessage || 'Failed to add inventory',
+              addingInventory: false,
+            });
+            return false;
           }
 
           updateState({ addingInventory: false });
+          notificationService.showSuccess(
+            'inventory.add.success',
+            'Inventory items added successfully'
+          );
 
           // Refresh inventory after successful add
           await this.fetchInventory();
@@ -178,6 +213,10 @@ export const InventoryStore = signalStore(
           return true;
         } catch (error) {
           console.error('Error adding inventory:', error);
+          notificationService.handleApiError(
+            error,
+            'errors.inventory.add-failed'
+          );
           const errorMessage =
             error instanceof Error ? error.message : 'Failed to add inventory';
           updateState({
@@ -210,12 +249,23 @@ export const InventoryStore = signalStore(
           );
 
           if (!response.status) {
-            throw new Error(
-              response.errorMessage || 'Failed to remove inventory'
+            notificationService.showError(
+              'errors.inventory.remove-failed',
+              response.errorMessage
             );
+            updateState({
+              removeInventoryError:
+                response.errorMessage || 'Failed to remove inventory',
+              removingInventory: false,
+            });
+            return false;
           }
 
           updateState({ removingInventory: false });
+          notificationService.showSuccess(
+            'inventory.remove.success',
+            'Inventory items removed successfully'
+          );
 
           // Refresh inventory after successful remove
           await this.fetchInventory();
@@ -223,6 +273,10 @@ export const InventoryStore = signalStore(
           return true;
         } catch (error) {
           console.error('Error removing inventory:', error);
+          notificationService.handleApiError(
+            error,
+            'errors.inventory.remove-failed'
+          );
           const errorMessage =
             error instanceof Error
               ? error.message

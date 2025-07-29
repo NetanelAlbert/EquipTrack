@@ -17,6 +17,7 @@ import { UserStore } from './user.store';
 import { computed, inject } from '@angular/core';
 import { v4 as uuidv4 } from 'uuid';
 import { ApiService } from '../services/api.service';
+import { NotificationService } from '../services/notification.service';
 import { firstValueFrom } from 'rxjs';
 
 interface FormsState {
@@ -51,6 +52,7 @@ export const FormsStore = signalStore(
   withMethods((state) => {
     const userStore = inject(UserStore);
     const apiService = inject(ApiService);
+    const notificationService = inject(NotificationService);
 
     const updateState = (newState: Partial<FormsState>) => {
       patchState(state, (currentState) => ({
@@ -83,7 +85,12 @@ export const FormsStore = signalStore(
               })
             );
             if (!response.status) {
-              throw new Error(response.errorMessage || 'Failed to fetch forms');
+              notificationService.showError(
+                'errors.forms.fetch-failed',
+                response.errorMessage
+              );
+              updateState({ error: 'Failed to fetch forms', loading: false });
+              return;
             }
             updateState({ forms: response.forms, loading: false });
           } else {
@@ -95,12 +102,21 @@ export const FormsStore = signalStore(
               })
             );
             if (!response.status) {
-              throw new Error(response.errorMessage || 'Failed to fetch forms');
+              notificationService.showError(
+                'errors.forms.fetch-failed',
+                response.errorMessage
+              );
+              updateState({ error: 'Failed to fetch forms', loading: false });
+              return;
             }
             updateState({ forms: response.forms, loading: false });
           }
         } catch (error) {
           console.error('Error fetching forms:', error);
+          notificationService.handleApiError(
+            error,
+            'errors.forms.fetch-failed'
+          );
           updateState({
             error: 'Failed to fetch forms',
             loading: false,
@@ -135,7 +151,7 @@ export const FormsStore = signalStore(
         }));
 
         try {
-          await firstValueFrom(
+          const response = await firstValueFrom(
             apiService.endpoints.requestCheckIn.execute(
               { items },
               {
@@ -144,9 +160,33 @@ export const FormsStore = signalStore(
               }
             )
           );
+
+          if (!response.status) {
+            notificationService.showError(
+              'errors.forms.submit-failed',
+              response.errorMessage
+            );
+            // Revert optimistic update on error
+            patchState(state, (currentState) => ({
+              ...currentState,
+              forms: currentState.forms.filter(
+                (form) => form.formID !== newForm.formID
+              ),
+            }));
+            return;
+          }
+
           console.log('Check-in form submitted successfully:', newForm);
+          notificationService.showSuccess(
+            'forms.check-in-submitted',
+            'Check-in request submitted successfully'
+          );
         } catch (error) {
           console.error('Error creating check-in form:', error);
+          notificationService.handleApiError(
+            error,
+            'errors.forms.submit-failed'
+          );
           // Revert optimistic update on error
           patchState(state, (currentState) => ({
             ...currentState,
@@ -195,14 +235,31 @@ export const FormsStore = signalStore(
           );
 
           if (!response.status) {
-            throw new Error(
-              response.errorMessage || 'Failed to create checkout form'
+            notificationService.showError(
+              'errors.forms.submit-failed',
+              response.errorMessage
             );
+            // Revert optimistic update on error
+            patchState(state, (currentState) => ({
+              ...currentState,
+              forms: currentState.forms.filter(
+                (form) => form.formID !== newForm.formID
+              ),
+            }));
+            return;
           }
 
           console.log('Checkout form created successfully via API:', newForm);
+          notificationService.showSuccess(
+            'forms.check-out-submitted',
+            'Check-out request submitted successfully'
+          );
         } catch (error) {
           console.error('Error creating checkout form:', error);
+          notificationService.handleApiError(
+            error,
+            'errors.forms.submit-failed'
+          );
           // Revert optimistic update on error
           patchState(state, (currentState) => ({
             ...currentState,
@@ -231,19 +288,33 @@ export const FormsStore = signalStore(
           );
 
           if (!response.status) {
-            throw new Error(response.errorMessage || 'Failed to approve form');
+            notificationService.showError(
+              'errors.forms.approve-failed',
+              response.errorMessage
+            );
+            return;
           }
 
           // Optimistically update local state on success
           patchState(state, {
-            forms: state.forms().map((form) =>
-              form.formID === formID ? response.updatedForm : form
-            ),
+            forms: state
+              .forms()
+              .map((form) =>
+                form.formID === formID ? response.updatedForm : form
+              ),
           });
 
           console.log('Form approved successfully:', formID);
+          notificationService.showSuccess(
+            'forms.form-approved',
+            'Form approved successfully'
+          );
         } catch (error) {
           console.error('Error approving form:', error);
+          notificationService.handleApiError(
+            error,
+            'errors.forms.approve-failed'
+          );
           throw error;
         }
       },
@@ -262,7 +333,11 @@ export const FormsStore = signalStore(
           );
 
           if (!response.status) {
-            throw new Error(response.errorMessage || 'Failed to reject form');
+            notificationService.showError(
+              'errors.forms.reject-failed',
+              response.errorMessage
+            );
+            return;
           }
 
           // Optimistically update local state on success
@@ -281,8 +356,16 @@ export const FormsStore = signalStore(
           }));
 
           console.log('Form rejected successfully:', formID, reason);
+          notificationService.showSuccess(
+            'forms.form-rejected',
+            'Form rejected successfully'
+          );
         } catch (error) {
           console.error('Error rejecting form:', error);
+          notificationService.handleApiError(
+            error,
+            'errors.forms.reject-failed'
+          );
           throw error;
         }
       },

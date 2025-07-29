@@ -4,11 +4,11 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { InventoryItem } from '@equip-track/shared';
 import { InventoryStore } from '../../../store';
 import { EditableInventoryComponent } from '../edit/editable-inventory.component';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { NotificationService } from '../../../services/notification.service';
 import { Router } from '@angular/router';
 
 @Component({
@@ -28,16 +28,15 @@ import { Router } from '@angular/router';
 })
 export class AddInventoryComponent {
   inventoryStore = inject(InventoryStore);
-  private snackBar = inject(MatSnackBar);
+  private notificationService = inject(NotificationService);
   private translateService = inject(TranslateService);
   private router = inject(Router);
 
   async onSubmitItems(items: InventoryItem[]) {
     if (items.length === 0) {
-      this.snackBar.open(
-        this.translateService.instant('inventory.add.error.no-items'),
-        this.translateService.instant('common.close'),
-        { duration: 3000 }
+      this.notificationService.showError(
+        'inventory.add.error.no-items',
+        'Please add at least one item before saving'
       );
       return;
     }
@@ -45,15 +44,10 @@ export class AddInventoryComponent {
     const success = await this.inventoryStore.addInventory(items);
 
     if (success) {
-      this.snackBar.open(
-        this.translateService.instant('inventory.add.success', {
-          count: items.length,
-        }),
-        this.translateService.instant('common.close'),
-        { duration: 3000 }
-      );
+      // Success notification is now handled by the store
       this.goBack();
     }
+    // Error notifications are also handled by the store
   }
 
   clearError() {

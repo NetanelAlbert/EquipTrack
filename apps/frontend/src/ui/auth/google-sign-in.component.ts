@@ -12,8 +12,8 @@ import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { NotificationService } from '../../services/notification.service';
 import { environment } from '../../environments/environment';
 
 /**
@@ -90,7 +90,7 @@ export class GoogleSignInComponent implements AfterViewInit {
   @ViewChild('googleButtonContainer', { static: true })
   googleButtonContainer!: ElementRef<HTMLElement>;
 
-  private snackBar = inject(MatSnackBar);
+  private notificationService = inject(NotificationService);
   private translateService = inject(TranslateService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -238,27 +238,13 @@ export class GoogleSignInComponent implements AfterViewInit {
    */
   private handleError(message: string): void {
     this.signInError.emit(message);
-    this.snackBar.open(
-      this.translateService.instant('auth.error') || message,
-      this.translateService.instant('common.close') || 'Close',
-      {
-        duration: 5000,
-        panelClass: ['error-snackbar'],
-      }
-    );
+    this.notificationService.showError('auth.error', message);
   }
 
   /**
    * Show success message
    */
   private showSuccess(message: string): void {
-    this.snackBar.open(
-      this.translateService.instant('auth.success') || message,
-      this.translateService.instant('common.close') || 'Close',
-      {
-        duration: 3000,
-        panelClass: ['success-snackbar'],
-      }
-    );
+    this.notificationService.showSuccess('auth.success', message);
   }
 }
