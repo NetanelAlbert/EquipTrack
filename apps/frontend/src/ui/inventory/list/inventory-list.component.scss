@@ -1,17 +1,5 @@
 @import '../../../styles/mixins.scss';
-
-// Screen reader only text
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
+@import '../../../shared.scss';
 
 :host {
     ::ng-deep {
@@ -21,47 +9,14 @@
             contain: layout style paint;
             
             .dynamic-height-item.mat-mdc-list-item {
-                @include card-base;
-                height: auto;
-                align-items: flex-start;
-                margin-bottom: 12px;
-                cursor: default;
-                position: relative;
-                will-change: transform, box-shadow;
+                @include list-item-base;
 
                 &.upi {
                     @include upi-theme;
                 }
 
                 &.clickable {
-                    cursor: pointer;
-                    
-                    &::before {
-                        content: '';
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        background-color: transparent;
-                        transition: background-color 0.2s ease;
-                        pointer-events: none;
-                        z-index: 1;
-                    }
-                    
-                    &:hover::before {
-                        background-color: rgba(255, 255, 255, 0.05);
-                    }
-                    
-                    &:focus-visible {
-                        outline: 2px solid var(--color-accent);
-                        outline-offset: 2px;
-                    }
-
-                    &.expanded {
-                        background-color: var(--color-bg-hover);
-                        border-left-color: var(--color-accent);
-                    }
+                    @include clickable-list-item;
                 }
 
                 .main-row {
@@ -179,15 +134,8 @@
     }
 }
 
-// Loading and empty states
-.empty-state {
-  padding: 40px 20px;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-// Responsive design
-@media (max-width: 768px) {
+// Responsive design with mixins
+@include tablet-responsive {
   :host ::ng-deep .dynamic-height-list.mat-mdc-list {
     .dynamic-height-item.mat-mdc-list-item {
       margin-bottom: 12px;
@@ -234,8 +182,7 @@
   }
 }
 
-// High contrast mode support
-@media (prefers-contrast: high) {
+@include high-contrast-support {
   :host ::ng-deep .dynamic-height-list.mat-mdc-list .dynamic-height-item.mat-mdc-list-item {
     border-width: 2px;
     
@@ -253,8 +200,7 @@
   }
 }
 
-// Reduced motion support
-@media (prefers-reduced-motion: reduce) {
+@include reduced-motion-support {
   :host ::ng-deep .dynamic-height-list.mat-mdc-list .dynamic-height-item.mat-mdc-list-item {
     transition: none;
     will-change: auto;
@@ -282,8 +228,7 @@
   }
 }
 
-// Mobile responsiveness
-@media (max-width: 960px) {
+@include mobile-responsive {
     :host {
         ::ng-deep {
             .dynamic-height-list.mat-mdc-list {
@@ -355,8 +300,7 @@
     }
 }
 
-// Extra small screens
-@media (max-width: 480px) {
+@include small-mobile-responsive {
     :host {
         ::ng-deep {
             .dynamic-height-list.mat-mdc-list {

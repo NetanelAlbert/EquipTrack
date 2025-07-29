@@ -1,1 +1,47 @@
 $mobile-breakpoint: 960px;
+$tablet-breakpoint: 768px;
+$small-mobile-breakpoint: 480px;
+
+// Utility classes
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+// Common responsive helpers
+.hide-mobile {
+  @media (max-width: #{$mobile-breakpoint}) {
+    display: none !important;
+  }
+}
+
+.hide-desktop {
+  @media (min-width: #{$mobile-breakpoint + 1}) {
+    display: none !important;
+  }
+}
+
+.responsive-padding {
+  padding: 16px;
+  
+  @media (max-width: #{$tablet-breakpoint}) {
+    padding: 12px;
+  }
+  
+  @media (max-width: #{$small-mobile-breakpoint}) {
+    padding: 8px;
+  }
+}
