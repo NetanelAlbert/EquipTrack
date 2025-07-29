@@ -6,6 +6,7 @@ import {
   input,
   OnInit,
   signal,
+  HostListener,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -40,6 +41,7 @@ export class SideNavComponent implements OnInit {
   opened = input<boolean>(false);
   currentUrl = signal<string>('');
   isExpanded = signal<boolean>(false);
+  isMobile = signal<boolean>(false);
 
   // Authentication state from UserStore
   currentRole = this.userStore.currentRole;
@@ -60,6 +62,26 @@ export class SideNavComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentUrl.set(this.router.url);
+    this.checkMobile();
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event: any): void {
+    this.checkMobile();
+  }
+
+  /**
+   * Check if the screen size is mobile
+   */
+  private checkMobile(): void {
+    this.isMobile.set(window.innerWidth <= 960);
+  }
+
+  /**
+   * Get sidenav mode based on screen size
+   */
+  getSidenavMode(): 'side' | 'over' {
+    return this.isMobile() ? 'over' : 'side';
   }
 
   /**
@@ -85,5 +107,10 @@ export class SideNavComponent implements OnInit {
   onNavItemClick(): void {
     // Update current URL when navigation item is clicked
     this.currentUrl.set(this.router.url);
+    
+    // Close sidebar on mobile when navigation item is clicked
+    if (this.isMobile() && this.isExpanded()) {
+      this.isExpanded.set(false);
+    }
   }
 }

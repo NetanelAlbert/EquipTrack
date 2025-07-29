@@ -68,4 +68,21 @@
     margin-left: auto;
     color: var(--color-error, #f44336);
   }
+}
+
+@mixin quantity-badge {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-accent);
+  background: var(--color-gradient-light);
+  padding: 6px 12px;
+  border-radius: 16px;
+  min-width: 32px;
+  height: 32px;
+  text-align: center;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 } 
