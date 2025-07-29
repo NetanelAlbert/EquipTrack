@@ -9,6 +9,7 @@ on:
       - 'package-lock.json'
       - 'apps/frontend/src/environments/environment.ts'
       - 'apps/frontend/src/environments/environment.prod.ts'
+      
 
 jobs:
   version-bump:
