@@ -101,10 +101,10 @@ export class CheckoutComponent {
   }
 
   private setEffects() {
-    const previousSending = computedPrevious(this.checkoutStore.sending);
+    const previousSending = computedPrevious(this.checkoutStore.isLoading);
     effect(() => {
       if (previousSending()) {
-        if (this.checkoutStore.error()) {
+        if (this.checkoutStore.createCheckoutFormStatus().error) {
           this.notificationService.showError(
             'checkout.error',
             'Checkout failed. Please try again.'

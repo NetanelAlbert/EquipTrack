@@ -39,8 +39,8 @@ export class AllInventoryComponent implements OnInit {
   allInventoryItems = this.inventoryStore.totalOrganizationItems;
   filteredItems = signal<InventoryItem[]>([]);
   hasInventory = computed(() => this.allInventoryItems().length > 0);
-  isLoading = this.inventoryStore.loading;
-  errorMessage = this.inventoryStore.error;
+  isLoading = computed(() => this.inventoryStore.fetchInventoryStatus().isLoading);
+  errorMessage = computed(() => this.inventoryStore.fetchInventoryStatus().error);
 
   ngOnInit() {
     this.loadInventory();

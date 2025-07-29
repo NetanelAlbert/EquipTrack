@@ -15,21 +15,35 @@ import { ApiService } from '../services/api.service';
 import { NotificationService } from '../services/notification.service';
 import { UserStore } from './user.store';
 import { firstValueFrom } from 'rxjs';
+import { ApiStatus } from './stores.models';
 
 interface ReportsState {
   todayReport: ItemReport[] | null;
   lastReport: ItemReport[] | null;
   reportsByDate: Map<string, ItemReport[]>;
-  loading: boolean;
-  error: string | null;
+  
+  // API status for operations using ApiStatus
+  fetchReportsStatus: ApiStatus;
+  updateItemReportStatus: ApiStatus;
+  publishMultipleItemsStatus: ApiStatus;
 }
 
 const initialState: ReportsState = {
   todayReport: null,
   lastReport: null,
   reportsByDate: new Map(),
-  loading: false,
-  error: null,
+  fetchReportsStatus: {
+    isLoading: false,
+    error: undefined,
+  },
+  updateItemReportStatus: {
+    isLoading: false,
+    error: undefined,
+  },
+  publishMultipleItemsStatus: {
+    isLoading: false,
+    error: undefined,
+  },
 };
 
 export const ReportsStore = signalStore(
@@ -38,6 +52,12 @@ export const ReportsStore = signalStore(
   withComputed((state) => ({
     hasTodayReport: computed(() => !!state.todayReport()),
     hasLastReport: computed(() => !!state.lastReport()),
+    // Convenience computed properties for loading states
+    isLoading: computed(() => 
+      state.fetchReportsStatus().isLoading ||
+      state.updateItemReportStatus().isLoading ||
+      state.publishMultipleItemsStatus().isLoading
+    ),
   })),
   withMethods((store) => {
     const apiService = inject(ApiService);
@@ -53,7 +73,9 @@ export const ReportsStore = signalStore(
 
     return {
       async fetchReports(dates: string[]) {
-        updateState({ loading: true, error: null });
+        updateState({ 
+          fetchReportsStatus: { isLoading: true, error: undefined } 
+        });
 
         try {
           const organizationId = userStore.selectedOrganizationId();
@@ -75,8 +97,10 @@ export const ReportsStore = signalStore(
               reportsResponse.errorMessage
             );
             updateState({
-              error: 'Failed to fetch reports by dates',
-              loading: false,
+              fetchReportsStatus: {
+                isLoading: false,
+                error: 'Failed to fetch reports by dates',
+              },
             });
             return;
           }
@@ -87,7 +111,7 @@ export const ReportsStore = signalStore(
 
           updateState({
             reportsByDate,
-            loading: false,
+            fetchReportsStatus: { isLoading: false, error: undefined },
           });
 
           console.log('Reports fetched by dates successfully:', {
@@ -101,8 +125,10 @@ export const ReportsStore = signalStore(
             'errors.reports.fetch-failed'
           );
           updateState({
-            error: 'Failed to fetch reports by dates',
-            loading: false,
+            fetchReportsStatus: {
+              isLoading: false,
+              error: 'Failed to fetch reports by dates',
+            },
           });
         }
       },
@@ -135,8 +161,7 @@ export const ReportsStore = signalStore(
         updateState({
           reportsByDate: currentReportsByDate,
           todayReport,
-          loading: true,
-          error: null,
+          updateItemReportStatus: { isLoading: true, error: undefined },
         });
 
         try {
@@ -175,14 +200,16 @@ export const ReportsStore = signalStore(
               reportsByDate: originalReportsByDate,
               todayReport:
                 reportDate === today ? revertedReports : store.todayReport(),
-              error: 'Failed to update item report',
-              loading: false,
+              updateItemReportStatus: {
+                isLoading: false,
+                error: 'Failed to update item report',
+              },
             });
             return;
           }
 
           updateState({
-            loading: false,
+            updateItemReportStatus: { isLoading: false, error: undefined },
           });
 
           console.log('Item report published successfully:', {
@@ -210,12 +237,15 @@ export const ReportsStore = signalStore(
           );
           originalReportsByDate.set(reportDate, revertedReports);
 
+          const errorMessage = error instanceof Error ? error.message : 'Failed to update item report';
           updateState({
             reportsByDate: originalReportsByDate,
             todayReport:
               reportDate === today ? revertedReports : store.todayReport(),
-            error: 'Failed to update item report',
-            loading: false,
+            updateItemReportStatus: {
+              isLoading: false,
+              error: errorMessage,
+            },
           });
 
           throw error;
@@ -224,7 +254,9 @@ export const ReportsStore = signalStore(
 
       async publishMultipleItems(items: ItemReport[], date?: string) {
         const reportDate = date || formatDateToString(new Date());
-        updateState({ loading: true, error: null });
+        updateState({ 
+          publishMultipleItemsStatus: { isLoading: true, error: undefined } 
+        });
 
         try {
           const organizationId = userStore.selectedOrganizationId();
@@ -249,8 +281,10 @@ export const ReportsStore = signalStore(
               publishResponse.errorMessage
             );
             updateState({
-              error: 'Failed to publish multiple item reports',
-              loading: false,
+              publishMultipleItemsStatus: {
+                isLoading: false,
+                error: 'Failed to publish multiple item reports',
+              },
             });
             return;
           }
@@ -267,18 +301,53 @@ export const ReportsStore = signalStore(
             'reports.items-published',
             `Successfully published ${items.length} item reports`
           );
+          
+          updateState({
+            publishMultipleItemsStatus: { isLoading: false, error: undefined },
+          });
         } catch (error) {
           console.error('Failed to publish multiple items:', error);
           notificationService.handleApiError(
             error,
             'errors.reports.publish-failed'
           );
+          const errorMessage = error instanceof Error ? error.message : 'Failed to publish multiple item reports';
           updateState({
-            error: 'Failed to publish multiple item reports',
-            loading: false,
+            publishMultipleItemsStatus: {
+              isLoading: false,
+              error: errorMessage,
+            },
           });
           throw error;
         }
+      },
+
+      // Clear error methods
+      clearFetchReportsError() {
+        updateState({ 
+          fetchReportsStatus: { 
+            ...store.fetchReportsStatus(), 
+            error: undefined 
+          } 
+        });
+      },
+
+      clearUpdateItemReportError() {
+        updateState({ 
+          updateItemReportStatus: { 
+            ...store.updateItemReportStatus(), 
+            error: undefined 
+          } 
+        });
+      },
+
+      clearPublishMultipleItemsError() {
+        updateState({ 
+          publishMultipleItemsStatus: { 
+            ...store.publishMultipleItemsStatus(), 
+            error: undefined 
+          } 
+        });
       },
     };
   })

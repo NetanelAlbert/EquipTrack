@@ -1,4 +1,4 @@
-<div *ngIf="checkoutStore.sending()" class="checkout-spinner-overlay">
+<div *ngIf="checkoutStore.isLoading()" class="checkout-spinner-overlay">
   <mat-progress-spinner mode="indeterminate" color="primary"></mat-progress-spinner>
 </div>
 

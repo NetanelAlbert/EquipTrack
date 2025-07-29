@@ -22,6 +22,8 @@ interface OrganizationState {
   invitingUserStatus: ApiStatus;
   getUsersStatus: ApiStatus;
   getProductsStatus: ApiStatus;
+  saveProductStatus: ApiStatus;
+  deleteProductStatus: ApiStatus;
 
   // Organization switching state
   switchingOrganization: boolean;
@@ -44,6 +46,14 @@ const emptyState: OrganizationState = {
     isLoading: false,
     error: undefined,
   },
+  saveProductStatus: {
+    isLoading: false,
+    error: undefined,
+  },
+  deleteProductStatus: {
+    isLoading: false,
+    error: undefined,
+  },
 };
 
 export const OrganizationStore = signalStore(
@@ -58,9 +68,16 @@ export const OrganizationStore = signalStore(
       );
     });
 
-
     return {
       productsMap,
+      // Convenience computed properties for loading states
+      isLoading: computed(() => 
+        store.invitingUserStatus().isLoading ||
+        store.getUsersStatus().isLoading ||
+        store.getProductsStatus().isLoading ||
+        store.saveProductStatus().isLoading ||
+        store.deleteProductStatus().isLoading
+      ),
     };
   }),
   withMethods((store) => {
@@ -121,6 +138,44 @@ export const OrganizationStore = signalStore(
         });
       },
 
+      // Save product state management
+      setSaveProductLoading(isLoading: boolean) {
+        updateState({
+          saveProductStatus: { isLoading, error: undefined },
+        });
+      },
+
+      setSaveProductSuccess() {
+        updateState({
+          saveProductStatus: { isLoading: false, error: undefined },
+        });
+      },
+
+      setSaveProductError(error: string) {
+        updateState({
+          saveProductStatus: { isLoading: false, error },
+        });
+      },
+
+      // Delete product state management
+      setDeleteProductLoading(isLoading: boolean) {
+        updateState({
+          deleteProductStatus: { isLoading, error: undefined },
+        });
+      },
+
+      setDeleteProductSuccess() {
+        updateState({
+          deleteProductStatus: { isLoading: false, error: undefined },
+        });
+      },
+
+      setDeleteProductError(error: string) {
+        updateState({
+          deleteProductStatus: { isLoading: false, error },
+        });
+      },
+
       // Invite user state management
       setInvitingUserLoading(isLoading: boolean) {
         updateState({
@@ -137,6 +192,52 @@ export const OrganizationStore = signalStore(
       setInvitingUserError(error: string) {
         updateState({
           invitingUserStatus: { isLoading: false, error },
+        });
+      },
+
+      // Clear error methods
+      clearGetUsersError() {
+        updateState({ 
+          getUsersStatus: { 
+            ...store.getUsersStatus(), 
+            error: undefined 
+          } 
+        });
+      },
+
+      clearGetProductsError() {
+        updateState({ 
+          getProductsStatus: { 
+            ...store.getProductsStatus(), 
+            error: undefined 
+          } 
+        });
+      },
+
+      clearSaveProductError() {
+        updateState({ 
+          saveProductStatus: { 
+            ...store.saveProductStatus(), 
+            error: undefined 
+          } 
+        });
+      },
+
+      clearDeleteProductError() {
+        updateState({ 
+          deleteProductStatus: { 
+            ...store.deleteProductStatus(), 
+            error: undefined 
+          } 
+        });
+      },
+
+      clearInvitingUserError() {
+        updateState({ 
+          invitingUserStatus: { 
+            ...store.invitingUserStatus(), 
+            error: undefined 
+          } 
         });
       },
     };
