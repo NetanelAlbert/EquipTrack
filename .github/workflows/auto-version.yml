@@ -18,6 +18,10 @@ jobs:
     # Skip if the commit message contains [skip version]
     if: ${{ !contains(github.event.head_commit.message, '[skip version]') }}
     
+    permissions:
+      contents: write
+      pull-requests: read
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
