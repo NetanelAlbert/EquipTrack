@@ -5,7 +5,7 @@ import {
   UserState,
 } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { badRequest } from '../../responses';
+import { badRequest, internalServerError, ok, SuccessResponse } from '../../responses';
 import { UsersAndOrganizationsAdapter } from '../../../db';
 import { ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,7 +15,7 @@ const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
 export const handler = async (
   req: InviteUser,
   pathParams: APIGatewayProxyEventPathParameters
-): Promise<BasicResponse> => {
+): Promise<SuccessResponse> => {
   const organizationId = pathParams[ORGANIZATION_ID_PATH_PARAM];
 
   if (!organizationId) {
@@ -90,11 +90,16 @@ export const handler = async (
       `User invited successfully: ${normalizedEmail} to organization ${organizationId} with role ${req.role}`
     );
 
-    return {
+    return ok({
       status: true,
-    };
+    });
   } catch (error) {
     console.error('Error inviting user:', error);
+
+    // If it's already an error response, re-throw it
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      throw error;
+    }
 
     // Re-throw known errors
     if (
@@ -103,10 +108,10 @@ export const handler = async (
         error.message.includes('Invalid') ||
         error.message.includes('already'))
     ) {
-      throw error;
+      throw badRequest(error.message);
     }
 
     // Generic error for unexpected issues
-    throw new Error('Failed to invite user');
+    throw internalServerError('Failed to invite user');
   }
 };

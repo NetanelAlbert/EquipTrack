@@ -3,7 +3,7 @@ import {
   ORGANIZATION_ID_PATH_PARAM,
 } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { badRequest } from '../../responses';
+import { badRequest, ok, internalServerError, SuccessResponse } from '../../responses';
 import { UsersAndOrganizationsAdapter } from '../../../db';
 
 const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
@@ -11,7 +11,7 @@ const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
 export const handler = async (
   _req: undefined,
   pathParams: APIGatewayProxyEventPathParameters
-): Promise<GetUsersResponse> => {
+): Promise<SuccessResponse> => {
   const organizationId = pathParams[ORGANIZATION_ID_PATH_PARAM];
 
   if (!organizationId) {
@@ -29,12 +29,12 @@ export const handler = async (
       `Found ${users.length} users in organization ${organizationId}`
     );
 
-    return {
+    return ok({
       status: true,
       users,
-    };
+    });
   } catch (error) {
     console.error('Error getting users:', error);
-    throw new Error('Failed to get users');
+    throw internalServerError('Failed to get users');
   }
 };

@@ -11,13 +11,13 @@ import { UsersAndOrganizationsAdapter } from '../../../db/tables/users-and-organ
 import { InventoryTransferService } from '../../../services/inventory-transfer.service';
 import { PdfService } from '../../../services/pdf.service';
 import { S3Service } from '../../../services/s3.service';
-import { badRequest, forbidden, internalServerError } from '../../responses';
+import { badRequest, forbidden, internalServerError, ok, SuccessResponse } from '../../responses';
 
 export const handler = async (
   req: ApproveCheckOut,
   pathParams: APIGatewayProxyEventPathParameters,
   jwtPayload?: JwtPayload
-): Promise<BasicUser.ApproveCheckOutResponse> => {
+): Promise<SuccessResponse> => {
   try {
     const organizationId = pathParams?.organizationId;
     if (!organizationId) {
@@ -117,7 +117,7 @@ export const handler = async (
     
     console.log('Form approval completed successfully');
 
-    return { status: true, updatedForm };
+    return ok({ status: true, updatedForm });
   } catch (error) {
     console.error('Error approving form:', error);
 

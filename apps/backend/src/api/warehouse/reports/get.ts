@@ -1,14 +1,15 @@
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { GetReportsResponse } from '@equip-track/shared';
 import { ReportItem, ReportsAdapter } from '../../../db/tables/reports.adapter';
+import { badRequest, internalServerError, ok, SuccessResponse } from '../../responses';
 
 export async function handler(
   req: undefined,
   pathParams?: APIGatewayProxyEventPathParameters
-): Promise<GetReportsResponse> {
+): Promise<SuccessResponse> {
   const organizationId = pathParams?.organizationId;
   if (!organizationId) {
-    throw new Error('Organization ID is required');
+    throw badRequest('Organization ID is required');
   }
 
   const reportsAdapter = new ReportsAdapter();
@@ -26,12 +27,16 @@ export async function handler(
 
     const reportsByDate: Map<string, ReportItem[]> = await reportsAdapter.getReportsByDates(organizationId, dates);    
 
-    return {
+    return ok({
       status: true,
       reportsByDate,
-    };
+    });
   } catch (error) {
     console.error('Error getting reports:', error);
-    throw new Error('Failed to get reports');
+    // If it's already an error response, re-throw it
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      throw error;
+    }
+    throw internalServerError('Failed to get reports');
   }
 }

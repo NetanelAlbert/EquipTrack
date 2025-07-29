@@ -5,7 +5,7 @@ import {
 } from '@equip-track/shared';
 import { FormsAdapter } from '../../db/tables/forms.adapter';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { badRequest } from '../responses';
+import { badRequest, ok, SuccessResponse } from '../responses';
 
 const formsAdapter = new FormsAdapter();
 
@@ -13,7 +13,7 @@ export const handler = async (
   _req: unknown,
   pathParams: APIGatewayProxyEventPathParameters,
   jwtPayload?: JwtPayload
-): Promise<GetUserFormsResponse> => {
+): Promise<SuccessResponse> => {
   if (!jwtPayload) {
     throw badRequest('User ID is required');
   }
@@ -27,5 +27,5 @@ export const handler = async (
 
   const forms = await formsAdapter.getUserForms(userId, organizationId);
 
-  return { status: true, forms };
+  return ok({ status: true, forms });
 };

@@ -4,14 +4,14 @@ import {
 } from '@equip-track/shared';
 import { InventoryAdapter } from '../../../db';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { badRequest } from '../../responses';
+import { badRequest, ok, SuccessResponse } from '../../responses';
 
 const inventoryAdapter = new InventoryAdapter();
 
 export const handler = async (
   _req: unknown,
   pathParams: APIGatewayProxyEventPathParameters
-): Promise<GetInventoryResponse> => {
+): Promise<SuccessResponse> => {
   const organizationId = pathParams[ORGANIZATION_ID_PATH_PARAM];
   if (!organizationId) {
     throw badRequest('Organization ID is required');
@@ -21,12 +21,12 @@ export const handler = async (
     organizationId
   );
 
-  return {
+  return ok({
     items: {
       warehouse: warehouseItems,
       users: usersItems,
     },
     products,
     status: true,
-  };
+  });
 };

@@ -5,7 +5,7 @@ import {
   JwtPayload,
 } from '@equip-track/shared';
 import { UsersAndOrganizationsAdapter } from '../db';
-import { badRequest, resourceNotFound } from './responses';
+import { badRequest, resourceNotFound, ok, SuccessResponse } from './responses';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 
 const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
@@ -14,7 +14,7 @@ export const handler = async (
   _req: unknown,
   pathParams: APIGatewayProxyEventPathParameters,
   jwtPayload?: JwtPayload
-): Promise<StartResponse> => {
+): Promise<SuccessResponse> => {
   if (!jwtPayload) {
     throw badRequest('User ID is required');
   }
@@ -32,7 +32,7 @@ export const handler = async (
   );
   validateUserInOrganizations(userInOrganizations, organizations);
 
-  return { status: true, user, userInOrganizations, organizations };
+  return ok({ status: true, user, userInOrganizations, organizations });
 };
 
 async function getOrganizations(

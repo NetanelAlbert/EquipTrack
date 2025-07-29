@@ -2,7 +2,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyHandler } from 'aws-lambda';
 import { Context } from 'aws-lambda/handler';
 import { endpointMetas, EndpointMeta, JwtPayload } from '@equip-track/shared';
 import { HandlerFunction, handlers } from './handlers';
-import { unauthorized, internalServerError, CORS_HEADERS } from './responses';
+import { unauthorized, internalServerError } from './responses';
 import { authenticateAndGetJwt } from './auth';
 
 function parseBody<T>(event: any): T {
@@ -48,11 +48,8 @@ export function createLambdaHandler<Req, Res>(
       const result = await handler(req, event.pathParameters, jwtPayload);
       console.log(`[${meta.path}] Handler completed successfully`);
 
-      return {
-        statusCode: 200,
-        headers: CORS_HEADERS,
-        body: JSON.stringify(result),
-      };
+      // Handlers now return full response objects (SuccessResponse or ErrorResponse)
+      return result;
     } catch (error) {
       console.error(`[${meta.path}] Error occurred:`, error);
 

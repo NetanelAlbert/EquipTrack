@@ -1,4 +1,5 @@
 import { endpointMetas, EndpointMeta, JwtPayload } from '@equip-track/shared';
+import { SuccessResponse, ErrorResponse } from './responses';
 import { handler as googleAuthHandler } from './auth/google';
 import { handler as getUsersHandler } from './admin/users/get';
 import { handler as setUserHandler } from './admin/users/set';
@@ -27,7 +28,7 @@ export type HandlerFunction<Req, Res> = (
   req: Req,
   pathParams?: APIGatewayProxyEventPathParameters,
   jwtPayload?: JwtPayload
-) => Promise<Res>;
+) => Promise<SuccessResponse | ErrorResponse>;
 
 type HandlersDefinition = {
   [K in keyof typeof endpointMetas]: (typeof endpointMetas)[K] extends EndpointMeta<

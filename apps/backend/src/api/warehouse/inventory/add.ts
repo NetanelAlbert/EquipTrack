@@ -1,7 +1,7 @@
 import { AddInventory, ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
 import { InventoryAdapter } from '../../../db';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { badRequest } from '../../responses';
+import { badRequest, ok, SuccessResponse } from '../../responses';
 import { WAREHOUSE_SUFFIX } from '../../../db/constants';
 
 const inventoryAdapter = new InventoryAdapter();
@@ -9,7 +9,7 @@ const inventoryAdapter = new InventoryAdapter();
 export const handler = async (
   req: AddInventory,
   pathParams: APIGatewayProxyEventPathParameters
-) => {
+): Promise<SuccessResponse> => {
   const organizationId = pathParams[ORGANIZATION_ID_PATH_PARAM];
   if (!organizationId) {
     throw badRequest('Organization ID is required');
@@ -110,9 +110,13 @@ export const handler = async (
       }
     });
 
-    return { status: true };
+    return ok({ status: true });
   } catch (error) {
     console.error('Error adding inventory:', error);
+    // If it's already an error response, re-throw it
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      throw error;
+    }
     throw badRequest(
       `Failed to add inventory: ${
         error instanceof Error ? error.message : 'Unknown error'

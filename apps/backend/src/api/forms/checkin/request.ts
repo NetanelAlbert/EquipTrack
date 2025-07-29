@@ -3,13 +3,13 @@ import { BasicUser } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
 import { randomUUID } from 'crypto';
-import { badRequest, internalServerError } from '../../responses';
+import { badRequest, internalServerError, ok, SuccessResponse } from '../../responses';
 
 export const handler = async (
   req: BasicUser.RequestCheckIn,
   pathParams: APIGatewayProxyEventPathParameters,
   jwtPayload?: JwtPayload
-): Promise<BasicResponse> => {
+): Promise<SuccessResponse> => {
   try {
     const organizationId = pathParams?.organizationId;
     if (!organizationId) {
@@ -39,9 +39,13 @@ export const handler = async (
 
     await formsAdapter.createForm(form);
 
-    return { status: true };
+    return ok({ status: true });
   } catch (error) {
     console.error('Error creating check-in form:', error);
+    // If it's already an error response, re-throw it
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      throw error;
+    }
     throw internalServerError('Failed to create check-in form');
   }
 };

@@ -1,7 +1,7 @@
 import { Auth } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { GoogleAuthService } from '../../services/google-auth.service';
-import { badRequest } from '../responses';
+import { badRequest, ok, SuccessResponse } from '../responses';
 
 // Get Google Client ID from environment variable
 const GOOGLE_CLIENT_ID =
@@ -11,7 +11,7 @@ const GOOGLE_CLIENT_ID =
 export const handler = async (
   req: Auth.GoogleAuthRequest,
   _pathParams: APIGatewayProxyEventPathParameters
-): Promise<Auth.GoogleAuthResponse> => {
+): Promise<SuccessResponse> => {
   console.log('[GOOGLE_AUTH] Starting Google authentication handler');
   console.log('[GOOGLE_AUTH] Request received:', {
     hasIdToken: !!req?.idToken,
@@ -45,13 +45,11 @@ export const handler = async (
       req.idToken
     );
 
-    const response = {
+    console.log('[GOOGLE_AUTH] Returning successful response');
+    return ok({
       status: true,
       jwt: authResult.jwt,
-    };
-
-    console.log('[GOOGLE_AUTH] Returning successful response');
-    return response;
+    });
   } catch (error) {
     console.error('[GOOGLE_AUTH] Google authentication handler error:', error);
     console.error('[GOOGLE_AUTH] Error stack:', error.stack);

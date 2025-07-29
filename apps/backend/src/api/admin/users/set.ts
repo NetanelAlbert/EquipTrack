@@ -4,7 +4,7 @@ import {
   ORGANIZATION_ID_PATH_PARAM,
 } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { badRequest } from '../../responses';
+import { badRequest, internalServerError, ok, SuccessResponse } from '../../responses';
 import { UsersAndOrganizationsAdapter } from '../../../db';
 
 const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
@@ -12,7 +12,7 @@ const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
 export const handler = async (
   req: SetUser,
   pathParams: APIGatewayProxyEventPathParameters
-): Promise<BasicResponse> => {
+): Promise<SuccessResponse> => {
   const organizationId = pathParams[ORGANIZATION_ID_PATH_PARAM];
 
   if (!organizationId) {
@@ -38,8 +38,6 @@ export const handler = async (
     throw badRequest('Organization ID does not match');
   }
 
-
-
   try {
     console.log(
       `Updating user ${userInOrganization.userId} in organization ${organizationId}`,
@@ -50,11 +48,16 @@ export const handler = async (
 
     console.log(`Successfully updated user ${userInOrganization.userId}`);
 
-    return {
+    return ok({
       status: true,
-    };
+    });
   } catch (error) {
     console.error('Error updating user:', error);
+
+    // If it's already an error response, re-throw it
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      throw error;
+    }
 
     // Re-throw known errors
     if (
@@ -63,10 +66,10 @@ export const handler = async (
         error.message.includes('Invalid') ||
         error.message.includes('not found'))
     ) {
-      throw error;
+      throw badRequest(error.message);
     }
 
     // Generic error for unexpected issues
-    throw new Error('Failed to update user');
+    throw internalServerError('Failed to update user');
   }
 };

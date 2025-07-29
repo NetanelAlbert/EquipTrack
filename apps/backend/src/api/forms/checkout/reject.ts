@@ -7,13 +7,13 @@ import {
 } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
-import { badRequest, forbidden, internalServerError } from '../../responses';
+import { badRequest, forbidden, internalServerError, ok, SuccessResponse } from '../../responses';
 
 export const handler = async (
   req: RejectCheckOut,
   pathParams: APIGatewayProxyEventPathParameters,
   jwtPayload?: JwtPayload
-): Promise<BasicResponse> => {
+): Promise<SuccessResponse> => {
   try {
     const organizationId = pathParams?.organizationId;
     if (!organizationId) {
@@ -54,7 +54,7 @@ export const handler = async (
       lastUpdated: Date.now(),
     });
 
-    return { status: true };
+    return ok({ status: true });
   } catch (error) {
     console.error('Error rejecting form:', error);
     if (error && typeof error === 'object' && 'statusCode' in error) {

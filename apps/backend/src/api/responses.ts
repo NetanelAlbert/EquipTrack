@@ -6,6 +6,12 @@ export interface ErrorResponse {
   body: string;
 }
 
+export interface SuccessResponse {
+  statusCode: number;
+  headers: Record<string, string>;
+  body: string;
+}
+
 // CORS headers for all responses
 export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -16,12 +22,24 @@ export const CORS_HEADERS = {
   'Content-Type': 'application/json',
 };
 
-export function ok(body: unknown) {
+export function ok(body: unknown): SuccessResponse {
   return {
     statusCode: 200,
     headers: CORS_HEADERS,
     body: JSON.stringify(body),
   };
+}
+
+/**
+ * Create a success response with status: true and additional data
+ */
+export function success(data?: unknown): SuccessResponse {
+  const responseBody = {
+    status: true,
+    ...(data && typeof data === 'object' ? data : { data }),
+  };
+  
+  return ok(responseBody);
 }
 
 export function error(

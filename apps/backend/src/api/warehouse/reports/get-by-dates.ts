@@ -5,23 +5,24 @@ import {
   isValidDate,
 } from '@equip-track/shared';
 import { ReportItem, ReportsAdapter } from '../../../db/tables/reports.adapter';
+import { badRequest, internalServerError, ok, SuccessResponse } from '../../responses';
 
 export async function handler(
   req: GetReportsByDatesRequest,
   pathParams?: APIGatewayProxyEventPathParameters
-): Promise<GetReportsByDatesResponse> {
+): Promise<SuccessResponse> {
   const organizationId = pathParams?.organizationId;
   if (!organizationId) {
-    throw new Error('Organization ID is required');
+    throw badRequest('Organization ID is required');
   }
 
   if (!req.dates || !Array.isArray(req.dates) || req.dates.length === 0) {
-    throw new Error('Dates array is required and must not be empty');
+    throw badRequest('Dates array is required and must not be empty');
   }
 
   const invalidDates = req.dates.filter((date) => !isValidDate(date));
   if (invalidDates.length > 0) {
-    throw new Error(`Invalid dates: ${invalidDates.join(', ')}`);
+    throw badRequest(`Invalid dates: ${invalidDates.join(', ')}`);
   }
 
   const reportsAdapter = new ReportsAdapter();
@@ -29,12 +30,16 @@ export async function handler(
   try {
     const reportsByDate: Map<string, ReportItem[]> = await reportsAdapter.getReportsByDates(organizationId, req.dates);
 
-    return {
+    return ok({
       status: true,
       reportsByDate,
-    };
+    });
   } catch (error) {
     console.error('Error getting reports by dates:', error);
-    throw new Error('Failed to get reports by dates');
+    // If it's already an error response, re-throw it
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      throw error;
+    }
+    throw internalServerError('Failed to get reports by dates');
   }
 }
