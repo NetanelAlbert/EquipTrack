@@ -53,25 +53,43 @@ jobs:
           # role-session-name: GitHubActions-${{ github.run_id }}
 
       - name: Prepare deployment configuration
-        run: node scripts/prepare-deployment.js
+        id: prepare-deployment
+        run: |
+          node scripts/deployment-status-tracker.js track prepare started
+          node scripts/prepare-deployment.js
+          node scripts/deployment-status-tracker.js track prepare success
 
       - name: Create DynamoDB tables
-        run: node scripts/create-dynamodb-tables.js
+        id: create-dynamodb
+        run: |
+          node scripts/deployment-status-tracker.js track dynamodb started
+          node scripts/create-dynamodb-tables.js
+          node scripts/deployment-status-tracker.js track dynamodb success
 
       - name: Create Lambda deployment packages
-        run: node scripts/create-lambda-packages.js
+        id: create-lambda-packages
+        run: |
+          node scripts/deployment-status-tracker.js track lambda-packages started
+          node scripts/create-lambda-packages.js
+          node scripts/deployment-status-tracker.js track lambda-packages success
 
       - name: Deploy Lambda functions
-        run: node scripts/deploy-lambdas.js
+        id: deploy-lambdas
+        run: |
+          node scripts/deployment-status-tracker.js track lambda-deploy started
+          node scripts/deploy-lambdas.js
+          node scripts/deployment-status-tracker.js track lambda-deploy success
 
       - name: Deploy API Gateway
         id: deploy-api-gateway
         run: |
           echo "🚀 Deploying API Gateway for stage: ${{ env.STAGE }}"
+          node scripts/deployment-status-tracker.js track api-gateway started
           
           # First attempt: Normal deployment
           if node scripts/deploy-api-gateway.js; then
             echo "✅ API Gateway deployed successfully"
+            node scripts/deployment-status-tracker.js track api-gateway success
             exit 0
           fi
           
@@ -85,35 +103,87 @@ jobs:
           echo "🔄 Retrying with RECREATE_API=true to resolve conflicts..."
           if RECREATE_API=true node scripts/deploy-api-gateway.js; then
             echo "✅ API Gateway deployed successfully after recreation"
+            node scripts/deployment-status-tracker.js track api-gateway success
             exit 0
           fi
           
           # If both attempts fail, exit with error
           echo "❌ API Gateway deployment failed after two attempts"
           echo "🔧 Manual intervention may be required"
+          node scripts/deployment-status-tracker.js track api-gateway failed "Both normal and recreation attempts failed"
           exit 1
 
       - name: Deploy Frontend to S3 (Fast - first attempt)
         id: deploy-frontend-fast
-        run: node scripts/deploy-frontend-fast.js
+        run: |
+          node scripts/deployment-status-tracker.js track frontend-fast started
+          if node scripts/deploy-frontend-fast.js; then
+            node scripts/deployment-status-tracker.js track frontend-fast success
+          else
+            node scripts/deployment-status-tracker.js track frontend-fast failed "Fast deployment failed, will retry with full setup"
+            exit 1
+          fi
         continue-on-error: true
 
       - name: Deploy Frontend to S3 (Full setup on fast failure)
+        id: deploy-frontend-full
         if: steps.deploy-frontend-fast.outcome == 'failure'
         run: |
           echo "Fast frontend deployment failed. Deploying with full infrastructure setup..."
+          node scripts/deployment-status-tracker.js track frontend-full started
           node scripts/deploy-frontend.js
+          node scripts/deployment-status-tracker.js track frontend-full success
 
       - name: Create CloudFront Distribution (if needed)
+        id: setup-cloudfront
         if: steps.deploy-frontend-fast.outcome == 'failure'
-        run: node scripts/setup-cloudfront.js
+        run: |
+          node scripts/deployment-status-tracker.js track cloudfront started
+          node scripts/setup-cloudfront.js
+          node scripts/deployment-status-tracker.js track cloudfront success
+
+      - name: Verify Frontend Deployment Success
+        if: steps.deploy-frontend-fast.outcome == 'failure' && steps.deploy-frontend-full.outcome == 'failure'
+        run: |
+          echo "❌ Both fast and full frontend deployments failed!"
+          echo "This is a critical failure that prevents the application from being accessible."
+          exit 1
 
       - name: Setup Frontend Custom Domain
-        run: node scripts/setup-frontend-custom-domain.js
-        continue-on-error: true
-
-      - name: Output URLs
+        id: setup-custom-domain
         run: |
+          node scripts/deployment-status-tracker.js track custom-domain started
+          if node scripts/setup-frontend-custom-domain.js; then
+            node scripts/deployment-status-tracker.js track custom-domain success
+            echo "✅ Custom domain setup completed successfully"
+          else
+            node scripts/deployment-status-tracker.js track custom-domain failed "Non-critical failure"
+            echo "⚠️ Custom domain setup failed - this is non-critical"
+            echo "ℹ️ Your application is still accessible via CloudFront URL"
+            echo "🔧 Manual custom domain setup may be required"
+          fi
+
+      - name: Generate Deployment Report
+        if: always()
+        run: |
+          echo "📊 Generating final deployment report..."
+          node scripts/deployment-status-tracker.js report
+          
+      - name: Output URLs
+        if: success()
+        run: |
+          echo "🌐 Deployment URLs:"
           echo "API deployed to: $(cat deployment-info.json | jq -r '.api.apiUrl')"
           echo "Frontend deployed to: $(cat deployment-info.json | jq -r '.frontend.cloudfrontUrl')"
-          echo "Custom domain: https://$(cat deployment-info.json | jq -r 'if .customDomains then (.customDomains | keys | map(select(test("api") | not)))[0] else "not-configured" end')" 
+          echo "Custom domain: https://$(cat deployment-info.json | jq -r 'if .customDomains then (.customDomains | keys | map(select(test("api") | not)))[0] else "not-configured" end')"
+          
+      - name: Deployment Failed Summary
+        if: failure()
+        run: |
+          echo "💥 Deployment Failed!"
+          echo "Check the deployment report above for detailed failure information."
+          echo "Common issues and solutions:"
+          echo "  - AWS permissions: Verify IAM policies and credentials"
+          echo "  - Resource conflicts: Check for existing resources with same names"
+          echo "  - Region consistency: Ensure all services use il-central-1"
+          exit 1 
