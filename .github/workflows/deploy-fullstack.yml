@@ -101,7 +101,12 @@ jobs:
         if: steps.deploy-frontend-fast.outcome == 'failure'
         run: node scripts/setup-cloudfront.js
 
+      - name: Setup Frontend Custom Domain
+        run: node scripts/setup-frontend-custom-domain.js
+        continue-on-error: true
+
       - name: Output URLs
         run: |
           echo "API deployed to: $(cat deployment-info.json | jq -r '.api.apiUrl')"
-          echo "Frontend deployed to: $(cat deployment-info.json | jq -r '.frontend.cloudfrontUrl')" 
+          echo "Frontend deployed to: $(cat deployment-info.json | jq -r '.frontend.cloudfrontUrl')"
+          echo "Custom domain: https://$(cat deployment-info.json | jq -r 'if .customDomains then (.customDomains | keys | map(select(test("api") | not)))[0] else "not-configured" end')" 
