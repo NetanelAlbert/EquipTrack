@@ -65,6 +65,9 @@
         @if (getUpiErrors(upiIndex)['required']) {
           <mat-error>{{ 'inventory.validation.upi-required' | translate }}</mat-error>
         }
+        @if (getUpiErrors(upiIndex)['duplicate']) {
+          <mat-error>{{ 'inventory.validation.upi-duplicate' | translate }}</mat-error>
+        }
       </mat-form-field>
     }
   </div>

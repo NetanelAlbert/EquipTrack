@@ -19,7 +19,9 @@ import {
   FormControl,
   FormGroup,
   ReactiveFormsModule,
+  ValidatorFn,
   Validators,
+  AbstractControl,
 } from '@angular/forms';
 import { Product } from '@equip-track/shared';
 import { MatSelectModule } from '@angular/material/select';
@@ -32,6 +34,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { first } from 'rxjs';
 
 @UntilDestroy()
 @Component({
@@ -156,7 +159,8 @@ export class EditableItemComponent implements OnInit {
 
         while (upisControl.length < value) {
           const newControl = new FormControl('');
-          this.setUPIValidations(newControl);
+          const nextIndex = upisControl.length;
+          this.setUPIValidations(newControl, nextIndex);
           upisControl.push(newControl);
         }
 
@@ -171,8 +175,8 @@ export class EditableItemComponent implements OnInit {
     effect(() =>
       this.productControl().valueChanges.subscribe(() => {
         this.isUPI.set(this.productControl().value?.hasUpi ?? false);
-        this.upisControl().controls.forEach((control) =>
-          this.setUPIValidations(control)
+        this.upisControl().controls.forEach((control, index) =>
+          this.setUPIValidations(control, index)
         );
       })
     );
@@ -184,11 +188,33 @@ export class EditableItemComponent implements OnInit {
     });
   }
 
-  private setUPIValidations(control: FormControl<string | null>) {
+  private watchDuplicate(firstIndex: number, duplicateIndex: number) {
+    const firstControl = this.upisControl().at(firstIndex);
+    const duplicateControl = this.upisControl().at(duplicateIndex);
+
+    firstControl.valueChanges.pipe(first()).subscribe(() => {
+      duplicateControl.updateValueAndValidity();
+    });
+  }
+
+  private createUpiDuplicateValidator(index: number): ValidatorFn {
+    return (control: AbstractControl) => {
+      const value = control.value;
+      if (!value) return null;
+      const otherMatchIndex = this.upisControl().controls.findIndex((upi, i) => i !== index && upi.value === value);
+      if (otherMatchIndex !== -1) {
+        this.watchDuplicate(otherMatchIndex, index);
+        return { duplicate: true };
+      }
+      return null;
+    };
+  } 
+
+  private setUPIValidations(control: FormControl<string | null>, index: number) {
     if (this.isUPI()) {
       control.addValidators([
         Validators.required,
-        // TODO: Add custom UPI format validation to check this UPI available in the database
+        this.createUpiDuplicateValidator(index)
       ]);
     } else {
       control.clearValidators();
