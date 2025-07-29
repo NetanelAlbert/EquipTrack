@@ -19,7 +19,8 @@ jobs:
   deploy:
     name: Deploy Full Stack
     runs-on: ubuntu-latest
-    # Run for develop pushes, tag creation (master releases), or manual trigger
+    # Use GitHub Environments for proper separation and protection
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'development' }}
     
     steps:
       - name: Checkout code
@@ -43,9 +44,13 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
+          # Use environment-specific AWS credentials for proper isolation
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+          # Optional: Enable OIDC for enhanced security (requires environment-specific roles)
+          # role-to-assume: ${{ vars.AWS_DEPLOYMENT_ROLE_ARN }}
+          # role-session-name: GitHubActions-${{ github.run_id }}
 
       - name: Prepare deployment configuration
         run: node scripts/prepare-deployment.js
