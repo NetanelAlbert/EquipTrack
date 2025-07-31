@@ -86,13 +86,19 @@
     "app-version": "App Version"
   },
   "forms": {
+    "user-name": "User Name",
+    "user-id": "User ID",
     "form-id": "Form ID",
+    "description": "Description",
     "status": "Status",
     "status-pending": "Pending",
     "status-approved": "Approved", 
     "status-rejected": "Rejected",
     "created-at": "Created At",
     "approved-at": "Approved At",
+    "approved-by": "Approved By",
+    "rejection-reason": "Rejection Reason",
+    "view-pdf": "View PDF",
     "approve": "Approve",
     "reject": "Reject",
     "check-in": "Check In",
@@ -206,6 +212,7 @@
   "checkout": {
     "title": "Checkout",
     "select-user": "Select User",
+    "form-description": "Form Description",
     "predefined-forms": "Predefined Forms",
     "items": "Items",
     "success": "Checkout completed successfully",
@@ -246,7 +253,9 @@
       "internal-server-error": "A server error occurred. Please try again later.",
       "not-implemented": "This feature is not yet implemented. Please try again later.",
       "network-error": "Network error. Please check your connection and try again.",
-      "timeout": "Request timed out. Please try again."
+      "timeout": "Request timed out. Please try again.",
+      "user-id-required": "User ID is required",
+      "description-required": "Description is required"
     },
     "auth": {
       "no-token": "Authentication required. Please sign in again.",

@@ -10,6 +10,7 @@ import { SignatureDialogComponent } from '../signature-dialog/signature-dialog.c
 import { UserStore } from '../../../store/user.store';
 import { FormsStore } from '../../../store/forms.store';
 import { UserRole, FormStatus, FormType } from '@equip-track/shared';
+import { OrganizationStore } from '../../../store/organization.store';
 
 @Component({
   selector: 'app-form-card',
@@ -24,11 +25,12 @@ import { UserRole, FormStatus, FormType } from '@equip-track/shared';
   styleUrls: ['./form-card.component.scss'],
 })
 export class FormCardComponent {
-  @Input() form!: InventoryForm;
+  @Input({ required: true }) form!: InventoryForm;
 
   dialog = inject(MatDialog);
   userStore = inject(UserStore);
   formsStore = inject(FormsStore);
+  organizationStore = inject(OrganizationStore);
 
   get isAdminOrWarehouseManager(): boolean {
     const role = this.userStore.currentRole();
@@ -92,13 +94,25 @@ export class FormCardComponent {
     try {
       console.log('Check in clicked for form:', this.form.formID);
 
-      // ✅ Use real API through forms store to create check-in form
-      await this.formsStore.addCheckInForm(this.form.items);
+      await this.formsStore.addCheckInForm(this.form.items, this.form.userID);
 
       console.log('Check-in form created for returned items');
     } catch (error) {
       console.error('Failed to create check-in form:', error);
       // TODO: Show error message to user via snackbar or toast
     }
+  }
+
+  get userName(): string {
+    const currentUser = this.userStore.user();
+    if (currentUser?.id === this.form.userID) {
+      return currentUser.name;
+    }
+    return this.organizationStore.getUserName(this.form.userID);
+  }
+
+  get pdfUri(): string | undefined {
+    // todo: presigned url from backend and cache it
+    return this.form.pdfUri;
   }
 }

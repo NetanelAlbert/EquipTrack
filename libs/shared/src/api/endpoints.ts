@@ -12,6 +12,7 @@ export interface EndpointMeta<Req = unknown, Res = unknown> {
   path: string;
   method: HttpMethod;
   allowedRoles: UserRole[];
+  allowedOtherUsers?: UserRole[];
   requestType?: Req;
   responseType?: Res;
 }
@@ -33,7 +34,7 @@ export const endpointMetas = {
   getUsers: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/users`,
     method: 'GET',
-    allowedRoles: [UserRole.Admin, UserRole.WarehouseManager],
+    allowedRoles: [],
     responseType: {} as Admin.GetUsersResponse,
   } as EndpointMeta<undefined, Admin.GetUsersResponse>,
   setUser: {
@@ -42,6 +43,7 @@ export const endpointMetas = {
     allowedRoles: [UserRole.Admin],
     requestType: {} as Admin.SetUser,
     responseType: {} as BasicResponse,
+    allowedOtherUsers: [UserRole.Admin],
   } as EndpointMeta<Admin.SetUser, BasicResponse>,
   inviteUser: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/users/invite`,
@@ -49,6 +51,7 @@ export const endpointMetas = {
     allowedRoles: [UserRole.Admin],
     requestType: {} as Admin.InviteUser,
     responseType: {} as BasicResponse,
+    allowedOtherUsers: [UserRole.Admin],
   } as EndpointMeta<Admin.InviteUser, BasicResponse>,
 
   // Basic User
@@ -70,6 +73,7 @@ export const endpointMetas = {
       UserRole.Admin,
       UserRole.Customer,
     ],
+    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
     requestType: {} as BasicUser.ApproveCheckOut,
     responseType: {} as BasicUser.ApproveCheckOutResponse,
   } as EndpointMeta<BasicUser.ApproveCheckOut, BasicUser.ApproveCheckOutResponse>,
@@ -81,6 +85,7 @@ export const endpointMetas = {
       UserRole.Admin,
       UserRole.Customer,
     ],
+    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
     requestType: {} as BasicUser.RejectCheckOut,
     responseType: {} as BasicResponse,
   } as EndpointMeta<BasicUser.RejectCheckOut, BasicResponse>,
@@ -92,9 +97,10 @@ export const endpointMetas = {
       UserRole.Admin,
       UserRole.WarehouseManager,
     ],
+    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
     requestType: {} as BasicUser.RequestCheckIn,
-    responseType: {} as BasicResponse,
-  } as EndpointMeta<BasicUser.RequestCheckIn, BasicResponse>,
+    responseType: {} as BasicUser.RequestCheckInResponse,
+  } as EndpointMeta<BasicUser.RequestCheckIn, BasicUser.RequestCheckInResponse>,
 
   // Warehouse
   getProducts: {
@@ -107,6 +113,7 @@ export const endpointMetas = {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products`,
     method: 'POST',
     allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
     requestType: {} as Wharehouse.SetProduct,
     responseType: {} as BasicResponse,
   } as EndpointMeta<Wharehouse.SetProduct, BasicResponse>,
@@ -145,6 +152,7 @@ export const endpointMetas = {
       UserRole.Admin,
       UserRole.Customer,
     ],
+    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
     responseType: {} as Wharehouse.GetUserInventoryResponse,
   } as EndpointMeta<undefined, Wharehouse.GetUserInventoryResponse>,
 
@@ -157,6 +165,7 @@ export const endpointMetas = {
       UserRole.Admin,
       UserRole.Customer,
     ],
+    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
     responseType: {} as Wharehouse.GetUserFormsResponse,
   } as EndpointMeta<undefined, Wharehouse.GetUserFormsResponse>,
   getAllForms: {
@@ -169,9 +178,10 @@ export const endpointMetas = {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkout/create`,
     method: 'POST',
     allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
     requestType: {} as Wharehouse.CreateCheckOutForm,
-    responseType: {} as BasicResponse,
-  } as EndpointMeta<Wharehouse.CreateCheckOutForm, BasicResponse>,
+    responseType: {} as Wharehouse.CreateCheckOutFormResponse,
+  } as EndpointMeta<Wharehouse.CreateCheckOutForm, Wharehouse.CreateCheckOutFormResponse>,
 
   // Reports
   /**

@@ -15,14 +15,14 @@ export const handler = async (
   req: BasicUser.RequestCheckIn,
   pathParams: APIGatewayProxyEventPathParameters,
   jwtPayload?: JwtPayload
-): Promise<BasicResponse> => {
+): Promise<BasicUser.RequestCheckInResponse> => {
   try {
     const organizationId = pathParams?.organizationId;
     if (!organizationId) {
       throw badRequest('Organization ID is required');
     }
 
-    if (!jwtPayload) {
+    if (!req.userId) {
       throw badRequest('User ID is required');
     }
 
@@ -33,7 +33,7 @@ export const handler = async (
     const formID = randomUUID();
     const now = Date.now();
 
-    const userId = jwtPayload.sub;
+    const userId = req.userId;
 
     const form = {
       userID: userId,
@@ -48,7 +48,7 @@ export const handler = async (
 
     await formsAdapter.createForm(form);
 
-    return { status: true };
+    return { status: true, form };
   } catch (error) {
     console.error('Error creating check-in form:', error);
     throw internalServerError('Failed to create check-in form');

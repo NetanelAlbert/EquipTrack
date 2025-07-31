@@ -15,11 +15,11 @@ import {
 } from '@equip-track/shared';
 import { UserStore } from './user.store';
 import { computed, inject } from '@angular/core';
-import { v4 as uuidv4 } from 'uuid';
 import { ApiService } from '../services/api.service';
 import { NotificationService } from '../services/notification.service';
 import { firstValueFrom } from 'rxjs';
 import { ApiStatus } from './stores.models';
+import { Router } from '@angular/router';
 
 interface FormsState {
   forms: InventoryForm[];
@@ -85,6 +85,7 @@ export const FormsStore = signalStore(
     const userStore = inject(UserStore);
     const apiService = inject(ApiService);
     const notificationService = inject(NotificationService);
+    const router = inject(Router);
 
     const updateState = (newState: Partial<FormsState>) => {
       patchState(state, (currentState) => ({
@@ -174,40 +175,16 @@ export const FormsStore = signalStore(
         }
       },
 
-      async addCheckInForm(items: InventoryItem[]) {
-        const userRole = userStore.currentRole();
-        const userId = userStore.user()?.id;
-
-        if (!userRole || !userId) {
-          console.error('User role or ID not available');
-          return;
-        }
-
+      // todo: merge with addCheckOutForm to 1 request (?)
+      async addCheckInForm(items: InventoryItem[], userId: string) {
         updateState({
           addCheckInFormStatus: { isLoading: true, error: undefined },
         });
 
-        const newForm: InventoryForm = {
-          userID: userId,
-          organizationID: userStore.selectedOrganizationId(),
-          type: FormType.CheckIn,
-          formID: crypto.randomUUID(),
-          items: items,
-          status: FormStatus.Pending,
-          createdAtTimestamp: Date.now(),
-          lastUpdated: Date.now(),
-        };
-
-        // Optimistically update UI
-        patchState(state, (currentState) => ({
-          ...currentState,
-          forms: [...currentState.forms, newForm],
-        }));
-
         try {
           const response = await firstValueFrom(
             apiService.endpoints.requestCheckIn.execute(
-              { items },
+              { items, userId },
               {
                 [ORGANIZATION_ID_PATH_PARAM]:
                   userStore.selectedOrganizationId(),
@@ -220,13 +197,6 @@ export const FormsStore = signalStore(
               'errors.forms.submit-failed',
               response.errorMessage
             );
-            // Revert optimistic update on error
-            patchState(state, (currentState) => ({
-              ...currentState,
-              forms: currentState.forms.filter(
-                (form) => form.formID !== newForm.formID
-              ),
-            }));
             updateState({
               addCheckInFormStatus: {
                 isLoading: false,
@@ -236,13 +206,14 @@ export const FormsStore = signalStore(
             return;
           }
 
-          console.log('Check-in form submitted successfully:', newForm);
+          console.log('Check-in form submitted successfully:', response.form);
           notificationService.showSuccess(
             'forms.check-in-submitted',
             'Check-in request submitted successfully'
           );
           updateState({
             addCheckInFormStatus: { isLoading: false, error: undefined },
+            forms: [response.form, ...state.forms()],
           });
         } catch (error) {
           console.error('Error creating check-in form:', error);
@@ -250,13 +221,6 @@ export const FormsStore = signalStore(
             error,
             'errors.forms.submit-failed'
           );
-          // Revert optimistic update on error
-          patchState(state, (currentState) => ({
-            ...currentState,
-            forms: currentState.forms.filter(
-              (form) => form.formID !== newForm.formID
-            ),
-          }));
           const errorMessage = error instanceof Error ? error.message : 'Failed to submit check-in form';
           updateState({
             addCheckInFormStatus: { isLoading: false, error: errorMessage },
@@ -265,7 +229,7 @@ export const FormsStore = signalStore(
         }
       },
 
-      async addCheckOutForm(items: InventoryItem[], userId: string) {
+      async addCheckOutForm(items: InventoryItem[], userId: string, description: string): Promise<boolean> {
         const organizationId = userStore.selectedOrganizationId();
         if (!organizationId) {
           throw new Error('No organization selected');
@@ -275,29 +239,13 @@ export const FormsStore = signalStore(
           addCheckOutFormStatus: { isLoading: true, error: undefined },
         });
 
-        const newForm: InventoryForm = {
-          userID: userId,
-          organizationID: organizationId,
-          type: FormType.CheckOut,
-          formID: uuidv4(),
-          items: items,
-          status: FormStatus.Pending,
-          createdAtTimestamp: Date.now(),
-          lastUpdated: Date.now(),
-        };
-
-        // Optimistically update UI
-        patchState(state, {
-          forms: [newForm, ...state.forms()],
-        });
-
         try {
-          // ✅ API call to add check-out form (IMPLEMENTED)
           const response = await firstValueFrom(
             apiService.endpoints.createCheckOutForm.execute(
               {
                 userID: userId,
                 items: items,
+                description: description,
               },
               {
                 [ORGANIZATION_ID_PATH_PARAM]: organizationId,
@@ -306,47 +254,37 @@ export const FormsStore = signalStore(
           );
 
           if (!response.status) {
+            console.log('Error creating checkout form:', response);
             notificationService.showError(
+              response.errorKey || 
               'errors.forms.submit-failed',
               response.errorMessage
             );
-            // Revert optimistic update on error
-            patchState(state, (currentState) => ({
-              ...currentState,
-              forms: currentState.forms.filter(
-                (form) => form.formID !== newForm.formID
-              ),
-            }));
             updateState({
               addCheckOutFormStatus: {
                 isLoading: false,
                 error: response.errorMessage || 'Failed to submit check-out form',
               },
             });
-            return;
+            return false;
           }
 
-          console.log('Checkout form created successfully via API:', newForm);
           notificationService.showSuccess(
             'forms.check-out-submitted',
             'Check-out request submitted successfully'
           );
           updateState({
             addCheckOutFormStatus: { isLoading: false, error: undefined },
+            forms: [response.form, ...state.forms()],
           });
+          router.navigate(['/forms', 'formType', FormType.CheckOut, 'formID', response.form.formID]);
+          return true;
         } catch (error) {
           console.error('Error creating checkout form:', error);
           notificationService.handleApiError(
             error,
             'errors.forms.submit-failed'
           );
-          // Revert optimistic update on error
-          patchState(state, (currentState) => ({
-            ...currentState,
-            forms: currentState.forms.filter(
-              (form) => form.formID !== newForm.formID
-            ),
-          }));
           const errorMessage = error instanceof Error ? error.message : 'Failed to submit check-out form';
           updateState({
             addCheckOutFormStatus: { isLoading: false, error: errorMessage },

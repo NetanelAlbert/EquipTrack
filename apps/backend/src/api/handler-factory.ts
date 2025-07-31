@@ -26,11 +26,14 @@ export function createLambdaHandler<Req, Res>(
         ),
       });
 
+      const req =
+        meta.method === 'GET' ? (undefined as any) : parseBody<Req>(event);
+
       let jwtPayload: JwtPayload | undefined;
       // Only authenticate if the endpoint requires roles (has allowedRoles)
       if ((meta.allowedRoles?.length || 0) > 0) {
         console.log(`[${meta.path}] Authentication required, validating...`);
-        jwtPayload = await authenticateAndGetJwt(meta, event);
+        jwtPayload = await authenticateAndGetJwt(meta, event, req);
         if (!jwtPayload) {
           throw unauthorized('Unauthorized');
         }
@@ -40,9 +43,6 @@ export function createLambdaHandler<Req, Res>(
           `[${meta.path}] No authentication required (public endpoint)`
         );
       }
-
-      const req =
-        meta.method === 'GET' ? (undefined as any) : parseBody<Req>(event);
 
       console.log(`[${meta.path}] Calling handler...`);
       const result = await handler(req, event.pathParameters, jwtPayload);

@@ -1,5 +1,8 @@
 <div class="form-card">
-  <h3>{{ 'forms.form-id' | translate }}: {{ form.formID }}</h3>
+  <h3>{{ 'forms.user-name' | translate }}: {{ userName }}</h3>
+  @if (form.description) {
+    <h4>{{ 'forms.description' | translate }}: {{ form.description }}</h4>
+  }
   <p [ngClass]="[form.status]">
     {{ 'forms.status' | translate }}:
     {{ 'forms.status-' + form.status | translate }}
@@ -13,6 +16,23 @@
       {{ 'forms.approved-at' | translate }}:
       {{ form.approvedAtTimestamp | date : 'dd/MM/yyyy HH:mm' }}
     </p>
+  }
+  @if (form.approvedByUserId) {
+    <p>
+      {{ 'forms.approved-by' | translate }}:
+      {{ organizationStore.getUserName(form.approvedByUserId) }}
+    </p>
+  }
+  @if (form.rejectionReason) {
+    <p>
+      {{ 'forms.rejection-reason' | translate }}:
+      {{ form.rejectionReason }}
+    </p>
+  }
+  @if (form.pdfUri) {
+    <a [href]="pdfUri" target="_blank">
+      {{ 'forms.view-pdf' | translate }}
+    </a>
   }
   <inventory-list [inventoryItems]="form.items"></inventory-list>
   @if (form.status === 'pending') {

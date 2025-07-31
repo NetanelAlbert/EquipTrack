@@ -18,8 +18,13 @@ export class CheckInComponent {
   submitButton = { text: 'inventory.button.create-check-in', icon: 'check', color: 'primary' };
 
   onEditedItems(items: InventoryItem[]) {
-    // TODO: Implement check-in logic
+    // TODO: Implement check-in logic (maybe merge with check-out component)
     console.log('Edited items:', items);
-    this.formsStore.addCheckInForm(items);
+    const userId = this.userStore.user()?.id;
+    if (!userId) {
+      console.error('User ID not available');
+      return;
+    }
+    this.formsStore.addCheckInForm(items, userId);
   }
 }

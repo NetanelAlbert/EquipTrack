@@ -1,7 +1,7 @@
 <form [formGroup]="form">
   <ng-container formArrayName="items">
     <mat-list class="dynamic-height-list">
-      @for (itemControl of items.controls; track $index; let i = $index){
+      @for (itemControl of items.controls; track itemControl; let i = $index){
       <mat-list-item class="dynamic-height-item">
         <editable-item [control]="itemControl" (remove)="removeItem(i)"></editable-item>
       </mat-list-item>

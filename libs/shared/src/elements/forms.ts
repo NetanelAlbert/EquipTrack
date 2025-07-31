@@ -25,6 +25,7 @@ export interface InventoryForm {
   pdfUri?: string;
   rejectionReason?: string;
   lastUpdated: number;
+  description?: string;
 }
 
 /** DynamoDB table */
