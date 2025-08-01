@@ -55,7 +55,9 @@
     "navigation-failed": "Navigation failed. Please try again.",
     "signature": {
       "signature-pad": "Signature Pad",
-      "clear": "Clear"
+      "clear": "Clear",
+      "title": "Please sign to approve"
+      
     }
   },
   "navigation": {
@@ -86,13 +88,22 @@
     "app-version": "App Version"
   },
   "forms": {
+    "user-name": "User Name",
+    "user-id": "User ID",
     "form-id": "Form ID",
+    "description": "Description",
     "status": "Status",
     "status-pending": "Pending",
     "status-approved": "Approved", 
     "status-rejected": "Rejected",
     "created-at": "Created At",
+    "created-by": "Created By",
     "approved-at": "Approved At",
+    "approved-by": "Approved By",
+    "rejected-at": "Rejected At",
+    "by": "By",
+    "rejection-reason": "Rejection Reason",
+    "view-pdf": "View PDF",
     "approve": "Approve",
     "reject": "Reject",
     "check-in": "Check In",
@@ -102,7 +113,23 @@
     "check-in-submitted": "Check-in request submitted successfully",
     "check-out-submitted": "Check-out request submitted successfully",
     "form-approved": "Form approved successfully",
-    "form-rejected": "Form rejected successfully"
+    "form-rejected": "Form rejected successfully",
+    "search": {
+      "placeholder": "Search forms details"
+    },
+    "filter": {
+      "status": "Filter by Status",
+      "all": "All Statuses"
+    },
+    "sort": {
+      "label": "Sort by Date",
+      "newest": "Newest First",
+      "oldest": "Oldest First"
+    },
+    "clearFilters": "Clear Filters",
+    "copy-form-id": "Copy Form ID: {{formId}}",
+    "form-id-copied": "Form ID copied to clipboard",
+    "view-submitted-form": "Would you like to view your submitted form?"
   },
   "inventory": {
     "title": "Inventory",
@@ -206,6 +233,7 @@
   "checkout": {
     "title": "Checkout",
     "select-user": "Select User",
+    "form-description": "Form Description",
     "predefined-forms": "Predefined Forms",
     "items": "Items",
     "success": "Checkout completed successfully",
@@ -246,7 +274,12 @@
       "internal-server-error": "A server error occurred. Please try again later.",
       "not-implemented": "This feature is not yet implemented. Please try again later.",
       "network-error": "Network error. Please check your connection and try again.",
-      "timeout": "Request timed out. Please try again."
+      "timeout": "Request timed out. Please try again.",
+      "user-id-required": "User ID is required",
+      "description-required": "Description is required",
+      "jwt-payload-required": "JWT payload is required",
+      "organization-id-required": "Organization ID is required",
+      "form-id-required": "Form ID is required"
     },
     "auth": {
       "no-token": "Authentication required. Please sign in again.",
@@ -283,6 +316,9 @@
       "fetch-failed": "Failed to load products. Please try again.",
       "save-failed": "Failed to save products. Please try again.",
       "delete-failed": "Failed to delete product. Please try again."
+    },
+    "presigned-url": {
+      "get-failed": "Failed to get presigned URL. Please try again."
     }
   },
   "organization": {

@@ -108,3 +108,27 @@ export function customError(
     }),
   };
 }
+
+export const organizationIdRequired = customError(
+  ErrorKeys.ORGANIZATION_ID_REQUIRED,
+  400,
+  'Organization ID is required'
+)
+
+export const formIdRequired = customError(
+  ErrorKeys.FORM_ID_REQUIRED,
+  400,
+  'Form ID is required'
+)
+
+export const userIdRequired = customError(
+  ErrorKeys.USER_ID_REQUIRED,
+  400,
+  'User ID is required'
+)
+
+export const jwtPayloadRequired = customError(
+  ErrorKeys.JWT_PAYLOAD_REQUIRED,
+  400,
+  'JWT payload is required'
+)

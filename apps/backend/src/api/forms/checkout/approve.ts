@@ -3,7 +3,6 @@ import {
   FormStatus,
   ApproveCheckOut,
   JwtPayload,
-  UserRole,
 } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
@@ -11,7 +10,7 @@ import { UsersAndOrganizationsAdapter } from '../../../db/tables/users-and-organ
 import { InventoryTransferService } from '../../../services/inventory-transfer.service';
 import { PdfService } from '../../../services/pdf.service';
 import { S3Service } from '../../../services/s3.service';
-import { badRequest, forbidden, internalServerError } from '../../responses';
+import { badRequest, internalServerError, jwtPayloadRequired, organizationIdRequired, userIdRequired } from '../../responses';
 import { validateInventoryItems } from '../../validate';
 
 export const handler = async (
@@ -22,7 +21,7 @@ export const handler = async (
   try {
     const organizationId = pathParams?.organizationId;
     if (!organizationId) {
-      throw badRequest('Organization ID is required');
+      throw organizationIdRequired;
     }
 
     if (!req.formID) {
@@ -30,11 +29,15 @@ export const handler = async (
     }
 
     if (!jwtPayload) {
-      throw badRequest('User authentication required');
+      throw jwtPayloadRequired
     }
 
     if (!req.signature) {
       throw badRequest('Signature is required');
+    }
+
+    if (!req.userId) {
+      throw userIdRequired
     }
 
     // Initialize services and adapters
@@ -43,21 +46,11 @@ export const handler = async (
     const inventoryTransferService = new InventoryTransferService();
     const s3Service = new S3Service();
 
-    // Step 1: Get the form and validate it exists
-    const userId = jwtPayload.sub;
-    const userRole = jwtPayload.orgIdToRole[organizationId];
-    const form = await formsAdapter.getForm(userId, organizationId, req.formID);
+    
+    const form = await formsAdapter.getForm(req.userId, organizationId, req.formID);
 
     if (!form) {
       throw badRequest(`Form with ID ${req.formID} not found`);
-    }
-
-    if (
-      form.userID !== userId &&
-      userRole !== UserRole.Admin &&
-      userRole !== UserRole.WarehouseManager
-    ) {
-      throw forbidden('You are not authorized to approve this form');
     }
 
     if (form.status !== FormStatus.Pending) {
@@ -109,7 +102,7 @@ export const handler = async (
       {
         status: FormStatus.Approved,
         approvedAtTimestamp: now,
-        approvedByUserId: userId,
+        approvedByUserId: jwtPayload.sub,
         pdfUri: pdfUrl,
         lastUpdated: now,
       }

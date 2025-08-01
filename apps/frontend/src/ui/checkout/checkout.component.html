@@ -1,4 +1,4 @@
-<div *ngIf="checkoutStore.isLoading()" class="checkout-spinner-overlay">
+<div *ngIf="formsStore.addCheckOutFormStatus.isLoading()" class="checkout-spinner-overlay">
   <mat-progress-spinner mode="indeterminate" color="primary"></mat-progress-spinner>
 </div>
 
@@ -13,6 +13,11 @@
           {{ user.user.name }}
         </mat-option>
       </mat-select>
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>{{ 'checkout.form-description' | translate }}</mat-label>
+      <input matInput formControlName="formDescription" name="formDescription">
     </mat-form-field>
 
     <div class="predefined-forms" *ngIf="showPredefinedForms()">

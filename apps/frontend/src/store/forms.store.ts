@@ -12,28 +12,41 @@ import {
   InventoryItem,
   UserRole,
   ORGANIZATION_ID_PATH_PARAM,
+  USER_ID_PATH_PARAM,
+  FORM_ID_PATH_PARAM,
 } from '@equip-track/shared';
 import { UserStore } from './user.store';
 import { computed, inject } from '@angular/core';
-import { v4 as uuidv4 } from 'uuid';
 import { ApiService } from '../services/api.service';
 import { NotificationService } from '../services/notification.service';
 import { firstValueFrom } from 'rxjs';
 import { ApiStatus } from './stores.models';
+import { Router } from '@angular/router';
+import { getPresignedUrlTTL } from '@equip-track/shared';
+import { FormQueryParams } from '../utils/forms.medels';
+import { TranslateService } from '@ngx-translate/core';
+
+interface PresignedUrl {
+  url: string;
+  ttl: number;
+}
 
 interface FormsState {
   forms: InventoryForm[];
-  
+  presignedUrls: Record<string, PresignedUrl>;
+
   // API status for operations using ApiStatus
   fetchFormsStatus: ApiStatus;
   addCheckInFormStatus: ApiStatus;
   addCheckOutFormStatus: ApiStatus;
   approveFormStatus: ApiStatus;
   rejectFormStatus: ApiStatus;
+  getPresignedUrlStatus: ApiStatus;
 }
 
 const emptyState: FormsState = {
   forms: [],
+  presignedUrls: {},
   fetchFormsStatus: {
     isLoading: false,
     error: undefined,
@@ -51,6 +64,10 @@ const emptyState: FormsState = {
     error: undefined,
   },
   rejectFormStatus: {
+    isLoading: false,
+    error: undefined,
+  },
+  getPresignedUrlStatus: {
     isLoading: false,
     error: undefined,
   },
@@ -72,12 +89,13 @@ export const FormsStore = signalStore(
           .filter((form: InventoryForm) => form.type === FormType.CheckOut)
       ),
       // Convenience computed properties for loading states
-      isLoading: computed(() => 
-        state.fetchFormsStatus().isLoading ||
-        state.addCheckInFormStatus().isLoading ||
-        state.addCheckOutFormStatus().isLoading ||
-        state.approveFormStatus().isLoading ||
-        state.rejectFormStatus().isLoading
+      isLoading: computed(
+        () =>
+          state.fetchFormsStatus().isLoading ||
+          state.addCheckInFormStatus().isLoading ||
+          state.addCheckOutFormStatus().isLoading ||
+          state.approveFormStatus().isLoading ||
+          state.rejectFormStatus().isLoading
       ),
     };
   }),
@@ -85,7 +103,8 @@ export const FormsStore = signalStore(
     const userStore = inject(UserStore);
     const apiService = inject(ApiService);
     const notificationService = inject(NotificationService);
-
+    const router = inject(Router);
+    const translateService = inject(TranslateService);
     const updateState = (newState: Partial<FormsState>) => {
       patchState(state, (currentState) => ({
         ...currentState,
@@ -103,8 +122,8 @@ export const FormsStore = signalStore(
           return;
         }
 
-        updateState({ 
-          fetchFormsStatus: { isLoading: true, error: undefined } 
+        updateState({
+          fetchFormsStatus: { isLoading: true, error: undefined },
         });
 
         try {
@@ -123,17 +142,17 @@ export const FormsStore = signalStore(
                 'errors.forms.fetch-failed',
                 response.errorMessage
               );
-              updateState({ 
-                fetchFormsStatus: { 
-                  isLoading: false, 
-                  error: 'Failed to fetch forms' 
-                } 
+              updateState({
+                fetchFormsStatus: {
+                  isLoading: false,
+                  error: 'Failed to fetch forms',
+                },
               });
               return;
             }
-            updateState({ 
-              forms: response.forms, 
-              fetchFormsStatus: { isLoading: false, error: undefined } 
+            updateState({
+              forms: response.forms,
+              fetchFormsStatus: { isLoading: false, error: undefined },
             });
           } else {
             console.log('fetching forms for user', userId);
@@ -148,17 +167,17 @@ export const FormsStore = signalStore(
                 'errors.forms.fetch-failed',
                 response.errorMessage
               );
-              updateState({ 
-                fetchFormsStatus: { 
-                  isLoading: false, 
-                  error: 'Failed to fetch forms' 
-                } 
+              updateState({
+                fetchFormsStatus: {
+                  isLoading: false,
+                  error: 'Failed to fetch forms',
+                },
               });
               return;
             }
-            updateState({ 
-              forms: response.forms, 
-              fetchFormsStatus: { isLoading: false, error: undefined } 
+            updateState({
+              forms: response.forms,
+              fetchFormsStatus: { isLoading: false, error: undefined },
             });
           }
         } catch (error) {
@@ -167,47 +186,24 @@ export const FormsStore = signalStore(
             error,
             'errors.forms.fetch-failed'
           );
-          const errorMessage = error instanceof Error ? error.message : 'Failed to fetch forms';
+          const errorMessage =
+            error instanceof Error ? error.message : 'Failed to fetch forms';
           updateState({
             fetchFormsStatus: { isLoading: false, error: errorMessage },
           });
         }
       },
 
-      async addCheckInForm(items: InventoryItem[]) {
-        const userRole = userStore.currentRole();
-        const userId = userStore.user()?.id;
-
-        if (!userRole || !userId) {
-          console.error('User role or ID not available');
-          return;
-        }
-
+      // todo: merge with addCheckOutForm to 1 request (?)
+      async addCheckInForm(items: InventoryItem[], userId: string) {
         updateState({
           addCheckInFormStatus: { isLoading: true, error: undefined },
         });
 
-        const newForm: InventoryForm = {
-          userID: userId,
-          organizationID: userStore.selectedOrganizationId(),
-          type: FormType.CheckIn,
-          formID: crypto.randomUUID(),
-          items: items,
-          status: FormStatus.Pending,
-          createdAtTimestamp: Date.now(),
-          lastUpdated: Date.now(),
-        };
-
-        // Optimistically update UI
-        patchState(state, (currentState) => ({
-          ...currentState,
-          forms: [...currentState.forms, newForm],
-        }));
-
         try {
           const response = await firstValueFrom(
             apiService.endpoints.requestCheckIn.execute(
-              { items },
+              { items, userId },
               {
                 [ORGANIZATION_ID_PATH_PARAM]:
                   userStore.selectedOrganizationId(),
@@ -220,29 +216,24 @@ export const FormsStore = signalStore(
               'errors.forms.submit-failed',
               response.errorMessage
             );
-            // Revert optimistic update on error
-            patchState(state, (currentState) => ({
-              ...currentState,
-              forms: currentState.forms.filter(
-                (form) => form.formID !== newForm.formID
-              ),
-            }));
             updateState({
               addCheckInFormStatus: {
                 isLoading: false,
-                error: response.errorMessage || 'Failed to submit check-in form',
+                error:
+                  response.errorMessage || 'Failed to submit check-in form',
               },
             });
             return;
           }
 
-          console.log('Check-in form submitted successfully:', newForm);
+          console.log('Check-in form submitted successfully:', response.form);
           notificationService.showSuccess(
             'forms.check-in-submitted',
             'Check-in request submitted successfully'
           );
           updateState({
             addCheckInFormStatus: { isLoading: false, error: undefined },
+            forms: [response.form, ...state.forms()],
           });
         } catch (error) {
           console.error('Error creating check-in form:', error);
@@ -250,14 +241,10 @@ export const FormsStore = signalStore(
             error,
             'errors.forms.submit-failed'
           );
-          // Revert optimistic update on error
-          patchState(state, (currentState) => ({
-            ...currentState,
-            forms: currentState.forms.filter(
-              (form) => form.formID !== newForm.formID
-            ),
-          }));
-          const errorMessage = error instanceof Error ? error.message : 'Failed to submit check-in form';
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'Failed to submit check-in form';
           updateState({
             addCheckInFormStatus: { isLoading: false, error: errorMessage },
           });
@@ -265,7 +252,11 @@ export const FormsStore = signalStore(
         }
       },
 
-      async addCheckOutForm(items: InventoryItem[], userId: string) {
+      async addCheckOutForm(
+        items: InventoryItem[],
+        userId: string,
+        description: string
+      ): Promise<boolean> {
         const organizationId = userStore.selectedOrganizationId();
         if (!organizationId) {
           throw new Error('No organization selected');
@@ -275,29 +266,13 @@ export const FormsStore = signalStore(
           addCheckOutFormStatus: { isLoading: true, error: undefined },
         });
 
-        const newForm: InventoryForm = {
-          userID: userId,
-          organizationID: organizationId,
-          type: FormType.CheckOut,
-          formID: uuidv4(),
-          items: items,
-          status: FormStatus.Pending,
-          createdAtTimestamp: Date.now(),
-          lastUpdated: Date.now(),
-        };
-
-        // Optimistically update UI
-        patchState(state, {
-          forms: [newForm, ...state.forms()],
-        });
-
         try {
-          // ✅ API call to add check-out form (IMPLEMENTED)
           const response = await firstValueFrom(
             apiService.endpoints.createCheckOutForm.execute(
               {
                 userID: userId,
                 items: items,
+                description: description,
               },
               {
                 [ORGANIZATION_ID_PATH_PARAM]: organizationId,
@@ -306,48 +281,55 @@ export const FormsStore = signalStore(
           );
 
           if (!response.status) {
+            console.log('Error creating checkout form:', response);
             notificationService.showError(
-              'errors.forms.submit-failed',
+              response.errorKey || 'errors.forms.submit-failed',
               response.errorMessage
             );
-            // Revert optimistic update on error
-            patchState(state, (currentState) => ({
-              ...currentState,
-              forms: currentState.forms.filter(
-                (form) => form.formID !== newForm.formID
-              ),
-            }));
             updateState({
               addCheckOutFormStatus: {
                 isLoading: false,
-                error: response.errorMessage || 'Failed to submit check-out form',
+                error:
+                  response.errorMessage || 'Failed to submit check-out form',
               },
             });
-            return;
+            return false;
           }
 
-          console.log('Checkout form created successfully via API:', newForm);
           notificationService.showSuccess(
             'forms.check-out-submitted',
             'Check-out request submitted successfully'
           );
           updateState({
             addCheckOutFormStatus: { isLoading: false, error: undefined },
+            forms: [response.form, ...state.forms()],
           });
+
+          // Ask user before navigating to forms page
+          const shouldNavigate = confirm(
+            translateService.instant('forms.view-submitted-form')
+          );
+          if (shouldNavigate) {
+            const queryParams: FormQueryParams = {
+              formType: FormType.CheckOut,
+              searchStatus: FormStatus.Pending,
+              searchTerm: response.form.formID,
+            };
+            router.navigate(['/forms'], {
+              queryParams,
+            });
+          }
+          return true;
         } catch (error) {
           console.error('Error creating checkout form:', error);
           notificationService.handleApiError(
             error,
             'errors.forms.submit-failed'
           );
-          // Revert optimistic update on error
-          patchState(state, (currentState) => ({
-            ...currentState,
-            forms: currentState.forms.filter(
-              (form) => form.formID !== newForm.formID
-            ),
-          }));
-          const errorMessage = error instanceof Error ? error.message : 'Failed to submit check-out form';
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'Failed to submit check-out form';
           updateState({
             addCheckOutFormStatus: { isLoading: false, error: errorMessage },
           });
@@ -355,7 +337,7 @@ export const FormsStore = signalStore(
         }
       },
 
-      async approveForm(formID: string, signature: string) {
+      async approveForm(formID: string, formUserId: string, signature: string) {
         updateState({
           approveFormStatus: { isLoading: true, error: undefined },
         });
@@ -366,6 +348,7 @@ export const FormsStore = signalStore(
             apiService.endpoints.approveForm.execute(
               {
                 formID,
+                userId: formUserId,
                 signature,
               },
               {
@@ -412,7 +395,8 @@ export const FormsStore = signalStore(
             error,
             'errors.forms.approve-failed'
           );
-          const errorMessage = error instanceof Error ? error.message : 'Failed to approve form';
+          const errorMessage =
+            error instanceof Error ? error.message : 'Failed to approve form';
           updateState({
             approveFormStatus: { isLoading: false, error: errorMessage },
           });
@@ -480,7 +464,8 @@ export const FormsStore = signalStore(
             error,
             'errors.forms.reject-failed'
           );
-          const errorMessage = error instanceof Error ? error.message : 'Failed to reject form';
+          const errorMessage =
+            error instanceof Error ? error.message : 'Failed to reject form';
           updateState({
             rejectFormStatus: { isLoading: false, error: errorMessage },
           });
@@ -490,48 +475,133 @@ export const FormsStore = signalStore(
 
       // Clear error methods
       clearFetchFormsError() {
-        updateState({ 
-          fetchFormsStatus: { 
-            ...state.fetchFormsStatus(), 
-            error: undefined 
-          } 
+        updateState({
+          fetchFormsStatus: {
+            ...state.fetchFormsStatus(),
+            error: undefined,
+          },
         });
       },
 
       clearAddCheckInFormError() {
-        updateState({ 
-          addCheckInFormStatus: { 
-            ...state.addCheckInFormStatus(), 
-            error: undefined 
-          } 
+        updateState({
+          addCheckInFormStatus: {
+            ...state.addCheckInFormStatus(),
+            error: undefined,
+          },
         });
       },
 
       clearAddCheckOutFormError() {
-        updateState({ 
-          addCheckOutFormStatus: { 
-            ...state.addCheckOutFormStatus(), 
-            error: undefined 
-          } 
+        updateState({
+          addCheckOutFormStatus: {
+            ...state.addCheckOutFormStatus(),
+            error: undefined,
+          },
         });
       },
 
       clearApproveFormError() {
-        updateState({ 
-          approveFormStatus: { 
-            ...state.approveFormStatus(), 
-            error: undefined 
-          } 
+        updateState({
+          approveFormStatus: {
+            ...state.approveFormStatus(),
+            error: undefined,
+          },
         });
       },
 
       clearRejectFormError() {
-        updateState({ 
-          rejectFormStatus: { 
-            ...state.rejectFormStatus(), 
-            error: undefined 
-          } 
+        updateState({
+          rejectFormStatus: {
+            ...state.rejectFormStatus(),
+            error: undefined,
+          },
         });
+      },
+
+      async getPresignedUrl(
+        formId: string,
+        formUserId: string,
+        organizationId: string
+      ): Promise<string> {
+        const form = state.forms().find((form) => form.formID === formId);
+        if (!form) {
+          throw new Error('Form not found');
+        }
+
+        const presignedUrls = state.presignedUrls();
+        if (presignedUrls[form.formID]?.ttl > Date.now()) {
+          return presignedUrls[form.formID].url;
+        }
+        console.log('presignedUrls', presignedUrls);
+        delete presignedUrls[form.formID];
+
+        updateState({
+          getPresignedUrlStatus: { isLoading: true, error: undefined },
+          presignedUrls,
+        });
+
+        try {
+          const result = await firstValueFrom(
+            apiService.endpoints.getPresignedUrl.execute(undefined, {
+              [ORGANIZATION_ID_PATH_PARAM]: organizationId,
+              [USER_ID_PATH_PARAM]: formUserId,
+              [FORM_ID_PATH_PARAM]: formId,
+            })
+          );
+
+          if (result.status) {
+            const expiresSeconds =
+              getPresignedUrlTTL(result.presignedUrl) || 60; // 1 minute
+            console.log('expires', expiresSeconds);
+            updateState({
+              getPresignedUrlStatus: { isLoading: false, error: undefined },
+              forms: state
+                .forms()
+                .map((form) =>
+                  form.formID === formId
+                    ? { ...form, pdfUri: result.presignedUrl }
+                    : form
+                ),
+              presignedUrls: {
+                ...presignedUrls,
+                [formId]: {
+                  url: result.presignedUrl,
+                  ttl: Date.now() + expiresSeconds * 1000,
+                },
+              },
+            });
+            return result.presignedUrl;
+          } else {
+            notificationService.handleApiError(
+              result.errorKey,
+              result.errorMessage
+            );
+            patchState(state, {
+              getPresignedUrlStatus: {
+                isLoading: false,
+                error: result.errorMessage || '',
+              },
+            });
+            throw new Error(result.errorMessage || '');
+          }
+        } catch (error: unknown) {
+          console.error('Error getting presigned url', error);
+          notificationService.handleApiError(
+            error,
+            'errors.presigned-url.get-failed'
+          );
+          patchState(state, {
+            getPresignedUrlStatus: {
+              isLoading: false,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : 'Failed to get presigned url',
+            },
+          });
+          throw error;
+        }
       },
     };
   })

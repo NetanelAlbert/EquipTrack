@@ -20,6 +20,7 @@ import { handler as createCheckOutFormHandler } from './forms/checkout/create';
 import { handler as getUserFormsHandler } from './forms/get-user';
 import { handler as getAllFormsHandler } from './forms/get-all';
 import { handler as startHandler } from './start';
+import { handler as getPresignedUrlHandler } from './forms/get-presign';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 
 // Handler signatures
@@ -50,11 +51,6 @@ export const handlers: HandlersDefinition = {
   // Basic User
   start: startHandler,
 
-  // Forms
-  approveForm: approveCheckOutHandler,
-  rejectForm: rejectCheckOutHandler,
-  requestCheckIn: requestCheckInHandler,
-
   // Warehouse
   setProduct: setProductHandler,
   deleteProduct: deleteProductHandler,
@@ -68,6 +64,10 @@ export const handlers: HandlersDefinition = {
   getUserForms: getUserFormsHandler,
   getAllForms: getAllFormsHandler,
   createCheckOutForm: createCheckOutFormHandler,
+  approveForm: approveCheckOutHandler,
+  rejectForm: rejectCheckOutHandler,
+  requestCheckIn: requestCheckInHandler,
+  getPresignedUrl: getPresignedUrlHandler,
 
   // Reports
   getReports: getReportsHandler, // needed?

@@ -16,12 +16,10 @@ import { NotificationService } from '../services/notification.service';
 import { UserStore } from './user.store';
 import { firstValueFrom } from 'rxjs';
 import { ApiStatus } from './stores.models';
-import { mergeInventoryItem } from '@equip-track/shared';
 
 interface InventoryState {
   // key is userID, value is inventory items for that user
   inventory: Record<string, InventoryItem[]>;
-  wareHouseInventory: InventoryItem[];
   totalInventory: InventoryItem[];
 
   // API status for operations using ApiStatus
@@ -33,7 +31,6 @@ interface InventoryState {
 
 const initialState: InventoryState = {
   inventory: {},
-  wareHouseInventory: [],
   totalInventory: [],
   fetchInventoryStatus: {
     isLoading: false,
@@ -363,18 +360,3 @@ export const InventoryStore = signalStore(
     };
   })
 );
-
-function mergeInventoryItems(items: InventoryItem[]): InventoryItem[] {
-  const mergedItems: Record<string, InventoryItem> = {};
-  items.forEach((item) => {
-    if (mergedItems[item.productId]) {
-      mergedItems[item.productId] = mergeInventoryItem(
-        mergedItems[item.productId],
-        item
-      );
-    } else {
-      mergedItems[item.productId] = item;
-    }
-  });
-  return Object.values(mergedItems);
-}

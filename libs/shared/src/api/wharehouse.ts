@@ -59,6 +59,11 @@ export interface GetAllFormsResponse extends BasicResponse {
 export interface CreateCheckOutForm {
   items: InventoryItem[];
   userID: string;
+  description: string;
+}
+
+export interface CreateCheckOutFormResponse extends BasicResponse {
+  form: InventoryForm;
 }
 
 // PREDEFINED FORMS

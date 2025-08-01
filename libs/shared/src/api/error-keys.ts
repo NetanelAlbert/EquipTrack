@@ -4,6 +4,12 @@ export enum ErrorKeys {
   NETWORK_ERROR = 'errors.api.network-error',
   TIMEOUT = 'errors.api.timeout',
 
+  // Required errors
+  ORGANIZATION_ID_REQUIRED = 'errors.api.organization-id-required',
+  FORM_ID_REQUIRED = 'errors.api.form-id-required',
+  USER_ID_REQUIRED = 'errors.api.user-id-required',
+  JWT_PAYLOAD_REQUIRED = 'errors.api.jwt-payload-required',
+
   // HTTP status errors
   BAD_REQUEST = 'errors.api.bad-request',
   UNAUTHORIZED = 'errors.api.unauthorized',

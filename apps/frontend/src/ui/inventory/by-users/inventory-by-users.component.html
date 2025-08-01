@@ -5,7 +5,6 @@
       <mat-select
         [ngModel]="selectedUserID()"
         (ngModelChange)="selectedUserID.set($event)"
-        (selectionChange)="onUserChange()"
         [disabled]="isLoadingUsers()"
       >
         <mat-option value="WAREHOUSE">

@@ -1,35 +1,64 @@
 <div class="form-card">
-  <h3>{{ 'forms.form-id' | translate }}: {{ form.formID }}</h3>
+  <h3>{{ 'forms.user-name' | translate }}: {{ userName }}</h3>
+  <h4>{{ 'forms.description' | translate }}: {{ form.description || 'N/A' }}</h4>
   <p [ngClass]="[form.status]">
     {{ 'forms.status' | translate }}:
     {{ 'forms.status-' + form.status | translate }}
   </p>
   <p>
     {{ 'forms.created-at' | translate }}:
-    {{ form.createdAtTimestamp | date : 'dd/MM/yyyy HH:mm' }}
+    {{ form.createdAtTimestamp | date : UI_DATE_FORMAT }}
+    {{ 'forms.by' | translate }}:
+    {{ organizationStore.getUserName(form.createdByUserId) }}
   </p>
   @if (form.approvedAtTimestamp) {
     <p>
       {{ 'forms.approved-at' | translate }}:
-      {{ form.approvedAtTimestamp | date : 'dd/MM/yyyy HH:mm' }}
+      {{ form.approvedAtTimestamp | date : UI_DATE_FORMAT }}
+      {{ 'forms.by' | translate }}:
+      {{ organizationStore.getUserName(form.approvedByUserId) }}
+    </p>
+  }
+  @if (form.rejectionReason) {
+    <p>
+      {{ 'forms.rejected-at' | translate }}:
+      {{ form.rejectionAtTimestamp | date : UI_DATE_FORMAT }}
+      {{ 'forms.by' | translate }}:
+      {{ organizationStore.getUserName(form.rejectionByUserId) }}
+    </p>
+    <p>
+      {{ 'forms.rejection-reason' | translate }}:
+      {{ form.rejectionReason }}
     </p>
   }
   <inventory-list [inventoryItems]="form.items"></inventory-list>
-  @if (form.status === 'pending') {
-    <div class="actions">
+  <div class="actions">
+    @if (form.status === 'pending') {
       <button mat-raised-button color="primary" (click)="onApprove()">
         {{ 'forms.approve' | translate }}
       </button>
       <button mat-raised-button color="warn" (click)="onReject()">
         {{ 'forms.reject' | translate }}
       </button>
-    </div>
-  }
-  @if (showCheckInButton) {
-    <div class="actions">
+    }
+    
+    @if (showCheckInButton) {
       <button mat-raised-button color="primary" (click)="onCheckIn()">
         {{ 'forms.check-in' | translate }}
       </button>
-    </div>
-  }
+    }
+
+    <button 
+      mat-raised-button 
+      class="icon-button first-icon" 
+      (click)="onCopyFormId()"
+      [matTooltip]="'forms.copy-form-id' | translate: { formId: form.formID }">
+      <mat-icon>content_copy</mat-icon>
+    </button>
+    @if (form.pdfUri) {
+      <button mat-raised-button class="icon-button" (click)="onPrintForm()">
+        <mat-icon>print</mat-icon>
+      </button>
+    }
+  </div>
 </div> 

@@ -3,7 +3,7 @@ import {
   ORGANIZATION_ID_PATH_PARAM,
   USER_ID_PATH_PARAM,
   UserInOrganization,
-  UserRole,
+  OptionalObject,
 } from '@equip-track/shared';
 import { APIGatewayProxyEvent } from 'aws-lambda';
 import { badRequest, forbidden, unauthorized } from './responses';
@@ -11,11 +11,11 @@ import { JwtService } from '../services/jwt.service';
 import { JwtPayload } from '@equip-track/shared';
 
 const jwtService = new JwtService();
-const rolesAllowedToAccessOtherUsers = [UserRole.Admin];
 
-export async function authenticateAndGetJwt(
-  meta: EndpointMeta<any, any>,
-  event: APIGatewayProxyEvent
+export async function authenticateAndGetJwt<Req extends OptionalObject>(
+  meta: EndpointMeta<Req, any>,
+  event: APIGatewayProxyEvent,
+  req?: Req
 ): Promise<JwtPayload> {
   console.log(`[AUTH] Authenticating endpoint: ${meta.path}`);
   console.log(`[AUTH] Required roles:`, meta.allowedRoles);
@@ -26,7 +26,7 @@ export async function authenticateAndGetJwt(
   const organization = validateOrganizationAccess(jwtPayload, meta, event);
   console.log(`[AUTH] Organization access validated:`, organization);
 
-  validateUserAccess(jwtPayload, meta, event, organization);
+  validateUserAccess<Req>(jwtPayload, meta, event, req, organization);
   console.log(`[AUTH] User access validated successfully`);
 
   return jwtPayload;
@@ -122,25 +122,42 @@ function validateOrganizationAccess(
   return undefined;
 }
 
-function validateUserAccess(
+function validateUserAccess<Req extends OptionalObject>(
   jwtPayload: JwtPayload,
   meta: EndpointMeta<any, any>,
   event: APIGatewayProxyEvent,
+  req?: Req,
   organization?: UserInOrganization
 ) {
+  let userId: string | undefined;
   if (meta.path.includes(`{${USER_ID_PATH_PARAM}}`)) {
-    const userId = event.pathParameters?.[USER_ID_PATH_PARAM];
+    userId = event.pathParameters?.[USER_ID_PATH_PARAM];
     if (!userId) {
       throw badRequest('User ID is required');
     }
-    if (rolesAllowedToAccessOtherUsers.includes(organization.role)) {
-      return;
+  } else if (req && 'userId' in req && typeof req.userId === 'string') {
+    if (!req.userId) {
+      throw badRequest('User ID cannot be empty');
     }
-    if (userId === jwtPayload.sub) {
-      return;
-    }
-    throw forbidden(
-      `User ${organization.userId} is not allowed to access other users`
-    );
+    userId = req.userId;
   }
+  if (!userId) {
+    return;
+  }
+  validateUserAccessByUserId(userId, meta, jwtPayload, organization);
+}
+
+function validateUserAccessByUserId(
+  accessedUserId: string,
+  meta: EndpointMeta<any, any>,
+  jwtPayload: JwtPayload,
+  organization?: UserInOrganization
+) {
+  if (organization && meta.allowedOtherUsers?.includes(organization.role)) {
+    return;
+  }
+  if (accessedUserId === jwtPayload.sub) {
+    return;
+  }
+  throw forbidden(`User ${organization?.userId} is not allowed to access other users`);
 }

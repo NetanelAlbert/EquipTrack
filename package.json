@@ -20,6 +20,7 @@
     "@aws-sdk/client-s3": "^3.848.0",
     "@aws-sdk/client-secrets-manager": "^3.848.0",
     "@aws-sdk/lib-dynamodb": "^3.828.0",
+    "@aws-sdk/s3-request-presigner": "^3.858.0",
     "@ng-select/ng-select": "^13.9.1",
     "@ngneat/until-destroy": "^10.0.0",
     "@ngrx/signals": "^18.1.1",

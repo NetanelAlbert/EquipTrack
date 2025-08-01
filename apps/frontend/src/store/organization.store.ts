@@ -68,8 +68,17 @@ export const OrganizationStore = signalStore(
       );
     });
 
+    const usersMap: Signal<Map<string, UserAndUserInOrganization>> = computed(() => {
+      return new Map(
+        store.users().map((u) => {
+          return [u.user.id, u] as const;
+        })
+      );
+    });
+
     return {
       productsMap,
+      usersMap,
       // Convenience computed properties for loading states
       isLoading: computed(() => 
         store.invitingUserStatus().isLoading ||
@@ -86,9 +95,21 @@ export const OrganizationStore = signalStore(
     };
 
     return {
+      getUser(id: string): UserAndUserInOrganization | undefined {
+        return store.usersMap().get(id);
+      },
+
+      getUserName(id?: string): string {
+        return id ? this.getUser(id)?.user.name ?? id : '';
+      },
+
       // Computed methods
       getProduct(id: string): Product | undefined {
         return store.productsMap().get(id);
+      },
+
+      getProductName(id: string): string {
+        return this.getProduct(id)?.name ?? id;
       },
 
       // State setters for services

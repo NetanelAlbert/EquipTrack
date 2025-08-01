@@ -16,6 +16,7 @@ export interface StartResponse extends BasicResponse {
 
 export interface ApproveCheckOut {
   formID: string;
+  userId: string; // form user id
   signature: string;
 }
 
@@ -30,8 +31,17 @@ export interface RejectCheckOut {
 
 export interface RequestCheckIn {
   items: InventoryItem[];
+  userId: string;
+}
+
+export interface RequestCheckInResponse extends BasicResponse {
+  form: InventoryForm;
 }
 
 export interface ReportItems {
   items: ItemReport[];
+}
+
+export interface GetPresignedUrlResponse extends BasicResponse {
+  presignedUrl: string;
 }

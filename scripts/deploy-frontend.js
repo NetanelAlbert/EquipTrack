@@ -2,6 +2,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { invalidateCloudFront } = require('./setup-cloudfront.js');
 
 const STAGE = process.env.STAGE || 'dev';
 const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
@@ -171,12 +172,36 @@ function deployFrontend() {
   
   fs.writeFileSync('deployment-info.json', JSON.stringify(deploymentInfo, null, 2));
   
+  // Invalidate CloudFront cache if distribution exists
+  let invalidationResult = null;
+  if (deploymentInfo.frontend?.cloudfront?.distributionId) {
+    const distributionId = deploymentInfo.frontend.cloudfront.distributionId;
+    console.log('\n🔄 Invalidating CloudFront cache after full deployment...');
+    invalidationResult = invalidateCloudFront(distributionId);
+    
+    if (!invalidationResult || !invalidationResult.success) {
+      console.log('⚠️ CloudFront invalidation failed, but deployment continues');
+      if (invalidationResult?.fallbackApplied) {
+        console.log('✅ Cache-busting fallback strategy applied');
+        console.log('💡 Test your deployment with the cache-busted URL shown above');
+      }
+      console.log('🔧 Manual invalidation may be required if cache issues persist');
+    }
+  } else {
+    console.log('\n⚠️ CloudFront distribution not found - skipping cache invalidation');
+    console.log('🔍 Run setup-cloudfront.js to create CloudFront distribution');
+  }
+  
   console.log('\n🎉 Frontend deployment completed!');
   console.log(`S3 Website URL: ${s3WebsiteUrl}`);
+  if (invalidationResult?.success) {
+    console.log(`🔄 CloudFront cache invalidated: ${invalidationResult.invalidationId}`);
+  }
   
   return {
     bucketName,
-    s3WebsiteUrl
+    s3WebsiteUrl,
+    invalidationResult
   };
 }
 
