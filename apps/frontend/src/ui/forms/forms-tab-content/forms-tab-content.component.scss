@@ -1,0 +1,60 @@
+.forms-container {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.forms-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  background-color: var(--color-surface-variant);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+
+  .search-field {
+    flex: 1;
+    min-width: 250px;
+  }
+
+  mat-form-field {
+    min-width: 140px;
+  }
+
+  .clear-filters-btn {
+    color: var(--color-on-surface-variant);
+    transition: color 0.2s ease;
+    margin-bottom: 22px; // to align with the search field
+
+    &:hover {
+      color: var(--color-accent);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .forms-controls {
+    flex-direction: column;
+    align-items: stretch;
+
+    .search-field,
+    mat-form-field {
+      min-width: unset;
+      width: 100%;
+    }
+
+    .clear-filters-btn {
+      align-self: center;
+    }
+  }
+}
+
+@media (min-width: 768px) {
+  .forms-container {
+    padding: 2px;
+  }
+} 

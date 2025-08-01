@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsStore } from '../../store/forms.store';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
-import { FormCardComponent } from './form-card/form-card.component';
-import { EmptyStateComponent } from './empty-state/empty-state.component';
+import { FormsTabContentComponent } from './forms-tab-content/forms-tab-content.component';
 
 @Component({
   selector: 'app-forms',
@@ -13,8 +12,7 @@ import { EmptyStateComponent } from './empty-state/empty-state.component';
     CommonModule,
     MatTabsModule,
     TranslateModule,
-    FormCardComponent,
-    EmptyStateComponent,
+    FormsTabContentComponent,
   ],
   templateUrl: './forms.component.html',
   styleUrl: './forms.component.scss',

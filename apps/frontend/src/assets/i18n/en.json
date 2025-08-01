@@ -108,7 +108,20 @@
     "check-in-submitted": "Check-in request submitted successfully",
     "check-out-submitted": "Check-out request submitted successfully",
     "form-approved": "Form approved successfully",
-    "form-rejected": "Form rejected successfully"
+    "form-rejected": "Form rejected successfully",
+    "search": {
+      "placeholder": "Search forms details"
+    },
+    "filter": {
+      "status": "Filter by Status",
+      "all": "All Statuses"
+    },
+    "sort": {
+      "label": "Sort by Date",
+      "newest": "Newest First",
+      "oldest": "Oldest First"
+    },
+    "clearFilters": "Clear Filters"
   },
   "inventory": {
     "title": "Inventory",

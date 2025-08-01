@@ -1,0 +1,50 @@
+<div class="forms-container">
+  <div class="forms-controls">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>{{ 'forms.search.placeholder' | translate }}</mat-label>
+      <input 
+        matInput 
+        type="text" 
+        [ngModel]="searchTerm()" 
+        (ngModelChange)="searchTerm.set($event)"
+        name="searchTerm"
+      >
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'forms.filter.status' | translate }}</mat-label>
+      <mat-select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)" name="statusFilter">
+        <mat-option value="all">{{ 'forms.filter.all' | translate }}</mat-option>
+        <mat-option value="pending">{{ 'forms.status-pending' | translate }}</mat-option>
+        <mat-option value="approved">{{ 'forms.status-approved' | translate }}</mat-option>
+        <mat-option value="rejected">{{ 'forms.status-rejected' | translate }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'forms.sort.label' | translate }}</mat-label>
+      <mat-select [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)" name="sortBy">
+        <mat-option value="newest">{{ 'forms.sort.newest' | translate }}</mat-option>
+        <mat-option value="oldest">{{ 'forms.sort.oldest' | translate }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button 
+      mat-icon-button 
+      (click)="clearFilters()" 
+      [title]="'forms.clearFilters' | translate"
+      class="clear-filters-btn"
+    >
+      <mat-icon>clear</mat-icon>
+    </button>
+  </div>
+
+  @if (filteredForms().length > 0) {
+    @for (form of filteredForms(); track form.formID) {
+      <app-form-card [form]="form"></app-form-card>
+    }
+  } @else {
+    <app-empty-state [message]="emptyStateMessage()"></app-empty-state>
+  }
+</div> 
