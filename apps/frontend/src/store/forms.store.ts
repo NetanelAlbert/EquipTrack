@@ -337,7 +337,7 @@ export const FormsStore = signalStore(
         }
       },
 
-      async approveForm(formID: string, signature: string) {
+      async approveForm(formID: string, formUserId: string, signature: string) {
         updateState({
           approveFormStatus: { isLoading: true, error: undefined },
         });
@@ -348,6 +348,7 @@ export const FormsStore = signalStore(
             apiService.endpoints.approveForm.execute(
               {
                 formID,
+                userId: formUserId,
                 signature,
               },
               {

@@ -70,7 +70,7 @@ export class FormCardComponent {
             this.form.formID
           );
 
-          await this.formsStore.approveForm(this.form.formID, signature);
+          await this.formsStore.approveForm(this.form.formID, this.form.userID, signature);
         } catch (error) {
           console.error('Failed to approve form:', error);
           // TODO: Show error message to user via snackbar or toast

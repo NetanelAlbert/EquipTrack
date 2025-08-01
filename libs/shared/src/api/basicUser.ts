@@ -16,6 +16,7 @@ export interface StartResponse extends BasicResponse {
 
 export interface ApproveCheckOut {
   formID: string;
+  userId: string; // form user id
   signature: string;
 }
 
