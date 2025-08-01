@@ -193,29 +193,18 @@ export class FormsAdapter {
   }
 
   private getInventoryForm(item: any): InventoryForm {
-    return {
-      userID: item.userID,
-      formID: item.formID,
-      organizationID: item.organizationID,
-      items: item.items,
-      type: item.type,
-      status: item.status,
-      createdAtTimestamp: item.createdAtTimestamp,
-      approvedAtTimestamp: item.approvedAtTimestamp,
-      approvedByUserId: item.approvedByUserId,
-      pdfUri: item.pdfUri,
-      rejectionReason: item.rejectionReason,
-      lastUpdated: item.lastUpdated,
-      createdByUserId: item.createdByUserId,
-    };
+    if (item.dbItemType !== DbItemType.Form) {
+      throw new Error(`Item is not a form: ${JSON.stringify(item)}`);
+    }
+
+    return item as InventoryForm;
   }
 
   private getPredefinedForm(item: any): PredefinedForm {
-    return {
-      organizationID: item.organizationID,
-      formID: item.formID,
-      description: item.description,
-      items: item.items,
-    };
+    if (item.dbItemType !== DbItemType.PredefinedForm) {
+      throw new Error(`Item is not a predefined form: ${JSON.stringify(item)}`);
+    }
+
+    return item as PredefinedForm;
   }
 }
