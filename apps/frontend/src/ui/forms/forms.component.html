@@ -1,4 +1,4 @@
-<mat-tab-group>
+<mat-tab-group [(selectedIndex)]="selectedTabIndex">
   <mat-tab>
     <ng-template mat-tab-label>
       <span class="tab-label">{{ 'forms.check-out' | translate }}</span>
@@ -6,7 +6,9 @@
     
     <app-forms-tab-content 
       [forms]="formsStore.checkOutForms()" 
-      emptyStateMessage="forms.empty-check-out">
+      emptyStateMessage="forms.empty-check-out"
+      [statusFilter]="checkOutQueryParams()?.searchStatus || 'pending'"
+      [searchTerm]="checkOutQueryParams()?.searchTerm || ''">
     </app-forms-tab-content>
   </mat-tab>
 
@@ -17,7 +19,9 @@
     
     <app-forms-tab-content 
       [forms]="formsStore.checkInForms()" 
-      emptyStateMessage="forms.empty-check-in">
+      emptyStateMessage="forms.empty-check-in"
+      [statusFilter]="checkInQueryParams()?.searchStatus || 'pending'"
+      [searchTerm]="checkInQueryParams()?.searchTerm || ''">
     </app-forms-tab-content>
   </mat-tab>
 </mat-tab-group>

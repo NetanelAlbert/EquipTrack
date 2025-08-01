@@ -11,6 +11,10 @@ import { UserStore } from '../../../store/user.store';
 import { FormsStore } from '../../../store/forms.store';
 import { UserRole, FormStatus, FormType } from '@equip-track/shared';
 import { OrganizationStore } from '../../../store/organization.store';
+import { UI_DATE_FORMAT } from '@equip-track/shared';
+import { Clipboard } from '@angular/cdk/clipboard';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { NotificationService } from '../../../services/notification.service';
 
 @Component({
   selector: 'app-form-card',
@@ -20,6 +24,7 @@ import { OrganizationStore } from '../../../store/organization.store';
     MatIconModule,
     TranslateModule,
     InventoryListComponent,
+    MatTooltipModule,
   ],
   templateUrl: './form-card.component.html',
   styleUrls: ['./form-card.component.scss'],
@@ -27,10 +32,14 @@ import { OrganizationStore } from '../../../store/organization.store';
 export class FormCardComponent {
   @Input({ required: true }) form!: InventoryForm;
 
-  dialog = inject(MatDialog);
-  userStore = inject(UserStore);
-  formsStore = inject(FormsStore);
+  UI_DATE_FORMAT = UI_DATE_FORMAT;
   organizationStore = inject(OrganizationStore);
+
+  private readonly dialog = inject(MatDialog);
+  private readonly userStore = inject(UserStore);
+  private readonly formsStore = inject(FormsStore);
+  private readonly clipboard = inject(Clipboard);
+  private readonly notificationService = inject(NotificationService);
 
   get isAdminOrWarehouseManager(): boolean {
     const role = this.userStore.currentRole();
@@ -114,5 +123,22 @@ export class FormCardComponent {
   get pdfUri(): string | undefined {
     // todo: presigned url from backend and cache it
     return this.form.pdfUri;
+  }
+
+  onPrintForm() {
+    this.formsStore.getPresignedUrl(
+      this.form.formID,
+      this.form.userID,
+      this.userStore.selectedOrganizationId()
+    ).then((url) => {
+      if (url) {
+        window.open(url, '_blank');
+      }
+    });
+  }
+
+  onCopyFormId() {
+    this.clipboard.copy(this.form.formID);
+    this.notificationService.showSuccess('forms.form-id-copied');
   }
 }

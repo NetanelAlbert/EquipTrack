@@ -24,6 +24,8 @@ export interface InventoryForm {
   approvedByUserId?: string;
   pdfUri?: string;
   rejectionReason?: string;
+  rejectionAtTimestamp?: number;
+  rejectionByUserId?: string;
   lastUpdated: number;
   description?: string;
   createdByUserId?: string;

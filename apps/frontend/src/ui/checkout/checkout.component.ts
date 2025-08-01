@@ -22,6 +22,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { NotificationService } from '../../services/notification.service';
 import { UserStore } from '../../store/user.store';
 import { FormsStore } from '../../store/forms.store';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-checkout',
@@ -49,6 +50,8 @@ export class CheckoutComponent {
   private notificationService = inject(NotificationService);
   protected formsStore = inject(FormsStore);
   private userStore = inject(UserStore);
+  private router = inject(Router);
+
   submitButton = {
     text: 'inventory.button.create-checkout',
     icon: 'check',

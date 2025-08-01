@@ -44,8 +44,8 @@ describe('FormsTabContentComponent', () => {
 
     fixture = TestBed.createComponent(FormsTabContentComponent);
     component = fixture.componentInstance;
-    component.forms = mockForms;
-    component.emptyStateMessage = 'forms.empty-test';
+    fixture.componentRef.setInput('forms', mockForms);
+    fixture.componentRef.setInput('emptyStateMessage', 'forms.empty-test');
     fixture.detectChanges();
   });
 

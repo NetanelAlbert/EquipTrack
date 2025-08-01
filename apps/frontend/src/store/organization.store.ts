@@ -99,8 +99,8 @@ export const OrganizationStore = signalStore(
         return store.usersMap().get(id);
       },
 
-      getUserName(id: string): string {
-        return this.getUser(id)?.user.name ?? id;
+      getUserName(id?: string): string {
+        return id ? this.getUser(id)?.user.name ?? id : '';
       },
 
       // Computed methods

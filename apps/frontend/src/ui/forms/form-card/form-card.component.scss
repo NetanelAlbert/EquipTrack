@@ -52,6 +52,15 @@
       background: var(--color-bg-primary);
       color: var(--color-accent);
 
+      &.icon-button {
+        min-width: unset;
+        padding: 0.6rem 0.6rem;
+
+        &.first-icon {
+          margin-left: auto;
+        }
+      }
+
       &:hover:not(:disabled) {
         background: var(--color-gradient-light);
         color: var(--color-accent);

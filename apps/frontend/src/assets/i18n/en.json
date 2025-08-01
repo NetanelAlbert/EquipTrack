@@ -95,8 +95,11 @@
     "status-approved": "Approved", 
     "status-rejected": "Rejected",
     "created-at": "Created At",
+    "created-by": "Created By",
     "approved-at": "Approved At",
     "approved-by": "Approved By",
+    "rejected-at": "Rejected At",
+    "by": "By",
     "rejection-reason": "Rejection Reason",
     "view-pdf": "View PDF",
     "approve": "Approve",
@@ -121,7 +124,10 @@
       "newest": "Newest First",
       "oldest": "Oldest First"
     },
-    "clearFilters": "Clear Filters"
+    "clearFilters": "Clear Filters",
+    "copy-form-id": "Copy Form ID: {{formId}}",
+    "form-id-copied": "Form ID copied to clipboard",
+    "view-submitted-form": "Would you like to view your submitted form?"
   },
   "inventory": {
     "title": "Inventory",
@@ -270,7 +276,8 @@
       "user-id-required": "User ID is required",
       "description-required": "Description is required",
       "jwt-payload-required": "JWT payload is required",
-      "organization-id-required": "Organization ID is required"
+      "organization-id-required": "Organization ID is required",
+      "form-id-required": "Form ID is required"
     },
     "auth": {
       "no-token": "Authentication required. Please sign in again.",
@@ -307,6 +314,9 @@
       "fetch-failed": "Failed to load products. Please try again.",
       "save-failed": "Failed to save products. Please try again.",
       "delete-failed": "Failed to delete product. Please try again."
+    },
+    "presigned-url": {
+      "get-failed": "Failed to get presigned URL. Please try again."
     }
   },
   "organization": {
