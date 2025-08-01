@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { getHandlerNames } = require('./create-lambda-packages');
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 const STAGE = process.env.STAGE || 'dev';
 const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
 const PACKAGES_DIR = 'lambda-packages';
@@ -65,7 +67,7 @@ function getLambdaPolicyDocument() {
   };
 }
 
-function updateRolePolicy(roleName) {
+async function updateRolePolicy(roleName) {
   const policyName = `equip-track-lambda-policy-${STAGE}`;
   const lambdaPolicy = getLambdaPolicyDocument();
   
@@ -120,7 +122,7 @@ function updateRolePolicy(roleName) {
   }
 }
 
-function ensureRole() {
+async function ensureRole() {
   const roleName = `equip-track-lambda-role-${STAGE}`;
   const policyDocument = {
     Version: '2012-10-17',
@@ -142,7 +144,7 @@ function ensureRole() {
     console.log(`Using existing role: ${roleArn}`);
     
     // Update policy for existing role to ensure it has latest permissions
-    updateRolePolicy(roleName);
+    await updateRolePolicy(roleName);
     
     return roleArn;
   } catch (error) {
@@ -203,7 +205,7 @@ function ensureRole() {
           break;
         }
         console.log(`Role not ready yet, waiting... (${attempts}/${maxAttempts})`);
-        execSync('sleep 10');
+        await sleep(10000); // 10 seconds
       }
     }
     
@@ -211,7 +213,7 @@ function ensureRole() {
   }
 }
 
-function waitForLambdaUpdate(functionName, maxAttempts = 12) {
+async function waitForLambdaUpdate(functionName, maxAttempts = 12) {
   console.log(`Waiting for ${functionName} to be ready for configuration update...`);
   let attempts = 0;
   
@@ -233,7 +235,7 @@ function waitForLambdaUpdate(functionName, maxAttempts = 12) {
       
       attempts++;
       console.log(`${functionName} status: ${functionInfo.Configuration.LastUpdateStatus}, waiting... (${attempts}/${maxAttempts})`);
-      execSync('sleep 5');
+      await sleep(5000); // 5 seconds
       
     } catch (error) {
       attempts++;
@@ -242,7 +244,7 @@ function waitForLambdaUpdate(functionName, maxAttempts = 12) {
         return true;
       }
       console.log(`Error checking status, retrying... (${attempts}/${maxAttempts})`);
-      execSync('sleep 5');
+      await sleep(5000); // 5 seconds
     }
   }
   
@@ -250,7 +252,7 @@ function waitForLambdaUpdate(functionName, maxAttempts = 12) {
   return true;
 }
 
-function deployLambdaFunction(handlerName, roleArn) {
+async function deployLambdaFunction(handlerName, roleArn) {
   const functionName = `equip-track-${handlerName}-${STAGE}`;
   const zipPath = path.join(PACKAGES_DIR, `${handlerName}.zip`);
   
@@ -278,7 +280,7 @@ function deployLambdaFunction(handlerName, roleArn) {
       );
       
       // Wait for code update to complete before updating configuration
-      if (waitForLambdaUpdate(functionName)) {
+      if (await waitForLambdaUpdate(functionName)) {
         try {
           execSync(
             `aws lambda update-function-configuration --function-name ${functionName} ` +
@@ -321,21 +323,21 @@ function deployLambdaFunction(handlerName, roleArn) {
   return functionName;
 }
 
-function deployAllLambdas() {
+async function deployAllLambdas() {
   console.log('Deploying Lambda functions...');
   
   if (!fs.existsSync(PACKAGES_DIR)) {
     throw new Error(`Packages directory not found: ${PACKAGES_DIR}`);
   }
   
-  const roleArn = ensureRole();
+  const roleArn = await ensureRole();
   const handlerNames = getHandlerNames();
   const deployedFunctions = [];
   
-  handlerNames.forEach(handlerName => {
-    const functionName = deployLambdaFunction(handlerName, roleArn);
+  for (const handlerName of handlerNames) {
+    const functionName = await deployLambdaFunction(handlerName, roleArn);
     deployedFunctions.push({ handlerName, functionName });
-  });
+  }
   
   console.log('\n🎉 All Lambda functions deployed successfully!');
   console.log('\nDeployed functions:');
@@ -367,8 +369,99 @@ function deployAllLambdas() {
   return deployedFunctions;
 }
 
-if (require.main === module) {
-  deployAllLambdas();
+// Parallel deployment function
+async function deployAllLambdasParallel() {
+  console.log('Deploying Lambda functions in parallel...');
+  
+  if (!fs.existsSync(PACKAGES_DIR)) {
+    throw new Error(`Packages directory not found: ${PACKAGES_DIR}`);
+  }
+  
+  const roleArn = await ensureRole();
+  const handlerNames = getHandlerNames();
+  
+  console.log(`Starting parallel deployment of ${handlerNames.length} functions...`);
+  
+  // Deploy all functions in parallel
+  const deploymentPromises = handlerNames.map(async (handlerName) => {
+    try {
+      const functionName = await deployLambdaFunction(handlerName, roleArn);
+      return { handlerName, functionName, success: true };
+    } catch (error) {
+      console.error(`❌ Failed to deploy ${handlerName}:`, error.message);
+      return { handlerName, functionName: null, success: false, error: error.message };
+    }
+  });
+  
+  const results = await Promise.all(deploymentPromises);
+  
+  // Separate successful and failed deployments
+  const successful = results.filter(r => r.success);
+  const failed = results.filter(r => !r.success);
+  
+  console.log('\n🎉 Parallel Lambda deployment completed!');
+  
+  if (successful.length > 0) {
+    console.log('\nSuccessfully deployed functions:');
+    successful.forEach(({ handlerName, functionName }) => {
+      console.log(`  ✅ ${handlerName} -> ${functionName}`);
+    });
+  }
+  
+  if (failed.length > 0) {
+    console.log('\nFailed deployments:');
+    failed.forEach(({ handlerName, error }) => {
+      console.log(`  ❌ ${handlerName}: ${error}`);
+    });
+  }
+  
+  // Update deployment info with successful Lambda functions only
+  let deploymentInfo = {};
+  if (fs.existsSync('deployment-info.json')) {
+    deploymentInfo = JSON.parse(fs.readFileSync('deployment-info.json', 'utf8'));
+  } else {
+    deploymentInfo = {
+      stage: STAGE,
+      region: AWS_REGION
+    };
+  }
+  
+  deploymentInfo.backend = deploymentInfo.backend || {};
+  deploymentInfo.backend.lambdas = {
+    functions: successful,
+    role: roleArn,
+    status: failed.length === 0 ? 'deployed' : 'partial',
+    failed: failed.length
+  };
+  
+  fs.writeFileSync('deployment-info.json', JSON.stringify(deploymentInfo, null, 2));
+  
+  if (failed.length > 0) {
+    throw new Error(`${failed.length} Lambda function(s) failed to deploy`);
+  }
+  
+  return successful;
 }
 
-module.exports = { deployAllLambdas }; 
+if (require.main === module) {
+  const useParallel = process.argv.includes('--parallel');
+  
+  if (useParallel) {
+    deployAllLambdasParallel().catch(error => {
+      console.error('Deployment failed:', error.message);
+      process.exit(1);
+    });
+  } else {
+    deployAllLambdas().catch(error => {
+      console.error('Deployment failed:', error.message);
+      process.exit(1);
+    });
+  }
+}
+
+module.exports = { 
+  deployAllLambdas, 
+  deployAllLambdasParallel,
+  deployLambdaFunction,
+  waitForLambdaUpdate
+}; 

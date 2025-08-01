@@ -76,7 +76,7 @@ jobs:
         id: deploy-lambdas
         run: |
           node scripts/deployment-status-tracker.js track lambda-deploy started
-          node scripts/deploy-lambdas.js
+          node scripts/deploy-lambdas.js --parallel
           node scripts/deployment-status-tracker.js track lambda-deploy success
 
       - name: Deploy API Gateway
