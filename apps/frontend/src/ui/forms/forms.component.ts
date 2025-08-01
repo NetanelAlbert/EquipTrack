@@ -42,7 +42,7 @@ export class FormsComponent implements OnInit {
       : undefined
   );
 
-  selectedTabIndex = formTypeToTabIndex[FormType.CheckIn];
+  selectedTabIndex = formTypeToTabIndex[FormType.CheckOut];
 
   ngOnInit(): void {
     this.formsStore.fetchForms();

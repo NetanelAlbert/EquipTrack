@@ -18,6 +18,7 @@ import { InventorySearchComponent } from '../search/inventory-search.component';
 import { InventoryStore } from '../../../store/inventory.store';
 import { OrganizationStore } from '../../../store/organization.store';
 import { OrganizationService } from '../../../services/organization.service';
+import { InventoryItem } from '@equip-track/shared';
 
 @Component({
   selector: 'inventory-by-users',
@@ -45,16 +46,11 @@ export class InventoryByUsersComponent implements OnInit {
   selectedUserID = signal<string | undefined>(undefined);
 
   // Signal for filtered items from search component
-  filteredItems = signal<any[]>([]);
+  filteredItems = signal<InventoryItem[]>([]);
 
   // Computed property that reacts to selectedUserID changes
   userItems = computed(() => {
     const userId = this.selectedUserID();
-
-    // Handle WAREHOUSE special case
-    if (userId === 'WAREHOUSE') {
-      return this.inventoryStore.wareHouseInventory();
-    }
 
     // Return user inventory or empty array if no user selected
     return userId ? this.inventoryStore.getUserInventory(userId) : [];
@@ -71,7 +67,7 @@ export class InventoryByUsersComponent implements OnInit {
     // Effect to fetch data when user selection changes
     effect(() => {
       const userId = this.selectedUserID();
-      if (userId && userId !== 'WAREHOUSE') {
+      if (userId) {
         // A workaround to update signals from effect
         setTimeout(() => {
           // Fetch user inventory when a specific user is selected
@@ -86,18 +82,13 @@ export class InventoryByUsersComponent implements OnInit {
     this.loadUsers();
   }
 
-  onUserChange() {
-    // No need to reassign computed - reactivity handled automatically by signals
-    // The effect will trigger data fetching when selectedUserID changes
-  }
-
   // Method to load/retry users
   loadUsers() {
     this.organizationService.getUsers();
   }
 
   // Handle filtered items from search component
-  onFilteredItemsChange(filtered: any[]) {
+  onFilteredItemsChange(filtered: InventoryItem[]) {
     this.filteredItems.set(filtered);
   }
 }
