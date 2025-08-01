@@ -110,25 +110,25 @@ export function customError(
 }
 
 export const organizationIdRequired = customError(
-  ErrorKeys.BAD_REQUEST,
+  ErrorKeys.ORGANIZATION_ID_REQUIRED,
   400,
-  'errors.api.organization-id-required',
+  'Organization ID is required'
 )
 
 export const formIdRequired = customError(
-  ErrorKeys.BAD_REQUEST,
+  ErrorKeys.FORM_ID_REQUIRED,
   400,
-  'errors.api.form-id-required',
+  'Form ID is required'
 )
 
 export const userIdRequired = customError(
-  ErrorKeys.BAD_REQUEST,
+  ErrorKeys.USER_ID_REQUIRED,
   400,
-  'errors.api.user-id-required',
+  'User ID is required'
 )
 
 export const jwtPayloadRequired = customError(
-  ErrorKeys.BAD_REQUEST,
+  ErrorKeys.JWT_PAYLOAD_REQUIRED,
   400,
-  'errors.api.jwt-payload-required',
+  'JWT payload is required'
 )
