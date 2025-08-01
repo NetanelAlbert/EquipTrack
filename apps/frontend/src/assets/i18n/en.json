@@ -55,7 +55,9 @@
     "navigation-failed": "Navigation failed. Please try again.",
     "signature": {
       "signature-pad": "Signature Pad",
-      "clear": "Clear"
+      "clear": "Clear",
+      "title": "Please sign to approve"
+      
     }
   },
   "navigation": {
