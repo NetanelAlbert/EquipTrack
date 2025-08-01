@@ -40,3 +40,7 @@ export interface RequestCheckInResponse extends BasicResponse {
 export interface ReportItems {
   items: ItemReport[];
 }
+
+export interface GetPresignedUrlResponse extends BasicResponse {
+  presignedUrl: string;
+}

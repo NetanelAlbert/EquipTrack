@@ -1,4 +1,9 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 export class S3Service {
   private readonly client: S3Client;
@@ -65,16 +70,34 @@ export class S3Service {
     }
   }
 
+
+  /**
+   * Generates a pre-signed URL for accessing the PDF
+   * @param url S3 URL of the file
+   * @param expiresIn Expiration time in seconds (default: 3600 seconds - 1 hour)
+   * @returns Presigned URL
+   */
+  async getPresignedUrl(url: string, expiresIn = 3600): Promise<string> {
+    const key = url.split('amazonaws.com/').pop();
+    if (!key) {
+      throw new Error('Invalid S3 URL');
+    }
+    return this.getPresignedUrlFromKey(key, expiresIn);
+  }
+
   /**
    * Generates a pre-signed URL for accessing the PDF (optional enhancement)
    * This could be used if direct S3 URLs don't work due to bucket policies
+   * @param key S3 key of the file
+   * @param expiresIn Expiration time in seconds (default: 3600 seconds - 1 hour)
+   * @returns Presigned URL
    */
-  // async getPresignedUrl(key: string, expiresIn = 3600): Promise<string> {
-  //   const command = new GetObjectCommand({
-  //     Bucket: this.bucketName,
-  //     Key: key,
-  //   });
-  //
-  //   return await getSignedUrl(this.client, command, { expiresIn });
-  // }
+  async getPresignedUrlFromKey(key: string, expiresIn = 3600): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+    });
+
+    return await getSignedUrl(this.client, command, { expiresIn });
+  }
 }

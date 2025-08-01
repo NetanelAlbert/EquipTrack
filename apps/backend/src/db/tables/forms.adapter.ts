@@ -206,6 +206,7 @@ export class FormsAdapter {
       pdfUri: item.pdfUri,
       rejectionReason: item.rejectionReason,
       lastUpdated: item.lastUpdated,
+      createdByUserId: item.createdByUserId,
     };
   }
 

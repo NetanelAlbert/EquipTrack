@@ -21,6 +21,7 @@ export interface EndpointMeta<Req extends OptionalObject = undefined, Res extend
 
 export const ORGANIZATION_ID_PATH_PARAM = 'organizationId';
 export const USER_ID_PATH_PARAM = 'userId';
+export const FORM_ID_PATH_PARAM = 'formId';
 
 export const endpointMetas = {
   // Authentication
@@ -67,43 +68,6 @@ export const endpointMetas = {
     ],
     responseType: {} as BasicUser.StartResponse,
   } as EndpointMeta<undefined, BasicUser.StartResponse>,
-  approveForm: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/approve`,
-    method: 'POST',
-    allowedRoles: [
-      UserRole.WarehouseManager,
-      UserRole.Admin,
-      UserRole.Customer,
-    ],
-    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
-    requestType: {} as BasicUser.ApproveCheckOut,
-    responseType: {} as BasicUser.ApproveCheckOutResponse,
-  } as EndpointMeta<BasicUser.ApproveCheckOut, BasicUser.ApproveCheckOutResponse>,
-  rejectForm: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/reject`,
-    method: 'POST',
-    allowedRoles: [
-      UserRole.WarehouseManager,
-      UserRole.Admin,
-      UserRole.Customer,
-    ],
-    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
-    requestType: {} as BasicUser.RejectCheckOut,
-    responseType: {} as BasicResponse,
-  } as EndpointMeta<BasicUser.RejectCheckOut, BasicResponse>,
-  requestCheckIn: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkin/request`,
-    method: 'POST',
-    allowedRoles: [
-      UserRole.Customer,
-      UserRole.Admin,
-      UserRole.WarehouseManager,
-    ],
-    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
-    requestType: {} as BasicUser.RequestCheckIn,
-    responseType: {} as BasicUser.RequestCheckInResponse,
-  } as EndpointMeta<BasicUser.RequestCheckIn, BasicUser.RequestCheckInResponse>,
-
   // Warehouse
   getProducts: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products`,
@@ -184,6 +148,50 @@ export const endpointMetas = {
     requestType: {} as Wharehouse.CreateCheckOutForm,
     responseType: {} as Wharehouse.CreateCheckOutFormResponse,
   } as EndpointMeta<Wharehouse.CreateCheckOutForm, Wharehouse.CreateCheckOutFormResponse>,
+  requestCheckIn: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkin/request`,
+    method: 'POST',
+    allowedRoles: [
+      UserRole.Customer,
+      UserRole.Admin,
+      UserRole.WarehouseManager,
+    ],
+    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
+    requestType: {} as BasicUser.RequestCheckIn,
+    responseType: {} as BasicUser.RequestCheckInResponse,
+  } as EndpointMeta<BasicUser.RequestCheckIn, BasicUser.RequestCheckInResponse>,
+  approveForm: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/approve`,
+    method: 'POST',
+    allowedRoles: [
+      UserRole.WarehouseManager,
+      UserRole.Admin,
+      UserRole.Customer,
+    ],
+    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
+    requestType: {} as BasicUser.ApproveCheckOut,
+    responseType: {} as BasicUser.ApproveCheckOutResponse,
+  } as EndpointMeta<BasicUser.ApproveCheckOut, BasicUser.ApproveCheckOutResponse>,
+  rejectForm: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/reject`,
+    method: 'POST',
+    allowedRoles: [
+      UserRole.WarehouseManager,
+      UserRole.Admin,
+      UserRole.Customer,
+    ],
+    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
+    requestType: {} as BasicUser.RejectCheckOut,
+    responseType: {} as BasicResponse,
+  } as EndpointMeta<BasicUser.RejectCheckOut, BasicResponse>,
+  getPresignedUrl: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/users/{${USER_ID_PATH_PARAM}}/forms/{${FORM_ID_PATH_PARAM}}/presigned-url`,
+    method: 'GET',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
+    responseType: {} as BasicUser.GetPresignedUrlResponse,
+  } as EndpointMeta<undefined, BasicUser.GetPresignedUrlResponse>,
+
 
   // Reports
   /**
