@@ -1,8 +1,7 @@
-import { BasicUser, ORGANIZATION_ID_PATH_PARAM, USER_ID_PATH_PARAM, UserRole } from "@equip-track/shared";
-import { JwtPayload } from "@equip-track/shared";
+import { BasicUser, ORGANIZATION_ID_PATH_PARAM, USER_ID_PATH_PARAM } from "@equip-track/shared";
 import { FORM_ID_PATH_PARAM } from "@equip-track/shared";
 import { APIGatewayProxyEventPathParameters } from "aws-lambda";
-import { badRequest } from "../responses";
+import { formIdRequired, organizationIdRequired, userIdRequired } from "../responses";
 import { FormsAdapter } from "../../db/tables/forms.adapter";
 import { S3Service } from "../../services/s3.service";
 
@@ -12,22 +11,21 @@ const s3Service = new S3Service();
 export const handler = async (
   _req: unknown,
   pathParams: APIGatewayProxyEventPathParameters,
-  jwtPayload?: JwtPayload
 ): Promise<BasicUser.GetPresignedUrlResponse> => {
   const organizationId = pathParams?.[ORGANIZATION_ID_PATH_PARAM];
   const formId = pathParams?.[FORM_ID_PATH_PARAM];
   const userId = pathParams?.[USER_ID_PATH_PARAM];
 
   if (!organizationId) {
-    throw badRequest('Organization ID is required');
+    throw organizationIdRequired;
   }
 
   if (!formId) {
-    throw badRequest('Form ID is required');
+    throw formIdRequired;
   }
 
   if(!userId) {
-    throw badRequest('User ID is required');
+    throw userIdRequired;
   }
 
   const form = await formsAdapter.getForm(userId, organizationId, formId);

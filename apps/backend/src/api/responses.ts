@@ -108,3 +108,27 @@ export function customError(
     }),
   };
 }
+
+export const organizationIdRequired = customError(
+  ErrorKeys.BAD_REQUEST,
+  400,
+  'errors.api.organization-id-required',
+)
+
+export const formIdRequired = customError(
+  ErrorKeys.BAD_REQUEST,
+  400,
+  'errors.api.form-id-required',
+)
+
+export const userIdRequired = customError(
+  ErrorKeys.BAD_REQUEST,
+  400,
+  'errors.api.user-id-required',
+)
+
+export const jwtPayloadRequired = customError(
+  ErrorKeys.BAD_REQUEST,
+  400,
+  'errors.api.jwt-payload-required',
+)

@@ -9,7 +9,7 @@ import { CreateCheckOutForm, CreateCheckOutFormResponse } from '@equip-track/sha
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
 import { randomUUID } from 'crypto';
-import { badRequest, customError, internalServerError } from '../../responses';
+import { badRequest, customError, internalServerError, jwtPayloadRequired, organizationIdRequired, userIdRequired } from '../../responses';
 import { validateInventoryItems } from '../../validate';
 
 export const handler = async (
@@ -20,15 +20,15 @@ export const handler = async (
   try {
     const organizationId = pathParams?.organizationId;
     if (!organizationId) {
-      throw badRequest('Organization ID is required');
+      throw organizationIdRequired;
     }
 
     if (!req.userID) {
-      throw customError(ErrorKeys.BAD_REQUEST, 400, 'errors.api.user-id-required', 'User ID is required');
+      throw userIdRequired;
     }
 
     if (!jwtPayload) {
-      throw customError(ErrorKeys.BAD_REQUEST, 400, 'errors.api.jwt-payload-required', 'JWT payload is required');
+      throw jwtPayloadRequired;
     }
 
     if (!req.description) {
