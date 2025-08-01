@@ -3,6 +3,7 @@ import {
   FormStatus,
   FormType,
   InventoryForm,
+  JwtPayload,
 } from '@equip-track/shared';
 import { CreateCheckOutForm, CreateCheckOutFormResponse } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
@@ -13,7 +14,8 @@ import { validateInventoryItems } from '../../validate';
 
 export const handler = async (
   req: CreateCheckOutForm,
-  pathParams: APIGatewayProxyEventPathParameters
+  pathParams: APIGatewayProxyEventPathParameters,
+  jwtPayload?: JwtPayload
 ): Promise<CreateCheckOutFormResponse> => {
   try {
     const organizationId = pathParams?.organizationId;
@@ -23,6 +25,10 @@ export const handler = async (
 
     if (!req.userID) {
       throw customError(ErrorKeys.BAD_REQUEST, 400, 'errors.api.user-id-required', 'User ID is required');
+    }
+
+    if (!jwtPayload) {
+      throw customError(ErrorKeys.BAD_REQUEST, 400, 'errors.api.jwt-payload-required', 'JWT payload is required');
     }
 
     if (!req.description) {
@@ -45,6 +51,7 @@ export const handler = async (
       createdAtTimestamp: now,
       lastUpdated: now,
       description: req.description,
+      createdByUserId: jwtPayload.sub,
     };
 
     await formsAdapter.createForm(form);

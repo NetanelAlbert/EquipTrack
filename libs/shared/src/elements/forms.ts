@@ -26,6 +26,7 @@ export interface InventoryForm {
   rejectionReason?: string;
   lastUpdated: number;
   description?: string;
+  createdByUserId?: string;
 }
 
 /** DynamoDB table */

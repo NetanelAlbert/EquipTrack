@@ -268,7 +268,9 @@
       "network-error": "Network error. Please check your connection and try again.",
       "timeout": "Request timed out. Please try again.",
       "user-id-required": "User ID is required",
-      "description-required": "Description is required"
+      "description-required": "Description is required",
+      "jwt-payload-required": "JWT payload is required",
+      "organization-id-required": "Organization ID is required"
     },
     "auth": {
       "no-token": "Authentication required. Please sign in again.",
