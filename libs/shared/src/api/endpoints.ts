@@ -8,7 +8,9 @@ import { BasicResponse } from './basic';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
-export interface EndpointMeta<Req = unknown, Res = unknown> {
+export type OptionalObject = object | undefined;
+
+export interface EndpointMeta<Req extends OptionalObject = undefined, Res extends OptionalObject = undefined> {
   path: string;
   method: HttpMethod;
   allowedRoles: UserRole[];

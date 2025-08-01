@@ -3,6 +3,7 @@ import {
   ORGANIZATION_ID_PATH_PARAM,
   USER_ID_PATH_PARAM,
   UserInOrganization,
+  OptionalObject,
 } from '@equip-track/shared';
 import { APIGatewayProxyEvent } from 'aws-lambda';
 import { badRequest, forbidden, unauthorized } from './responses';
@@ -11,10 +12,10 @@ import { JwtPayload } from '@equip-track/shared';
 
 const jwtService = new JwtService();
 
-export async function authenticateAndGetJwt(
-  meta: EndpointMeta<any, any>,
+export async function authenticateAndGetJwt<Req extends OptionalObject>(
+  meta: EndpointMeta<Req, any>,
   event: APIGatewayProxyEvent,
-  req: any
+  req?: Req
 ): Promise<JwtPayload> {
   console.log(`[AUTH] Authenticating endpoint: ${meta.path}`);
   console.log(`[AUTH] Required roles:`, meta.allowedRoles);
@@ -25,7 +26,7 @@ export async function authenticateAndGetJwt(
   const organization = validateOrganizationAccess(jwtPayload, meta, event);
   console.log(`[AUTH] Organization access validated:`, organization);
 
-  validateUserAccess(jwtPayload, meta, event, req, organization);
+  validateUserAccess<Req>(jwtPayload, meta, event, req, organization);
   console.log(`[AUTH] User access validated successfully`);
 
   return jwtPayload;
@@ -121,11 +122,11 @@ function validateOrganizationAccess(
   return undefined;
 }
 
-function validateUserAccess(
+function validateUserAccess<Req extends OptionalObject>(
   jwtPayload: JwtPayload,
   meta: EndpointMeta<any, any>,
   event: APIGatewayProxyEvent,
-  req: any,
+  req?: Req,
   organization?: UserInOrganization
 ) {
   let userId: string | undefined;
@@ -134,7 +135,10 @@ function validateUserAccess(
     if (!userId) {
       throw badRequest('User ID is required');
     }
-  } else if (req.userId) {
+  } else if (req && 'userId' in req && typeof req.userId === 'string') {
+    if (!req.userId) {
+      throw badRequest('User ID cannot be empty');
+    }
     userId = req.userId;
   }
   if (!userId) {

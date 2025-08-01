@@ -2,10 +2,10 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../environments/environment';
 import { Observable, throwError } from 'rxjs';
-import { endpointMetas, EndpointMeta } from '@equip-track/shared';
+import { endpointMetas, EndpointMeta, OptionalObject } from '@equip-track/shared';
 import { AuthStore } from '../store/auth.store';
 
-class EndpointExecutor<Req, Res> {
+class EndpointExecutor<Req extends OptionalObject, Res extends OptionalObject> {
   private requestUrl: string;
   constructor(
     private endpointMeta: EndpointMeta<Req, Res>,

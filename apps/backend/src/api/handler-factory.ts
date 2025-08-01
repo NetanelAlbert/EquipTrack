@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler } from 'aws-lambda';
 import { Context } from 'aws-lambda/handler';
-import { endpointMetas, EndpointMeta, JwtPayload } from '@equip-track/shared';
+import { endpointMetas, EndpointMeta, JwtPayload, OptionalObject } from '@equip-track/shared';
 import { HandlerFunction, handlers } from './handlers';
 import { unauthorized, internalServerError, CORS_HEADERS } from './responses';
 import { authenticateAndGetJwt } from './auth';
@@ -10,7 +10,7 @@ function parseBody<T>(event: any): T {
   return typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
 }
 
-export function createLambdaHandler<Req, Res>(
+export function createLambdaHandler<Req extends OptionalObject, Res extends OptionalObject>(
   meta: EndpointMeta<Req, Res>,
   handler: HandlerFunction<Req, Res>
 ): APIGatewayProxyHandler {
@@ -26,14 +26,14 @@ export function createLambdaHandler<Req, Res>(
         ),
       });
 
-      const req =
-        meta.method === 'GET' ? (undefined as any) : parseBody<Req>(event);
+      const req: Req | undefined =
+        meta.method === 'GET' ? undefined : parseBody<Req>(event);
 
       let jwtPayload: JwtPayload | undefined;
       // Only authenticate if the endpoint requires roles (has allowedRoles)
       if ((meta.allowedRoles?.length || 0) > 0) {
         console.log(`[${meta.path}] Authentication required, validating...`);
-        jwtPayload = await authenticateAndGetJwt(meta, event, req);
+        jwtPayload = await authenticateAndGetJwt<Req>(meta, event, req);
         if (!jwtPayload) {
           throw unauthorized('Unauthorized');
         }
