@@ -13,6 +13,12 @@ export interface Product {
   hasUpi: boolean;
 }
 
+export interface Department {
+  id: string;
+  name: string;
+  subDepartments?: Department[];
+}
+
 /**
  * Represents the metadata for an Organization.
  * This is the root entity for all other data related to an organization.
@@ -21,4 +27,5 @@ export interface Organization {
   id: string;
   name: string;
   imageUrl: string | null;
+  departments: Department[];
 }

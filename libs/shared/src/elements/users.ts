@@ -21,12 +21,17 @@ export enum UserRole {
   WarehouseManager = 'warehouse-manager',
 }
 
+export interface UserDepartment {
+  id: string;
+  roleDescription: string;
+  subDepartmentId?: string;
+}
+
 export interface UserInOrganization {
   organizationId: string;
   userId: string;
   role: UserRole;
-  department?: string;
-  departmentRole?: string;
+  department?: UserDepartment;
 }
 
 export interface UserAndUserInOrganization {
