@@ -8,10 +8,12 @@
   <form [formGroup]="form">
     <mat-form-field>
       <mat-label>{{ 'checkout.select-user' | translate }}</mat-label>
-      <mat-select formControlName="userID">
-        <mat-option *ngFor="let user of users()" [value]="user.user.id">
-          {{ user.user.name }}
-        </mat-option>
+      <mat-select formControlName="userID" (ngModelChange)="onUserChange($event)">
+        @for (user of users(); track user.user.id) {
+          <mat-option [value]="user.user.id">
+            {{ userDescription(user) }}
+          </mat-option>
+        }
       </mat-select>
     </mat-form-field>
 

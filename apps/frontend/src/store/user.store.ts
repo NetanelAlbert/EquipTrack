@@ -11,6 +11,7 @@ import {
   UserInOrganization,
   InventoryItem,
   Organization,
+  Department,
 } from '@equip-track/shared';
 import { computed, inject } from '@angular/core';
 import { STORAGE_KEYS } from '../utils/consts';
@@ -190,6 +191,20 @@ export const UserStore = signalStore(
         return store
           .userInOrganizations()
           .some((uio) => uio.organizationId === organizationId);
+      },
+
+      getDepartmentName(departmentId: string): string | undefined {
+        for(const department of store.currentOrganization()?.departments ?? []) {
+          if(department.id === departmentId) {
+            return department.name;
+          }
+          for (const subDepartment of department.subDepartments ?? []) {
+            if(subDepartment.id === departmentId) {
+              return subDepartment.name;
+            }
+          }
+        }
+        return undefined;
       },
 
       // Load persisted organization selection with validation

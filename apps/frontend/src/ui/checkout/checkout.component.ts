@@ -13,6 +13,7 @@ import {
   InventoryItem,
   FormStatus,
   FormType,
+  UserAndUserInOrganization,
 } from '@equip-track/shared';
 import { OrganizationStore } from '../../store/organization.store';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -52,6 +53,8 @@ export class CheckoutComponent {
   private userStore = inject(UserStore);
   private router = inject(Router);
 
+  user = signal<UserAndUserInOrganization | undefined>(undefined);
+
   submitButton = {
     text: 'inventory.button.create-checkout',
     icon: 'check',
@@ -83,11 +86,37 @@ export class CheckoutComponent {
       if (!userId) return;
       if (!formDescription) return;
 
-      const success = await this.formsStore.addCheckOutForm(items, userId, formDescription);
+      const success = await this.formsStore.addCheckOutForm(
+        items,
+        userId,
+        formDescription
+      );
       if (success) {
         this.resetForm();
       }
     }
+  }
+
+  onUserChange(userId: string) {
+    this.user.set(this.users().find((user) => user.user.id === userId));
+  }
+
+  userDescription(user: UserAndUserInOrganization) {
+    const department = user.userInOrganization.department;
+    const departmentName = this.userStore.getDepartmentName(
+      department?.id ?? ''
+    );
+    const subDepartmentName = this.userStore.getDepartmentName(
+      department?.subDepartmentId ?? ''
+    );
+    const roleDescription = department?.roleDescription;
+    let departmentDescription = [departmentName, subDepartmentName]
+      .filter(Boolean)
+      .join(' / ');
+    if (roleDescription) {
+      departmentDescription += ` (${roleDescription})`;
+    }
+    return `${user.user.name}: ${departmentDescription}`;
   }
 
   onItemsEdited() {
