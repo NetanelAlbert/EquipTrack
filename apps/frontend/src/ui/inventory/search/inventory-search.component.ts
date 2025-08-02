@@ -6,6 +6,7 @@ import {
   signal,
   effect,
   ChangeDetectionStrategy,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -25,6 +26,7 @@ import {
   animate,
   keyframes,
 } from '@angular/animations';
+import { OrganizationStore } from '../../../store/organization.store';
 
 export interface InventorySearchFilters {
   searchTerm: string;
@@ -115,6 +117,25 @@ export interface InventorySearchFilters {
           <mat-icon>clear</mat-icon>
         </button>
         }
+      </mat-form-field>
+
+      <!-- UPI Filter -->
+      <mat-form-field class="upi-field" appearance="outline">
+        <mat-label>{{ 'inventory.search.type' | translate }}</mat-label>
+        <mat-select
+          [ngModel]="upiFilter()"
+          (ngModelChange)="upiFilter.set($event)"
+        >
+          <mat-option value="all">{{
+            'inventory.search.typeAll' | translate
+          }}</mat-option>
+          <mat-option value="upi">{{
+            'inventory.search.typeUpi' | translate
+          }}</mat-option>
+          <mat-option value="non-upi">{{
+            'inventory.search.typeNonUpi' | translate
+          }}</mat-option>
+        </mat-select>
       </mat-form-field>
 
       <!-- Sort Options -->
@@ -280,13 +301,15 @@ export class InventorySearchComponent {
   // Input properties
   items = input.required<InventoryItem[]>();
   productsMap = input.required<Map<string, Product>>();
-
   // Output events
   filteredItems = output<InventoryItem[]>();
   filtersChanged = output<InventorySearchFilters>();
 
+  organizationStore = inject(OrganizationStore);
+
   // Internal state signals
   searchTerm = signal('');
+  upiFilter = signal<'all' | 'upi' | 'non-upi'>('all');
   sortBy = signal<'productId' | 'quantity' | 'name'>('productId');
   sortDirection = signal<'asc' | 'desc'>('asc');
   resultCount = signal<number | null>(null);
@@ -303,13 +326,27 @@ export class InventorySearchComponent {
   filteredAndSortedItems = computed(() => {
     let filtered = this.items();
 
+    // Apply upi filter
+    if (this.upiFilter() !== 'all') {
+      const filterFunction =
+        this.upiFilter() === 'upi'
+          ? (id: string) => this.organizationStore.isProductUpi(id)
+          : (id: string) => !this.organizationStore.isProductUpi(id);
+      filtered = filtered.filter((item) => {
+        return filterFunction(item.productId);
+      });
+    }
+
     // Apply search filter
     const search = this.searchTerm().toLowerCase().trim();
     if (search) {
       filtered = filtered.filter(
         (item) =>
           item.productId.toLowerCase().includes(search) ||
-          this.productsMap().get(item.productId)?.name.toLowerCase().includes(search) ||
+          this.productsMap()
+            .get(item.productId)
+            ?.name.toLowerCase()
+            .includes(search) ||
           (item.upis &&
             item.upis.some((upi) => upi.toLowerCase().includes(search)))
       );

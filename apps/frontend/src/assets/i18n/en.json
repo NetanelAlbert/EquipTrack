@@ -162,7 +162,11 @@
       "sortDescending": "Sort descending (Z-A, 9-0)",
       "results": "{{count}} items found",
       "clearFilters": "Clear All Filters",
-      "selectUserFirst": "Please select a user to view their inventory"
+      "selectUserFirst": "Please select a user to view their inventory",
+      "type": "Type",
+      "typeAll": "All",
+      "typeUpi": "UPI",
+      "typeNonUpi": "Non-UPI"
     },
     "item": {
       "expandable": "Inventory item {{name}} - Click to expand {{count}} UPI details",

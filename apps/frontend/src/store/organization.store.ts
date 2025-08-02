@@ -111,6 +111,10 @@ export const OrganizationStore = signalStore(
       getProductName(id: string): string {
         return this.getProduct(id)?.name ?? id;
       },
+      
+      isProductUpi(id: string): boolean {
+        return this.getProduct(id)?.hasUpi ?? false;
+      },
 
       // State setters for services
       setUsers(users: UserAndUserInOrganization[]) {
