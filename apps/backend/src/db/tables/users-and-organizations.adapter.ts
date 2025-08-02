@@ -117,33 +117,26 @@ export class UsersAndOrganizationsAdapter {
   }
 
   private getUser(userDB: UserDb): User {
-    return {
-      id: userDB.id,
-      name: userDB.name,
-      email: userDB.email,
-      phone: userDB.phone,
-      state: userDB.state,
-    };
+    // Destructure to exclude database-specific fields and keep only User fields
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { PK, SK, dbItemType, googleSub, ...user } = userDB;
+    return user;
   }
 
   private getUserInOrganizations(
     userInOrganizationsDB: UserInOrganizationDb
   ): UserInOrganization {
-    return {
-      organizationId: userInOrganizationsDB.organizationId,
-      userId: userInOrganizationsDB.userId,
-      role: userInOrganizationsDB.role,
-      department: userInOrganizationsDB.department,
-      departmentRole: userInOrganizationsDB.departmentRole,
-    };
+    // Destructure to exclude database-specific fields and keep only UserInOrganization fields
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { PK, SK, dbItemType, ...userInOrganization } = userInOrganizationsDB;
+    return userInOrganization;
   }
 
   private getOrganization(organizationDB: OrganizationDb): Organization {
-    return {
-      id: organizationDB.id,
-      name: organizationDB.name,
-      imageUrl: organizationDB.imageUrl,
-    };
+    // Destructure to exclude database-specific fields and keep only Organization fields
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { PK, SK, dbItemType, ...organization } = organizationDB;
+    return organization;
   }
 
   /**
@@ -152,7 +145,7 @@ export class UsersAndOrganizationsAdapter {
   async createUser(user: User, googleSub?: string): Promise<void> {
     // Normalize email before checking existence and storing
     const normalizedEmail = user.email.trim().toLowerCase();
-    
+
     // First check if a user with this email already exists
     const existingUser = await this.getUserByEmail(normalizedEmail);
     if (existingUser) {
@@ -263,7 +256,7 @@ export class UsersAndOrganizationsAdapter {
   ): Promise<UserAndAllOrganizations | undefined> {
     // Normalize email before querying
     const normalizedEmail = email.trim().toLowerCase();
-    
+
     // First, get the user record using the email GSI
     const userQuery = new QueryCommand({
       TableName: this.tableName,

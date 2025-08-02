@@ -31,7 +31,8 @@ export interface UserInOrganization {
   organizationId: string;
   userId: string;
   role: UserRole;
-  department?: UserDepartment;
+  // optional for backwards compatibility; todo: make mandatory
+  department?: UserDepartment; 
 }
 
 export interface UserAndUserInOrganization {

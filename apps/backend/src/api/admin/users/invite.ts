@@ -81,7 +81,6 @@ export const handler = async (
       organizationId,
       role: req.role,
       department: req.department,
-      departmentRole: req.departmentRole,
     });
 
     // TODO: Send email to user
