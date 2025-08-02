@@ -402,7 +402,11 @@
         "success": "Invitation sent to {{email}}",
         "email-required": "Email is required",
         "email-invalid": "Please enter a valid email address",
-        "error": "Failed to send invitation"
+        "error": "Failed to send invitation",
+        "department-label": "Department",
+        "sub-department-label": "Sub-Department",
+        "department-required": "Department is required",
+        "role-description-required": "Role description is required"
       },
       "table": {
         "title": "Organization Users",

@@ -8,6 +8,7 @@ import {
   Product,
   UserRole,
   Organization,
+  UserDepartment,
 } from '@equip-track/shared';
 import { OrganizationStore } from '../store/organization.store';
 import { UserStore } from '../store/user.store';
@@ -227,7 +228,7 @@ export class OrganizationService {
     }
   }
 
-  async inviteUser(email: string, role: UserRole): Promise<boolean> {
+  async inviteUser(email: string, role: UserRole, department: UserDepartment): Promise<boolean> {
     this.organizationStore.setInvitingUserLoading(true);
 
     try {
@@ -237,6 +238,7 @@ export class OrganizationService {
             email,
             role,
             organizationId: this.userStore.selectedOrganizationId(),
+            department,
           },
           {
             [ORGANIZATION_ID_PATH_PARAM]:

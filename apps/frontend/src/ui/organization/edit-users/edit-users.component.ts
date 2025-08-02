@@ -9,12 +9,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { NotificationService } from '../../../services/notification.service';
 import { OrganizationStore } from '../../../store/organization.store';
 import { OrganizationService } from '../../../services/organization.service';
-import { User, UserRole, UserState } from '@equip-track/shared';
+import { User, UserDepartment, UserRole, UserState } from '@equip-track/shared';
+import { UserStore } from '../../../store/user.store';
 
 @Component({
   selector: 'app-edit-users',
@@ -42,9 +43,18 @@ export class EditUsersComponent implements OnInit {
   private organizationService = inject(OrganizationService);
   private notificationService = inject(NotificationService);
   private translateService = inject(TranslateService);
+  private fb = inject(FormBuilder);
+  userStore = inject(UserStore);
+
+  inviteForm: FormGroup = this.fb.group({
+    email: new FormControl('', [Validators.required, Validators.email]),
+    name: new FormControl('', [Validators.required]),
+    departmentId: new FormControl('', [Validators.required]),
+    roleDescription: new FormControl('', [Validators.required]),
+    subDepartmentId: new FormControl(''),
+  });
 
   // State signals
-  inviteEmail = signal('');
   selectedRole = signal<UserRole>(UserRole.Customer);
 
   // Get data from organization store
@@ -62,7 +72,7 @@ export class EditUsersComponent implements OnInit {
     // Check for email parameter from invite flow
     this.route.queryParams.subscribe((params) => {
       if (params['email']) {
-        this.inviteEmail.set(params['email']);
+        this.inviteForm.patchValue({ email: params['email'] });
         console.log('Pre-filled email from invite flow:', params['email']);
       }
     });
@@ -75,7 +85,7 @@ export class EditUsersComponent implements OnInit {
    * Invite a new user to the organization
    */
   async inviteUser(): Promise<void> {
-    const rawEmail = this.inviteEmail().trim();
+    const rawEmail = this.inviteForm.value.email.trim();
     const role = this.selectedRole();
 
     if (!rawEmail) {
@@ -93,11 +103,27 @@ export class EditUsersComponent implements OnInit {
       return;
     }
 
-    const success = await this.organizationService.inviteUser(email, role);
+    if (!this.inviteForm.value.departmentId) {
+      this.showError('organization.users.invite.department-required');
+      return;
+    }
+
+    if (!this.inviteForm.value.roleDescription) {
+      this.showError('organization.users.invite.role-description-required');
+      return;
+    }
+
+    const department: UserDepartment = {
+      id: this.inviteForm.value.departmentId,
+      roleDescription: this.inviteForm.value.roleDescription,
+      subDepartmentId: this.inviteForm.value.subDepartmentId,
+    };
+
+    const success = await this.organizationService.inviteUser(email, role, department);
 
     if (success) {
       this.showSuccess('organization.users.invite.success', { email });
-      this.inviteEmail.set('');
+      this.inviteForm.reset();
       void this.organizationService.getUsers();
     } else {
       // Error handling is done in the store, but we can show additional UI feedback here if needed

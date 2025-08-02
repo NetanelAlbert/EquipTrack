@@ -19,9 +19,7 @@
           <input 
             matInput 
             type="email" 
-            [(ngModel)]="inviteEmail" 
-            [value]="inviteEmail()"
-            (input)="inviteEmail.set($any($event.target).value)"
+            formControlName="email"
             [placeholder]="'organization.users.invite.email-placeholder' | translate"
             [disabled]="isLoading()">
           <mat-icon matSuffix>email</mat-icon>
@@ -38,13 +36,24 @@
             <mat-option [value]="UserRole.WarehouseManager">{{ 'organization.users.roles.warehouse-manager' | translate }}</mat-option>
             <mat-option [value]="UserRole.Admin">{{ 'organization.users.roles.admin' | translate }}</mat-option>
           </mat-select>
+        </mat-form-field>        
+
+        <mat-form-field appearance="outline" class="department-field">
+          <mat-label>{{ 'organization.users.invite.department-label' | translate }}</mat-label>
+          <mat-select formControlName="departmentId" [disabled]="isLoading()">
+            @for (department of userStore.currentOrganization()?.departments; track department.id) {
+              <mat-option [value]="department.id">
+                {{ department.name }}
+              </mat-option>
+            }
+          </mat-select>
         </mat-form-field>
 
         <button 
           mat-raised-button 
           color="primary" 
           (click)="inviteUser()"
-          [disabled]="isLoading() || !inviteEmail().trim()"
+          [disabled]="isLoading() || !inviteForm.valid"
           class="invite-button">
           <mat-icon *ngIf="isLoading()">hourglass_empty</mat-icon>
           <mat-icon *ngIf="!isLoading()">person_add</mat-icon>
