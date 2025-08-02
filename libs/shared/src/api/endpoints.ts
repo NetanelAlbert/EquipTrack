@@ -53,9 +53,9 @@ export const endpointMetas = {
     method: 'POST',
     allowedRoles: [UserRole.Admin],
     requestType: {} as Admin.InviteUser,
-    responseType: {} as BasicResponse,
+    responseType: {} as Admin.InviteUserResponse,
     allowedOtherUsers: [UserRole.Admin],
-  } as EndpointMeta<Admin.InviteUser, BasicResponse>,
+  } as EndpointMeta<Admin.InviteUser, Admin.InviteUserResponse>,
 
   // Basic User
   start: {

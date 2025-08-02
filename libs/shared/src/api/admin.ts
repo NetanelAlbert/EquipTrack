@@ -3,6 +3,7 @@ import {
   UserInOrganization,
   UserAndUserInOrganization,
   UserDepartment,
+  User,
 } from '../elements';
 import { BasicResponse } from './basic';
 
@@ -19,4 +20,9 @@ export interface InviteUser {
   organizationId: string;
   role: UserRole;
   department: UserDepartment;
+}
+
+export interface InviteUserResponse extends BasicResponse {
+  user: User;
+  userInOrganization: UserInOrganization;
 }

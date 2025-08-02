@@ -1,8 +1,10 @@
 import {
   InviteUser,
-  BasicResponse,
   UserRole,
   UserState,
+  InviteUserResponse,
+  User,
+  UserInOrganization,
 } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { badRequest } from '../../responses';
@@ -15,7 +17,7 @@ const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
 export const handler = async (
   req: InviteUser,
   pathParams: APIGatewayProxyEventPathParameters
-): Promise<BasicResponse> => {
+): Promise<InviteUserResponse> => {
   const organizationId = pathParams[ORGANIZATION_ID_PATH_PARAM];
 
   if (!organizationId) {
@@ -46,7 +48,7 @@ export const handler = async (
       normalizedEmail
     );
 
-    let userId: string;
+    let user: User;
 
     if (existingUser) {
       // User exists, check if they're already in this organization
@@ -61,10 +63,10 @@ export const handler = async (
 
       console.log('User exists, adding to organization', existingUser);
 
-      userId = existingUser.user.id;
+      user = existingUser.user;
     } else {
       // Create new user in Invited state
-      const newUser = {
+      const newUser: User = {
         id: uuidv4(),
         name: normalizedEmail.split('@')[0], // Use email prefix as default name - user can update later
         email: normalizedEmail,
@@ -73,15 +75,16 @@ export const handler = async (
 
       // Create the user
       await usersAndOrganizationsAdapter.createUser(newUser);
-      userId = newUser.id;
+      user = newUser;
     }
     // Create UserInOrganization relationship
-    await usersAndOrganizationsAdapter.setUserInOrganization({
-      userId,
+    const userInOrganization: UserInOrganization = {
+      userId: user.id,
       organizationId,
       role: req.role,
       department: req.department,
-    });
+    };
+    await usersAndOrganizationsAdapter.setUserInOrganization(userInOrganization);
 
     // TODO: Send email to user
 
@@ -91,6 +94,8 @@ export const handler = async (
 
     return {
       status: true,
+      user,
+      userInOrganization,
     };
   } catch (error) {
     console.error('Error inviting user:', error);
