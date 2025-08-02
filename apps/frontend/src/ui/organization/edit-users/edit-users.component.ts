@@ -1,4 +1,11 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  inject,
+  OnInit,
+  signal, 
+  ViewChild
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
@@ -9,12 +16,25 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { NotificationService } from '../../../services/notification.service';
 import { OrganizationStore } from '../../../store/organization.store';
 import { OrganizationService } from '../../../services/organization.service';
-import { User, UserDepartment, UserRole, UserState } from '@equip-track/shared';
+import {
+  Department,
+  User,
+  UserDepartment,
+  UserRole,
+  UserState,
+} from '@equip-track/shared';
 import { UserStore } from '../../../store/user.store';
 
 @Component({
@@ -46,16 +66,19 @@ export class EditUsersComponent implements OnInit {
   private fb = inject(FormBuilder);
   userStore = inject(UserStore);
 
+  @ViewChild('inviteFormRef') inviteFormRef!: ElementRef<HTMLFormElement>;
+
   inviteForm: FormGroup = this.fb.group({
     email: new FormControl('', [Validators.required, Validators.email]),
     name: new FormControl('', [Validators.required]),
     departmentId: new FormControl('', [Validators.required]),
+    role: new FormControl<UserRole>(UserRole.Customer, [Validators.required]),
     roleDescription: new FormControl('', [Validators.required]),
     subDepartmentId: new FormControl(''),
   });
 
   // State signals
-  selectedRole = signal<UserRole>(UserRole.Customer);
+  subDepartmentOptions = signal<Department[] | undefined>(undefined);
 
   // Get data from organization store
   users = this.organizationStore.users;
@@ -69,6 +92,8 @@ export class EditUsersComponent implements OnInit {
   UserState = UserState;
 
   ngOnInit(): void {
+    // Load users from API
+    void this.organizationService.getUsers();
     // Check for email parameter from invite flow
     this.route.queryParams.subscribe((params) => {
       if (params['email']) {
@@ -77,8 +102,13 @@ export class EditUsersComponent implements OnInit {
       }
     });
 
-    // Load users from API
-    void this.organizationService.getUsers();
+    this.inviteForm.controls['departmentId'].valueChanges.subscribe((value) => {
+      const department = this.userStore
+        .currentOrganization()
+        ?.departments.find((d) => d.id === value);
+
+      this.subDepartmentOptions.set(department?.subDepartments);
+    });
   }
 
   /**
@@ -86,7 +116,7 @@ export class EditUsersComponent implements OnInit {
    */
   async inviteUser(): Promise<void> {
     const rawEmail = this.inviteForm.value.email.trim();
-    const role = this.selectedRole();
+    const role = this.inviteForm.value.role;
 
     if (!rawEmail) {
       this.showError('organization.users.invite.email-required');
@@ -113,18 +143,25 @@ export class EditUsersComponent implements OnInit {
       return;
     }
 
+    const name = this.inviteForm.value.name;
+
     const department: UserDepartment = {
       id: this.inviteForm.value.departmentId,
       roleDescription: this.inviteForm.value.roleDescription,
       subDepartmentId: this.inviteForm.value.subDepartmentId,
     };
 
-    const success = await this.organizationService.inviteUser(email, role, department);
+    const success = await this.organizationService.inviteUser(
+      email,
+      name,
+      role,
+      department
+    );
 
     if (success) {
       this.showSuccess('organization.users.invite.success', { email });
-      this.inviteForm.reset();
-      void this.organizationService.getUsers();
+      // Reset form and clear all validation states
+      this.resetInviteForm();
     } else {
       // Error handling is done in the store, but we can show additional UI feedback here if needed
       const errorMessage = this.organizationStore.invitingUserStatus()?.error;
@@ -134,6 +171,14 @@ export class EditUsersComponent implements OnInit {
         this.showError('organization.users.invite.error');
       }
     }
+  }
+
+  /**
+   * Reset the invite form to clean state without validation errors
+   */
+  private resetInviteForm(): void {
+    this.inviteFormRef.nativeElement.reset();
+    this.subDepartmentOptions.set(undefined);
   }
 
   /**

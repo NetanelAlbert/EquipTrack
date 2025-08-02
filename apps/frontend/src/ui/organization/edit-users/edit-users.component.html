@@ -13,7 +13,7 @@
     </mat-card-header>
 
     <mat-card-content>
-      <div class="invite-form">
+      <form #inviteFormRef [formGroup]="inviteForm" class="invite-form">
         <mat-form-field appearance="outline" class="email-field">
           <mat-label>{{ 'organization.users.invite.email-label' | translate }}</mat-label>
           <input 
@@ -21,17 +21,19 @@
             type="email" 
             formControlName="email"
             [placeholder]="'organization.users.invite.email-placeholder' | translate"
-            [disabled]="isLoading()">
+            >
           <mat-icon matSuffix>email</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="name-field">
+          <mat-label>{{ 'organization.users.invite.name-label' | translate }}</mat-label>
+          <input matInput formControlName="name" [placeholder]="'organization.users.invite.name-placeholder' | translate">
+          <mat-icon matSuffix>person</mat-icon>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="role-field">
           <mat-label>{{ 'organization.users.invite.role-label' | translate }}</mat-label>
-          <mat-select 
-            [(ngModel)]="selectedRole" 
-            [value]="selectedRole()"
-            (selectionChange)="selectedRole.set($event.value)"
-            [disabled]="isLoading()">
+          <mat-select formControlName="role">
             <mat-option [value]="UserRole.Customer">{{ 'organization.users.roles.customer' | translate }}</mat-option>
             <mat-option [value]="UserRole.WarehouseManager">{{ 'organization.users.roles.warehouse-manager' | translate }}</mat-option>
             <mat-option [value]="UserRole.Admin">{{ 'organization.users.roles.admin' | translate }}</mat-option>
@@ -40,7 +42,7 @@
 
         <mat-form-field appearance="outline" class="department-field">
           <mat-label>{{ 'organization.users.invite.department-label' | translate }}</mat-label>
-          <mat-select formControlName="departmentId" [disabled]="isLoading()">
+          <mat-select formControlName="departmentId">
             @for (department of userStore.currentOrganization()?.departments; track department.id) {
               <mat-option [value]="department.id">
                 {{ department.name }}
@@ -49,17 +51,39 @@
           </mat-select>
         </mat-form-field>
 
+        @if (subDepartmentOptions()) {
+          <mat-form-field appearance="outline" class="sub-department-field">
+            <mat-label>{{ 'organization.users.invite.sub-department-label' | translate }}</mat-label>
+            <mat-select formControlName="subDepartmentId">
+              @for (subDepartment of subDepartmentOptions(); track subDepartment.id) {
+                <mat-option [value]="subDepartment.id">
+                  {{ subDepartment.name }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+
+        <mat-form-field appearance="outline" class="role-description-field">
+          <mat-label>{{ 'organization.users.invite.role-description-label' | translate }}</mat-label>
+          <input matInput formControlName="roleDescription" [placeholder]="'organization.users.invite.role-description-placeholder' | translate">
+        </mat-form-field>
+
         <button 
+          #inviteButton
           mat-raised-button 
           color="primary" 
           (click)="inviteUser()"
-          [disabled]="isLoading() || !inviteForm.valid"
+          [disabled]="!inviteForm.valid || isLoading()"
           class="invite-button">
-          <mat-icon *ngIf="isLoading()">hourglass_empty</mat-icon>
-          <mat-icon *ngIf="!isLoading()">person_add</mat-icon>
+          @if (isLoading()) {
+            <mat-icon>hourglass_empty</mat-icon>
+          } @else {
+            <mat-icon>person_add</mat-icon>
+          }
           {{ isLoading() ? ('organization.users.invite.button-sending' | translate) : ('organization.users.invite.button-send' | translate) }}
         </button>
-      </div>
+      </form>
     </mat-card-content>
   </mat-card>
 

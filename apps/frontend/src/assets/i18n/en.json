@@ -406,7 +406,11 @@
         "department-label": "Department",
         "sub-department-label": "Sub-Department",
         "department-required": "Department is required",
-        "role-description-required": "Role description is required"
+        "role-description-required": "Role description is required",
+        "name-label": "Name",
+        "name-placeholder": "John Doe",
+        "role-description-label": "Role Description",
+        "role-description-placeholder": "Enter role description"
       },
       "table": {
         "title": "Organization Users",

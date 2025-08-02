@@ -17,6 +17,7 @@ export interface SetUser {
 
 export interface InviteUser {
   email: string;
+  name: string;
   organizationId: string;
   role: UserRole;
   department: UserDepartment;

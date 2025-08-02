@@ -121,6 +121,10 @@ export const OrganizationStore = signalStore(
         updateState({ users });
       },
 
+      addUser(user: UserAndUserInOrganization) {
+        updateState({ users: [user, ...store.users()] });
+      },
+
       setProducts(products: Product[]) {
         updateState({ products });
       },

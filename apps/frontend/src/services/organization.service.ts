@@ -228,14 +228,15 @@ export class OrganizationService {
     }
   }
 
-  async inviteUser(email: string, role: UserRole, department: UserDepartment): Promise<boolean> {
+  async inviteUser(email: string, name: string, role: UserRole, department: UserDepartment): Promise<boolean> {
     this.organizationStore.setInvitingUserLoading(true);
 
     try {
-      await firstValueFrom(
+      const result = await firstValueFrom(
         this.apiService.endpoints.inviteUser.execute(
           {
             email,
+            name,
             role,
             organizationId: this.userStore.selectedOrganizationId(),
             department,
@@ -247,7 +248,12 @@ export class OrganizationService {
         )
       );
 
+      if (!result.status) {
+        throw result;
+      }
+
       this.organizationStore.setInvitingUserSuccess();
+      this.organizationStore.addUser(result);
       this.notificationService.showSuccess(
         'organization.users.invite-success',
         'User invitation sent successfully'

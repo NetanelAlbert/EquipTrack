@@ -68,7 +68,7 @@ export const handler = async (
       // Create new user in Invited state
       const newUser: User = {
         id: uuidv4(),
-        name: normalizedEmail.split('@')[0], // Use email prefix as default name - user can update later
+        name: req.name || normalizedEmail.split('@')[0], // Use email prefix as default name - user can update later
         email: normalizedEmail,
         state: UserState.Invited,
       };
