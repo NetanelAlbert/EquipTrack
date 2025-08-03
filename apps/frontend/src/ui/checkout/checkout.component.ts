@@ -19,6 +19,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { NotificationService } from '../../services/notification.service';
 import { UserStore } from '../../store/user.store';
 import { FormsStore } from '../../store/forms.store';
+import { InventoryStore } from '../../store/inventory.store';
 
 @Component({
   selector: 'app-checkout',
@@ -45,7 +46,8 @@ export class CheckoutComponent {
   private organizationStore = inject(OrganizationStore);
   private notificationService = inject(NotificationService);
   protected formsStore = inject(FormsStore);
-  private userStore = inject(UserStore);
+  private userStore = inject(UserStore);  
+  private inventoryStore = inject(InventoryStore);
 
   user = signal<UserAndUserInOrganization | undefined>(undefined);
 
@@ -62,6 +64,7 @@ export class CheckoutComponent {
   users = this.organizationStore.users;
   predefinedForms = this.organizationStore.predefinedForms;
   initialItems = signal<InventoryItem[]>([]);
+  limitItems = this.inventoryStore.getWarehouseInventory();
   itemEdited = signal(false);
   showPredefinedForms = computed(
     () => !this.itemEdited() && this.predefinedForms().length > 0

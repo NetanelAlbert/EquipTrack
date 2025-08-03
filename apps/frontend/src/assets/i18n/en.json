@@ -208,7 +208,10 @@
       "quantity-min": "Quantity must be at least 1",
       "quantity-pattern": "Quantity must be a valid number",
       "upi-required": "UPI is required",
-      "upi-duplicate": "UPI must be unique"
+      "upi-duplicate": "UPI must be unique",
+      "product-not-found": "Product not found in source",
+      "product-limit": "Product limit reached: {{limit}}",
+      "product-missing-upis": "Missing UPIs: {{missingUpis}}"
     },
     "upi": {
       "title": "UPI Information",

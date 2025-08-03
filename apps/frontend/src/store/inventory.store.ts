@@ -10,7 +10,7 @@ import {
   ORGANIZATION_ID_PATH_PARAM,
   USER_ID_PATH_PARAM,
 } from '@equip-track/shared';
-import { computed, inject } from '@angular/core';
+import { computed, inject, signal, Signal } from '@angular/core';
 import { ApiService } from '../services/api.service';
 import { NotificationService } from '../services/notification.service';
 import { UserStore } from './user.store';
@@ -193,8 +193,19 @@ export const InventoryStore = signalStore(
         }
       },
 
-      getUserInventory(userID: string): InventoryItem[] {
-        return store.inventory()[userID] ?? [];
+      getUserInventory(userID: string): Signal<InventoryItem[]> {
+        if (!userID) {
+          return signal([]);
+        }
+        const answer = computed(() => store.inventory()[userID] ?? []);
+        if (!answer().length) {
+          this.fetchUserInventory(userID);
+        }
+        return answer;
+      },
+
+      getWarehouseInventory(): Signal<InventoryItem[]> {
+        return this.getUserInventory('WAREHOUSE');
       },
 
       async addInventory(items: InventoryItem[]): Promise<boolean> {

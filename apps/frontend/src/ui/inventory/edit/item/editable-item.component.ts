@@ -22,6 +22,7 @@ import {
   ValidatorFn,
   Validators,
   AbstractControl,
+  ValidationErrors,
 } from '@angular/forms';
 import { Product } from '@equip-track/shared';
 import { MatSelectModule } from '@angular/material/select';
@@ -57,7 +58,7 @@ import { first, map, distinctUntilChanged, filter } from 'rxjs';
 export class EditableItemComponent implements OnInit {
   fb = inject(FormBuilder);
   organizationStore = inject(OrganizationStore);
-  control = input<FormGroup<FormInventoryItem>>(emptyItem(this.fb));
+  control = input<FormGroup<FormInventoryItem>>(emptyItem(this.fb, () => null));
   @Output() remove = new EventEmitter<void>();
 
   products: Signal<Product[]> = this.organizationStore.products;
@@ -125,7 +126,7 @@ export class EditableItemComponent implements OnInit {
     return control.errors || {};
   });
 
-  getUpiErrors(index: number): { [key: string]: boolean } {
+  getUpiErrors(index: number): ValidationErrors {
     const control = this.upisControl().at(index);
     // Always return errors object, regardless of touched state for debugging
     return control.errors || {};
@@ -227,7 +228,7 @@ export class EditableItemComponent implements OnInit {
     const duplicateControl = this.upisControl().at(duplicateIndex);
 
     firstControl.valueChanges.pipe(first()).subscribe(() => {
-      duplicateControl.updateValueAndValidity();
+      duplicateControl?.updateValueAndValidity();
     });
   }
 

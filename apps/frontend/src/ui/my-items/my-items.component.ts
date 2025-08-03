@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, computed, signal } from '@angular/core';
+import { Component, inject, OnInit, computed, signal, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { InventoryListComponent } from '../inventory/list/inventory-list.component';
 import { InventorySearchComponent } from '../inventory/search/inventory-search.component';
@@ -21,9 +21,9 @@ export class MyItemsComponent implements OnInit {
   filteredItems = signal<InventoryItem[]>([]);
 
   // Computed property for current user's inventory items
-  currentUserInventory = computed(() => {
+  currentUserInventory: Signal<InventoryItem[]> = computed(() => {
     const userId = this.userStore.user()?.id;
-    return userId ? this.inventoryStore.getUserInventory(userId) : [];
+    return userId ? this.inventoryStore.getUserInventory(userId)() : [];
   });
 
   ngOnInit() {

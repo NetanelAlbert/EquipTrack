@@ -53,6 +53,7 @@
     <h2>{{ 'checkout.items' | translate }}</h2>
     <editable-inventory
       [originalItems]="initialItems()"
+      [limitItems]="limitItems()"
       (submitItems)="onSubmit($event)"
       (editedItems)="onItemsEdited()"
       [submitButton]="submitButton"

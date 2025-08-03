@@ -1,5 +1,6 @@
 import {
   Component,
+  computed,
   effect,
   inject,
   input,
@@ -35,6 +36,7 @@ import { EditableItemComponent } from './item/editable-item.component';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Inject } from '@angular/core';
+import { isSubset } from '@equip-track/shared';
 
 const formDuplicateValidator: ValidatorFn = (formArray: AbstractControl) => {
   if (!(formArray instanceof FormArray)) {
@@ -90,6 +92,7 @@ const formDuplicateValidator: ValidatorFn = (formArray: AbstractControl) => {
 })
 export class EditableInventoryComponent {
   originalItems = input<InventoryItem[]>([]);
+  limitItems = input<InventoryItem[] | undefined>(undefined);
   submitButton = input<{ text: string; icon: string; color: string }>({
     text: 'inventory.button.save',
     icon: 'save',
@@ -109,6 +112,14 @@ export class EditableInventoryComponent {
     ),
   });
   formChanged = false;
+
+  private limitItemsMap: Signal<Record<string, InventoryItem> | undefined> =
+    computed(() =>
+      this.limitItems()?.reduce((acc, item) => {
+        acc[item.productId] = item;
+        return acc;
+      }, {} as Record<string, InventoryItem>)
+    );
 
   constructor() {
     this.form.valueChanges.subscribe(() => {
@@ -131,8 +142,13 @@ export class EditableInventoryComponent {
       ? this.organizationStore.getProduct(item.productId) ?? null
       : null;
     const formItem = item
-      ? FormInventoryItemMapperFromItem(this.fb, item, product)
-      : emptyItem(this.fb);
+      ? FormInventoryItemMapperFromItem(
+          this.fb,
+          item,
+          product,
+          this.limitValidator
+        )
+      : emptyItem(this.fb, this.limitValidator);
     this.items.push(formItem, { emitEvent: false });
   }
 
@@ -192,7 +208,52 @@ export class EditableInventoryComponent {
     effect(() => {
       this.resetItems();
     });
+    effect(() => {
+      console.log('limitItemsMap', this.limitItemsMap());
+    });
+    effect(() => {
+      console.log('limitItems', this.limitItems());
+    });
   }
+
+  private limitValidator: ValidatorFn = (item: AbstractControl) => {
+    if (!(item instanceof FormGroup)) {
+      console.error('limitValidator: item is not a FormGroup');
+      return null;
+    }
+    const productId = item.value.product?.id ?? '';
+    // product not chosen
+    if (!productId) {
+      return null;
+    }
+    // no limit items
+    if (!this.limitItemsMap()) {
+      return null;
+    }
+    // product not found in limit items
+    const limitItem = this.limitItemsMap()?.[productId];
+    if (!limitItem) {
+      return { notFound: true };
+    }
+    // quantity exceeds limit
+    const quantity = item.value.quantity ?? 0;
+    if (quantity > limitItem.quantity) {
+      return { limit: limitItem.quantity };
+    }
+    // if product is not UPI, skip upis validation
+    if (!this.organizationStore.isProductUpi(productId)) {
+      return null;
+    }
+    // upis not subset of limit upis
+    const upisArray = (item.value.upis ?? []).filter(Boolean) as string[];
+    const upis = new Set(upisArray);
+    const limitUpis = new Set(limitItem.upis ?? []);
+    if (!isSubset(upis, limitUpis)) {
+      const missingUpis = Array.from(upis).filter((upi) => !limitUpis.has(upi));
+      return { missingUpis };
+    }
+    return null;
+  };
 }
 
 @Component({

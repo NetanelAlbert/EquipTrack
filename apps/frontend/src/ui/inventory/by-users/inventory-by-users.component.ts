@@ -5,6 +5,7 @@ import {
   computed,
   signal,
   effect,
+  Signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatSelectModule } from '@angular/material/select';
@@ -49,11 +50,11 @@ export class InventoryByUsersComponent implements OnInit {
   filteredItems = signal<InventoryItem[]>([]);
 
   // Computed property that reacts to selectedUserID changes
-  userItems = computed(() => {
+  userItems: Signal<InventoryItem[]> = computed(() => {
     const userId = this.selectedUserID();
 
     // Return user inventory or empty array if no user selected
-    return userId ? this.inventoryStore.getUserInventory(userId) : [];
+    return userId ? this.inventoryStore.getUserInventory(userId)() : [];
   });
 
   // Computed properties for users loading state
