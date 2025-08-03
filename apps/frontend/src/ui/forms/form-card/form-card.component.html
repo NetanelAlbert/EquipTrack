@@ -50,7 +50,14 @@
 
     <button 
       mat-raised-button 
-      class="icon-button first-icon" 
+      (click)="onCloneForm()" 
+      class="icon-button first-icon"
+      [matTooltip]="'forms.clone-form' | translate">
+      <mat-icon>difference</mat-icon>
+    </button>
+    <button 
+      mat-raised-button 
+      class="icon-button" 
       (click)="onCopyFormId()"
       [matTooltip]="'forms.copy-form-id' | translate: { formId: form.formID }">
       <mat-icon>content_copy</mat-icon>

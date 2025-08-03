@@ -108,6 +108,10 @@ export const OrganizationStore = signalStore(
         return store.productsMap().get(id);
       },
 
+      getProductSignal(id: string): Signal<Product | undefined> {
+        return computed(() => store.productsMap().get(id));
+      },
+
       getProductName(id: string): string {
         return this.getProduct(id)?.name ?? id;
       },

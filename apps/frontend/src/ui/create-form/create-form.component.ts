@@ -1,4 +1,11 @@
-import { Component, computed, inject, Signal, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  OnInit,
+  Signal,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -24,6 +31,8 @@ import { InventoryStore } from '../../store/inventory.store';
 import { MatRadioModule } from '@angular/material/radio';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { of } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
+import { CreateFormQueryParams } from '../../utils/forms.medels';
 
 interface CreateFormConfig {
   explanationKey: string;
@@ -52,14 +61,14 @@ interface CreateFormConfig {
   templateUrl: './create-form.component.html',
   styleUrls: ['./create-form.component.scss'],
 })
-export class CreateFormComponent {
+export class CreateFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private organizationStore = inject(OrganizationStore);
   private notificationService = inject(NotificationService);
   protected formsStore = inject(FormsStore);
   private userStore = inject(UserStore);
   private inventoryStore = inject(InventoryStore);
-
+  private route = inject(ActivatedRoute);
   form = this.fb.group({
     userID: ['', Validators.required],
     formDescription: ['', Validators.required],
@@ -75,7 +84,7 @@ export class CreateFormComponent {
 
   users = this.organizationStore.users;
   predefinedForms = this.organizationStore.predefinedForms;
-  initialItems = signal<InventoryItem[]>([]);
+  itemsToAdd = signal<InventoryItem[] | null>(null);
   itemEdited = signal(false);
   showPredefinedForms = computed(
     () => !this.itemEdited() && this.predefinedForms().length > 0
@@ -101,9 +110,26 @@ export class CreateFormComponent {
     color: 'primary',
   }));
 
-  // TODO / bug: this is reseting current items added by the user
+  ngOnInit(): void {
+    this.route.queryParams.subscribe((params) => {
+      console.log('params', params);
+      if (params['formType'] && params['items']) {
+        this.form.patchValue({
+          userID: params['userId'],
+          formType: params['formType'],
+        });
+        const items = JSON.parse(params['items']) as InventoryItem[];
+        console.log('items', items);
+        items.forEach((item, index) => {
+          console.log('item', index, item);
+        });
+        this.addAllItems(items);
+      }
+    });
+  }
+
   addAllItems(items: InventoryItem[]) {
-    this.initialItems.set(items);
+    this.itemsToAdd.set(items);
     this.itemEdited.set(true);
   }
 
@@ -111,7 +137,13 @@ export class CreateFormComponent {
     const formDescription = this.form.get('formDescription')?.value;
     const userId = this.userId();
     const formType = this.formType();
-    if (this.form.valid && items.length > 0 && userId && formDescription && formType) {
+    if (
+      this.form.valid &&
+      items.length > 0 &&
+      userId &&
+      formDescription &&
+      formType
+    ) {
       // TODO: add check-in form
       const success = await this.formsStore.addForm(
         formType,
@@ -152,7 +184,7 @@ export class CreateFormComponent {
 
   private resetForm() {
     setTimeout(() => {
-      this.initialItems.set([]);
+      this.itemsToAdd.set(null);
       this.form.reset();
       this.form.updateValueAndValidity();
       this.itemEdited.set(false);

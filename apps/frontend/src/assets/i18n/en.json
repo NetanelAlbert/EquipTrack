@@ -130,7 +130,8 @@
     "clearFilters": "Clear Filters",
     "copy-form-id": "Copy Form ID: {{formId}}",
     "form-id-copied": "Form ID copied to clipboard",
-    "view-submitted-form": "Would you like to view your submitted form?"
+    "view-submitted-form": "Would you like to view your submitted form?",
+    "clone-form": "Clone Form"
   },
   "inventory": {
     "title": "Inventory",

@@ -214,8 +214,6 @@ export const UserStore = signalStore(
             STORAGE_KEYS.SELECTED_ORGANIZATION
           );
 
-          console.log('loadPersistedOrganizationSelection', storedOrgId);
-
           if (!storedOrgId) return false;
 
           // Validate user still has access to this organization

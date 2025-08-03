@@ -1,7 +1,6 @@
 import {
   Component,
   computed,
-  effect,
   inject,
   input,
   output,
@@ -33,44 +32,54 @@ import {
 } from './form.mudels';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EditableItemComponent } from './item/editable-item.component';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter } from 'rxjs';
 import { ConfirmDeleteDialogComponent } from './confirm-delete-dialog.component';
 import { isSubset } from '@equip-track/shared';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
-const formDuplicateValidator: ValidatorFn = (formArray: AbstractControl) => {
-  if (!(formArray instanceof FormArray)) {
-    return null;
-  }
-  const items = formArray.controls.map((item) => item.value);
-  const productIDs = new Set<string>();
-  const duplicateProductNames = new Set<string>();
-  const duplicateProductIds = new Set<number>();
-  items.forEach((item) => {
-    if (productIDs.has(item.product?.id ?? '')) {
-      duplicateProductNames.add(item.product?.name ?? '');
-      duplicateProductIds.add(item.product?.id ?? 0);
-    } else {
-      productIDs.add(item.product?.id ?? '');
+const formDuplicateValidator =
+  (getProductName: (productId: string) => string): ValidatorFn =>
+  (formArray: AbstractControl) => {
+    if (!(formArray instanceof FormArray)) {
+      return null;
     }
-  });
-  // side effect to manually set / unset the duplicate error for each item
-
-  formArray.controls.forEach((item) => {
-    const productId = item.value.product?.id ?? '';
-    if (duplicateProductIds.has(productId)) {
-      item.setErrors({ duplicate: true });
-    } else {
-      const errors = item.errors;
-      if (errors && 'duplicate' in errors) {
-        delete errors['duplicate'];
-        item.setErrors(Object.keys(errors).length > 0 ? errors : null);
+    const items = formArray.controls.map((item) => item.value);
+    const productIDs = new Set<string>();
+    const duplicateProductNames = new Set<string>();
+    const duplicateProductIds = new Set<number>();
+    items.forEach((item) => {
+      if (productIDs.has(item.productId ?? '')) {
+        duplicateProductNames.add(getProductName(item.productId ?? ''));
+        duplicateProductIds.add(item.productId ?? 0);
+      } else {
+        productIDs.add(item.productId ?? '');
       }
-    }
-  });
-  return duplicateProductNames.size > 0
-    ? { duplicate: [...duplicateProductNames] }
-    : null;
-};
+    });
+    console.log(
+      'formDuplicateValidator; duplicateProductNames',
+      duplicateProductNames,
+      'duplicateProductIds',
+      duplicateProductIds
+    );
+
+    // side effect to manually set / unset the duplicate error for each item
+    formArray.controls.forEach((item) => {
+      const productId = item.value.productId ?? '';
+      if (duplicateProductIds.has(productId)) {
+        item.setErrors({ duplicate: true });
+      } else {
+        const errors = item.errors;
+        if (errors && 'duplicate' in errors) {
+          delete errors['duplicate'];
+          item.setErrors(Object.keys(errors).length > 0 ? errors : null);
+        }
+      }
+    });
+    return duplicateProductNames.size > 0
+      ? { duplicate: [...duplicateProductNames] }
+      : null;
+  };
 @Component({
   selector: 'editable-inventory',
   standalone: true,
@@ -89,8 +98,10 @@ const formDuplicateValidator: ValidatorFn = (formArray: AbstractControl) => {
   templateUrl: './editable-inventory.component.html',
   styleUrl: './editable-inventory.component.scss',
 })
+@UntilDestroy()
 export class EditableInventoryComponent {
-  originalItems = input<InventoryItem[]>([]);
+  // null will reset the form
+  itemsToAdd = input<InventoryItem[] | null>(null);
   limitItems = input<InventoryItem[] | undefined>(undefined);
   submitButton = input<{ text: string; icon: string; color: string }>({
     text: 'inventory.button.save',
@@ -107,7 +118,12 @@ export class EditableInventoryComponent {
   form: FormGroup = this.fb.group({
     items: this.fb.array<FormGroup<FormInventoryItem>>(
       [],
-      [Validators.minLength(1), formDuplicateValidator]
+      [
+        Validators.minLength(1),
+        formDuplicateValidator((productId) =>
+          this.organizationStore.getProductName(productId)
+        ),
+      ]
     ),
   });
   formChanged = false;
@@ -121,15 +137,17 @@ export class EditableInventoryComponent {
     );
 
   constructor() {
-    this.form.valueChanges.subscribe(() => {
-      this.formChanged = true;
-    });
+    this.form.valueChanges
+      .pipe(filter(() => !this.formChanged))
+      .subscribe(() => {
+        this.formChanged = true;
+      });
     this.form.valueChanges
       .pipe(debounceTime(100), distinctUntilChanged())
       .subscribe(() => {
         this.editedItems.emit(this.getItems());
       });
-    this.setEffects();
+    this.addItemsToAddObserver();
   }
 
   get items(): FormArray<FormGroup<FormInventoryItem>> {
@@ -137,24 +155,17 @@ export class EditableInventoryComponent {
   }
 
   addItem(item?: InventoryItem) {
-    const product = item
-      ? this.organizationStore.getProduct(item.productId) ?? null
-      : null;
     const formItem = item
-      ? FormInventoryItemMapperFromItem(
-          this.fb,
-          item,
-          product,
-          this.limitValidator
-        )
+      ? FormInventoryItemMapperFromItem(this.fb, item, this.limitValidator)
       : emptyItem(this.fb, this.limitValidator);
     this.items.push(formItem, { emitEvent: false });
   }
 
   removeItem(index: number) {
     const itemControl = this.items.at(index);
+    const productId = itemControl?.get('productID')?.value ?? '';
     const productName =
-      itemControl?.get('product')?.value?.name || 'Unknown Product';
+      this.organizationStore.getProduct(productId)?.name || 'Unknown Product';
 
     // Create a simple confirmation dialog
     const dialogRef = this.dialog.open(ConfirmDeleteDialogComponent, {
@@ -190,28 +201,24 @@ export class EditableInventoryComponent {
 
   private getItems(): InventoryItem[] {
     return this.items.controls.map((item: FormGroup<FormInventoryItem>) =>
-      FormInventoryItemMapper(item.controls)
+      FormInventoryItemMapper(item.controls, (productId: string) =>
+        this.organizationStore.getProduct(productId)
+      )
     );
   }
 
-  private resetItems() {
-    this.items.clear({ emitEvent: false });
-    this.originalItems().forEach((item) => this.addItem(item));
-
-    if (this.items.length === 0) {
-      this.addItem();
-    }
-  }
-
-  private setEffects() {
-    effect(() => {
-      this.resetItems();
-    });
-    effect(() => {
-      console.log('limitItemsMap', this.limitItemsMap());
-    });
-    effect(() => {
-      console.log('limitItems', this.limitItems());
+  private addItemsToAddObserver() {
+    const itemsToAdd = toObservable(this.itemsToAdd).pipe(
+      distinctUntilChanged(),
+      untilDestroyed(this)
+    );
+    itemsToAdd.subscribe((items) => {
+      if (items) {
+        console.log('itemsToAdd', items);
+        items.forEach((item) => this.addItem(item));
+      } else {
+        this.items.clear({ emitEvent: false });
+      }
     });
   }
 
@@ -220,7 +227,7 @@ export class EditableInventoryComponent {
       console.error('limitValidator: item is not a FormGroup');
       return null;
     }
-    const productId = item.value.product?.id ?? '';
+    const productId = item.value.productId ?? '';
     // product not chosen
     if (!productId) {
       return null;

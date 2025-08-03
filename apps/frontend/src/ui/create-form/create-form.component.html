@@ -64,10 +64,10 @@
 
     <h2>{{ 'create-form.items' | translate }}</h2>
     <editable-inventory
-      [originalItems]="initialItems()"
+      [itemsToAdd]="itemsToAdd()"
       [limitItems]="createFormConfig().limitItems()"
-      (submitItems)="onSubmit($event)"
       (editedItems)="onItemsEdited()"
+      (submitItems)="onSubmit($event)"
       [submitButton]="submitButton()"
     ></editable-inventory>
   </form>
