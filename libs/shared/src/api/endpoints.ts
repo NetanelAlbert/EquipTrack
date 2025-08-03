@@ -183,8 +183,8 @@ export const endpointMetas = {
     ],
     allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
       requestType: {} as BasicUser.RejectForm,
-    responseType: {} as BasicResponse,
-  } as EndpointMeta<BasicUser.RejectForm, BasicResponse>,
+    responseType: {} as BasicUser.RejectFormResponse,
+  } as EndpointMeta<BasicUser.RejectForm, BasicUser.RejectFormResponse>,
   getPresignedUrl: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/users/{${USER_ID_PATH_PARAM}}/forms/{${FORM_ID_PATH_PARAM}}/presigned-url`,
     method: 'GET',

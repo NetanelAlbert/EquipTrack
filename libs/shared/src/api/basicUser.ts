@@ -30,6 +30,10 @@ export interface RejectForm {
   reason: string;
 }
 
+export interface RejectFormResponse extends BasicResponse {
+  updatedForm: InventoryForm;
+}
+
 export interface GetPresignedUrlResponse extends BasicResponse {
   presignedUrl: string;
 }

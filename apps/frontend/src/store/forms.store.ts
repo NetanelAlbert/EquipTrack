@@ -373,20 +373,11 @@ export const FormsStore = signalStore(
             return;
           }
 
-          // Optimistically update local state on success
-          patchState(state, (currentState) => ({
-            ...currentState,
-            forms: currentState.forms.map((form) =>
-              form.formID === formID
-                ? {
-                    ...form,
-                    status: FormStatus.Rejected,
-                    rejectionReason: reason,
-                    lastUpdated: Date.now(),
-                  }
-                : form
+          patchState(state, {
+            forms: state.forms().map((form) =>
+              form.formID === formID ? response.updatedForm : form
             ),
-          }));
+          });
 
           console.log('Form rejected successfully:', formID, reason);
           notificationService.showSuccess(

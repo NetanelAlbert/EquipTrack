@@ -1,19 +1,18 @@
 import {
-  BasicResponse,
+  BasicUser,
   FormStatus,
   JwtPayload,
   RejectForm,
-  UserRole,
 } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
-import { badRequest, forbidden, internalServerError } from '../../responses';
+import { badRequest, internalServerError } from '../../responses';
 
 export const handler = async (
   req: RejectForm,
   pathParams: APIGatewayProxyEventPathParameters,
   jwtPayload?: JwtPayload
-): Promise<BasicResponse> => {
+): Promise<BasicUser.RejectFormResponse> => {
   try {
     const organizationId = pathParams?.organizationId;
     if (!organizationId) {
@@ -47,14 +46,14 @@ export const handler = async (
     }
 
     // Update form status to rejected with reason and timestamp
-    await formsAdapter.updateForm(req.formID, req.userId, organizationId, {
+    const updatedForm = await formsAdapter.updateForm(req.formID, req.userId, organizationId, {
       status: FormStatus.Rejected,
       rejectionReason: req.reason,
       rejectionByUserId: jwtPayload.sub,
       lastUpdated: Date.now(),
     });
 
-    return { status: true };
+    return { status: true, updatedForm };
   } catch (error) {
     console.error('Error rejecting form:', error);
     if (error && typeof error === 'object' && 'statusCode' in error) {
