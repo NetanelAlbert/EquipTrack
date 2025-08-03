@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, Signal, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -8,7 +8,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { EditableInventoryComponent } from '../inventory/edit/editable-inventory.component';
-import { InventoryItem, UserAndUserInOrganization } from '@equip-track/shared';
+import {
+  FormType,
+  InventoryItem,
+  UserAndUserInOrganization,
+} from '@equip-track/shared';
 import { OrganizationStore } from '../../store/organization.store';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { InventoryListComponent } from '../inventory/list/inventory-list.component';
@@ -17,6 +21,15 @@ import { NotificationService } from '../../services/notification.service';
 import { UserStore } from '../../store/user.store';
 import { FormsStore } from '../../store/forms.store';
 import { InventoryStore } from '../../store/inventory.store';
+import { MatRadioModule } from '@angular/material/radio';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { of } from 'rxjs';
+
+interface CreateFormConfig {
+  explanationKey: string;
+  submitButtonTextKey: string;
+  limitItems: Signal<InventoryItem[]>;
+}
 
 @Component({
   selector: 'app-create-form',
@@ -34,6 +47,7 @@ import { InventoryStore } from '../../store/inventory.store';
     MatExpansionModule,
     InventoryListComponent,
     MatProgressSpinnerModule,
+    MatRadioModule,
   ],
   templateUrl: './create-form.component.html',
   styleUrls: ['./create-form.component.scss'],
@@ -46,8 +60,6 @@ export class CreateFormComponent {
   private userStore = inject(UserStore);
   private inventoryStore = inject(InventoryStore);
 
-  user = signal<UserAndUserInOrganization | undefined>(undefined);
-
   submitButton = {
     text: 'inventory.button.create-checkout',
     icon: 'check',
@@ -56,16 +68,34 @@ export class CreateFormComponent {
   form = this.fb.group({
     userID: ['', Validators.required],
     formDescription: ['', Validators.required],
+    formType: [FormType.CheckOut, Validators.required],
   });
+
+  userId = toSignal(this.form.get('userID')?.valueChanges || of(null));
+  formType = toSignal(this.form.get('formType')?.valueChanges || of(null));
+  // user = computed(() => this.organizationStore.getUser(this.userId() ?? undefined));
 
   users = this.organizationStore.users;
   predefinedForms = this.organizationStore.predefinedForms;
   initialItems = signal<InventoryItem[]>([]);
-  limitItems = this.inventoryStore.getWarehouseInventory();
   itemEdited = signal(false);
   showPredefinedForms = computed(
     () => !this.itemEdited() && this.predefinedForms().length > 0
   );
+
+  createFormConfig: Signal<CreateFormConfig> = computed(() => {
+    return this.formType() === FormType.CheckOut
+      ? {
+          explanationKey: 'create-form.explanation.check-out',
+          submitButtonTextKey: 'create-form.submit-button.check-out',
+          limitItems: this.inventoryStore.getWarehouseInventory(),
+        }
+      : {
+          explanationKey: 'create-form.explanation.check-in',
+          submitButtonTextKey: 'create-form.submit-button.check-in',
+          limitItems: this.inventoryStore.getUserInventory(this.userId() ?? ''),
+        };
+  });
 
   // TODO / bug: this is reseting current items added by the user
   addAllItems(items: InventoryItem[]) {
@@ -74,12 +104,10 @@ export class CreateFormComponent {
   }
 
   async onSubmit(items: InventoryItem[]) {
-    if (this.form.valid && items.length > 0) {
-      const userId = this.form.get('userID')?.value;
-      const formDescription = this.form.get('formDescription')?.value;
-      if (!userId) return;
-      if (!formDescription) return;
-
+    const userId = this.form.get('userID')?.value;
+    const formDescription = this.form.get('formDescription')?.value;
+    if (this.form.valid && items.length > 0 && userId && formDescription) {
+      // TODO: add check-in form
       const success = await this.formsStore.addCheckOutForm(
         items,
         userId,
@@ -92,10 +120,6 @@ export class CreateFormComponent {
       this.form.updateValueAndValidity();
       this.notificationService.showError('forms.form-invalid');
     }
-  }
-
-  onUserChange(userId: string) {
-    this.user.set(this.users().find((user) => user.user.id === userId));
   }
 
   userDescription(user: UserAndUserInOrganization) {

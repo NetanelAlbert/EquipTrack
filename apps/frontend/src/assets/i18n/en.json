@@ -239,14 +239,26 @@
       }
     }
   },
-  "checkout": {
-    "title": "Checkout",
+  "create-form": {
+    "title": "Create Form",
     "select-user": "Select User",
     "form-description": "Form Description",
     "predefined-forms": "Predefined Forms",
     "items": "Items",
     "success": "Checkout completed successfully",
-    "error": "Checkout failed. Please try again."
+    "error": "Checkout failed. Please try again.",
+    "type": {
+      "check-in": "Check In",
+      "check-out": "Check Out"
+    },
+    "explanation": {
+      "check-in": "Check in (return) items to the warehouse",
+      "check-out": "Check out (take) items from the warehouse"
+    },
+    "submit-button": {
+      "check-in": "Check In",
+      "check-out": "Check Out"
+    }
   },
   "reports": {
     "title": "Reports",

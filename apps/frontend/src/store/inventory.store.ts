@@ -199,7 +199,9 @@ export const InventoryStore = signalStore(
         }
         const answer = computed(() => store.inventory()[userID] ?? []);
         if (!answer().length) {
-          this.fetchUserInventory(userID);
+          setTimeout(() => {
+            this.fetchUserInventory(userID);
+          });
         }
         return answer;
       },
