@@ -140,6 +140,11 @@ function validateUserAccess<Req extends OptionalObject>(
       throw badRequest('User ID cannot be empty');
     }
     userId = req.userId;
+  } else if (req && 'userID' in req && typeof req.userID === 'string') {
+    if (!req.userID) {
+      throw badRequest('User ID cannot be empty');
+    }
+    userId = req.userID;
   }
   if (!userId) {
     return;

@@ -95,8 +95,8 @@ export const OrganizationStore = signalStore(
     };
 
     return {
-      getUser(id: string): UserAndUserInOrganization | undefined {
-        return store.usersMap().get(id);
+      getUser(id?: string): UserAndUserInOrganization | undefined {
+        return id ? store.usersMap().get(id) : undefined;
       },
 
       getUserName(id?: string): string {

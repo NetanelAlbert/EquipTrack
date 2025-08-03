@@ -1,14 +1,26 @@
-<div *ngIf="formsStore.addCheckOutFormStatus.isLoading()" class="checkout-spinner-overlay">
+<div *ngIf="formsStore.addFormStatus.isLoading()" class="checkout-spinner-overlay">
   <mat-progress-spinner mode="indeterminate" color="primary"></mat-progress-spinner>
 </div>
 
 <div class="container">
-  <h1>{{ 'checkout.title' | translate }}</h1>
+  <h1>{{ 'create-form.title' | translate }}</h1>
   
   <form [formGroup]="form">
+
+    <div class="form-type">
+      <mat-radio-group formControlName="formType">
+        <mat-radio-button value="check-out">{{ 'create-form.type.check-out' | translate }}</mat-radio-button>
+        <mat-radio-button value="check-in">{{ 'create-form.type.check-in' | translate }}</mat-radio-button>
+      </mat-radio-group>
+    </div>
+
+    <div class="explanation">
+      <p>{{ createFormConfig().explanationKey | translate }}</p>
+    </div>
+
     <mat-form-field>
-      <mat-label>{{ 'checkout.select-user' | translate }}</mat-label>
-      <mat-select formControlName="userID" (ngModelChange)="onUserChange($event)">
+      <mat-label>{{ 'create-form.select-user' | translate }}</mat-label>
+      <mat-select formControlName="userID">
         @for (user of users(); track user.user.id) {
           <mat-option [value]="user.user.id">
             {{ userDescription(user) }}
@@ -18,12 +30,12 @@
     </mat-form-field>
 
     <mat-form-field>
-      <mat-label>{{ 'checkout.form-description' | translate }}</mat-label>
+      <mat-label>{{ 'create-form.form-description' | translate }}</mat-label>
       <input matInput formControlName="formDescription" name="formDescription">
     </mat-form-field>
 
     <div class="predefined-forms" *ngIf="showPredefinedForms()">
-      <h2>{{ 'checkout.predefined-forms' | translate }}</h2>
+      <h2>{{ 'create-form.predefined-forms' | translate }}</h2>
       <mat-accordion>
         <mat-expansion-panel *ngFor="let form of predefinedForms()">
           <mat-expansion-panel-header>
@@ -31,7 +43,7 @@
               {{ form.description }}
             </mat-panel-title>
             <mat-panel-description class="panel-description-flex">
-              <span class="item-count">{{ form.items.length }} {{ 'checkout.items' | translate }}</span>
+              <span class="item-count">{{ form.items.length }} {{ 'create-form.items' | translate }}</span>
               <button
                 mat-icon-button
                 color="primary"
@@ -50,12 +62,13 @@
       </mat-accordion>
     </div>
 
-    <h2>{{ 'checkout.items' | translate }}</h2>
+    <h2>{{ 'create-form.items' | translate }}</h2>
     <editable-inventory
       [originalItems]="initialItems()"
+      [limitItems]="createFormConfig().limitItems()"
       (submitItems)="onSubmit($event)"
       (editedItems)="onItemsEdited()"
-      [submitButton]="submitButton"
+      [submitButton]="submitButton()"
     ></editable-inventory>
   </form>
 </div> 

@@ -1,23 +1,24 @@
-import {
-  BasicUser,
-  FormStatus,
-  ApproveCheckOut,
-  JwtPayload,
-} from '@equip-track/shared';
+import { BasicUser, FormStatus, JwtPayload } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
 import { UsersAndOrganizationsAdapter } from '../../../db/tables/users-and-organizations.adapter';
 import { InventoryTransferService } from '../../../services/inventory-transfer.service';
 import { PdfService } from '../../../services/pdf.service';
 import { S3Service } from '../../../services/s3.service';
-import { badRequest, internalServerError, jwtPayloadRequired, organizationIdRequired, userIdRequired } from '../../responses';
+import {
+  badRequest,
+  internalServerError,
+  jwtPayloadRequired,
+  organizationIdRequired,
+  userIdRequired,
+} from '../../responses';
 import { validateInventoryItems } from '../../validate';
 
 export const handler = async (
-  req: ApproveCheckOut,
+  req: BasicUser.ApproveForm,
   pathParams: APIGatewayProxyEventPathParameters,
   jwtPayload?: JwtPayload
-): Promise<BasicUser.ApproveCheckOutResponse> => {
+): Promise<BasicUser.ApproveFormResponse> => {
   try {
     const organizationId = pathParams?.organizationId;
     if (!organizationId) {
@@ -29,7 +30,7 @@ export const handler = async (
     }
 
     if (!jwtPayload) {
-      throw jwtPayloadRequired
+      throw jwtPayloadRequired;
     }
 
     if (!req.signature) {
@@ -37,7 +38,7 @@ export const handler = async (
     }
 
     if (!req.userId) {
-      throw userIdRequired
+      throw userIdRequired;
     }
 
     // Initialize services and adapters
@@ -46,8 +47,11 @@ export const handler = async (
     const inventoryTransferService = new InventoryTransferService();
     const s3Service = new S3Service();
 
-    
-    const form = await formsAdapter.getForm(req.userId, organizationId, req.formID);
+    const form = await formsAdapter.getForm(
+      req.userId,
+      organizationId,
+      req.formID
+    );
 
     if (!form) {
       throw badRequest(`Form with ID ${req.formID} not found`);
@@ -97,7 +101,7 @@ export const handler = async (
     const now = Date.now();
     const updatedForm = await formsAdapter.updateForm(
       req.formID,
-      form.userID,
+      req.userId,
       organizationId,
       {
         status: FormStatus.Approved,

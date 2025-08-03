@@ -14,32 +14,20 @@ export interface StartResponse extends BasicResponse {
   organizations: Organization[];
 }
 
-export interface ApproveCheckOut {
+export interface ApproveForm {
   formID: string;
   userId: string; // form user id
   signature: string;
 }
 
-export interface ApproveCheckOutResponse extends BasicResponse {
+export interface ApproveFormResponse extends BasicResponse {
   updatedForm: InventoryForm;
 }
 
-export interface RejectCheckOut {
+export interface RejectForm {
+  userId: string; // form user id
   formID: string;
   reason: string;
-}
-
-export interface RequestCheckIn {
-  items: InventoryItem[];
-  userId: string;
-}
-
-export interface RequestCheckInResponse extends BasicResponse {
-  form: InventoryForm;
-}
-
-export interface ReportItems {
-  items: ItemReport[];
 }
 
 export interface GetPresignedUrlResponse extends BasicResponse {

@@ -3,6 +3,7 @@ import {
   FormBuilder,
   FormControl,
   FormGroup,
+  ValidatorFn,
   Validators,
 } from '@angular/forms';
 import { InventoryItem, Product } from '@equip-track/shared';
@@ -30,7 +31,8 @@ export const FormInventoryItemMapper = (
 export const FormInventoryItemMapperFromItem = (
   fb: FormBuilder,
   item: InventoryItem,
-  product: Product | null
+  product: Product | null,
+  limitValidator: ValidatorFn
 ): FormGroup<FormInventoryItem> => {
   return fb.group({
     product: [product, [Validators.required]],
@@ -38,12 +40,17 @@ export const FormInventoryItemMapperFromItem = (
       item.quantity,
       [Validators.required, Validators.min(1), Validators.pattern(/^[0-9]*$/)],
     ],
-    upis: fb.array<string>(item.upis ?? ['']),
-  });
+      upis: fb.array<string>(item.upis ?? ['']),
+    },
+    {
+      validators: [limitValidator],
+    }
+  );
 };
 
-export const emptyItem: (fb: FormBuilder) => FormGroup<FormInventoryItem> = (
-  fb
+export const emptyItem: (fb: FormBuilder, limitValidator: ValidatorFn) => FormGroup<FormInventoryItem> = (
+  fb,
+  limitValidator
 ) => {
   return FormInventoryItemMapperFromItem(
     fb,
@@ -52,6 +59,7 @@ export const emptyItem: (fb: FormBuilder) => FormGroup<FormInventoryItem> = (
       quantity: 1,
       upis: undefined,
     },
-    null
+    null,
+    limitValidator
   );
 };

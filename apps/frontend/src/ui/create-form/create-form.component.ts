@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, Signal, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -9,24 +9,30 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { EditableInventoryComponent } from '../inventory/edit/editable-inventory.component';
 import {
-  InventoryForm,
-  InventoryItem,
-  FormStatus,
   FormType,
+  InventoryItem,
   UserAndUserInOrganization,
 } from '@equip-track/shared';
 import { OrganizationStore } from '../../store/organization.store';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { InventoryListComponent } from '../inventory/list/inventory-list.component';
-import { computedPrevious } from 'ngxtension/computed-previous';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { NotificationService } from '../../services/notification.service';
 import { UserStore } from '../../store/user.store';
 import { FormsStore } from '../../store/forms.store';
-import { Router } from '@angular/router';
+import { InventoryStore } from '../../store/inventory.store';
+import { MatRadioModule } from '@angular/material/radio';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { of } from 'rxjs';
+
+interface CreateFormConfig {
+  explanationKey: string;
+  submitButtonTextKey: string;
+  limitItems: Signal<InventoryItem[]>;
+}
 
 @Component({
-  selector: 'app-checkout',
+  selector: 'app-create-form',
   standalone: true,
   imports: [
     CommonModule,
@@ -41,28 +47,30 @@ import { Router } from '@angular/router';
     MatExpansionModule,
     InventoryListComponent,
     MatProgressSpinnerModule,
+    MatRadioModule,
   ],
-  templateUrl: './checkout.component.html',
-  styleUrls: ['./checkout.component.scss'],
+  templateUrl: './create-form.component.html',
+  styleUrls: ['./create-form.component.scss'],
 })
-export class CheckoutComponent {
+export class CreateFormComponent {
   private fb = inject(FormBuilder);
   private organizationStore = inject(OrganizationStore);
   private notificationService = inject(NotificationService);
   protected formsStore = inject(FormsStore);
   private userStore = inject(UserStore);
-  private router = inject(Router);
+  private inventoryStore = inject(InventoryStore);
 
-  user = signal<UserAndUserInOrganization | undefined>(undefined);
-
-  submitButton = {
-    text: 'inventory.button.create-checkout',
-    icon: 'check',
-    color: 'primary',
-  };
   form = this.fb.group({
     userID: ['', Validators.required],
     formDescription: ['', Validators.required],
+    formType: [FormType.CheckOut, Validators.required],
+  });
+
+  userId = toSignal(this.form.get('userID')?.valueChanges || of(), {
+    initialValue: '',
+  });
+  formType = toSignal(this.form.get('formType')?.valueChanges || of(), {
+    initialValue: FormType.CheckOut,
   });
 
   users = this.organizationStore.users;
@@ -73,6 +81,26 @@ export class CheckoutComponent {
     () => !this.itemEdited() && this.predefinedForms().length > 0
   );
 
+  createFormConfig: Signal<CreateFormConfig> = computed(() => {
+    return this.formType() === FormType.CheckOut
+      ? {
+          explanationKey: 'create-form.explanation.check-out',
+          submitButtonTextKey: 'create-form.submit-button.check-out',
+          limitItems: this.inventoryStore.getWarehouseInventory(),
+        }
+      : {
+          explanationKey: 'create-form.explanation.check-in',
+          submitButtonTextKey: 'create-form.submit-button.check-in',
+          limitItems: this.inventoryStore.getUserInventory(this.userId() ?? ''),
+        };
+  });
+
+  submitButton = computed(() => ({
+    text: this.createFormConfig().submitButtonTextKey,
+    icon: 'check',
+    color: 'primary',
+  }));
+
   // TODO / bug: this is reseting current items added by the user
   addAllItems(items: InventoryItem[]) {
     this.initialItems.set(items);
@@ -80,13 +108,13 @@ export class CheckoutComponent {
   }
 
   async onSubmit(items: InventoryItem[]) {
-    if (this.form.valid && items.length > 0) {
-      const userId = this.form.get('userID')?.value;
-      const formDescription = this.form.get('formDescription')?.value;
-      if (!userId) return;
-      if (!formDescription) return;
-
-      const success = await this.formsStore.addCheckOutForm(
+    const formDescription = this.form.get('formDescription')?.value;
+    const userId = this.userId();
+    const formType = this.formType();
+    if (this.form.valid && items.length > 0 && userId && formDescription && formType) {
+      // TODO: add check-in form
+      const success = await this.formsStore.addForm(
+        formType,
         items,
         userId,
         formDescription
@@ -94,11 +122,10 @@ export class CheckoutComponent {
       if (success) {
         this.resetForm();
       }
+    } else {
+      this.form.updateValueAndValidity();
+      this.notificationService.showError('forms.form-invalid');
     }
-  }
-
-  onUserChange(userId: string) {
-    this.user.set(this.users().find((user) => user.user.id === userId));
   }
 
   userDescription(user: UserAndUserInOrganization) {

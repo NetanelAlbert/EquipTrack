@@ -37,8 +37,7 @@ interface FormsState {
 
   // API status for operations using ApiStatus
   fetchFormsStatus: ApiStatus;
-  addCheckInFormStatus: ApiStatus;
-  addCheckOutFormStatus: ApiStatus;
+  addFormStatus: ApiStatus;
   approveFormStatus: ApiStatus;
   rejectFormStatus: ApiStatus;
   getPresignedUrlStatus: ApiStatus;
@@ -51,11 +50,7 @@ const emptyState: FormsState = {
     isLoading: false,
     error: undefined,
   },
-  addCheckInFormStatus: {
-    isLoading: false,
-    error: undefined,
-  },
-  addCheckOutFormStatus: {
+  addFormStatus: {
     isLoading: false,
     error: undefined,
   },
@@ -92,8 +87,7 @@ export const FormsStore = signalStore(
       isLoading: computed(
         () =>
           state.fetchFormsStatus().isLoading ||
-          state.addCheckInFormStatus().isLoading ||
-          state.addCheckOutFormStatus().isLoading ||
+          state.addFormStatus().isLoading ||
           state.approveFormStatus().isLoading ||
           state.rejectFormStatus().isLoading
       ),
@@ -194,65 +188,9 @@ export const FormsStore = signalStore(
         }
       },
 
-      // todo: merge with addCheckOutForm to 1 request (?)
-      async addCheckInForm(items: InventoryItem[], userId: string) {
-        updateState({
-          addCheckInFormStatus: { isLoading: true, error: undefined },
-        });
 
-        try {
-          const response = await firstValueFrom(
-            apiService.endpoints.requestCheckIn.execute(
-              { items, userId },
-              {
-                [ORGANIZATION_ID_PATH_PARAM]:
-                  userStore.selectedOrganizationId(),
-              }
-            )
-          );
-
-          if (!response.status) {
-            notificationService.showError(
-              'errors.forms.submit-failed',
-              response.errorMessage
-            );
-            updateState({
-              addCheckInFormStatus: {
-                isLoading: false,
-                error:
-                  response.errorMessage || 'Failed to submit check-in form',
-              },
-            });
-            return;
-          }
-
-          console.log('Check-in form submitted successfully:', response.form);
-          notificationService.showSuccess(
-            'forms.check-in-submitted',
-            'Check-in request submitted successfully'
-          );
-          updateState({
-            addCheckInFormStatus: { isLoading: false, error: undefined },
-            forms: [response.form, ...state.forms()],
-          });
-        } catch (error) {
-          console.error('Error creating check-in form:', error);
-          notificationService.handleApiError(
-            error,
-            'errors.forms.submit-failed'
-          );
-          const errorMessage =
-            error instanceof Error
-              ? error.message
-              : 'Failed to submit check-in form';
-          updateState({
-            addCheckInFormStatus: { isLoading: false, error: errorMessage },
-          });
-          throw error;
-        }
-      },
-
-      async addCheckOutForm(
+      async addForm(
+        formType: FormType,
         items: InventoryItem[],
         userId: string,
         description: string
@@ -263,16 +201,17 @@ export const FormsStore = signalStore(
         }
 
         updateState({
-          addCheckOutFormStatus: { isLoading: true, error: undefined },
+          addFormStatus: { isLoading: true, error: undefined },
         });
 
         try {
           const response = await firstValueFrom(
-            apiService.endpoints.createCheckOutForm.execute(
+            apiService.endpoints.createForm.execute(
               {
-                userID: userId,
-                items: items,
-                description: description,
+                formType,
+                userId,
+                items,
+                description,
               },
               {
                 [ORGANIZATION_ID_PATH_PARAM]: organizationId,
@@ -287,7 +226,7 @@ export const FormsStore = signalStore(
               response.errorMessage
             );
             updateState({
-              addCheckOutFormStatus: {
+              addFormStatus: {
                 isLoading: false,
                 error:
                   response.errorMessage || 'Failed to submit check-out form',
@@ -301,7 +240,7 @@ export const FormsStore = signalStore(
             'Check-out request submitted successfully'
           );
           updateState({
-            addCheckOutFormStatus: { isLoading: false, error: undefined },
+            addFormStatus: { isLoading: false, error: undefined },
             forms: [response.form, ...state.forms()],
           });
 
@@ -331,7 +270,7 @@ export const FormsStore = signalStore(
               ? error.message
               : 'Failed to submit check-out form';
           updateState({
-            addCheckOutFormStatus: { isLoading: false, error: errorMessage },
+            addFormStatus: { isLoading: false, error: errorMessage },
           });
           throw error;
         }
@@ -372,7 +311,6 @@ export const FormsStore = signalStore(
             return;
           }
 
-          // Optimistically update local state on success
           patchState(state, {
             forms: state
               .forms()
@@ -404,7 +342,7 @@ export const FormsStore = signalStore(
         }
       },
 
-      async rejectForm(formID: string, reason: string) {
+      async rejectForm(formID: string, formUserId: string, reason: string) {
         updateState({
           rejectFormStatus: { isLoading: true, error: undefined },
         });
@@ -413,7 +351,7 @@ export const FormsStore = signalStore(
           // Call the backend API to reject the form
           const response = await firstValueFrom(
             apiService.endpoints.rejectForm.execute(
-              { formID, reason },
+              { formID, reason, userId: formUserId },
               {
                 [ORGANIZATION_ID_PATH_PARAM]:
                   userStore.selectedOrganizationId(),
@@ -483,19 +421,10 @@ export const FormsStore = signalStore(
         });
       },
 
-      clearAddCheckInFormError() {
+      clearAddFormError() {
         updateState({
-          addCheckInFormStatus: {
-            ...state.addCheckInFormStatus(),
-            error: undefined,
-          },
-        });
-      },
-
-      clearAddCheckOutFormError() {
-        updateState({
-          addCheckOutFormStatus: {
-            ...state.addCheckOutFormStatus(),
+          addFormStatus: {
+            ...state.addFormStatus(),
             error: undefined,
           },
         });

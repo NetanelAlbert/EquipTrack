@@ -9,6 +9,7 @@ import {
   Product,
   ItemReport,
   User,
+  FormType,
 } from '../elements';
 import { BasicResponse } from './basic';
 
@@ -56,9 +57,10 @@ export interface GetAllFormsResponse extends BasicResponse {
 
 // CHECK OUT
 
-export interface CreateCheckOutForm {
+export interface CreateForm {
+  formType: FormType;
   items: InventoryItem[];
-  userID: string;
+  userId: string;
   description: string;
 }
 

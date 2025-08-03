@@ -1,10 +1,6 @@
 import { InventoryItem } from '@equip-track/shared';
 import { badRequest } from './responses';
 
-export function validate(input: unknown): boolean {
-  return true;
-}
-
 export function validateInventoryItems(items: InventoryItem[]): void {
   if (!items || !Array.isArray(items) || items.length === 0) {
     throw badRequest('Items array is required and must not be empty');
