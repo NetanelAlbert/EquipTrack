@@ -89,11 +89,9 @@ export class FormCardComponent {
         try {
           console.log('Form rejected with reason:', reason);
 
-          // ✅ Use real API through forms store
-          await this.formsStore.rejectForm(this.form.formID, reason);
+          await this.formsStore.rejectForm(this.form.formID, this.form.userID, reason);
         } catch (error) {
           console.error('Failed to reject form:', error);
-          // TODO: Show error message to user via snackbar or toast
         }
       }
     });
@@ -103,7 +101,8 @@ export class FormCardComponent {
     try {
       console.log('Check in clicked for form:', this.form.formID);
 
-      await this.formsStore.addCheckInForm(this.form.items, this.form.userID);
+      // todo: redirect insted
+      await this.formsStore.addForm(FormType.CheckIn, this.form.items, this.form.userID, '');
 
       console.log('Check-in form created for returned items');
     } catch (error) {

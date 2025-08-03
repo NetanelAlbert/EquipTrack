@@ -10,7 +10,10 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
 export type OptionalObject = object | undefined;
 
-export interface EndpointMeta<Req extends OptionalObject = undefined, Res extends OptionalObject = undefined> {
+export interface EndpointMeta<
+  Req extends OptionalObject = undefined,
+  Res extends OptionalObject = undefined
+> {
   path: string;
   method: HttpMethod;
   allowedRoles: UserRole[];
@@ -72,7 +75,11 @@ export const endpointMetas = {
   getProducts: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/products`,
     method: 'GET',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    allowedRoles: [
+      UserRole.WarehouseManager,
+      UserRole.Admin,
+      UserRole.Customer,
+    ],
     responseType: {} as Wharehouse.GetProductsResponse,
   } as EndpointMeta<undefined, Wharehouse.GetProductsResponse>,
   setProduct: {
@@ -103,7 +110,7 @@ export const endpointMetas = {
     allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
     requestType: {} as Wharehouse.RemoveInventory,
     responseType: {} as BasicResponse,
-  } as EndpointMeta<Wharehouse.RemoveInventory, BasicResponse>, 
+  } as EndpointMeta<Wharehouse.RemoveInventory, BasicResponse>,
   getInventory: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/inventory`,
     method: 'GET',
@@ -140,26 +147,17 @@ export const endpointMetas = {
     allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
     responseType: {} as Wharehouse.GetAllFormsResponse,
   } as EndpointMeta<undefined, Wharehouse.GetAllFormsResponse>,
-  createCheckOutForm: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkout/create`,
+  createForm: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/create`,
     method: 'POST',
     allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
     allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
-    requestType: {} as Wharehouse.CreateCheckOutForm,
+    requestType: {} as Wharehouse.CreateForm,
     responseType: {} as Wharehouse.CreateCheckOutFormResponse,
-  } as EndpointMeta<Wharehouse.CreateCheckOutForm, Wharehouse.CreateCheckOutFormResponse>,
-  requestCheckIn: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/checkin/request`,
-    method: 'POST',
-    allowedRoles: [
-      UserRole.Customer,
-      UserRole.Admin,
-      UserRole.WarehouseManager,
-    ],
-    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
-    requestType: {} as BasicUser.RequestCheckIn,
-    responseType: {} as BasicUser.RequestCheckInResponse,
-  } as EndpointMeta<BasicUser.RequestCheckIn, BasicUser.RequestCheckInResponse>,
+  } as EndpointMeta<
+    Wharehouse.CreateForm,
+    Wharehouse.CreateCheckOutFormResponse
+  >,
   approveForm: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/approve`,
     method: 'POST',
@@ -169,9 +167,12 @@ export const endpointMetas = {
       UserRole.Customer,
     ],
     allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
-    requestType: {} as BasicUser.ApproveCheckOut,
-    responseType: {} as BasicUser.ApproveCheckOutResponse,
-  } as EndpointMeta<BasicUser.ApproveCheckOut, BasicUser.ApproveCheckOutResponse>,
+    requestType: {} as BasicUser.ApproveForm,
+    responseType: {} as BasicUser.ApproveFormResponse,
+  } as EndpointMeta<
+    BasicUser.ApproveForm,
+    BasicUser.ApproveFormResponse
+  >,
   rejectForm: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/reject`,
     method: 'POST',
@@ -181,18 +182,20 @@ export const endpointMetas = {
       UserRole.Customer,
     ],
     allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
-    requestType: {} as BasicUser.RejectCheckOut,
+      requestType: {} as BasicUser.RejectForm,
     responseType: {} as BasicResponse,
-  } as EndpointMeta<BasicUser.RejectCheckOut, BasicResponse>,
+  } as EndpointMeta<BasicUser.RejectForm, BasicResponse>,
   getPresignedUrl: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/users/{${USER_ID_PATH_PARAM}}/forms/{${FORM_ID_PATH_PARAM}}/presigned-url`,
     method: 'GET',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    allowedRoles: [
+      UserRole.WarehouseManager,
+      UserRole.Admin,
+      UserRole.Customer,
+    ],
     allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
     responseType: {} as BasicUser.GetPresignedUrlResponse,
   } as EndpointMeta<undefined, BasicUser.GetPresignedUrlResponse>,
-
-
   // Reports
   /**
    * @deprecated Use getReportsByDates instead
@@ -206,7 +209,11 @@ export const endpointMetas = {
   getReportsByDates: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports/by-dates`,
     method: 'POST',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    allowedRoles: [
+      UserRole.WarehouseManager,
+      UserRole.Admin,
+      UserRole.Customer,
+    ],
     requestType: {} as Reports.GetReportsByDatesRequest,
     responseType: {} as Reports.GetReportsByDatesResponse,
   } as EndpointMeta<

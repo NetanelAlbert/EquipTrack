@@ -108,11 +108,13 @@ export class CreateFormComponent {
   }
 
   async onSubmit(items: InventoryItem[]) {
-    const userId = this.form.get('userID')?.value;
     const formDescription = this.form.get('formDescription')?.value;
-    if (this.form.valid && items.length > 0 && userId && formDescription) {
+    const userId = this.userId();
+    const formType = this.formType();
+    if (this.form.valid && items.length > 0 && userId && formDescription && formType) {
       // TODO: add check-in form
-      const success = await this.formsStore.addCheckOutForm(
+      const success = await this.formsStore.addForm(
+        formType,
         items,
         userId,
         formDescription

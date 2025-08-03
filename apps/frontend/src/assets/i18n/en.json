@@ -300,7 +300,8 @@
       "description-required": "Description is required",
       "jwt-payload-required": "JWT payload is required",
       "organization-id-required": "Organization ID is required",
-      "form-id-required": "Form ID is required"
+      "form-id-required": "Form ID is required",
+      "invalid-form-type": "Invalid form type"
     },
     "auth": {
       "no-token": "Authentication required. Please sign in again.",
