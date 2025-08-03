@@ -53,18 +53,9 @@ const formDuplicateValidator: ValidatorFn = (formArray: AbstractControl) => {
     }
   });
   // side effect to manually set / unset the duplicate error for each item
-  console.log(
-    'formDuplicateValidator; duplicateProductIds:',
-    duplicateProductIds
-  );
+
   formArray.controls.forEach((item) => {
     const productId = item.value.product?.id ?? '';
-    console.log(
-      'formDuplicateValidator; pid:',
-      productId,
-      'isDuplicate:',
-      duplicateProductIds.has(productId)
-    );
     if (duplicateProductIds.has(productId)) {
       item.setErrors({ duplicate: true });
     } else {
