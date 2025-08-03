@@ -60,8 +60,12 @@
                                         class="upi-item" 
                                         [@upiItemAnimation]
                                         role="listitem"
+                                        (click)="copyUpi(upi, $event)"
                                         [attr.aria-label]="'inventory.upi.item' | translate : { upi: upi }">
-                                        <span class="upi-code">{{upi}}</span>
+                                        <div class="upi-code-container">
+                                            <span class="upi-code">{{upi}}</span>
+                                            <mat-icon class="copy-icon">content_copy</mat-icon>
+                                        </div>
                                     </mat-list-item>
                                 }
                             </mat-list>

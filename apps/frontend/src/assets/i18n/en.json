@@ -217,7 +217,8 @@
     "upi": {
       "title": "UPI Information",
       "item": "UPI code: {{upi}}",
-      "help": "Contains {{count}} UPI codes. Press Enter or Space to expand."
+      "help": "Contains {{count}} UPI codes. Press Enter or Space to expand.",
+      "copied": "UPI copied to clipboard"
     },
     "add": {
       "title": "Add Inventory",

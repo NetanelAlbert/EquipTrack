@@ -23,6 +23,8 @@ import {
   query,
   stagger,
 } from '@angular/animations';
+import { Clipboard } from '@angular/cdk/clipboard';
+import { NotificationService } from '../../../services/notification.service';
 
 @Component({
   selector: 'inventory-list',
@@ -157,7 +159,8 @@ import {
 export class InventoryListComponent {
   inventoryItems = input<InventoryItem[]>();
   organizationStore = inject(OrganizationStore);
-
+  clipboard = inject(Clipboard);
+  notificationService = inject(NotificationService);
   // Track expanded state for each item
   private expandedItems = new Set<string>();
 
@@ -270,5 +273,11 @@ export class InventoryListComponent {
    */
   private getItemKey(item: InventoryItem): string {
     return `${item.productId}`;
+  }
+
+  copyUpi(upi: string, event: MouseEvent): void {
+    event.stopPropagation();
+    this.clipboard.copy(upi);
+    this.notificationService.showInfo('inventory.upi.copied');
   }
 }
