@@ -60,20 +60,18 @@ export class CreateFormComponent {
   private userStore = inject(UserStore);
   private inventoryStore = inject(InventoryStore);
 
-  submitButton = {
-    text: 'inventory.button.create-checkout',
-    icon: 'check',
-    color: 'primary',
-  };
   form = this.fb.group({
     userID: ['', Validators.required],
     formDescription: ['', Validators.required],
     formType: [FormType.CheckOut, Validators.required],
   });
 
-  userId = toSignal(this.form.get('userID')?.valueChanges || of(null));
-  formType = toSignal(this.form.get('formType')?.valueChanges || of(null));
-  // user = computed(() => this.organizationStore.getUser(this.userId() ?? undefined));
+  userId = toSignal(this.form.get('userID')?.valueChanges || of(), {
+    initialValue: '',
+  });
+  formType = toSignal(this.form.get('formType')?.valueChanges || of(), {
+    initialValue: FormType.CheckOut,
+  });
 
   users = this.organizationStore.users;
   predefinedForms = this.organizationStore.predefinedForms;
@@ -96,6 +94,12 @@ export class CreateFormComponent {
           limitItems: this.inventoryStore.getUserInventory(this.userId() ?? ''),
         };
   });
+
+  submitButton = computed(() => ({
+    text: this.createFormConfig().submitButtonTextKey,
+    icon: 'check',
+    color: 'primary',
+  }));
 
   // TODO / bug: this is reseting current items added by the user
   addAllItems(items: InventoryItem[]) {
