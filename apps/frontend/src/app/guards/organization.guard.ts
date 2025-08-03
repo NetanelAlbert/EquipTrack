@@ -10,8 +10,6 @@ export const organizationGuard: CanActivateFn = () => {
   const userStore = inject(UserStore);
   const router = inject(Router);
 
-  console.log('organization guard', userStore.selectedOrganizationId());
-
   if (userStore.selectedOrganizationId()) {
     return true;
   }

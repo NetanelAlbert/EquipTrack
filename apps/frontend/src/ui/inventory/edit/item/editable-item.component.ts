@@ -22,6 +22,7 @@ import {
   ValidatorFn,
   Validators,
   AbstractControl,
+  ValidationErrors,
 } from '@angular/forms';
 import { Product } from '@equip-track/shared';
 import { MatSelectModule } from '@angular/material/select';
@@ -34,7 +35,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { first, map, distinctUntilChanged, filter } from 'rxjs';
+import { first, map, distinctUntilChanged, filter, Subscription } from 'rxjs';
+import { toObservable } from '@angular/core/rxjs-interop';
 
 @UntilDestroy()
 @Component({
@@ -57,11 +59,11 @@ import { first, map, distinctUntilChanged, filter } from 'rxjs';
 export class EditableItemComponent implements OnInit {
   fb = inject(FormBuilder);
   organizationStore = inject(OrganizationStore);
-  control = input<FormGroup<FormInventoryItem>>(emptyItem(this.fb));
+  control = input<FormGroup<FormInventoryItem>>(emptyItem(this.fb, () => null));
   @Output() remove = new EventEmitter<void>();
 
   products: Signal<Product[]> = this.organizationStore.products;
-  searchControl = new FormControl<string>('');
+  searchControl = new FormControl();
   searchTerm = signal<string>('');
 
   filteredProducts: Signal<Product[]> = computed(() => {
@@ -76,34 +78,30 @@ export class EditableItemComponent implements OnInit {
     );
   });
 
-  @HostBinding('class.upi-item') get isUpiItem() {
-    return this.isUPI();
-  }
-
   constructor() {
     this.initialResizeUPIs();
-    this.initialIsUPI();
+    this.initialProductIdSignal();
     this.initialSearchTerm();
+    // this.initialSerachControlValue();
+    this.initialUpiValidations();
+    this.initInputProduct();
   }
 
   onProductSelected(product: Product): void {
-    this.productControl().setValue(product);
+    console.log('onProductSelected; product', product);
+    this.productIdControl().setValue(product.id);
   }
 
-  displayProduct(product: Product | null): string {
-    return product ? `${product.name} (${product.id})` : '';
+  displayProduct(product: Product | undefined): string {
+    return product?.id ? `${product.name} (${product.id})` : '';
   }
 
   ngOnInit(): void {
-    this.isUPI.set(this.productControl().value?.hasUpi ?? false);
-    const currentProduct = this.productControl().value;
-    if (currentProduct) {
-      this.searchControl.setValue(this.displayProduct(currentProduct));
-    }
+    this.productId.set(this.productIdControl().value);
   }
 
-  productControl: Signal<FormControl<Product | null>> = computed(
-    () => this.control().controls['product']
+  productIdControl: Signal<FormControl<string | null>> = computed(
+    () => this.control().controls['productId']
   );
   quantityControl: Signal<FormControl<number | null>> = computed(
     () => this.control().controls['quantity']
@@ -111,11 +109,21 @@ export class EditableItemComponent implements OnInit {
   upisControl: Signal<FormArray<FormControl<string | null>>> = computed(
     () => this.control().controls['upis']
   );
-  isUPI: WritableSignal<boolean> = signal(false);
+  productId: WritableSignal<string | null> = signal(null);
+  product: Signal<Product | undefined> = computed(() =>
+    this.organizationStore.getProductSignal(this.productId() ?? '')()
+  );
+
+  isUPI: Signal<boolean> = computed(() => this.product()?.hasUpi ?? false);
+
+  @HostBinding('class.upi-item')
+  get isUpiItem(): boolean {
+    return this.isUPI();
+  }
 
   // Updated validation error signals
   productErrors: Signal<{ [key: string]: boolean }> = computed(() => {
-    const control = this.productControl();
+    const control = this.productIdControl();
     return control.errors || {};
   });
 
@@ -125,7 +133,7 @@ export class EditableItemComponent implements OnInit {
     return control.errors || {};
   });
 
-  getUpiErrors(index: number): { [key: string]: boolean } {
+  getUpiErrors(index: number): ValidationErrors {
     const control = this.upisControl().at(index);
     // Always return errors object, regardless of touched state for debugging
     return control.errors || {};
@@ -140,6 +148,7 @@ export class EditableItemComponent implements OnInit {
     upisArray.controls.forEach((control) => control.markAsTouched());
   }
 
+  private quantitySubscription: Subscription | null = null;
   private initialResizeUPIs() {
     effect(() => {
       const quantityControl = this.quantityControl();
@@ -150,28 +159,31 @@ export class EditableItemComponent implements OnInit {
         );
         return;
       }
-      quantityControl.valueChanges.subscribe((value) => {
-        if (value === null) return;
+      this.quantitySubscription?.unsubscribe();
+      this.quantitySubscription = quantityControl.valueChanges.subscribe(
+        (value) => {
+          if (value === null) return;
 
-        if (value < 0) {
-          quantityControl.setValue(0, { emitEvent: false });
-          value = 0;
-        }
+          if (value < 0) {
+            quantityControl.setValue(0, { emitEvent: false });
+            value = 0;
+          }
 
-        while (upisControl.length < value) {
-          this.addUpi(false);
-        }
+          while (upisControl.length < value) {
+            this.addUpi(false);
+          }
 
-        while (upisControl.length > value) {
-          if (!this.removeEmptyUpi()) {
-            break;
+          while (upisControl.length > value) {
+            if (!this.removeEmptyUpi()) {
+              break;
+            }
+          }
+
+          if (upisControl.length > value) {
+            quantityControl.setValue(upisControl.length, { emitEvent: false });
           }
         }
-
-        if (upisControl.length > value) {
-          quantityControl.setValue(upisControl.length, { emitEvent: false });
-        }
-      });
+      );
 
       upisControl.valueChanges
         .pipe(
@@ -205,13 +217,15 @@ export class EditableItemComponent implements OnInit {
     }
   }
 
-  private initialIsUPI() {
-    effect(() =>
-      this.productControl().valueChanges.subscribe(() => {
-        this.isUPI.set(this.productControl().value?.hasUpi ?? false);
-        this.updateUpisValidations(0);
-      })
-    );
+  private productIdSubscription: Subscription | null = null;
+  private initialProductIdSignal() {
+    effect(() => {
+      this.productIdSubscription?.unsubscribe();
+      this.productIdSubscription =
+        this.productIdControl().valueChanges.subscribe((productId) => {
+          this.productId.set(productId);
+        });
+    });
   }
 
   private initialSearchTerm() {
@@ -227,7 +241,7 @@ export class EditableItemComponent implements OnInit {
     const duplicateControl = this.upisControl().at(duplicateIndex);
 
     firstControl.valueChanges.pipe(first()).subscribe(() => {
-      duplicateControl.updateValueAndValidity();
+      duplicateControl?.updateValueAndValidity();
     });
   }
 
@@ -266,5 +280,21 @@ export class EditableItemComponent implements OnInit {
     this.setUPIValidations(control, newIndex);
     this.upisControl().push(control, { emitEvent });
     return newIndex;
+  }
+
+  private initInputProduct() {
+    toObservable(this.product)
+      .pipe(first(Boolean))
+      .subscribe((product) => {
+        this.searchControl.setValue(product);
+      });
+  }
+
+  private initialUpiValidations() {
+    effect(() => {
+      if (this.isUPI()) {
+        this.updateUpisValidations(0);
+      }
+    });
   }
 }

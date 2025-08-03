@@ -15,6 +15,7 @@ import { UI_DATE_FORMAT } from '@equip-track/shared';
 import { Clipboard } from '@angular/cdk/clipboard';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NotificationService } from '../../../services/notification.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-form-card',
@@ -40,6 +41,7 @@ export class FormCardComponent {
   private readonly formsStore = inject(FormsStore);
   private readonly clipboard = inject(Clipboard);
   private readonly notificationService = inject(NotificationService);
+  private readonly router = inject(Router);
 
   get isAdminOrWarehouseManager(): boolean {
     const role = this.userStore.currentRole();
@@ -70,7 +72,11 @@ export class FormCardComponent {
             this.form.formID
           );
 
-          await this.formsStore.approveForm(this.form.formID, this.form.userID, signature);
+          await this.formsStore.approveForm(
+            this.form.formID,
+            this.form.userID,
+            signature
+          );
         } catch (error) {
           console.error('Failed to approve form:', error);
           // TODO: Show error message to user via snackbar or toast
@@ -89,27 +95,26 @@ export class FormCardComponent {
         try {
           console.log('Form rejected with reason:', reason);
 
-          // ✅ Use real API through forms store
-          await this.formsStore.rejectForm(this.form.formID, reason);
+          await this.formsStore.rejectForm(
+            this.form.formID,
+            this.form.userID,
+            reason
+          );
         } catch (error) {
           console.error('Failed to reject form:', error);
-          // TODO: Show error message to user via snackbar or toast
         }
       }
     });
   }
 
-  async onCheckIn() {
-    try {
-      console.log('Check in clicked for form:', this.form.formID);
-
-      await this.formsStore.addCheckInForm(this.form.items, this.form.userID);
-
-      console.log('Check-in form created for returned items');
-    } catch (error) {
-      console.error('Failed to create check-in form:', error);
-      // TODO: Show error message to user via snackbar or toast
-    }
+  onCheckIn() {
+    this.router.navigate(['/create-form'], {
+      queryParams: {
+        formType: FormType.CheckIn,
+        userId: this.form.userID,
+        items: JSON.stringify(this.form.items),
+      },
+    });
   }
 
   get userName(): string {
@@ -126,19 +131,30 @@ export class FormCardComponent {
   }
 
   onPrintForm() {
-    this.formsStore.getPresignedUrl(
-      this.form.formID,
-      this.form.userID,
-      this.userStore.selectedOrganizationId()
-    ).then((url) => {
-      if (url) {
-        window.open(url, '_blank');
-      }
-    });
+    this.formsStore
+      .getPresignedUrl(
+        this.form.formID,
+        this.form.userID,
+        this.userStore.selectedOrganizationId()
+      )
+      .then((url) => {
+        if (url) {
+          window.open(url, '_blank');
+        }
+      });
   }
 
   onCopyFormId() {
     this.clipboard.copy(this.form.formID);
     this.notificationService.showSuccess('forms.form-id-copied');
+  }
+
+  onCloneForm() {
+    this.router.navigate(['/create-form'], {
+      queryParams: {
+        formType: this.form.type,
+        items: JSON.stringify(this.form.items),
+      },
+    });
   }
 }

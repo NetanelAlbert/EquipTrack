@@ -49,6 +49,19 @@
     <mat-icon>delete</mat-icon>
   </button>
 </div>
+@if (control().errors) {
+  <div class="errors">
+    @if (control().errors?.['notFound']) {
+      <mat-error>{{ 'inventory.validation.product-not-found' | translate }}</mat-error>
+    }
+    @if (control().errors?.['limit']) {
+      <mat-error>{{ 'inventory.validation.product-limit' | translate: { limit: control().errors?.['limit'] } }}</mat-error>
+    }
+    @if (control().errors?.['missingUpis']) {
+      <mat-error>{{ 'inventory.validation.product-missing-upis' | translate: { missingUpis: control().errors?.['missingUpis'].join(', ') } }}</mat-error>
+    }
+  </div>
+}
 @if (isUPI()) {
   <div class="upis">
     <h4 class="upi-title">{{ 'inventory.upi.title' | translate }}</h4>

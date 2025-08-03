@@ -118,12 +118,30 @@
                                     border-color: var(--color-accent);
                                 }
 
-                                .upi-code {
-                                    font-family: monospace;
-                                    font-size: 12px;
-                                    font-weight: 500;
-                                    color: var(--color-text-primary);
-                                    letter-spacing: 0.5px;
+                                .upi-code-container {
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    width: 100%;
+
+                                    .upi-code {
+                                        font-family: monospace;
+                                        font-size: 12px;
+                                        font-weight: 500;
+                                        color: var(--color-text-primary);
+                                        letter-spacing: 0.5px;
+                                    }
+
+                                    .copy-icon {
+                                        font-size: 16px;
+                                        opacity: 0;
+                                    }
+
+                                    &:hover {
+                                        .copy-icon {
+                                            opacity: 1;
+                                        }
+                                    }
                                 }
                             }
                         }

@@ -95,8 +95,8 @@ export const OrganizationStore = signalStore(
     };
 
     return {
-      getUser(id: string): UserAndUserInOrganization | undefined {
-        return store.usersMap().get(id);
+      getUser(id?: string): UserAndUserInOrganization | undefined {
+        return id ? store.usersMap().get(id) : undefined;
       },
 
       getUserName(id?: string): string {
@@ -106,6 +106,10 @@ export const OrganizationStore = signalStore(
       // Computed methods
       getProduct(id: string): Product | undefined {
         return store.productsMap().get(id);
+      },
+
+      getProductSignal(id: string): Signal<Product | undefined> {
+        return computed(() => store.productsMap().get(id));
       },
 
       getProductName(id: string): string {

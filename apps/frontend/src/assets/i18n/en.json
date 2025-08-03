@@ -81,7 +81,7 @@
     "inventory-by-users": "Inventory by Users",
     "add-inventory": "Add Inventory",
     "remove-inventory": "Remove Inventory",
-    "checkout": "Checkout",
+    "create-form": "Create Form",
     "trace-product": "Trace Product",
     "admin-dashboard": "Admin Dashboard",
     "switch-organization": "Switch Organization",
@@ -114,6 +114,7 @@
     "check-out-submitted": "Check-out request submitted successfully",
     "form-approved": "Form approved successfully",
     "form-rejected": "Form rejected successfully",
+    "form-invalid": "Form is invalid. Please check your input and try again.",
     "search": {
       "placeholder": "Search forms details"
     },
@@ -129,7 +130,8 @@
     "clearFilters": "Clear Filters",
     "copy-form-id": "Copy Form ID: {{formId}}",
     "form-id-copied": "Form ID copied to clipboard",
-    "view-submitted-form": "Would you like to view your submitted form?"
+    "view-submitted-form": "Would you like to view your submitted form?",
+    "clone-form": "Clone Form"
   },
   "inventory": {
     "title": "Inventory",
@@ -201,17 +203,22 @@
     },
     "validation": {
       "duplicate": "Duplicate items found: {{duplicates}}",
+      "duplicate-simple": "Duplicate item",
       "product-required": "Product is required",
       "quantity-required": "Quantity is required",
       "quantity-min": "Quantity must be at least 1",
       "quantity-pattern": "Quantity must be a valid number",
       "upi-required": "UPI is required",
-      "upi-duplicate": "UPI must be unique"
+      "upi-duplicate": "UPI must be unique",
+      "product-not-found": "Product not found in source",
+      "product-limit": "Product limit reached: {{limit}}",
+      "product-missing-upis": "Missing UPIs: {{missingUpis}}"
     },
     "upi": {
       "title": "UPI Information",
       "item": "UPI code: {{upi}}",
-      "help": "Contains {{count}} UPI codes. Press Enter or Space to expand."
+      "help": "Contains {{count}} UPI codes. Press Enter or Space to expand.",
+      "copied": "UPI copied to clipboard"
     },
     "add": {
       "title": "Add Inventory",
@@ -234,14 +241,26 @@
       }
     }
   },
-  "checkout": {
-    "title": "Checkout",
+  "create-form": {
+    "title": "Create Form",
     "select-user": "Select User",
     "form-description": "Form Description",
     "predefined-forms": "Predefined Forms",
     "items": "Items",
     "success": "Checkout completed successfully",
-    "error": "Checkout failed. Please try again."
+    "error": "Checkout failed. Please try again.",
+    "type": {
+      "check-in": "Check In",
+      "check-out": "Check Out"
+    },
+    "explanation": {
+      "check-in": "Check in (return) items to the warehouse",
+      "check-out": "Check out (take) items from the warehouse"
+    },
+    "submit-button": {
+      "check-in": "Check In",
+      "check-out": "Check Out"
+    }
   },
   "reports": {
     "title": "Reports",
@@ -283,7 +302,8 @@
       "description-required": "Description is required",
       "jwt-payload-required": "JWT payload is required",
       "organization-id-required": "Organization ID is required",
-      "form-id-required": "Form ID is required"
+      "form-id-required": "Form ID is required",
+      "invalid-form-type": "Invalid form type"
     },
     "auth": {
       "no-token": "Authentication required. Please sign in again.",

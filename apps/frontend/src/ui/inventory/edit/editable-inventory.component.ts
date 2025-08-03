@@ -1,6 +1,6 @@
 import {
   Component,
-  effect,
+  computed,
   inject,
   input,
   output,
@@ -32,28 +32,54 @@ import {
 } from './form.mudels';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EditableItemComponent } from './item/editable-item.component';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { Inject } from '@angular/core';
+import { debounceTime, distinctUntilChanged, filter } from 'rxjs';
+import { ConfirmDeleteDialogComponent } from './confirm-delete-dialog.component';
+import { isSubset } from '@equip-track/shared';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
-const formDuplicateValidator: ValidatorFn = (formArray: AbstractControl) => {
-  if (!(formArray instanceof FormArray)) {
-    return null;
-  }
-  const items = formArray.controls.map((item) => item.value);
-  const productIDs = new Set<string>();
-  const duplicateProductNames = new Set<string>();
-  items.forEach((item) => {
-    if (productIDs.has(item.product?.id ?? '')) {
-      duplicateProductNames.add(item.product?.name ?? '');
-    } else {
-      productIDs.add(item.product?.id ?? '');
+const formDuplicateValidator =
+  (getProductName: (productId: string) => string): ValidatorFn =>
+  (formArray: AbstractControl) => {
+    if (!(formArray instanceof FormArray)) {
+      return null;
     }
-  });
-  return duplicateProductNames.size > 0
-    ? { duplicate: [...duplicateProductNames] }
-    : null;
-};
+    const items = formArray.controls.map((item) => item.value);
+    const productIDs = new Set<string>();
+    const duplicateProductNames = new Set<string>();
+    const duplicateProductIds = new Set<number>();
+    items.forEach((item) => {
+      if (productIDs.has(item.productId ?? '')) {
+        duplicateProductNames.add(getProductName(item.productId ?? ''));
+        duplicateProductIds.add(item.productId ?? 0);
+      } else {
+        productIDs.add(item.productId ?? '');
+      }
+    });
+    console.log(
+      'formDuplicateValidator; duplicateProductNames',
+      duplicateProductNames,
+      'duplicateProductIds',
+      duplicateProductIds
+    );
+
+    // side effect to manually set / unset the duplicate error for each item
+    formArray.controls.forEach((item) => {
+      const productId = item.value.productId ?? '';
+      if (duplicateProductIds.has(productId)) {
+        item.setErrors({ duplicate: true });
+      } else {
+        const errors = item.errors;
+        if (errors && 'duplicate' in errors) {
+          delete errors['duplicate'];
+          item.setErrors(Object.keys(errors).length > 0 ? errors : null);
+        }
+      }
+    });
+    return duplicateProductNames.size > 0
+      ? { duplicate: [...duplicateProductNames] }
+      : null;
+  };
 @Component({
   selector: 'editable-inventory',
   standalone: true,
@@ -72,8 +98,11 @@ const formDuplicateValidator: ValidatorFn = (formArray: AbstractControl) => {
   templateUrl: './editable-inventory.component.html',
   styleUrl: './editable-inventory.component.scss',
 })
+@UntilDestroy()
 export class EditableInventoryComponent {
-  originalItems = input<InventoryItem[]>([]);
+  // null will reset the form
+  itemsToAdd = input<InventoryItem[] | null>(null);
+  limitItems = input<InventoryItem[] | undefined>(undefined);
   submitButton = input<{ text: string; icon: string; color: string }>({
     text: 'inventory.button.save',
     icon: 'save',
@@ -89,21 +118,36 @@ export class EditableInventoryComponent {
   form: FormGroup = this.fb.group({
     items: this.fb.array<FormGroup<FormInventoryItem>>(
       [],
-      [Validators.minLength(1), formDuplicateValidator]
+      [
+        Validators.minLength(1),
+        formDuplicateValidator((productId) =>
+          this.organizationStore.getProductName(productId)
+        ),
+      ]
     ),
   });
   formChanged = false;
 
+  private limitItemsMap: Signal<Record<string, InventoryItem> | undefined> =
+    computed(() =>
+      this.limitItems()?.reduce((acc, item) => {
+        acc[item.productId] = item;
+        return acc;
+      }, {} as Record<string, InventoryItem>)
+    );
+
   constructor() {
-    this.form.valueChanges.subscribe(() => {
-      this.formChanged = true;
-    });
+    this.form.valueChanges
+      .pipe(filter(() => !this.formChanged))
+      .subscribe(() => {
+        this.formChanged = true;
+      });
     this.form.valueChanges
       .pipe(debounceTime(100), distinctUntilChanged())
       .subscribe(() => {
         this.editedItems.emit(this.getItems());
       });
-    this.setEffects();
+    this.addItemsToAddObserver();
   }
 
   get items(): FormArray<FormGroup<FormInventoryItem>> {
@@ -111,19 +155,17 @@ export class EditableInventoryComponent {
   }
 
   addItem(item?: InventoryItem) {
-    const product = item
-      ? this.organizationStore.getProduct(item.productId) ?? null
-      : null;
     const formItem = item
-      ? FormInventoryItemMapperFromItem(this.fb, item, product)
-      : emptyItem(this.fb);
+      ? FormInventoryItemMapperFromItem(this.fb, item, this.limitValidator)
+      : emptyItem(this.fb, this.limitValidator);
     this.items.push(formItem, { emitEvent: false });
   }
 
   removeItem(index: number) {
     const itemControl = this.items.at(index);
+    const productId = itemControl?.get('productID')?.value ?? '';
     const productName =
-      itemControl?.get('product')?.value?.name || 'Unknown Product';
+      this.organizationStore.getProduct(productId)?.name || 'Unknown Product';
 
     // Create a simple confirmation dialog
     const dialogRef = this.dialog.open(ConfirmDeleteDialogComponent, {
@@ -159,70 +201,63 @@ export class EditableInventoryComponent {
 
   private getItems(): InventoryItem[] {
     return this.items.controls.map((item: FormGroup<FormInventoryItem>) =>
-      FormInventoryItemMapper(item.controls)
+      FormInventoryItemMapper(item.controls, (productId: string) =>
+        this.organizationStore.getProduct(productId)
+      )
     );
   }
 
-  private resetItems() {
-    this.items.clear({ emitEvent: false });
-    this.originalItems().forEach((item) => this.addItem(item));
-
-    if (this.items.length === 0) {
-      this.addItem();
-    }
-  }
-
-  private setEffects() {
-    effect(() => {
-      this.resetItems();
+  private addItemsToAddObserver() {
+    const itemsToAdd = toObservable(this.itemsToAdd).pipe(
+      distinctUntilChanged(),
+      untilDestroyed(this)
+    );
+    itemsToAdd.subscribe((items) => {
+      if (items) {
+        console.log('itemsToAdd', items);
+        items.forEach((item) => this.addItem(item));
+      } else {
+        this.items.clear({ emitEvent: false });
+      }
     });
   }
-}
 
-@Component({
-  selector: 'app-confirm-delete-dialog',
-  standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, TranslateModule],
-  template: `
-    <h2 mat-dialog-title>{{ data.title }}</h2>
-    <mat-dialog-content>
-      <p>{{ data.message }}</p>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()">
-        {{ data.cancelText }}
-      </button>
-      <button mat-raised-button color="warn" (click)="onConfirm()">
-        {{ data.confirmText }}
-      </button>
-    </mat-dialog-actions>
-  `,
-  styles: [
-    `
-      mat-dialog-content {
-        min-width: 300px;
-        padding: 20px 0;
-      }
-    `,
-  ],
-})
-export class ConfirmDeleteDialogComponent {
-  constructor(
-    public dialogRef: MatDialogRef<ConfirmDeleteDialogComponent>,
-    @Inject(MAT_DIALOG_DATA)
-    public data: {
-      title: string;
-      message: string;
-      confirmText: string;
-      cancelText: string;
+  private limitValidator: ValidatorFn = (item: AbstractControl) => {
+    if (!(item instanceof FormGroup)) {
+      console.error('limitValidator: item is not a FormGroup');
+      return null;
     }
-  ) {}
-
-  onCancel(): void {
-    this.dialogRef.close(false);
-  }
-
-  onConfirm(): void {
-    this.dialogRef.close(true);
-  }
+    const productId = item.value.productId ?? '';
+    // product not chosen
+    if (!productId) {
+      return null;
+    }
+    // no limit items
+    if (!this.limitItemsMap()) {
+      return null;
+    }
+    // product not found in limit items
+    const limitItem = this.limitItemsMap()?.[productId];
+    if (!limitItem) {
+      return { notFound: true };
+    }
+    // quantity exceeds limit
+    const quantity = item.value.quantity ?? 0;
+    if (quantity > limitItem.quantity) {
+      return { limit: limitItem.quantity };
+    }
+    // if product is not UPI, skip upis validation
+    if (!this.organizationStore.isProductUpi(productId)) {
+      return null;
+    }
+    // upis not subset of limit upis
+    const upisArray = (item.value.upis ?? []).filter(Boolean) as string[];
+    const upis = new Set(upisArray);
+    const limitUpis = new Set(limitItem.upis ?? []);
+    if (!isSubset(upis, limitUpis)) {
+      const missingUpis = Array.from(upis).filter((upi) => !limitUpis.has(upi));
+      return { missingUpis };
+    }
+    return null;
+  };
 }

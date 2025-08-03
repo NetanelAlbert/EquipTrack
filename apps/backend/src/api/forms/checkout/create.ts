@@ -5,15 +5,21 @@ import {
   InventoryForm,
   JwtPayload,
 } from '@equip-track/shared';
-import { CreateCheckOutForm, CreateCheckOutFormResponse } from '@equip-track/shared';
+import { CreateForm, CreateCheckOutFormResponse } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
 import { randomUUID } from 'crypto';
-import { badRequest, customError, internalServerError, jwtPayloadRequired, organizationIdRequired, userIdRequired } from '../../responses';
+import {
+  customError,
+  internalServerError,
+  jwtPayloadRequired,
+  organizationIdRequired,
+  userIdRequired,
+} from '../../responses';
 import { validateInventoryItems } from '../../validate';
 
 export const handler = async (
-  req: CreateCheckOutForm,
+  req: CreateForm,
   pathParams: APIGatewayProxyEventPathParameters,
   jwtPayload?: JwtPayload
 ): Promise<CreateCheckOutFormResponse> => {
@@ -23,7 +29,7 @@ export const handler = async (
       throw organizationIdRequired;
     }
 
-    if (!req.userID) {
+    if (!req.userId) {
       throw userIdRequired;
     }
 
@@ -32,8 +38,23 @@ export const handler = async (
     }
 
     if (!req.description) {
-      throw customError(ErrorKeys.BAD_REQUEST, 400, 'errors.api.description-required', 'Description is required');
+      throw customError(
+        ErrorKeys.BAD_REQUEST,
+        400,
+        'errors.api.description-required',
+        'Description is required'
+      );
     }
+
+    if (![FormType.CheckIn, FormType.CheckOut].includes(req.formType)) {
+      throw customError(
+        ErrorKeys.BAD_REQUEST,
+        400,
+        'errors.api.invalid-form-type',
+        'Invalid form type'
+      );
+    }
+
     // Validate items
     validateInventoryItems(req.items);
 
@@ -42,11 +63,11 @@ export const handler = async (
     const now = Date.now();
 
     const form: InventoryForm = {
-      userID: req.userID,
+      userID: req.userId,
       formID,
       organizationID: organizationId,
       items: req.items,
-      type: FormType.CheckOut,
+      type: req.formType,
       status: FormStatus.Pending,
       createdAtTimestamp: now,
       lastUpdated: now,
