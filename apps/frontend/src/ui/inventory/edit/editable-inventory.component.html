@@ -4,6 +4,11 @@
       @for (itemControl of items.controls; track itemControl; let i = $index){
       <mat-list-item class="dynamic-height-item">
         <editable-item [control]="itemControl" (remove)="removeItem(i)"></editable-item>
+        @if (itemControl.errors?.['duplicate']) {
+          <mat-error>
+            {{ 'inventory.validation.duplicate-simple' | translate }}
+          </mat-error>
+        }
       </mat-list-item>
       }
     </mat-list>
@@ -20,7 +25,7 @@
     <mat-icon>add</mat-icon>
     {{ 'inventory.button.add-item' | translate }}
   </button>
-  <button mat-raised-button [color]="submitButton().color" class="save-button" (click)="save()" [disabled]="!form.valid && !formChanged">
+  <button mat-raised-button [color]="submitButton().color" class="save-button" (click)="save()" [disabled]="!form.valid">
     <mat-icon>{{ submitButton().icon }}</mat-icon>
     {{ submitButton().text | translate }}
   </button>

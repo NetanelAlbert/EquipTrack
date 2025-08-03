@@ -43,11 +43,36 @@ const formDuplicateValidator: ValidatorFn = (formArray: AbstractControl) => {
   const items = formArray.controls.map((item) => item.value);
   const productIDs = new Set<string>();
   const duplicateProductNames = new Set<string>();
+  const duplicateProductIds = new Set<number>();
   items.forEach((item) => {
     if (productIDs.has(item.product?.id ?? '')) {
       duplicateProductNames.add(item.product?.name ?? '');
+      duplicateProductIds.add(item.product?.id ?? 0);
     } else {
       productIDs.add(item.product?.id ?? '');
+    }
+  });
+  // side effect to manually set / unset the duplicate error for each item
+  console.log(
+    'formDuplicateValidator; duplicateProductIds:',
+    duplicateProductIds
+  );
+  formArray.controls.forEach((item) => {
+    const productId = item.value.product?.id ?? '';
+    console.log(
+      'formDuplicateValidator; pid:',
+      productId,
+      'isDuplicate:',
+      duplicateProductIds.has(productId)
+    );
+    if (duplicateProductIds.has(productId)) {
+      item.setErrors({ duplicate: true });
+    } else {
+      const errors = item.errors;
+      if (errors && 'duplicate' in errors) {
+        delete errors['duplicate'];
+        item.setErrors(Object.keys(errors).length > 0 ? errors : null);
+      }
     }
   });
   return duplicateProductNames.size > 0

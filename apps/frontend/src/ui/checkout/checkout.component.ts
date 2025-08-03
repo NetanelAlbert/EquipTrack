@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -9,21 +9,16 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { EditableInventoryComponent } from '../inventory/edit/editable-inventory.component';
 import {
-  InventoryForm,
   InventoryItem,
-  FormStatus,
-  FormType,
   UserAndUserInOrganization,
 } from '@equip-track/shared';
 import { OrganizationStore } from '../../store/organization.store';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { InventoryListComponent } from '../inventory/list/inventory-list.component';
-import { computedPrevious } from 'ngxtension/computed-previous';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { NotificationService } from '../../services/notification.service';
 import { UserStore } from '../../store/user.store';
 import { FormsStore } from '../../store/forms.store';
-import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-checkout',
@@ -51,7 +46,6 @@ export class CheckoutComponent {
   private notificationService = inject(NotificationService);
   protected formsStore = inject(FormsStore);
   private userStore = inject(UserStore);
-  private router = inject(Router);
 
   user = signal<UserAndUserInOrganization | undefined>(undefined);
 
@@ -94,6 +88,9 @@ export class CheckoutComponent {
       if (success) {
         this.resetForm();
       }
+    } else {
+      this.form.updateValueAndValidity();
+      this.notificationService.showError('forms.form-invalid');
     }
   }
 
