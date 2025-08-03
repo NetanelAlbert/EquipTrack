@@ -116,11 +116,13 @@ export const navItems: NavItem[] = [
   },
   {
     icon: 'list_alt',
-    labelKey: 'navigation.checkout',
-    route: 'checkout',
+    labelKey: 'navigation.create-form',
+    route: 'create-form',
     roles: [UserRole.WarehouseManager, UserRole.Admin],
     loadComponent: () =>
-      import('../checkout/checkout.component').then((m) => m.CheckoutComponent),
+      import('../create-form/create-form.component').then(
+        (m) => m.CreateFormComponent
+      ),
   },
   {
     icon: 'assignment',

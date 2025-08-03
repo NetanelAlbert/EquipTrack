@@ -8,10 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { EditableInventoryComponent } from '../inventory/edit/editable-inventory.component';
-import {
-  InventoryItem,
-  UserAndUserInOrganization,
-} from '@equip-track/shared';
+import { InventoryItem, UserAndUserInOrganization } from '@equip-track/shared';
 import { OrganizationStore } from '../../store/organization.store';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { InventoryListComponent } from '../inventory/list/inventory-list.component';
@@ -22,7 +19,7 @@ import { FormsStore } from '../../store/forms.store';
 import { InventoryStore } from '../../store/inventory.store';
 
 @Component({
-  selector: 'app-checkout',
+  selector: 'app-create-form',
   standalone: true,
   imports: [
     CommonModule,
@@ -38,15 +35,15 @@ import { InventoryStore } from '../../store/inventory.store';
     InventoryListComponent,
     MatProgressSpinnerModule,
   ],
-  templateUrl: './checkout.component.html',
-  styleUrls: ['./checkout.component.scss'],
+  templateUrl: './create-form.component.html',
+  styleUrls: ['./create-form.component.scss'],
 })
-export class CheckoutComponent {
+export class CreateFormComponent {
   private fb = inject(FormBuilder);
   private organizationStore = inject(OrganizationStore);
   private notificationService = inject(NotificationService);
   protected formsStore = inject(FormsStore);
-  private userStore = inject(UserStore);  
+  private userStore = inject(UserStore);
   private inventoryStore = inject(InventoryStore);
 
   user = signal<UserAndUserInOrganization | undefined>(undefined);
