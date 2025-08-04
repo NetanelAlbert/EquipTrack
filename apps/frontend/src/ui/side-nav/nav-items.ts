@@ -5,7 +5,8 @@ export interface NavItem {
   labelKey: string;
   route: string;
   roles: UserRole[];
-  loadComponent?: () => Promise<any>; // Function for lazy loading
+  loadComponent: () => Promise<any>; // Function for lazy loading
+  canDeactivateCheck?: boolean;
 }
 
 export const navItems: NavItem[] = [
@@ -38,6 +39,7 @@ export const navItems: NavItem[] = [
       ),
   },
   {
+    // todo: should use same component as forms ?
     icon: 'description',
     labelKey: 'navigation.my-forms',
     route: 'my-forms',
@@ -45,15 +47,6 @@ export const navItems: NavItem[] = [
     loadComponent: () =>
       import('../forms/forms.component').then((m) => m.FormsComponent),
   },
-  // TODO: Implement check-in
-  // {
-  //   icon: 'login',
-  //   labelKey: 'navigation.check-in',
-  //   route: 'check-in',
-  //   roles: [UserRole.Customer],
-  //   loadComponent: () =>
-  //     import('../check-in/check-in.component').then((m) => m.CheckInComponent),
-  // },
   {
     icon: 'edit',
     labelKey: 'navigation.edit-products',
@@ -63,6 +56,7 @@ export const navItems: NavItem[] = [
       import('../organization/edit-products/edit-products.component').then(
         (m) => m.EditProductsComponent
       ),
+    canDeactivateCheck: true,
   },
   {
     icon: 'group',
@@ -73,6 +67,7 @@ export const navItems: NavItem[] = [
       import('../organization/edit-users/edit-users.component').then(
         (m) => m.EditUsersComponent
       ),
+    canDeactivateCheck: true,
   },
   {
     icon: 'inventory',
@@ -103,6 +98,7 @@ export const navItems: NavItem[] = [
       import('../inventory/add/add-inventory.component').then(
         (m) => m.AddInventoryComponent
       ),
+    canDeactivateCheck: true,
   },
   {
     icon: 'remove_circle',
@@ -113,6 +109,7 @@ export const navItems: NavItem[] = [
       import('../inventory/remove/remove-inventory.component').then(
         (m) => m.RemoveInventoryComponent
       ),
+    canDeactivateCheck: true,
   },
   {
     icon: 'list_alt',
@@ -123,6 +120,7 @@ export const navItems: NavItem[] = [
       import('../create-form/create-form.component').then(
         (m) => m.CreateFormComponent
       ),
+    canDeactivateCheck: true,
   },
   {
     icon: 'assignment',

@@ -56,12 +56,6 @@ const formDuplicateValidator =
         productIDs.add(item.productId ?? '');
       }
     });
-    console.log(
-      'formDuplicateValidator; duplicateProductNames',
-      duplicateProductNames,
-      'duplicateProductIds',
-      duplicateProductIds
-    );
 
     // side effect to manually set / unset the duplicate error for each item
     formArray.controls.forEach((item) => {
@@ -214,7 +208,6 @@ export class EditableInventoryComponent {
     );
     itemsToAdd.subscribe((items) => {
       if (items) {
-        console.log('itemsToAdd', items);
         items.forEach((item) => this.addItem(item));
       } else {
         this.items.clear({ emitEvent: false });
