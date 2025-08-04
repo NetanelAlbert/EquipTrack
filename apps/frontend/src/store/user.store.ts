@@ -9,9 +9,7 @@ import {
   User,
   UserRole,
   UserInOrganization,
-  InventoryItem,
   Organization,
-  Department,
 } from '@equip-track/shared';
 import { computed, inject } from '@angular/core';
 import { STORAGE_KEYS } from '../utils/consts';
@@ -28,9 +26,6 @@ interface UserStoreState {
   // Current organization selection
   selectedOrganizationId: string;
 
-  // User inventory items (moved from old user store)
-  checkedOut: InventoryItem[];
-
   // Loading state
   startDataStatus: ApiStatus | null;
 }
@@ -40,7 +35,6 @@ const emptyState: UserStoreState = {
   userInOrganizations: [],
   organizations: [],
   selectedOrganizationId: '',
-  checkedOut: [],
   startDataStatus: null,
 };
 
@@ -274,25 +268,6 @@ export const UserStore = signalStore(
       hasRole(allowedRoles: UserRole[]): boolean {
         const currentRole = store.currentRole();
         return currentRole ? allowedRoles.includes(currentRole) : false;
-      },
-
-      // User inventory management
-      setCheckedOut(checkedOut: InventoryItem[]) {
-        updateState({ checkedOut });
-      },
-
-      addCheckedOutItem(item: InventoryItem) {
-        const currentItems = store.checkedOut();
-        updateState({ checkedOut: [...currentItems, item] });
-      },
-
-      removeCheckedOutItem(productId: string) {
-        const currentItems = store.checkedOut();
-        updateState({
-          checkedOut: currentItems.filter(
-            (item) => item.productId !== productId
-          ),
-        });
       },
 
       // Clear user data (typically on sign out)

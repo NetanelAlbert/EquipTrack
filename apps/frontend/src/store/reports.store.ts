@@ -47,16 +47,7 @@ export const ReportsStore = signalStore(
   { providedIn: 'root' },
   withState(initialState),
   withComputed((state) => {
-    const { today, yesterday } = getTodayAndYesterday();
-
-    const todayReport = computed(() => state.reportsByDate()[today] || []);
-    const lastReport = computed(() => state.reportsByDate()[yesterday] || []);
     return {
-      todayReport,
-      lastReport,
-      hasTodayReport: computed(() => !!todayReport().length),
-      hasLastReport: computed(() => !!lastReport().length),
-      // Convenience computed properties for loading states
       isLoading: computed(
         () =>
           state.fetchReportsStatus().isLoading ||
@@ -72,6 +63,7 @@ export const ReportsStore = signalStore(
 
     return {
       getReport(date: string): Signal<ItemReport[]> {
+        console.log('getReport', date);
         if (!store.reportsByDate()[date]) {
           // Risky workaround. make sure to not update on empty response, to avoid infinite loop
           setTimeout(() => {
@@ -219,11 +211,13 @@ export const ReportsStore = signalStore(
       },
 
       addTodayReport(items: ItemReport[]) {
-        const { today } = getTodayAndYesterday();
+        // assuming all items are for the same date
+        const date = items[0].reportDate || '';
+        console.log('addTodayReport', date, items);
         patchState(store, {
           reportsByDate: {
             ...store.reportsByDate(),
-            [today]: addReports(store.todayReport(), items),
+            [date]: addReports(store.reportsByDate()[date] || [], items),
           },
         });
       },
@@ -258,15 +252,6 @@ export const ReportsStore = signalStore(
     };
   })
 );
-
-function getTodayAndYesterday() {
-  const todayDate = new Date();
-  const yesterdayDate = new Date();
-  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const today = formatDateToString(todayDate);
-  const yesterday = formatDateToString(yesterdayDate);
-  return { today, yesterday };
-}
 
 function addReports(reports: ItemReport[], reportsToAdd: ItemReport[]) {
   const newReports = [...reports];

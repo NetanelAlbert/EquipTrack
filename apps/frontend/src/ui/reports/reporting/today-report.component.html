@@ -4,7 +4,7 @@
   <div class="reports-header">
     <div class="sort-section">
       <mat-label class="sort-label">{{ 'reports.sortBy' | translate }}</mat-label>
-      <mat-radio-group [(ngModel)]="sortBy" (change)="sortItems()" class="sort-options">
+      <mat-radio-group [(ngModel)]="sortBy" class="sort-options">
         <mat-radio-button value="location">{{ 'reports.sortByLocation' | translate }}</mat-radio-button>
         <mat-radio-button value="product">{{ 'reports.sortByProduct' | translate }}</mat-radio-button>
       </mat-radio-group>
@@ -24,8 +24,8 @@
   }
 
   <div class="cards-grid">
-    @for (item of sortedItems; track item.upi; let i = $index) {
-      <mat-card #cardRef [class.unreported]="!item.location" class="item-card" 
+    @for (item of sortedItems(); track item.upi; let i = $index) {
+      <mat-card [class.unreported]="!item.location" class="item-card" 
                 (focusin)="onCardFocus(item)"
                 (focusout)="onCardBlur()"
                 (click)="onCardFocus(item)" 
@@ -46,7 +46,7 @@
 
           <div class="card-center-section">
             <div class="status-section">
-              @if (item.location) {
+              @if (isReported(item)()) {
                 <div class="status reported">
                   <mat-icon>check_circle</mat-icon>
                   <span class="status-text">{{ 'reports.reported' | translate }}</span>
@@ -74,20 +74,25 @@
           </div>
 
           <div class="card-right-section">
-            @if (shouldShowInput(item)) {
+            @if (shouldShowInput(item)()) {
               <mat-form-field class="location-input" appearance="outline">
                 <mat-label>{{ 'reports.enterLocation' | translate }}</mat-label>
                 <input
                  matInput 
                 [(ngModel)]="item.location" 
-                (ngModelChange)="updateItemReport(item)"
-                (focusout)="sortItems()"
                 >
                 <button tabindex="-1" mat-icon-button matSuffix (click)="clearLocation(item)" type="button">
                   <mat-icon>close</mat-icon>
                 </button>
-                <mat-icon matSuffix>edit_location</mat-icon>
               </mat-form-field>
+              <button 
+                tabindex="-1"
+                mat-icon-button 
+                matSuffix 
+                [disabled]="!item.location"
+                (click)="updateItemReport(item)" type="button">
+                <mat-icon>send</mat-icon>
+              </button>
             } @else {
               <div class="current-location">
                 <mat-icon>location_on</mat-icon>
