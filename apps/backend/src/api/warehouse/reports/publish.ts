@@ -1,49 +1,57 @@
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import {
+  ItemReport,
+  JwtPayload,
   PublishPartialReportRequest,
   PublishPartialReportResponse,
-  isValidDate,
+  formatDateToString,
 } from '@equip-track/shared';
 import { ReportsAdapter } from '../../../db/tables/reports.adapter';
 
 export async function handler(
   req: PublishPartialReportRequest,
-  pathParams?: APIGatewayProxyEventPathParameters
+  pathParams?: APIGatewayProxyEventPathParameters,
+  jwtPayload?: JwtPayload
 ): Promise<PublishPartialReportResponse> {
   const organizationId = pathParams?.organizationId;
   if (!organizationId) {
     throw new Error('Organization ID is required');
   }
 
-  if (!req.date) {
-    throw new Error('Date is required');
-  }
-
   if (!req.items || !Array.isArray(req.items) || req.items.length === 0) {
     throw new Error('Items array is required and must not be empty');
   }
 
-  if (!isValidDate(req.date)) {
-    throw new Error('Date must be in YYYY-MM-DD format');
-  }
-
   // Validate items
   for (const item of req.items) {
-    if (!item.productId || !item.upi || !item.location || !item.reportedBy) {
+    if (!item.productId || !item.upi || !item.location) {
       throw new Error(
-        'All item fields (productId, upi, location, reportedBy) are required'
+        'All item fields (productId, upi, location) are required'
       );
     }
   }
 
+  if (!jwtPayload) {
+    throw new Error('JWT payload is required');
+  }
+
+  const userId = jwtPayload.sub;
+  const date = formatDateToString(new Date());
+
+  const items: ItemReport[] = req.items.map((item) => ({
+    ...item,
+    reportedBy: userId,
+    reportDate: date,
+  }));
+
   const reportsAdapter = new ReportsAdapter();
 
   try {
-    const publishedCount = await reportsAdapter.publishPartialReport(organizationId, req.date, req.items);
+    await reportsAdapter.publishPartialReport(organizationId, date, items);
 
     return {
       status: true,
-      publishedCount,
+      items,
     };
   } catch (error) {
     console.error('Error publishing partial report:', error);

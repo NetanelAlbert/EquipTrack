@@ -197,15 +197,6 @@ export const endpointMetas = {
     responseType: {} as BasicUser.GetPresignedUrlResponse,
   } as EndpointMeta<undefined, BasicUser.GetPresignedUrlResponse>,
   // Reports
-  /**
-   * @deprecated Use getReportsByDates instead
-   */
-  getReports: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports`,
-    method: 'GET',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
-    responseType: {} as Reports.GetReportsResponse,
-  } as EndpointMeta<undefined, Reports.GetReportsResponse>,
   getReportsByDates: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports/by-dates`,
     method: 'POST',

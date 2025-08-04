@@ -1,4 +1,5 @@
-export const UI_DATE_FORMAT = 'dd/MM/yyyy HH:mm';
+export const UI_DATE_TIME_FORMAT = 'dd/MM/yyyy HH:mm';
+export const UI_DATE_FORMAT = 'dd/MM/yyyy';
 
 const dateRegex = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -24,6 +25,10 @@ export function formatDateToUi(date: Date): string {
  * @param date - Date to format
  * @returns Formatted date string
  */
-export function formatDateToString(date: Date): string {
-  return date.toISOString().split('T')[0];
+export function formatDateToString(date: Date, locale = 'he-IL'): string {
+  return date.toLocaleDateString(locale, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
 }

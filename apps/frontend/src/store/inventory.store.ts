@@ -163,12 +163,17 @@ export const InventoryStore = signalStore(
             throw new Error('Failed to fetch user inventory');
           }
 
-          // Update the specific user's inventory in the store
+          // It's important to update the inventory state only if the user has items
+          // otherwise the computed that call getUserInventory will trigger infinite loop
+          if (userInventoryResponse.items?.length) {
+            patchState(store, {
+              inventory: {
+                ...store.inventory(),
+                [userId]: userInventoryResponse.items,
+              },
+            });
+          }
           updateState({
-            inventory: {
-              ...store.inventory(),
-              [userId]: userInventoryResponse.items || [],
-            },
             fetchUserInventoryStatus: { isLoading: false, error: undefined },
           });
 
@@ -193,12 +198,13 @@ export const InventoryStore = signalStore(
         }
       },
 
-      getUserInventory(userID: string): Signal<InventoryItem[]> {
+      getUserInventory(userID?: string): Signal<InventoryItem[]> {
         if (!userID) {
           return signal([]);
         }
         const answer = computed(() => store.inventory()[userID] ?? []);
         if (!answer().length) {
+          // Risky workaround. make sure to not update on empty response, to avoid infinite loop
           setTimeout(() => {
             this.fetchUserInventory(userID);
           });

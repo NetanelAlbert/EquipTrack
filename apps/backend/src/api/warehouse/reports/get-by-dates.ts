@@ -27,7 +27,7 @@ export async function handler(
   const reportsAdapter = new ReportsAdapter();
 
   try {
-    const reportsByDate: Map<string, ReportItem[]> = await reportsAdapter.getReportsByDates(organizationId, req.dates);
+    const reportsByDate: Record<string, ReportItem[]> = await reportsAdapter.getReportsByDates(organizationId, req.dates);
 
     return {
       status: true,

@@ -36,8 +36,8 @@ export class ReportsAdapter {
   async getReportsByDates(
     organizationId: string,
     dates: string[]
-  ): Promise<Map<string, ReportItem[]>> {
-    const reportsByDate: Map<string, ReportItem[]> = new Map();
+  ): Promise<Record<string, ReportItem[]>> {
+    const reportsByDate: Record<string, ReportItem[]> = {};
 
     const promises = dates.map(async (date) => {
       const orgDailyReportId = `${ORG_PREFIX}${organizationId}#${DATE_PREFIX}${date}`;
@@ -63,7 +63,7 @@ export class ReportsAdapter {
     const results = await Promise.all(promises);
 
     results.forEach((result) => {
-      reportsByDate.set(result.date, result.reports);
+      reportsByDate[result.date] = result.reports;
     });
 
     return reportsByDate;

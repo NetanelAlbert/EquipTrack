@@ -9,7 +9,7 @@
       
       <mat-form-field appearance="outline" class="date-picker">
         <mat-label>{{ 'reports.selectDate' | translate }}</mat-label>
-        <input matInput [matDatepicker]="picker" [(ngModel)]="selectedDate" (dateChange)="onDateChange($event.value)">
+        <input matInput [matDatepicker]="picker" [(ngModel)]="selectedDate">
         <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
       </mat-form-field>
@@ -23,15 +23,15 @@
       <div class="report-info">
         <div class="report-summary">
           <mat-icon>event</mat-icon>
-          <span class="report-date">{{ getReportDate() }}</span>
+          <span class="report-date">{{ selectedDate() | date : dateFormat }}</span>
           <mat-icon>inventory</mat-icon>
-          <span class="item-count">{{ getItemCount() }} {{ 'reports.items' | translate }}</span>
+          <span class="item-count">{{ itemCount() }} {{ 'reports.items' | translate }}</span>
         </div>
       </div>
 
       <div class="sort-section">
         <mat-label class="sort-label">{{ 'reports.sortBy' | translate }}</mat-label>
-        <mat-radio-group [(ngModel)]="sortBy" (change)="sortItems()" class="sort-options">
+        <mat-radio-group [(ngModel)]="sortBy" class="sort-options">
           <mat-radio-button value="location">{{ 'reports.sortByLocation' | translate }}</mat-radio-button>
           <mat-radio-button value="product">{{ 'reports.sortByProduct' | translate }}</mat-radio-button>
         </mat-radio-group>
@@ -59,7 +59,7 @@
     </div>
   } @else {
     <div class="cards-grid">
-      @for (item of sortedItems; track item.upi; let i = $index) {
+      @for (item of sortedItems(); track item.upi; let i = $index) {
         <mat-card class="item-card history-card">
           <div class="card-main-content">
             <div class="card-left-section">

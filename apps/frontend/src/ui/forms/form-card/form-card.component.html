@@ -7,14 +7,14 @@
   </p>
   <p>
     {{ 'forms.created-at' | translate }}:
-    {{ form.createdAtTimestamp | date : UI_DATE_FORMAT }}
+    {{ form.createdAtTimestamp | date : dateTimeFormat }}
     {{ 'forms.by' | translate }}:
     {{ organizationStore.getUserName(form.createdByUserId) }}
   </p>
   @if (form.approvedAtTimestamp) {
     <p>
       {{ 'forms.approved-at' | translate }}:
-      {{ form.approvedAtTimestamp | date : UI_DATE_FORMAT }}
+      {{ form.approvedAtTimestamp | date : dateTimeFormat }}
       {{ 'forms.by' | translate }}:
       {{ organizationStore.getUserName(form.approvedByUserId) }}
     </p>
@@ -22,7 +22,7 @@
   @if (form.rejectionReason) {
     <p>
       {{ 'forms.rejected-at' | translate }}:
-      {{ form.rejectionAtTimestamp | date : UI_DATE_FORMAT }}
+      {{ form.rejectionAtTimestamp | date : dateTimeFormat }}
       {{ 'forms.by' | translate }}:
       {{ organizationStore.getUserName(form.rejectionByUserId) }}
     </p>
