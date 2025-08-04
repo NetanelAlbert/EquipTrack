@@ -14,8 +14,11 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
-import { ItemReport, UI_DATE_FORMAT } from '@equip-track/shared';
-import { formatDateToString } from '@equip-track/shared';
+import {
+  formatJerusalemDBDate,
+  ItemReport,
+  UI_DATE_FORMAT,
+} from '@equip-track/shared';
 
 @Component({
   selector: 'app-reports-history',
@@ -47,7 +50,7 @@ export class ReportsHistoryComponent {
   dateFormat = UI_DATE_FORMAT;
   sortBy: Signal<'location' | 'product'> = signal('product');
   selectedDate = signal(new Date());
-  selectedDateString = computed(() => formatDateToString(this.selectedDate()));
+  selectedDateString = computed(() => formatJerusalemDBDate(this.selectedDate()));
   selectedReport = computed(() =>
     this.reportsStore.getReport(this.selectedDateString())()
   );
