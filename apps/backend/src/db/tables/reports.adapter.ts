@@ -75,21 +75,19 @@ export class ReportsAdapter {
     items: ItemReport[]
   ): ReportItem[] {
     const orgDailyReportId = `${ORG_PREFIX}${organizationId}#${DATE_PREFIX}${date}`;
-    const now = Date.now();
 
     return items.map((item) => {
       const { productId, upi } = item;
       const itemKey = `${PRODUCT_PREFIX}${productId}#${UPI_PREFIX}${upi}`;
       const itemOrgKey = `${ORG_PREFIX}${organizationId}#${ITEM_KEY_PREFIX}${itemKey}`;
-      const reportedAt = item.reportedAt || now;
+      const reportDate = item.reportDate || date;
 
       return {
         orgDailyReportId,
         itemKey,
         itemOrgKey,
-        reportDate: date,
         ...item,
-        reportedAt,
+        reportDate,
       };
     });
   }
