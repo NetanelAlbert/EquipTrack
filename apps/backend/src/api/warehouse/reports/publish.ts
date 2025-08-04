@@ -4,7 +4,7 @@ import {
   JwtPayload,
   PublishPartialReportRequest,
   PublishPartialReportResponse,
-  formatDateToString,
+  formatJerusalemDBDate,
 } from '@equip-track/shared';
 import { ReportsAdapter } from '../../../db/tables/reports.adapter';
 
@@ -36,7 +36,7 @@ export async function handler(
   }
 
   const userId = jwtPayload.sub;
-  const date = formatDateToString(new Date());
+  const date = formatJerusalemDBDate(new Date());
 
   const items: ItemReport[] = req.items.map((item) => ({
     ...item,

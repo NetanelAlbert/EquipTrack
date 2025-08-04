@@ -8,27 +8,27 @@ export function isValidDate(date: string): boolean {
 }
 
 /**
- * Format date to UI format (DD/MM/YYYY)
- * @param date - Date to format
- * @returns Formatted date string
- */
-export function formatDateToUi(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
-
-/**
  * Format date to string (YYYY-MM-DD)
  * @param date - Date to format
  * @returns Formatted date string
  */
-export function formatDateToString(date: Date, locale = 'he-IL'): string {
-  return date.toLocaleDateString(locale, {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
+export function formatDateToString(date: Date): string {
+  return dateTimeStringToDate(date.toISOString());
+}
+
+/**
+ * Format date to Jerusalem DB date (YYYY-MM-DD)
+ * @param date - Date to format
+ * @returns Formatted date string
+ */
+export function formatJerusalemDBDate(date: Date): string {
+  return dateTimeStringToDate(
+    date.toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Jerusalem',
+    })
+  );
+}
+
+function dateTimeStringToDate(datetime: string): string {
+  return datetime.split('T')[0];
 }
