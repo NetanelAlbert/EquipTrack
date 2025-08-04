@@ -53,6 +53,10 @@
     "email-request-generated": "Email client opened with access request",
     "email-request-failed": "Failed to generate access request",
     "navigation-failed": "Navigation failed. Please try again.",
+    "confirm": "Confirm",
+    "unsaved-changes-warning": "You have unsaved changes. Are you sure you want to leave this page?",
+    "leave": "Leave",
+    "stay": "Stay",
     "signature": {
       "signature-pad": "Signature Pad",
       "clear": "Clear",
@@ -131,7 +135,14 @@
     "copy-form-id": "Copy Form ID: {{formId}}",
     "form-id-copied": "Form ID copied to clipboard",
     "view-submitted-form": "Would you like to view your submitted form?",
-    "clone-form": "Clone Form"
+    "clone-form": "Clone Form",
+    "reject-dialog": {
+      "title": "Reject Form",
+      "reason": "Reason",
+      "reason-placeholder": "Enter reason for rejection",
+      "cancel": "Cancel",
+      "confirm": "Confirm"
+    }
   },
   "inventory": {
     "title": "Inventory",

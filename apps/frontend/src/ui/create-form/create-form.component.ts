@@ -32,7 +32,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { of } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
-import { CreateFormQueryParams } from '../../utils/forms.medels';
+import { CanComponentDeactivate } from '../../app/guards/unsaved-changes.guard';
 
 interface CreateFormConfig {
   explanationKey: string;
@@ -61,7 +61,7 @@ interface CreateFormConfig {
   templateUrl: './create-form.component.html',
   styleUrls: ['./create-form.component.scss'],
 })
-export class CreateFormComponent implements OnInit {
+export class CreateFormComponent implements OnInit, CanComponentDeactivate {
   private fb = inject(FormBuilder);
   private organizationStore = inject(OrganizationStore);
   private notificationService = inject(NotificationService);
@@ -112,17 +112,12 @@ export class CreateFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
-      console.log('params', params);
       if (params['formType'] && params['items']) {
         this.form.patchValue({
           userID: params['userId'],
           formType: params['formType'],
         });
         const items = JSON.parse(params['items']) as InventoryItem[];
-        console.log('items', items);
-        items.forEach((item, index) => {
-          console.log('item', index, item);
-        });
         this.addAllItems(items);
       }
     });
@@ -180,6 +175,10 @@ export class CreateFormComponent implements OnInit {
 
   onItemsEdited() {
     this.itemEdited.set(true);
+  }
+
+  hasUnsavedChanges(): boolean {
+    return this.itemEdited();
   }
 
   private resetForm() {

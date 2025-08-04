@@ -43,21 +43,14 @@ export class InventoryByUsersComponent implements OnInit {
   organizationStore = inject(OrganizationStore);
   organizationService = inject(OrganizationService);
 
-  // Make selectedUserID a signal for reactivity
   selectedUserID = signal<string | undefined>(undefined);
 
-  // Signal for filtered items from search component
   filteredItems = signal<InventoryItem[]>([]);
-
-  // Computed property that reacts to selectedUserID changes
   userItems: Signal<InventoryItem[]> = computed(() => {
     const userId = this.selectedUserID();
-
-    // Return user inventory or empty array if no user selected
-    return userId ? this.inventoryStore.getUserInventory(userId)() : [];
+    return this.inventoryStore.getUserInventory(userId)();
   });
 
-  // Computed properties for users loading state
   isLoadingUsers = computed(
     () => this.organizationStore.getUsersStatus().isLoading
   );
@@ -65,14 +58,13 @@ export class InventoryByUsersComponent implements OnInit {
   hasUsers = computed(() => this.organizationStore.users().length > 0);
 
   constructor() {
-    // Effect to fetch data when user selection changes
     effect(() => {
       const userId = this.selectedUserID();
       if (userId) {
         // A workaround to update signals from effect
         setTimeout(() => {
           // Fetch user inventory when a specific user is selected
-          this.inventoryStore.fetchUserInventory(userId);
+          // this.inventoryStore.fetchUserInventory(userId);
         });
       }
     });

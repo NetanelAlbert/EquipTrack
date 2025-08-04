@@ -11,7 +11,7 @@ import { UserStore } from '../../../store/user.store';
 import { FormsStore } from '../../../store/forms.store';
 import { UserRole, FormStatus, FormType } from '@equip-track/shared';
 import { OrganizationStore } from '../../../store/organization.store';
-import { UI_DATE_FORMAT } from '@equip-track/shared';
+import { UI_DATE_TIME_FORMAT } from '@equip-track/shared';
 import { Clipboard } from '@angular/cdk/clipboard';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NotificationService } from '../../../services/notification.service';
@@ -33,7 +33,7 @@ import { Router } from '@angular/router';
 export class FormCardComponent {
   @Input({ required: true }) form!: InventoryForm;
 
-  UI_DATE_FORMAT = UI_DATE_FORMAT;
+  dateTimeFormat = UI_DATE_TIME_FORMAT;
   organizationStore = inject(OrganizationStore);
 
   private readonly dialog = inject(MatDialog);

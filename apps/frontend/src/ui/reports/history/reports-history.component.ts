@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, computed, inject, Signal, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
@@ -14,8 +14,11 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
-import { ItemReport } from '@equip-track/shared';
-import { formatDateToString } from '@equip-track/shared';
+import {
+  formatJerusalemDBDate,
+  ItemReport,
+  UI_DATE_FORMAT,
+} from '@equip-track/shared';
 
 @Component({
   selector: 'app-reports-history',
@@ -39,102 +42,50 @@ import { formatDateToString } from '@equip-track/shared';
   templateUrl: './reports-history.component.html',
   styleUrls: ['./reports-history.component.scss'],
 })
-export class ReportsHistoryComponent implements OnInit {
+export class ReportsHistoryComponent {
   reportsStore = inject(ReportsStore);
   userStore = inject(UserStore);
   organizationStore = inject(OrganizationStore);
 
-  selectedDate: Date = new Date();
-  sortBy: 'location' | 'product' = 'product';
-  sortedItems: ItemReport[] = [];
-  selectedReport: ItemReport[] | null = null;
+  dateFormat = UI_DATE_FORMAT;
+  sortBy: Signal<'location' | 'product'> = signal('product');
+  selectedDate = signal(new Date());
+  selectedDateString = computed(() => formatJerusalemDBDate(this.selectedDate()));
+  selectedReport = computed(() =>
+    this.reportsStore.getReport(this.selectedDateString())()
+  );
+  sortedItems: Signal<ItemReport[]> = computed(() =>
+    this.selectedReport().sort((a, b) => {
+      if (this.sortBy() === 'location') {
+        return a.location.localeCompare(b.location) || 0;
+      }
+      return (
+        this.getProductName(a.productId).localeCompare(
+          this.getProductName(b.productId)
+        ) || 0
+      );
+    })
+  );
+  itemCount = computed(() => this.sortedItems().length);
+  hasReportForDate = computed(() => !!this.selectedReport().length);
 
-  private today = new Date();
-  private yesterday = new Date(this.today.getTime() - 24 * 60 * 60 * 1000);
-
-  ngOnInit() {
-    // Initialize with current reports data
-    this.reportsStore.fetchReports([
-      formatDateToString(this.selectedDate),
-      formatDateToString(this.yesterday),
-    ]);
-    this.loadReportForDate(this.selectedDate);
-  }
-
-  onDateChange(date: Date) {
-    this.selectedDate = date;
-    this.loadReportForDate(date);
+  goToDate(date: Date) {
+    this.selectedDate.set(date);
   }
 
   goToPreviousDay() {
-    const previousDay = new Date(this.selectedDate);
+    const previousDay = new Date(this.selectedDate());
     previousDay.setDate(previousDay.getDate() - 1);
-    this.onDateChange(previousDay);
+    this.goToDate(previousDay);
   }
 
   goToNextDay() {
-    const nextDay = new Date(this.selectedDate);
+    const nextDay = new Date(this.selectedDate());
     nextDay.setDate(nextDay.getDate() + 1);
-    this.onDateChange(nextDay);
-  }
-
-  loadReportForDate(date: Date) {
-    const dateString = formatDateToString(date);
-
-    // Check if we already have data for this date
-    const existingReport = this.reportsStore.reportsByDate().get(dateString);
-    if (existingReport) {
-      this.selectedReport = existingReport;
-      this.sortItems();
-      return;
-    }
-
-    // If not, fetch data for this specific date
-    this.reportsStore
-      .fetchReports([dateString])
-      .then(() => {
-        this.selectedReport =
-          this.reportsStore.reportsByDate().get(dateString) || null;
-        this.sortItems();
-      })
-      .catch((error) => {
-        console.error('Failed to fetch report for date:', dateString, error);
-        this.selectedReport = null;
-        this.sortItems();
-      });
+    this.goToDate(nextDay);
   }
 
   getProductName(productId: string): string {
-    const product = this.organizationStore.productsMap().get(productId);
-    return product?.name || `Product ${productId}`;
-  }
-
-  sortItems() {
-    if (!this.selectedReport) {
-      this.sortedItems = [];
-      return;
-    }
-
-    this.sortedItems = [...this.selectedReport].sort((a, b) => {
-      if (this.sortBy === 'location') {
-        return a.location.localeCompare(b.location);
-      } else {
-        return this.getProductName(a.productId).localeCompare(
-          this.getProductName(b.productId)
-        );
-      }
-    });
-  }
-
-  getReportDate(): string {
-    return formatDateToString(this.selectedDate);
-  }
-
-  getItemCount(): number {
-    return this.selectedReport?.length || 0;
-  }
-
-  hasReportForDate(): boolean {
-    return !!this.selectedReport;
+    return this.organizationStore.getProductName(productId);
   }
 }

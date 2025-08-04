@@ -3,28 +3,24 @@ import { createRoleGuard } from './guards/role.guard';
 import { createAuthGuard } from './guards/auth.guard';
 import { organizationGuard } from './guards/organization.guard';
 import { NotAllowedComponent } from '../ui/not-allowed/not-allowed.component';
-import { DummyComponent } from '../ui';
 import { navItems } from '../ui/side-nav/nav-items';
+import { createUnsavedChangesGuard } from './guards/unsaved-changes.guard';
 
 // Generate routes from nav items (single source of truth)
 const navItemRoutes: Route[] = navItems.map((item) => {
-  if (item.loadComponent) {
-    // Lazy loaded component
-    return {
-      path: item.route,
-      loadComponent: item.loadComponent,
-      title: item.labelKey,
-      canActivate: [createAuthGuard(), organizationGuard, createRoleGuard(item.roles)], // Auth -> Org -> Role guards
-    };
-  } else {
-    // Eager loaded component (DummyComponent)
-    return {
-      path: item.route,
-      component: DummyComponent,
-      title: item.labelKey,
-      canActivate: [createAuthGuard(), organizationGuard, createRoleGuard(item.roles)], // Auth -> Org -> Role guards
-    };
-  }
+  return {
+    path: item.route,
+    title: item.labelKey,
+    canActivate: [
+      createAuthGuard(),
+      organizationGuard,
+      createRoleGuard(item.roles),
+    ], // Auth -> Org -> Role guards
+    canDeactivate: item.canDeactivateCheck
+      ? [createUnsavedChangesGuard()]
+      : undefined,
+    loadComponent: item.loadComponent,
+  };
 });
 
 export const appRoutes: Route[] = [
@@ -59,6 +55,6 @@ export const appRoutes: Route[] = [
   // Catch-all route
   {
     path: '**',
-    redirectTo: 'login',
+    redirectTo: '/',
   },
 ];

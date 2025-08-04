@@ -36,6 +36,7 @@ import {
   UserState,
 } from '@equip-track/shared';
 import { UserStore } from '../../../store/user.store';
+import { CanComponentDeactivate } from '../../../app/guards/unsaved-changes.guard';
 
 @Component({
   selector: 'app-edit-users',
@@ -57,7 +58,7 @@ import { UserStore } from '../../../store/user.store';
   templateUrl: './edit-users.component.html',
   styleUrl: './edit-users.component.scss',
 })
-export class EditUsersComponent implements OnInit {
+export class EditUsersComponent implements OnInit, CanComponentDeactivate {
   private route = inject(ActivatedRoute);
   private organizationStore = inject(OrganizationStore);
   private organizationService = inject(OrganizationService);
@@ -286,5 +287,9 @@ export class EditUsersComponent implements OnInit {
     translationParams?: Record<string, string | number>
   ): void {
     this.notificationService.showInfo(messageKey, undefined, translationParams);
+  }
+
+  hasUnsavedChanges(): boolean {
+    return this.inviteForm.dirty;
   }
 }

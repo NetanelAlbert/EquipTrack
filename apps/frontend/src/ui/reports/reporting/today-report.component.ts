@@ -1,4 +1,11 @@
-import { Component, OnInit, effect, inject } from '@angular/core';
+import {
+  Component,
+  Signal,
+  WritableSignal,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
@@ -11,8 +18,17 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
-import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
-import { formatDateToString, ItemReport } from '@equip-track/shared';
+import {
+  ReportsStore,
+  UserStore,
+  OrganizationStore,
+  InventoryStore,
+} from '../../../store';
+import {
+  formatJerusalemDBDate,
+  InventoryItem,
+  ItemReport,
+} from '@equip-track/shared';
 
 @Component({
   selector: 'app-today-report',
@@ -34,32 +50,52 @@ import { formatDateToString, ItemReport } from '@equip-track/shared';
   templateUrl: './today-report.component.html',
   styleUrls: ['./today-report.component.scss'],
 })
-export class TodayReportComponent implements OnInit {
+export class TodayReportComponent {
   reportsStore = inject(ReportsStore);
   userStore = inject(UserStore);
   organizationStore = inject(OrganizationStore);
+  inventoryStore = inject(InventoryStore);
 
-  sortBy: 'location' | 'product' = 'product';
-  sortedItems: ItemReport[] = [];
-  private expandedItems = new Set<string>();
-  private focusedCardUpi: string | null = null;
+  sortBy: Signal<'location' | 'product'> = signal('product');
+  private focusedCardUpi: WritableSignal<string | null> = signal(null);
+
+  today: string;
+  yesterday: string;
+  todayReport = computed(() => this.reportsStore.getReport(this.today)());
+  todayReportMap = computed(() => {
+    return this.todayReport().reduce((acc, item) => {
+      acc[`${item.productId}_${item.upi}`] = item;
+      return acc;
+    }, {} as Record<string, ItemReport>);
+  });
+  lastReport = computed(() => this.reportsStore.getReport(this.yesterday)());
+
+  // key is productId_upi, value is last location
+  lastLocationMap: Signal<Record<string, string>> = computed(() => {
+    return this.lastReport().reduce((acc, item) => {
+      acc[`${item.productId}_${item.upi}`] = item.location;
+      return acc;
+    }, {} as Record<string, string>);
+  });
+  userInventory = computed(() =>
+    this.inventoryStore.getUserInventory(this.userStore.user()?.id)()
+  );
+  // TODO: we might want to let user report items of other users, if they are in their department
+  // Also, admin should be able to report all items
+  itemsToReport = computed(() =>
+    this.userInventory().filter((item) => item.upis?.length)
+  );
+  itemsToShow = computed(() =>
+    this.inventoryItemsToItemReports(this.itemsToReport())
+  );
+  sortedItems = computed(() => {
+    return this.getSortedItems();
+  });
 
   constructor() {
-    effect(() => {
-      if (this.reportsStore.todayReport() && this.reportsStore.lastReport()) {
-        this.sortItems();
-      }
-    });
-  }
-
-  ngOnInit() {
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    this.reportsStore.fetchReports([
-      formatDateToString(today),
-      formatDateToString(yesterday),
-    ]);
+    const { today, yesterday } = getTodayAndYesterday();
+    this.today = today;
+    this.yesterday = yesterday;
   }
 
   getProductName(productId: string): string {
@@ -68,76 +104,70 @@ export class TodayReportComponent implements OnInit {
   }
 
   getLastLocation(item: ItemReport): string | null {
-    const lastReport = this.reportsStore.lastReport();
-    const lastItem = lastReport?.find((i) => i.upi === item.upi);
-    return lastItem?.location || null;
+    return this.lastLocationMap()[`${item.productId}_${item.upi}`] || null;
   }
 
   useLastLocation(item: ItemReport, lastLocation: string) {
     if (lastLocation) {
       item.location = lastLocation;
       this.updateItemReport(item);
-      this.onCardBlur();
     }
   }
 
-  updateItemReport(item: ItemReport) {
+  async updateItemReport(item: ItemReport) {
     item.location = item.location.trim();
-    this.reportsStore.updateItemReport(item);
+    await this.reportsStore.updateItemReport(item);
+    this.onCardBlur();
   }
 
-  isExpanded(item: ItemReport): boolean {
-    return this.expandedItems.has(item.upi);
-  }
-
-  isFocused(item: ItemReport): boolean {
-    return this.focusedCardUpi === item.upi;
+  isFocused(item: ItemReport): Signal<boolean> {
+    return computed(() => this.focusedCardUpi() === item.upi);
   }
 
   onCardFocus(item: ItemReport) {
-    this.focusedCardUpi = item.upi;
+    this.focusedCardUpi.set(item.upi);
   }
 
   onCardBlur() {
-    this.focusedCardUpi = null;
-    this.sortItems();
+    this.focusedCardUpi.set(null);
   }
 
-  shouldShowInput(item: ItemReport): boolean {
-    return !item.location || this.isFocused(item);
-  }
-
-  private getItemsToReport(): ItemReport[] {
-    const todayReport = this.reportsStore.todayReport();
-    const reportedUpis = new Set(todayReport?.map((item) => item.upi) || []);
-
-    const itemsToReport: ItemReport[] = [];
-
-    this.userStore.checkedOut().forEach((item) => {
-      if (item.upis) {
-        item.upis.forEach((upi) => {
-          if (!reportedUpis.has(upi)) {
-            itemsToReport.push({
-              productId: item.productId,
-              upi: upi,
-              location: '',
-              reportedBy: this.userStore.user()?.name || 'Unknown User',
-            });
-          }
-        });
-      }
+  isReported(item: ItemReport): Signal<boolean> {
+    return computed(() => {
+      const reported =
+        this.todayReportMap()[`${item.productId}_${item.upi}`]?.location;
+      return !!reported;
     });
-
-    return itemsToReport;
   }
 
-  sortItems() {
-    const todayReport = this.reportsStore.todayReport();
-    const reportedItems = todayReport || [];
-    const itemsToReport = this.getItemsToReport();
+  shouldShowInput(item: ItemReport): Signal<boolean> {
+    return computed(() => {
+      return !this.isReported(item)() || this.isFocused(item)();
+    });
+  }
 
-    this.sortedItems = [...reportedItems, ...itemsToReport].sort((a, b) => {
-      if (this.sortBy === 'location') {
+  private getItemLocationForSort(item: ItemReport): string {
+    if (item.location) {
+      return item.location;
+    }
+    return this.lastLocationMap()[`${item.productId}_${item.upi}`] || '';
+  }
+
+  clearLocation(item: ItemReport) {
+    item.location = '';
+  }
+
+  getSortedItems(): ItemReport[] {
+    return this.itemsToShow().sort((a, b) => {
+      // Show unreported items first
+      if (!a.location && b.location) {
+        return -1;
+      }
+      if (a.location && !b.location) {
+        return 1;
+      }
+
+      if (this.sortBy() === 'location') {
         return this.getItemLocationForSort(a).localeCompare(
           this.getItemLocationForSort(b)
         );
@@ -149,17 +179,33 @@ export class TodayReportComponent implements OnInit {
     });
   }
 
-  private getItemLocationForSort(item: ItemReport): string {
-    if (item.location) {
-      return item.location;
-    }
-    const lastReport = this.reportsStore.lastReport();
-    const lastItem = lastReport?.find((i) => i.upi === item.upi);
-    return lastItem?.location || '';
+  private inventoryItemsToItemReports(items: InventoryItem[]): ItemReport[] {
+    return items.flatMap((item) => this.inventoryItemToItemReports(item));
   }
 
-  clearLocation(item: ItemReport) {
-    item.location = '';
-    this.updateItemReport(item);
+  private inventoryItemToItemReports(item: InventoryItem): ItemReport[] {
+    return (
+      item.upis?.map((upi) => {
+        const itemReport = this.todayReportMap()[`${item.productId}_${upi}`];
+        if (itemReport) {
+          return itemReport;
+        }
+        return {
+          productId: item.productId,
+          upi,
+          location: '',
+          reportedBy: '',
+        };
+      }) || []
+    );
   }
+}
+
+function getTodayAndYesterday(): { today: string; yesterday: string } {
+  const todayDate = new Date();
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const today = formatJerusalemDBDate(todayDate);
+  const yesterday = formatJerusalemDBDate(yesterdayDate);
+  return { today, yesterday };
 }

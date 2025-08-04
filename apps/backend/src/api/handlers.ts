@@ -12,7 +12,6 @@ import { handler as addInventoryHandler } from './warehouse/inventory/add';
 import { handler as removeInventoryHandler } from './warehouse/inventory/remove';
 import { handler as getInventoryHandler } from './warehouse/inventory/get';
 import { handler as getUserInventoryHandler } from './warehouse/inventory/get-user';
-import { handler as getReportsHandler } from './warehouse/reports/get';
 import { handler as getReportsByDatesHandler } from './warehouse/reports/get-by-dates';
 import { handler as publishPartialReportHandler } from './warehouse/reports/publish';
 import { handler as createFormHandler } from './forms/checkout/create';
@@ -68,7 +67,6 @@ export const handlers: HandlersDefinition = {
   getPresignedUrl: getPresignedUrlHandler,
 
   // Reports
-  getReports: getReportsHandler, // needed?
   getReportsByDates: getReportsByDatesHandler,
   publishPartialReport: publishPartialReportHandler,
 };

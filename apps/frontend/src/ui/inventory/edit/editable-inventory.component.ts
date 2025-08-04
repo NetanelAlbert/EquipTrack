@@ -1,8 +1,10 @@
 import {
   Component,
   computed,
+  effect,
   inject,
   input,
+  OnInit,
   output,
   Signal,
 } from '@angular/core';
@@ -32,11 +34,9 @@ import {
 } from './form.mudels';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EditableItemComponent } from './item/editable-item.component';
-import { debounceTime, distinctUntilChanged, filter } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, skip } from 'rxjs';
 import { ConfirmDeleteDialogComponent } from './confirm-delete-dialog.component';
 import { isSubset } from '@equip-track/shared';
-import { toObservable } from '@angular/core/rxjs-interop';
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 const formDuplicateValidator =
   (getProductName: (productId: string) => string): ValidatorFn =>
@@ -56,12 +56,6 @@ const formDuplicateValidator =
         productIDs.add(item.productId ?? '');
       }
     });
-    console.log(
-      'formDuplicateValidator; duplicateProductNames',
-      duplicateProductNames,
-      'duplicateProductIds',
-      duplicateProductIds
-    );
 
     // side effect to manually set / unset the duplicate error for each item
     formArray.controls.forEach((item) => {
@@ -98,8 +92,7 @@ const formDuplicateValidator =
   templateUrl: './editable-inventory.component.html',
   styleUrl: './editable-inventory.component.scss',
 })
-@UntilDestroy()
-export class EditableInventoryComponent {
+export class EditableInventoryComponent implements OnInit {
   // null will reset the form
   itemsToAdd = input<InventoryItem[] | null>(null);
   limitItems = input<InventoryItem[] | undefined>(undefined);
@@ -147,7 +140,11 @@ export class EditableInventoryComponent {
       .subscribe(() => {
         this.editedItems.emit(this.getItems());
       });
-    this.addItemsToAddObserver();
+    this.addItemsToAddEffect();
+  }
+
+  ngOnInit(): void {
+    this.addItem();
   }
 
   get items(): FormArray<FormGroup<FormInventoryItem>> {
@@ -155,15 +152,28 @@ export class EditableInventoryComponent {
   }
 
   addItem(item?: InventoryItem) {
+    this.removeEmptyItems();
     const formItem = item
       ? FormInventoryItemMapperFromItem(this.fb, item, this.limitValidator)
       : emptyItem(this.fb, this.limitValidator);
     this.items.push(formItem, { emitEvent: false });
   }
 
+  removeEmptyItems() {
+    const indexesToRemove: number[] = [];
+    this.items.controls.forEach((item, index) => {
+      if (!item.value.productId) {
+        indexesToRemove.push(index);
+      }
+    });
+    indexesToRemove.forEach((index) =>
+      this.items.removeAt(index, { emitEvent: false })
+    );
+  }
+
   removeItem(index: number) {
     const itemControl = this.items.at(index);
-    const productId = itemControl?.get('productID')?.value ?? '';
+    const productId = itemControl?.get('productId')?.value ?? '';
     const productName =
       this.organizationStore.getProduct(productId)?.name || 'Unknown Product';
 
@@ -207,17 +217,15 @@ export class EditableInventoryComponent {
     );
   }
 
-  private addItemsToAddObserver() {
-    const itemsToAdd = toObservable(this.itemsToAdd).pipe(
-      distinctUntilChanged(),
-      untilDestroyed(this)
-    );
-    itemsToAdd.subscribe((items) => {
+  private addItemsToAddEffect() {
+    effect(() => {
+      const items = this.itemsToAdd();
       if (items) {
-        console.log('itemsToAdd', items);
+        this.items.clear({ emitEvent: false });
         items.forEach((item) => this.addItem(item));
       } else {
         this.items.clear({ emitEvent: false });
+        this.addItem(); // Add an empty item when reset
       }
     });
   }

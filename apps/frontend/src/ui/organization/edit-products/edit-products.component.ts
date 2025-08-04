@@ -23,6 +23,7 @@ import { AbstractControl, ValidatorFn } from '@angular/forms';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatDialog } from '@angular/material/dialog';
 import { EditProductNameDialogComponent } from './edit-product-name-dialog.component';
+import { CanComponentDeactivate } from '../../../app/guards/unsaved-changes.guard';
 
 type upiFilterOptions = 'upi' | 'no-upi' | 'all';
 @Component({
@@ -46,7 +47,7 @@ type upiFilterOptions = 'upi' | 'no-upi' | 'all';
   templateUrl: './edit-products.component.html',
   styleUrls: ['./edit-products.component.scss'],
 })
-export class EditProductsComponent {
+export class EditProductsComponent implements CanComponentDeactivate {
   private fb = inject(FormBuilder);
   private organizationStore = inject(OrganizationStore);
   private organizationService = inject(OrganizationService);
@@ -207,5 +208,9 @@ export class EditProductsComponent {
 
       return existingIndexWithSameId !== -1 ? { duplicateId: true } : null;
     };
+  }
+
+  hasUnsavedChanges(): boolean {
+    return this.newProductForm.dirty;
   }
 }

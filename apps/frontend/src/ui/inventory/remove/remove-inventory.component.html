@@ -31,6 +31,7 @@
 
       <editable-inventory
         (submitItems)="onSubmitItems($event)"
+        (editedItems)="itemEdited.set(true)"
         [submitButton]="submitButton"
       />
     </mat-card-content>
