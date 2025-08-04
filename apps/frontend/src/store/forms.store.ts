@@ -188,7 +188,6 @@ export const FormsStore = signalStore(
         }
       },
 
-
       async addForm(
         formType: FormType,
         items: InventoryItem[],
@@ -250,7 +249,7 @@ export const FormsStore = signalStore(
           );
           if (shouldNavigate) {
             const queryParams: FormQueryParams = {
-              formType: FormType.CheckOut,
+              formType: formType,
               searchStatus: FormStatus.Pending,
               searchTerm: response.form.formID,
             };
@@ -374,9 +373,11 @@ export const FormsStore = signalStore(
           }
 
           patchState(state, {
-            forms: state.forms().map((form) =>
-              form.formID === formID ? response.updatedForm : form
-            ),
+            forms: state
+              .forms()
+              .map((form) =>
+                form.formID === formID ? response.updatedForm : form
+              ),
           });
 
           console.log('Form rejected successfully:', formID, reason);

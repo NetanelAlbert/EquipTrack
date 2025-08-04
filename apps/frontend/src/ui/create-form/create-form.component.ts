@@ -118,10 +118,6 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
           formType: params['formType'],
         });
         const items = JSON.parse(params['items']) as InventoryItem[];
-        console.log('items', items);
-        items.forEach((item, index) => {
-          console.log('item', index, item);
-        });
         this.addAllItems(items);
       }
     });
