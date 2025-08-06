@@ -1,6 +1,11 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler } from 'aws-lambda';
 import { Context } from 'aws-lambda/handler';
-import { endpointMetas, EndpointMeta, JwtPayload, OptionalObject } from '@equip-track/shared';
+import {
+  endpointMetas,
+  EndpointMeta,
+  JwtPayload,
+  OptionalObject,
+} from '@equip-track/shared';
 import { HandlerFunction, handlers } from './handlers';
 import { unauthorized, internalServerError, CORS_HEADERS } from './responses';
 import { authenticateAndGetJwt } from './auth';
@@ -10,7 +15,10 @@ function parseBody<T>(event: any): T {
   return typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
 }
 
-export function createLambdaHandler<Req extends OptionalObject, Res extends OptionalObject>(
+export function createLambdaHandler<
+  Req extends OptionalObject,
+  Res extends OptionalObject
+>(
   meta: EndpointMeta<Req, Res>,
   handler: HandlerFunction<Req, Res>
 ): APIGatewayProxyHandler {
@@ -56,10 +64,18 @@ export function createLambdaHandler<Req extends OptionalObject, Res extends Opti
     } catch (error) {
       console.error(`[${meta.path}] Error occurred:`, error);
 
-      // If the error is an ErrorResponse, return it
+      // If the error is an ErrorResponse, ensure it has CORS headers
       if (error && typeof error === 'object' && 'statusCode' in error) {
         console.log(`[${meta.path}] Returning error response:`, error);
-        return error;
+        // Ensure CORS headers are present on the error response
+        const errorResponse = error as any;
+        return {
+          ...errorResponse,
+          headers: {
+            ...CORS_HEADERS,
+            ...errorResponse.headers,
+          },
+        };
       }
 
       console.log(`[${meta.path}] Creating generic error response for:`, error);

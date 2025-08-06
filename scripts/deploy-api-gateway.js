@@ -325,8 +325,36 @@ function createResourcePath(apiId, path, existingResources) {
         } catch (error) {
           console.log(`⚠️  Resource creation failed, attempting recovery...`);
           
+          // Check if it's a BadRequestException for duplicate path parameter
+          if (error.stderr && error.stderr.includes('same variable name')) {
+            console.log(`🔧 Path parameter ${part} already exists - finding existing resource`);
+            
+            // Look for child resources that would indicate this path parameter already exists
+            const childResources = existingResources.filter(r => r.path && r.path.startsWith(currentPath + '/'));
+            if (childResources.length > 0) {
+              // Get the parent ID from any child resource - they should all have the same parent
+              const existingParentId = childResources[0].parentId;
+              const existingParentResource = existingResources.find(r => r.id === existingParentId);
+              
+              if (existingParentResource && existingParentResource.path === currentPath) {
+                console.log(`✅ Found existing resource for ${currentPath}: (id: ${existingParentId})`);
+                resource = existingParentResource;
+              } else {
+                // Create a virtual resource entry for tracking
+                console.log(`🔧 Creating virtual resource entry for ${currentPath} (id: ${existingParentId})`);
+                resource = {
+                  id: existingParentId,
+                  path: currentPath,
+                  pathPart: part,
+                  parentId: parentId
+                };
+              }
+            } else {
+              throw new Error(`Path parameter ${part} conflicts but no child resources found to infer parent`);
+            }
+          }
           // Check if it's a ConflictException
-          if (error.stderr && error.stderr.includes('ConflictException')) {
+          else if (error.stderr && error.stderr.includes('ConflictException')) {
             console.log(`🔍 ConflictException detected for resource: ${part}`);
             
             // Refresh the resources list to get the latest state
@@ -522,9 +550,33 @@ function createMethod(apiId, resourceId, method, functionName) {
 }
 
 function createOptionsMethod(apiId, resourceId) {
+  console.log(`🔧 Setting up OPTIONS method for resource ${resourceId}...`);
+  
   // Check if OPTIONS method already exists
   if (methodExists(apiId, resourceId, 'OPTIONS')) {
-    console.log(`OPTIONS method already exists for resource ${resourceId}, skipping creation`);
+    console.log(`✅ OPTIONS method already exists for resource ${resourceId}, verifying configuration...`);
+    
+    // Verify that the existing OPTIONS method has correct authorization
+    try {
+      const result = execSync(
+        `aws apigateway get-method --rest-api-id ${apiId} --resource-id ${resourceId} --http-method OPTIONS`,
+        { encoding: 'utf8', stdio: 'pipe' }
+      );
+      const method = JSON.parse(result);
+      if (method.authorizationType !== 'NONE') {
+        console.log(`⚠️  Existing OPTIONS method has authorization: ${method.authorizationType}, updating...`);
+        // Update the method to remove authorization
+        execSync(
+          `aws apigateway put-method --rest-api-id ${apiId} --resource-id ${resourceId} --http-method OPTIONS --authorization-type NONE --no-api-key-required`,
+          { stdio: 'inherit' }
+        );
+        console.log(`✅ Updated OPTIONS method authorization to NONE`);
+      } else {
+        console.log(`✅ OPTIONS method properly configured with no authorization`);
+      }
+    } catch (error) {
+      console.log(`⚠️  Could not verify OPTIONS method configuration: ${error.message}`);
+    }
     return;
   }
   
@@ -544,6 +596,8 @@ function createOptionsMethod(apiId, resourceId) {
       `aws apigateway put-method --rest-api-id ${apiId} --resource-id ${resourceId} --http-method OPTIONS --authorization-type NONE --no-api-key-required`,
       { stdio: 'inherit' }
     );
+    
+    console.log(`✅ Created OPTIONS method with no authorization for resource ${resourceId}`);
     
     // Create mock integration for OPTIONS with proper request template
     execSync(
@@ -701,6 +755,44 @@ async function deployAPIGateway() {
   
   // Deploy the API
   const deployment = deployAPI(apiId);
+  
+  // Verify OPTIONS methods are properly configured after deployment
+  console.log('\n🔍 Verifying OPTIONS methods configuration...');
+  let optionsIssues = 0;
+  
+  Object.keys(endpoints).forEach(handlerName => {
+    const endpoint = endpoints[handlerName];
+    try {
+      const resourcePath = endpoint.path;
+      // Find the resource for this path
+      const resource = existingResources.find(r => r.path === resourcePath);
+      if (resource) {
+        try {
+          const result = execSync(
+            `aws apigateway get-method --rest-api-id ${apiId} --resource-id ${resource.id} --http-method OPTIONS`,
+            { encoding: 'utf8', stdio: 'pipe' }
+          );
+          const method = JSON.parse(result);
+          if (method.authorizationType !== 'NONE') {
+            console.log(`⚠️  OPTIONS method for ${resourcePath} has incorrect authorization: ${method.authorizationType}`);
+            optionsIssues++;
+          }
+        } catch (error) {
+          // OPTIONS method doesn't exist or other error
+          console.log(`⚠️  No OPTIONS method found for ${resourcePath}`);
+          optionsIssues++;
+        }
+      }
+    } catch (error) {
+      // Skip verification errors
+    }
+  });
+  
+  if (optionsIssues > 0) {
+    console.log(`\n⚠️  Found ${optionsIssues} OPTIONS method issues. Consider running with RECREATE_API=true`);
+  } else {
+    console.log('\n✅ All OPTIONS methods properly configured');
+  }
   
   // Update deployment info with API Gateway details
   deploymentInfo.backend = deploymentInfo.backend || {};
