@@ -325,8 +325,36 @@ function createResourcePath(apiId, path, existingResources) {
         } catch (error) {
           console.log(`⚠️  Resource creation failed, attempting recovery...`);
           
+          // Check if it's a BadRequestException for duplicate path parameter
+          if (error.stderr && error.stderr.includes('same variable name')) {
+            console.log(`🔧 Path parameter ${part} already exists - finding existing resource`);
+            
+            // Look for child resources that would indicate this path parameter already exists
+            const childResources = existingResources.filter(r => r.path && r.path.startsWith(currentPath + '/'));
+            if (childResources.length > 0) {
+              // Get the parent ID from any child resource - they should all have the same parent
+              const existingParentId = childResources[0].parentId;
+              const existingParentResource = existingResources.find(r => r.id === existingParentId);
+              
+              if (existingParentResource && existingParentResource.path === currentPath) {
+                console.log(`✅ Found existing resource for ${currentPath}: (id: ${existingParentId})`);
+                resource = existingParentResource;
+              } else {
+                // Create a virtual resource entry for tracking
+                console.log(`🔧 Creating virtual resource entry for ${currentPath} (id: ${existingParentId})`);
+                resource = {
+                  id: existingParentId,
+                  path: currentPath,
+                  pathPart: part,
+                  parentId: parentId
+                };
+              }
+            } else {
+              throw new Error(`Path parameter ${part} conflicts but no child resources found to infer parent`);
+            }
+          }
           // Check if it's a ConflictException
-          if (error.stderr && error.stderr.includes('ConflictException')) {
+          else if (error.stderr && error.stderr.includes('ConflictException')) {
             console.log(`🔍 ConflictException detected for resource: ${part}`);
             
             // Refresh the resources list to get the latest state
