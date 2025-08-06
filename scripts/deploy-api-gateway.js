@@ -550,9 +550,33 @@ function createMethod(apiId, resourceId, method, functionName) {
 }
 
 function createOptionsMethod(apiId, resourceId) {
+  console.log(`🔧 Setting up OPTIONS method for resource ${resourceId}...`);
+  
   // Check if OPTIONS method already exists
   if (methodExists(apiId, resourceId, 'OPTIONS')) {
-    console.log(`OPTIONS method already exists for resource ${resourceId}, skipping creation`);
+    console.log(`✅ OPTIONS method already exists for resource ${resourceId}, verifying configuration...`);
+    
+    // Verify that the existing OPTIONS method has correct authorization
+    try {
+      const result = execSync(
+        `aws apigateway get-method --rest-api-id ${apiId} --resource-id ${resourceId} --http-method OPTIONS`,
+        { encoding: 'utf8', stdio: 'pipe' }
+      );
+      const method = JSON.parse(result);
+      if (method.authorizationType !== 'NONE') {
+        console.log(`⚠️  Existing OPTIONS method has authorization: ${method.authorizationType}, updating...`);
+        // Update the method to remove authorization
+        execSync(
+          `aws apigateway put-method --rest-api-id ${apiId} --resource-id ${resourceId} --http-method OPTIONS --authorization-type NONE --no-api-key-required`,
+          { stdio: 'inherit' }
+        );
+        console.log(`✅ Updated OPTIONS method authorization to NONE`);
+      } else {
+        console.log(`✅ OPTIONS method properly configured with no authorization`);
+      }
+    } catch (error) {
+      console.log(`⚠️  Could not verify OPTIONS method configuration: ${error.message}`);
+    }
     return;
   }
   
@@ -572,6 +596,8 @@ function createOptionsMethod(apiId, resourceId) {
       `aws apigateway put-method --rest-api-id ${apiId} --resource-id ${resourceId} --http-method OPTIONS --authorization-type NONE --no-api-key-required`,
       { stdio: 'inherit' }
     );
+    
+    console.log(`✅ Created OPTIONS method with no authorization for resource ${resourceId}`);
     
     // Create mock integration for OPTIONS with proper request template
     execSync(
@@ -729,6 +755,44 @@ async function deployAPIGateway() {
   
   // Deploy the API
   const deployment = deployAPI(apiId);
+  
+  // Verify OPTIONS methods are properly configured after deployment
+  console.log('\n🔍 Verifying OPTIONS methods configuration...');
+  let optionsIssues = 0;
+  
+  Object.keys(endpoints).forEach(handlerName => {
+    const endpoint = endpoints[handlerName];
+    try {
+      const resourcePath = endpoint.path;
+      // Find the resource for this path
+      const resource = existingResources.find(r => r.path === resourcePath);
+      if (resource) {
+        try {
+          const result = execSync(
+            `aws apigateway get-method --rest-api-id ${apiId} --resource-id ${resource.id} --http-method OPTIONS`,
+            { encoding: 'utf8', stdio: 'pipe' }
+          );
+          const method = JSON.parse(result);
+          if (method.authorizationType !== 'NONE') {
+            console.log(`⚠️  OPTIONS method for ${resourcePath} has incorrect authorization: ${method.authorizationType}`);
+            optionsIssues++;
+          }
+        } catch (error) {
+          // OPTIONS method doesn't exist or other error
+          console.log(`⚠️  No OPTIONS method found for ${resourcePath}`);
+          optionsIssues++;
+        }
+      }
+    } catch (error) {
+      // Skip verification errors
+    }
+  });
+  
+  if (optionsIssues > 0) {
+    console.log(`\n⚠️  Found ${optionsIssues} OPTIONS method issues. Consider running with RECREATE_API=true`);
+  } else {
+    console.log('\n✅ All OPTIONS methods properly configured');
+  }
   
   // Update deployment info with API Gateway details
   deploymentInfo.backend = deploymentInfo.backend || {};
