@@ -1,62 +1,162 @@
 <div class="container">
-  <div class="user-select">
-    <mat-form-field>
-      <mat-label>{{ 'inventory.views.selectUser' | translate }}</mat-label>
-      <mat-select
-        [ngModel]="selectedUserID()"
-        (ngModelChange)="selectedUserID.set($event)"
-        [disabled]="isLoadingUsers()"
-      >
-        <mat-option value="WAREHOUSE">
-          {{ 'inventory.views.warehouse' | translate }}
-        </mat-option>
-
-        @if (isLoadingUsers()) {
-          <mat-option disabled>
-            {{ 'inventory.users.loading' | translate }}
-          </mat-option>
-        } @else if (usersError()) {
-          <mat-option disabled>
-            {{ 'inventory.users.errorLoading' | translate }}
-          </mat-option>
-        } @else if (!hasUsers()) {
-          <mat-option disabled>
-            {{ 'inventory.users.noUsers' | translate }}
-          </mat-option>
-        } @else {
-          @for (user of organizationStore.users(); track user.user.id) {
-            <mat-option [value]="user.user.id">
-              {{ user.user.name }}
-            </mat-option>
-          }
+  <!-- User Selection Controls -->
+  <div class="user-controls">
+    <div class="selected-users">
+      <h3>{{ 'inventory.table.selectedUsers' | translate }}</h3>
+      <div class="user-chips">
+        @for (userColumn of userColumns(); track userColumn.userId) {
+          <mat-chip-row 
+            [removable]="userColumn.userId !== 'WAREHOUSE'"
+            (removed)="removeUser(userColumn.userId)"
+          >
+            <div class="user-chip-content">
+              <span class="user-name">{{ userColumn.userName }}</span>
+              @if (userColumn.department) {
+                <span class="user-department">{{ userColumn.department }}</span>
+              }
+            </div>
+            @if (userColumn.userId !== 'WAREHOUSE') {
+              <mat-icon matChipRemove>cancel</mat-icon>
+            }
+          </mat-chip-row>
         }
-      </mat-select>
-      
-      <!-- Error message for users loading -->
-      @if (usersError()) {
-        <mat-error>
-          {{ 'inventory.users.errorMessage' | translate }}: {{ usersError() }}
-          <button mat-button (click)="loadUsers()" color="primary">
-            {{ 'common.retry' | translate }}
-          </button>
-        </mat-error>
-      }
-    </mat-form-field>
-  </div>
-  
-  <!-- Search and Inventory Display -->
-  @if (selectedUserID()) {
-    <inventory-search
-      [items]="userItems()"
-      [productsMap]="organizationStore.productsMap()"
-      (filteredItems)="onFilteredItemsChange($event)"
-    ></inventory-search>
-    
-    <inventory-list [inventoryItems]="filteredItems()"></inventory-list>
-  } @else {
-    <div class="no-user-selected">
-      <mat-icon>person_search</mat-icon>
-      <p>{{ 'inventory.search.selectUserFirst' | translate }}</p>
+      </div>
     </div>
-  }
+
+    <div class="user-selection">
+      <div class="add-user-section">
+        <mat-form-field>
+          <mat-label>{{ 'inventory.table.addUser' | translate }}</mat-label>
+          <mat-select 
+            #userSelect
+            [disabled]="isLoadingUsers()"
+            (selectionChange)="addUser($event.value); userSelect.value = null"
+          >
+            @if (isLoadingUsers()) {
+              <mat-option disabled>
+                {{ 'inventory.users.loading' | translate }}
+              </mat-option>
+            } @else if (usersError()) {
+              <mat-option disabled>
+                {{ 'inventory.users.errorLoading' | translate }}
+              </mat-option>
+            } @else if (!hasUsers()) {
+              <mat-option disabled>
+                {{ 'inventory.users.noUsers' | translate }}
+              </mat-option>
+            } @else {
+              @for (user of getAvailableUsersForSelection(); track user.user.id) {
+                <mat-option [value]="user.user.id">
+                  {{ user.user.name }}
+                  @if (user.department?.name) {
+                    <span class="user-department-option"> - {{ user.department.name }}</span>
+                  }
+                </mat-option>
+              }
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="action-buttons">
+        <button 
+          mat-button 
+          color="primary"
+          (click)="showAllUsers()"
+          [disabled]="!hasUsers() || isLoadingUsers()"
+        >
+          {{ 'inventory.table.showAllUsers' | translate }}
+        </button>
+        
+        <button 
+          mat-button
+          (click)="resetToWarehouse()"
+          [disabled]="selectedUserIds().length === 1 && selectedUserIds()[0] === 'WAREHOUSE'"
+        >
+          {{ 'inventory.table.resetToWarehouse' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Error message for users loading -->
+    @if (usersError()) {
+      <div class="error-message">
+        <mat-icon>error</mat-icon>
+        <span>{{ 'inventory.users.errorMessage' | translate }}: {{ usersError() }}</span>
+        <button mat-button (click)="loadUsers()" color="primary">
+          {{ 'common.retry' | translate }}
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- Inventory Table -->
+  <div class="table-container">
+    @if (tableData().length > 0) {
+      <table mat-table [dataSource]="tableData()" class="inventory-table">
+        
+        <!-- Product Column -->
+        <ng-container matColumnDef="product">
+          <th mat-header-cell *matHeaderCellDef class="product-header">
+            {{ 'inventory.table.product' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row" class="product-cell" [class.upi-row]="shouldHighlightUpiRow(row)">
+            <div class="product-info">
+              <span class="product-name">{{ row.product.name }}</span>
+              <span class="product-id">{{ row.product.id }}</span>
+              @if (row.hasUpi) {
+                <mat-icon class="upi-indicator" matTooltip="{{ 'inventory.table.upiProduct' | translate }}">
+                  key
+                </mat-icon>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Dynamic User Columns -->
+        @for (userColumn of userColumns(); track userColumn.userId) {
+          <ng-container [matColumnDef]="userColumn.userId">
+            <th mat-header-cell *matHeaderCellDef class="user-header">
+              <div class="user-header-content">
+                <span class="user-name">{{ userColumn.userName }}</span>
+                @if (userColumn.department) {
+                  <span class="user-department">{{ userColumn.department }}</span>
+                }
+              </div>
+            </th>
+            <td mat-cell *matCellDef="let row" 
+                class="quantity-cell" 
+                [class.upi-cell]="row.userColumns[userColumn.userId]?.upis?.length"
+                [class.upi-row]="shouldHighlightUpiRow(row)"
+                [matTooltip]="getUpiTooltip(row.userColumns[userColumn.userId])"
+                [matTooltipPosition]="'above'"
+                [matTooltipClass]="'upi-tooltip'"
+            >
+              @if (row.userColumns[userColumn.userId]) {
+                <div class="quantity-badge">
+                  {{ row.userColumns[userColumn.userId].quantity }}
+                  @if (row.userColumns[userColumn.userId].upis?.length) {
+                    <mat-icon class="upi-icon">key</mat-icon>
+                  }
+                </div>
+              } @else {
+                <span class="no-quantity">-</span>
+              }
+            </td>
+          </ng-container>
+        }
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns();" 
+            [class.upi-row]="shouldHighlightUpiRow(row)">
+        </tr>
+      </table>
+    } @else {
+      <div class="empty-state">
+        <mat-icon>inventory</mat-icon>
+        <h3>{{ 'inventory.table.noInventory' | translate }}</h3>
+        <p>{{ 'inventory.table.noInventoryDescription' | translate }}</p>
+      </div>
+    }
+  </div>
 </div> 
