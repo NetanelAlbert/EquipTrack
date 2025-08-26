@@ -99,15 +99,33 @@ function uploadToS3(bucketName) {
     throw new Error(`Frontend build directory not found: ${FRONTEND_DIST_PATH}`);
   }
   
-  // Upload all files with proper content types and caching
+  // Upload hashed static assets with long-term caching
   execSync(
-    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --delete --cache-control max-age=${FRONTEND_CACHE_MAX_AGE}`,
+    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --delete --exclude "*.html" --exclude "*.xml" --exclude "*.txt" --cache-control "max-age=31536000,immutable"`,
     { stdio: 'inherit' }
   );
   
-  // Set specific content-type and cache control for HTML files
+  // Upload HTML files with no-cache headers
   execSync(
-    `aws s3 cp s3://${bucketName}/index.html s3://${bucketName}/index.html --metadata-directive REPLACE --content-type "text/html" --cache-control "${FRONTEND_INDEX_CACHE_CONTROL}"`,
+    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "*.html" --cache-control "no-cache,no-store,must-revalidate"`,
+    { stdio: 'inherit' }
+  );
+  
+  // Upload translation files with short cache (these change frequently)
+  execSync(
+    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "assets/i18n/*" --cache-control "max-age=300"`,
+    { stdio: 'inherit' }
+  );
+  
+  // Upload other asset files (images, icons) with medium cache
+  execSync(
+    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "assets/*" --exclude "assets/i18n/*" --cache-control "max-age=3600"`,
+    { stdio: 'inherit' }
+  );
+  
+  // Upload other non-hashed files (robots.txt, sitemap.xml, etc.) with short cache
+  execSync(
+    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "*.xml" --include "*.txt" --cache-control "max-age=3600"`,
     { stdio: 'inherit' }
   );
   

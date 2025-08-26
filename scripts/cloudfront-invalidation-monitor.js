@@ -109,7 +109,7 @@ function monitorInvalidation(distributionId, invalidationId) {
   }
 }
 
-function createSmartInvalidation(distributionId, paths = ['/*']) {
+function createSmartInvalidation(distributionId, paths = ['/*', '/assets/i18n/*']) {
   console.log(`🚀 Creating smart CloudFront invalidation...`);
   console.log(`📍 Distribution: ${distributionId}`);
   console.log(`📂 Paths: ${paths.join(', ')}`);
