@@ -181,6 +181,16 @@
       "typeUpi": "UPI",
       "typeNonUpi": "Non-UPI"
     },
+    "table": {
+      "selectedUsers": "Selected Users",
+      "addUser": "Add User",
+      "showAllUsers": "Show All Users",
+      "resetToWarehouse": "Reset to Warehouse",
+      "product": "Product",
+      "upiProduct": "This product has unique identifiers (UPI)",
+      "noInventory": "No Inventory Data",
+      "noInventoryDescription": "There is no inventory data available for the selected users."
+    },
     "item": {
       "expandable": "Inventory item {{name}} - Click to expand {{count}} UPI details",
       "static": "Inventory item {{name}} - No additional details"

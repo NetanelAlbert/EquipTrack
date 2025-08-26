@@ -15,11 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { EditableInventoryComponent } from '../inventory/edit/editable-inventory.component';
-import {
-  FormType,
-  InventoryItem,
-  UserAndUserInOrganization,
-} from '@equip-track/shared';
+import { FormType, InventoryItem } from '@equip-track/shared';
 import { OrganizationStore } from '../../store/organization.store';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { InventoryListComponent } from '../inventory/list/inventory-list.component';
@@ -28,6 +24,7 @@ import { NotificationService } from '../../services/notification.service';
 import { UserStore } from '../../store/user.store';
 import { FormsStore } from '../../store/forms.store';
 import { InventoryStore } from '../../store/inventory.store';
+import { UserDisplayComponent } from '../shared/user-display/user-display.component';
 import { MatRadioModule } from '@angular/material/radio';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { of } from 'rxjs';
@@ -56,6 +53,7 @@ interface CreateFormConfig {
     MatExpansionModule,
     InventoryListComponent,
     MatProgressSpinnerModule,
+    UserDisplayComponent,
     MatRadioModule,
   ],
   templateUrl: './create-form.component.html',
@@ -153,24 +151,6 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
       this.form.updateValueAndValidity();
       this.notificationService.showError('forms.form-invalid');
     }
-  }
-
-  userDescription(user: UserAndUserInOrganization) {
-    const department = user.userInOrganization.department;
-    const departmentName = this.userStore.getDepartmentName(
-      department?.id ?? ''
-    );
-    const subDepartmentName = this.userStore.getDepartmentName(
-      department?.subDepartmentId ?? ''
-    );
-    const roleDescription = department?.roleDescription;
-    let departmentDescription = [departmentName, subDepartmentName]
-      .filter(Boolean)
-      .join(' / ');
-    if (roleDescription) {
-      departmentDescription += ` (${roleDescription})`;
-    }
-    return `${user.user.name}: ${departmentDescription}`;
   }
 
   onItemsEdited() {
