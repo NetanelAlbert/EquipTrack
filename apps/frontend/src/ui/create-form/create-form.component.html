@@ -23,7 +23,7 @@
       <mat-select formControlName="userID">
         @for (user of users(); track user.user.id) {
           <mat-option [value]="user.user.id">
-            {{ userDescription(user) }}
+            <app-user-display [user]="user" />
           </mat-option>
         }
       </mat-select>
