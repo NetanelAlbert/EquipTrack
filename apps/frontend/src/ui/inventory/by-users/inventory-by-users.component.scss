@@ -1,47 +1,570 @@
+@import '../../../styles/mixins.scss';
+@import '../../../shared.scss';
+
 .container {
   padding: 16px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
-.user-select {
+// User controls section
+.user-controls {
+  background: var(--color-bg-secondary);
+  border-radius: 8px;
+  padding: 20px;
   margin-bottom: 24px;
+  border: 1px solid var(--color-border-light);
+
+  .selected-users {
+    margin-bottom: 20px;
+
+    h3 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .user-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+
+      mat-chip-row {
+        background-color: var(--color-accent);
+        color: var(--color-text-primary);
+        height: auto;
+
+        .user-chip-content {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+
+          .user-name {
+            font-weight: 600;
+            font-size: 14px;
+          }
+
+          .user-department {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+          }
+        }
+
+        &:first-child {
+          // Warehouse chip styling
+          background-color: var(--color-primary);
+        }
+      }
+    }
+  }
+
+  .user-selection {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+
+    .add-user-section {
+      flex: 1;
+      max-width: 400px;
+
+      mat-form-field {
+        width: 100%;
+      }
+
+      .user-department-option {
+        color: var(--color-text-secondary);
+        font-size: 12px;
+      }
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+  }
+
+  .error-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background-color: var(--color-error-light, rgba(244, 67, 54, 0.1));
+    border: 1px solid var(--color-error, #f44336);
+    border-radius: 4px;
+    color: var(--color-error, #f44336);
+    margin-top: 16px;
+
+    mat-icon {
+      color: var(--color-error, #f44336);
+    }
+
+    button {
+      margin-left: auto;
+    }
+  }
 }
 
-.user-select mat-form-field {
-  width: 100%;
-  max-width: 400px;
+// Table container
+.table-container {
+  background: var(--color-bg-primary);
+  border-radius: 8px;
+  overflow-x: auto;
+  box-shadow: 0 2px 8px var(--color-shadow-light);
+
+  .inventory-table {
+    width: 100%;
+    min-width: 600px;
+
+    // Product column styling
+    .product-header {
+      background-color: var(--color-bg-secondary);
+      font-weight: 600;
+      color: var(--color-text-primary);
+      padding: 16px;
+      border-bottom: 2px solid var(--color-border-medium);
+      position: sticky;
+      left: 0;
+      z-index: 10;
+
+      &.sortable-header {
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: var(--color-bg-hover);
+        }
+
+        &.sorted {
+          background-color: var(--color-primary-light, rgba(63, 81, 181, 0.1));
+        }
+
+        .header-content {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+
+          .sort-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+            color: var(--color-text-secondary);
+            transition: color 0.2s ease;
+          }
+        }
+
+        &.sorted .sort-icon {
+          color: var(--color-primary);
+        }
+      }
+    }
+
+    .product-cell {
+      padding: 16px;
+      border-right: 1px solid var(--color-border-light);
+      background-color: var(--color-bg-primary);
+      position: sticky;
+      left: 0;
+      z-index: 5;
+
+      &.upi-row {
+        @include upi-theme;
+        background: linear-gradient(to right, var(--color-gradient-light), var(--color-bg-primary));
+      }
+
+      &.clickable-product {
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: var(--color-bg-hover);
+        }
+
+        &.sorting-columns {
+          background-color: var(--color-accent-light, rgba(255, 193, 7, 0.1));
+          border-left: 3px solid var(--color-accent);
+        }
+
+        &.upi-row.sorting-columns {
+          background: linear-gradient(to right, var(--color-accent-light, rgba(255, 193, 7, 0.15)), var(--color-gradient-light));
+        }
+      }
+
+      .product-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 200px;
+        position: relative;
+
+        .product-name {
+          font-weight: 600;
+          font-size: 16px;
+          color: var(--color-text-primary);
+        }
+
+        .product-id {
+          font-size: 12px;
+          color: var(--color-text-secondary);
+          font-family: monospace;
+          letter-spacing: 0.5px;
+        }
+
+        .upi-indicator {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          font-size: 16px;
+          color: var(--color-accent);
+        }
+
+        .sort-indicator {
+          position: absolute;
+          top: 8px;
+          right: 28px;
+          font-size: 16px;
+          font-weight: bold;
+          color: var(--color-accent);
+          background-color: var(--color-bg-primary);
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 1px 3px var(--color-shadow-light);
+        }
+      }
+    }
+
+    // User header columns
+    .user-header {
+      background-color: var(--color-bg-secondary);
+      font-weight: 600;
+      color: var(--color-text-primary);
+      padding: 16px;
+      border-bottom: 2px solid var(--color-border-medium);
+      text-align: center;
+      min-width: 120px;
+
+      &.sortable-header {
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: var(--color-bg-hover);
+        }
+
+        &.sorted {
+          background-color: var(--color-primary-light, rgba(63, 81, 181, 0.1));
+        }
+      }
+
+      .user-header-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+
+        .user-info {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+
+          .user-name {
+            font-size: 14px;
+            font-weight: 600;
+          }
+
+          .user-department {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+          }
+        }
+
+        .sort-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+          color: var(--color-text-secondary);
+          transition: color 0.2s ease;
+          margin-top: 2px;
+        }
+      }
+
+      &.sorted .user-header-content .sort-icon {
+        color: var(--color-primary);
+      }
+    }
+
+    // Quantity cells
+    .quantity-cell {
+      padding: 16px;
+      text-align: center;
+      border-right: 1px solid var(--color-border-light);
+      position: relative;
+
+      &.upi-row {
+        @include upi-theme;
+        background-color: var(--color-gradient-ultra-light);
+      }
+
+      &.upi-cell {
+        background-color: var(--color-gradient-light);
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: var(--color-gradient-medium, rgba(218, 218, 90, 0.25));
+        }
+      }
+
+      .quantity-badge {
+        @include quantity-badge;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+
+        .upi-icon {
+          font-size: 16px;
+          color: var(--color-accent);
+        }
+      }
+
+      .no-quantity {
+        color: var(--color-text-disabled);
+        font-style: italic;
+      }
+    }
+
+    // Row styling
+    mat-row {
+      border-bottom: 1px solid var(--color-border-light);
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: var(--color-bg-hover);
+      }
+
+      &.upi-row {
+        @include upi-theme;
+        
+        &:hover {
+          background-color: var(--color-gradient-light);
+        }
+      }
+    }
+  }
 }
 
-.no-user-selected {
+// Empty state
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 60px 20px;
   text-align: center;
-  padding: 40px 20px;
-  color: #666;
-  
+  color: var(--color-text-secondary);
+
   mat-icon {
-    font-size: 48px;
-    width: 48px;
-    height: 48px;
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
     margin-bottom: 16px;
-    color: #999;
+    color: var(--color-text-disabled);
   }
-  
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
   p {
     margin: 0;
-    font-size: 16px;
+    font-size: 14px;
   }
 }
 
-@media (max-width: 768px) {
+// Custom tooltip styling for UPI items
+::ng-deep .upi-tooltip {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-medium);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px var(--color-shadow-medium);
+  white-space: pre-line;
+  max-width: 300px;
+  padding: 8px 12px;
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+// Responsive design
+@include tablet-responsive {
+  .container {
+    padding: 12px;
+  }
+
+  .user-controls {
+    padding: 16px;
+
+    .user-selection {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+
+      .action-buttons {
+        justify-content: stretch;
+
+        button {
+          flex: 1;
+        }
+      }
+    }
+  }
+
+  .table-container {
+    .inventory-table {
+      .product-cell .product-info {
+        min-width: 160px;
+
+        .sort-indicator {
+          right: 24px;
+          width: 18px;
+          height: 18px;
+          font-size: 14px;
+        }
+      }
+
+      .user-header {
+        min-width: 100px;
+        padding: 12px;
+
+        .user-header-content .sort-icon {
+          font-size: 14px;
+          width: 14px;
+          height: 14px;
+        }
+      }
+
+      .quantity-cell {
+        padding: 12px;
+      }
+    }
+  }
+}
+
+@include mobile-responsive {
   .container {
     padding: 8px;
   }
-  
-  .user-select mat-form-field {
-    max-width: none;
+
+  .user-controls {
+    padding: 12px;
+
+    .selected-users .user-chips {
+      flex-direction: column;
+      align-items: stretch;
+
+      mat-chip-row {
+        justify-content: space-between;
+      }
+    }
+  }
+
+  .table-container {
+    .inventory-table {
+      min-width: 500px;
+
+      .product-cell .product-info {
+        min-width: 140px;
+
+        .product-name {
+          font-size: 14px;
+        }
+
+        .product-id {
+          font-size: 11px;
+        }
+
+        .sort-indicator {
+          right: 20px;
+          width: 16px;
+          height: 16px;
+          font-size: 12px;
+        }
+      }
+
+      .user-header {
+        min-width: 80px;
+        padding: 8px;
+
+        .user-header-content {
+          .user-info {
+            .user-name {
+              font-size: 12px;
+            }
+
+            .user-department {
+              font-size: 10px;
+            }
+          }
+
+          .sort-icon {
+            font-size: 12px;
+            width: 12px;
+            height: 12px;
+          }
+        }
+      }
+
+      .quantity-cell {
+        padding: 8px;
+
+        .quantity-badge {
+          font-size: 12px;
+          padding: 4px 8px;
+          min-width: 24px;
+          height: 24px;
+        }
+      }
+    }
+  }
+}
+
+@include high-contrast-support {
+  .user-controls {
+    border-width: 2px;
+  }
+
+  .table-container .inventory-table {
+    .product-cell, .quantity-cell {
+      border-right-width: 2px;
+    }
+
+    .product-header, .user-header {
+      border-bottom-width: 3px;
+    }
+
+    mat-row {
+      border-bottom-width: 2px;
+    }
+  }
+}
+
+@include reduced-motion-support {
+  .user-controls .user-chips mat-chip-row,
+  .table-container .inventory-table .quantity-cell,
+  .table-container .inventory-table mat-row {
+    transition: none;
   }
 } 

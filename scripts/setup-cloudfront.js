@@ -45,12 +45,112 @@ function createCloudFrontDistribution(bucketName, s3WebsiteUrl) {
           Forward: 'none'
         },
         Headers: {
-          Quantity: 0
+          Quantity: 1,
+          Items: ['Cache-Control']
         }
       },
       MinTTL: 0,
-      DefaultTTL: 86400,  // 1 day
-      MaxTTL: 31536000    // 1 year
+      DefaultTTL: 300,    // 5 minutes (much shorter default)
+      MaxTTL: 86400       // 1 day max (reduced from 1 year)
+    },
+    CacheBehaviors: {
+      Quantity: 4,
+      Items: [
+        {
+          // HTML files - minimal caching for SPA routing
+          PathPattern: '*.html',
+          TargetOriginId: `S3-Website-${bucketName}`,
+          ViewerProtocolPolicy: 'redirect-to-https',
+          Compress: true,
+          TrustedSigners: {
+            Enabled: false,
+            Quantity: 0
+          },
+          ForwardedValues: {
+            QueryString: false,
+            Cookies: {
+              Forward: 'none'
+            },
+            Headers: {
+              Quantity: 1,
+              Items: ['Cache-Control']
+            }
+          },
+          MinTTL: 0,
+          DefaultTTL: 0,      // No default caching for HTML
+          MaxTTL: 300         // 5 minutes max
+        },
+        {
+          // Static assets with content hashes - aggressive caching
+          PathPattern: '*.js',
+          TargetOriginId: `S3-Website-${bucketName}`,
+          ViewerProtocolPolicy: 'redirect-to-https',
+          Compress: true,
+          TrustedSigners: {
+            Enabled: false,
+            Quantity: 0
+          },
+          ForwardedValues: {
+            QueryString: false,
+            Cookies: {
+              Forward: 'none'
+            },
+            Headers: {
+              Quantity: 0
+            }
+          },
+          MinTTL: 0,
+          DefaultTTL: 31536000,  // 1 year for JS files with content hashes
+          MaxTTL: 31536000       // 1 year max
+        },
+        {
+          // CSS files - aggressive caching
+          PathPattern: '*.css',
+          TargetOriginId: `S3-Website-${bucketName}`,
+          ViewerProtocolPolicy: 'redirect-to-https',
+          Compress: true,
+          TrustedSigners: {
+            Enabled: false,
+            Quantity: 0
+          },
+          ForwardedValues: {
+            QueryString: false,
+            Cookies: {
+              Forward: 'none'
+            },
+            Headers: {
+              Quantity: 0
+            }
+          },
+          MinTTL: 0,
+          DefaultTTL: 31536000,  // 1 year for CSS files with content hashes
+          MaxTTL: 31536000       // 1 year max
+        },
+        {
+          // Translation and asset files (i18n, images, icons) - short caching
+          PathPattern: 'assets/*',
+          TargetOriginId: `S3-Website-${bucketName}`,
+          ViewerProtocolPolicy: 'redirect-to-https',
+          Compress: true,
+          TrustedSigners: {
+            Enabled: false,
+            Quantity: 0
+          },
+          ForwardedValues: {
+            QueryString: false,
+            Cookies: {
+              Forward: 'none'
+            },
+            Headers: {
+              Quantity: 1,
+              Items: ['Cache-Control']
+            }
+          },
+          MinTTL: 0,
+          DefaultTTL: 300,       // 5 minutes for asset files including translations
+          MaxTTL: 3600           // 1 hour max for assets
+        }
+      ]
     },
     CustomErrorResponses: {
       Quantity: 2,
@@ -242,7 +342,7 @@ function createInvalidationWithRetry(distributionId, maxRetries = 3) {
       console.log(`📝 Attempt ${attempt}/${maxRetries}: Creating invalidation...`);
       
       const result = execSync(
-        `aws cloudfront create-invalidation --distribution-id ${distributionId} --paths "/*"`,
+        `aws cloudfront create-invalidation --distribution-id ${distributionId} --paths "/*" "/assets/i18n/*"`,
         { encoding: 'utf8', stdio: 'pipe' }
       );
       

@@ -48,15 +48,33 @@ function deployToS3(bucketName) {
   
   const startTime = Date.now();
   
-  // Sync all files with optimized cache headers
+  // Upload hashed static assets with long-term caching and immutable flag
   execSync(
-    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --delete --cache-control max-age=31536000 --exclude "*.html"`,
+    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --delete --exclude "*.html" --exclude "*.xml" --exclude "*.txt" --cache-control "max-age=31536000,immutable"`,
     { stdio: 'inherit' }
   );
   
-  // Set no-cache for HTML files (for SPA routing)
+  // Upload HTML files with strict no-cache headers
   execSync(
-    `aws s3 cp ${FRONTEND_DIST_PATH}/index.html s3://${bucketName}/index.html --metadata-directive REPLACE --content-type "text/html" --cache-control "no-cache,no-store,must-revalidate"`,
+    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "*.html" --cache-control "no-cache,no-store,must-revalidate"`,
+    { stdio: 'inherit' }
+  );
+  
+  // Upload translation files with very short cache (these change frequently)
+  execSync(
+    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "assets/i18n/*" --cache-control "max-age=300"`,
+    { stdio: 'inherit' }
+  );
+  
+  // Upload other asset files (images, icons) with medium cache
+  execSync(
+    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "assets/*" --exclude "assets/i18n/*" --cache-control "max-age=3600"`,
+    { stdio: 'inherit' }
+  );
+  
+  // Upload other non-hashed files with short cache
+  execSync(
+    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "*.xml" --include "*.txt" --cache-control "max-age=3600"`,
     { stdio: 'inherit' }
   );
   
@@ -184,9 +202,11 @@ async function deployFrontendFast() {
     // Deploy to S3
     const deployTime = deployToS3(bucketName);
     
-    // Invalidate CloudFront cache with enhanced reliability
+    // Invalidate CloudFront cache with enhanced reliability and wait for completion
     let invalidationResult = null;
     if (distributionId) {
+      // Set environment variable to wait for invalidation completion
+      process.env.WAIT_FOR_INVALIDATION = 'true';
       invalidationResult = invalidateCloudFront(distributionId);
       
       // Handle invalidation failure
@@ -197,6 +217,9 @@ async function deployFrontendFast() {
           console.log('💡 Test your deployment with the cache-busted URL shown above');
         }
         console.log('🔧 Manual invalidation may be required if cache issues persist');
+      } else if (invalidationResult.completion?.completed) {
+        console.log(`🎉 Cache invalidation completed in ${invalidationResult.completion.duration}s!`);
+        console.log('✨ Your changes should now be visible to all users worldwide');
       }
     } else {
       console.log('⚠️ CloudFront distribution not found - skipping cache invalidation');

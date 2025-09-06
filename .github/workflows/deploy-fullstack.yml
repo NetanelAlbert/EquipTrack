@@ -112,8 +112,20 @@ jobs:
           node scripts/deployment-status-tracker.js track api-gateway failed "Both normal and recreation attempts failed"
           exit 1
 
+      - name: Check if force full deployment is requested
+        id: check-force-deployment
+        run: |
+          if [[ "${{ github.event.head_commit.message }}" == *"force full deployment"* ]] || [[ "${{ github.event.head_commit.message }}" == *"force-full-deployment"* ]] || [[ "${{ github.event.head_commit.message }}" == *"full deploy"* ]]; then
+            echo "force_deployment=true" >> $GITHUB_OUTPUT
+            echo "🚀 Force full deployment detected in commit message: '${{ github.event.head_commit.message }}'"
+          else
+            echo "force_deployment=false" >> $GITHUB_OUTPUT
+            echo "✅ No force deployment requested, will attempt fast deployment first"
+          fi
+
       - name: Deploy Frontend to S3 (Fast - first attempt)
         id: deploy-frontend-fast
+        if: steps.check-force-deployment.outputs.force_deployment != 'true'
         run: |
           node scripts/deployment-status-tracker.js track frontend-fast started
           if node scripts/deploy-frontend-fast.js; then
@@ -124,25 +136,35 @@ jobs:
           fi
         continue-on-error: true
 
-      - name: Deploy Frontend to S3 (Full setup on fast failure)
+      - name: Deploy Frontend to S3 (Full setup on fast failure or force trigger)
         id: deploy-frontend-full
-        if: steps.deploy-frontend-fast.outcome == 'failure'
+        if: steps.deploy-frontend-fast.outcome == 'failure' || steps.check-force-deployment.outputs.force_deployment == 'true'
         run: |
-          echo "Fast frontend deployment failed. Deploying with full infrastructure setup..."
+          if steps.check-force-deployment.outputs.force_deployment == 'true'; then
+            echo "🚀 Force full deployment triggered by commit message: '${{ github.event.head_commit.message }}'"
+            echo "🔄 Running full infrastructure setup..."
+          else
+            echo "Fast frontend deployment failed. Deploying with full infrastructure setup..."
+          fi
           node scripts/deployment-status-tracker.js track frontend-full started
           node scripts/deploy-frontend.js
           node scripts/deployment-status-tracker.js track frontend-full success
 
       - name: Create CloudFront Distribution (if needed)
         id: setup-cloudfront
-        if: steps.deploy-frontend-fast.outcome == 'failure'
+        if: steps.deploy-frontend-fast.outcome == 'failure' || steps.check-force-deployment.outputs.force_deployment == 'true'
         run: |
+          if steps.check-force-deployment.outputs.force_deployment == 'true'; then
+            echo "🚀 Force full deployment: Setting up CloudFront distribution..."
+          else
+            echo "Setting up CloudFront distribution after fast deployment failure..."
+          fi
           node scripts/deployment-status-tracker.js track cloudfront started
           node scripts/setup-cloudfront.js
           node scripts/deployment-status-tracker.js track cloudfront success
 
       - name: Verify Frontend Deployment Success
-        if: steps.deploy-frontend-fast.outcome == 'failure' && steps.deploy-frontend-full.outcome == 'failure'
+        if: (steps.deploy-frontend-fast.outcome == 'failure' || steps.check-force-deployment.outputs.force_deployment == 'true') && steps.deploy-frontend-full.outcome == 'failure'
         run: |
           echo "❌ Both fast and full frontend deployments failed!"
           echo "This is a critical failure that prevents the application from being accessible."
