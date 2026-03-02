@@ -7,6 +7,10 @@ on:
     tags:
       - 'v*'
 
+concurrency:
+  group: deploy-fullstack-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   # Use the correct lowercase AWS region identifier.
   AWS_REGION: il-central-1
@@ -20,27 +24,141 @@ jobs:
     runs-on: ubuntu-latest
     # Use GitHub Environments for proper separation and protection
     environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'development' }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine deployment scope
+        id: deployment-scope
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          force_deployment=false
+          commit_message="$(git log -1 --pretty=%B)"
+          if [[ "$commit_message" == *"force full deployment"* ]] || [[ "$commit_message" == *"force-full-deployment"* ]] || [[ "$commit_message" == *"full deploy"* ]]; then
+            force_deployment=true
+            echo "🚀 Force full deployment detected in commit message."
+          fi
+
+          backend_changed=false
+          frontend_changed=false
+          api_changed=false
+
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "🏷️ Release tag detected, running full deployment."
+            force_deployment=true
+            backend_changed=true
+            frontend_changed=true
+            api_changed=true
+          else
+            base_sha="${{ github.event.before }}"
+            if [[ -z "$base_sha" || "$base_sha" == "0000000000000000000000000000000000000000" ]]; then
+              if git rev-parse HEAD~1 >/dev/null 2>&1; then
+                base_sha="$(git rev-parse HEAD~1)"
+              else
+                base_sha="$(git rev-parse HEAD)"
+              fi
+            fi
+
+            changed_files="$(git diff --name-only "$base_sha" "$GITHUB_SHA" || true)"
+            if [[ -z "$changed_files" ]] && git rev-parse HEAD~1 >/dev/null 2>&1; then
+              changed_files="$(git diff --name-only HEAD~1 HEAD || true)"
+            fi
+
+            echo "🧾 Files changed since ${base_sha}:"
+            if [[ -n "$changed_files" ]]; then
+              echo "$changed_files"
+            else
+              echo "(none detected)"
+            fi
+
+            while IFS= read -r file; do
+              [[ -z "$file" ]] && continue
+
+              case "$file" in
+                apps/backend/*|scripts/create-dynamodb-tables.js|scripts/create-lambda-packages.js|scripts/deploy-lambdas.js|scripts/prepare-deployment.js|package.json|package-lock.json|nx.json|tsconfig*.json)
+                  backend_changed=true
+                  ;;
+              esac
+
+              case "$file" in
+                apps/frontend/*|scripts/deploy-frontend.js|scripts/deploy-frontend-fast.js|scripts/setup-cloudfront.js|scripts/setup-frontend-custom-domain.js|package.json|package-lock.json|nx.json|tsconfig*.json)
+                  frontend_changed=true
+                  ;;
+              esac
+
+              case "$file" in
+                libs/shared/src/api/*|scripts/prepare-deployment.js|scripts/deploy-api-gateway.js|scripts/setup-api-custom-domain.js)
+                  api_changed=true
+                  ;;
+              esac
+
+              case "$file" in
+                libs/shared/*)
+                  if [[ "$file" != libs/shared/src/api/* ]]; then
+                    backend_changed=true
+                    frontend_changed=true
+                  fi
+                  ;;
+              esac
+            done <<< "$changed_files"
+          fi
+
+          if [[ "$force_deployment" == "true" ]]; then
+            backend_changed=true
+            frontend_changed=true
+            api_changed=true
+          fi
+
+          deployment_needed=false
+          if [[ "$backend_changed" == "true" || "$frontend_changed" == "true" || "$api_changed" == "true" ]]; then
+            deployment_needed=true
+          fi
+
+          {
+            echo "force_deployment=$force_deployment"
+            echo "backend_changed=$backend_changed"
+            echo "frontend_changed=$frontend_changed"
+            echo "api_changed=$api_changed"
+            echo "deployment_needed=$deployment_needed"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "📌 Deployment scope:"
+          echo "  force_deployment=$force_deployment"
+          echo "  backend_changed=$backend_changed"
+          echo "  frontend_changed=$frontend_changed"
+          echo "  api_changed=$api_changed"
+          echo "  deployment_needed=$deployment_needed"
+
+      - name: Skip deployment when no relevant changes are detected
+        if: steps.deployment-scope.outputs.deployment_needed != 'true'
+        run: echo "⏭️ No backend/frontend changes detected. Skipping deployment."
 
       - name: Setup Node.js
+        if: steps.deployment-scope.outputs.deployment_needed == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        if: steps.deployment-scope.outputs.deployment_needed == 'true'
+        run: npm ci --prefer-offline --no-audit --fund=false
 
       - name: Build backend
+        if: steps.deployment-scope.outputs.backend_changed == 'true'
         run: npx nx build backend --configuration=${{ env.STAGE == 'production' && 'production' || 'development' }}
 
       - name: Build frontend
+        if: steps.deployment-scope.outputs.frontend_changed == 'true'
         run: npx nx build frontend --configuration=${{ env.STAGE == 'production' && 'production' || 'development' }}
 
       - name: Configure AWS credentials
+        if: steps.deployment-scope.outputs.deployment_needed == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           # Use environment-specific AWS credentials for proper isolation
@@ -53,6 +171,7 @@ jobs:
 
       - name: Prepare deployment configuration
         id: prepare-deployment
+        if: steps.deployment-scope.outputs.deployment_needed == 'true'
         run: |
           node scripts/deployment-status-tracker.js track prepare started
           node scripts/prepare-deployment.js
@@ -60,6 +179,7 @@ jobs:
 
       - name: Create DynamoDB tables
         id: create-dynamodb
+        if: steps.deployment-scope.outputs.backend_changed == 'true'
         run: |
           node scripts/deployment-status-tracker.js track dynamodb started
           node scripts/create-dynamodb-tables.js
@@ -67,6 +187,7 @@ jobs:
 
       - name: Create Lambda deployment packages
         id: create-lambda-packages
+        if: steps.deployment-scope.outputs.backend_changed == 'true'
         run: |
           node scripts/deployment-status-tracker.js track lambda-packages started
           node scripts/create-lambda-packages.js
@@ -74,6 +195,7 @@ jobs:
 
       - name: Deploy Lambda functions
         id: deploy-lambdas
+        if: steps.deployment-scope.outputs.backend_changed == 'true'
         run: |
           node scripts/deployment-status-tracker.js track lambda-deploy started
           node scripts/deploy-lambdas.js --parallel
@@ -81,6 +203,7 @@ jobs:
 
       - name: Deploy API Gateway
         id: deploy-api-gateway
+        if: steps.deployment-scope.outputs.api_changed == 'true'
         run: |
           echo "🚀 Deploying API Gateway for stage: ${{ env.STAGE }}"
           node scripts/deployment-status-tracker.js track api-gateway started
@@ -112,20 +235,9 @@ jobs:
           node scripts/deployment-status-tracker.js track api-gateway failed "Both normal and recreation attempts failed"
           exit 1
 
-      - name: Check if force full deployment is requested
-        id: check-force-deployment
-        run: |
-          if [[ "${{ github.event.head_commit.message }}" == *"force full deployment"* ]] || [[ "${{ github.event.head_commit.message }}" == *"force-full-deployment"* ]] || [[ "${{ github.event.head_commit.message }}" == *"full deploy"* ]]; then
-            echo "force_deployment=true" >> $GITHUB_OUTPUT
-            echo "🚀 Force full deployment detected in commit message: '${{ github.event.head_commit.message }}'"
-          else
-            echo "force_deployment=false" >> $GITHUB_OUTPUT
-            echo "✅ No force deployment requested, will attempt fast deployment first"
-          fi
-
       - name: Deploy Frontend to S3 (Fast - first attempt)
         id: deploy-frontend-fast
-        if: steps.check-force-deployment.outputs.force_deployment != 'true'
+        if: steps.deployment-scope.outputs.frontend_changed == 'true' && steps.deployment-scope.outputs.force_deployment != 'true'
         run: |
           node scripts/deployment-status-tracker.js track frontend-fast started
           if node scripts/deploy-frontend-fast.js; then
@@ -138,9 +250,9 @@ jobs:
 
       - name: Deploy Frontend to S3 (Full setup on fast failure or force trigger)
         id: deploy-frontend-full
-        if: steps.deploy-frontend-fast.outcome == 'failure' || steps.check-force-deployment.outputs.force_deployment == 'true'
+        if: steps.deployment-scope.outputs.frontend_changed == 'true' && (steps.deploy-frontend-fast.outcome == 'failure' || steps.deployment-scope.outputs.force_deployment == 'true')
         run: |
-          if steps.check-force-deployment.outputs.force_deployment == 'true'; then
+          if [[ "${{ steps.deployment-scope.outputs.force_deployment }}" == 'true' ]]; then
             echo "🚀 Force full deployment triggered by commit message: '${{ github.event.head_commit.message }}'"
             echo "🔄 Running full infrastructure setup..."
           else
@@ -152,9 +264,9 @@ jobs:
 
       - name: Create CloudFront Distribution (if needed)
         id: setup-cloudfront
-        if: steps.deploy-frontend-fast.outcome == 'failure' || steps.check-force-deployment.outputs.force_deployment == 'true'
+        if: steps.deployment-scope.outputs.frontend_changed == 'true' && (steps.deploy-frontend-fast.outcome == 'failure' || steps.deployment-scope.outputs.force_deployment == 'true')
         run: |
-          if steps.check-force-deployment.outputs.force_deployment == 'true'; then
+          if [[ "${{ steps.deployment-scope.outputs.force_deployment }}" == 'true' ]]; then
             echo "🚀 Force full deployment: Setting up CloudFront distribution..."
           else
             echo "Setting up CloudFront distribution after fast deployment failure..."
@@ -164,7 +276,7 @@ jobs:
           node scripts/deployment-status-tracker.js track cloudfront success
 
       - name: Verify Frontend Deployment Success
-        if: (steps.deploy-frontend-fast.outcome == 'failure' || steps.check-force-deployment.outputs.force_deployment == 'true') && steps.deploy-frontend-full.outcome == 'failure'
+        if: steps.deployment-scope.outputs.frontend_changed == 'true' && (steps.deploy-frontend-fast.outcome == 'failure' || steps.deployment-scope.outputs.force_deployment == 'true') && steps.deploy-frontend-full.outcome == 'failure'
         run: |
           echo "❌ Both fast and full frontend deployments failed!"
           echo "This is a critical failure that prevents the application from being accessible."
@@ -172,6 +284,7 @@ jobs:
 
       - name: Setup Frontend Custom Domain
         id: setup-custom-domain
+        if: steps.deployment-scope.outputs.frontend_changed == 'true' && steps.setup-cloudfront.outcome == 'success'
         run: |
           node scripts/deployment-status-tracker.js track custom-domain started
           if node scripts/setup-frontend-custom-domain.js; then
@@ -185,7 +298,7 @@ jobs:
           fi
 
       - name: Invalidate CloudFront cache
-        if: success()
+        if: success() && steps.deployment-scope.outputs.frontend_changed == 'true'
         run: |
           DIST_ID=$(jq -r '.frontend.cloudfront.distributionId // empty' deployment-info.json)
           if [[ -n "$DIST_ID" ]]; then
@@ -197,21 +310,21 @@ jobs:
           fi
 
       - name: Generate Deployment Report
-        if: always()
+        if: always() && steps.deployment-scope.outputs.deployment_needed == 'true'
         run: |
           echo "📊 Generating final deployment report..."
           node scripts/deployment-status-tracker.js report
-          
+
       - name: Output URLs
-        if: success()
+        if: success() && steps.deployment-scope.outputs.deployment_needed == 'true'
         run: |
           echo "🌐 Deployment URLs:"
-          echo "API deployed to: $(cat deployment-info.json | jq -r '.api.apiUrl')"
-          echo "Frontend deployed to: $(cat deployment-info.json | jq -r '.frontend.cloudfrontUrl')"
-          echo "Custom domain: https://$(cat deployment-info.json | jq -r 'if .customDomains then (.customDomains | keys | map(select(test("api") | not)))[0] else "not-configured" end')"
-          
+          echo "API deployed to: $(jq -r '.api.apiUrl // "unchanged-or-skipped"' deployment-info.json)"
+          echo "Frontend deployed to: $(jq -r '.frontend.cloudfrontUrl // .frontend.cloudfront.cloudfrontUrl // "unchanged-or-skipped"' deployment-info.json)"
+          echo "Custom domain: https://$(jq -r 'if .customDomains then ((.customDomains | keys | map(select(test("api") | not)))[0] // "not-configured") else "not-configured" end' deployment-info.json)"
+
       - name: Deployment Failed Summary
-        if: failure()
+        if: failure() && steps.deployment-scope.outputs.deployment_needed == 'true'
         run: |
           echo "💥 Deployment Failed!"
           echo "Check the deployment report above for detailed failure information."
