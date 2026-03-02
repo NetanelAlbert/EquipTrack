@@ -48,6 +48,9 @@ export class UsersAndOrganizationsAdapter {
   async getUserAndAllOrganizations(
     userId: string
   ): Promise<UserAndAllOrganizations | undefined> {
+    console.log('[UsersAndOrganizationsAdapter.getUserAndAllOrganizations]', {
+      userId,
+    });
     const command = new QueryCommand({
       TableName: this.tableName,
       KeyConditionExpression: 'PK = :pk',
@@ -78,6 +81,9 @@ export class UsersAndOrganizationsAdapter {
   async getOrganizations(
     organizationIds: string[]
   ): Promise<Array<Organization>> {
+    console.log('[UsersAndOrganizationsAdapter.getOrganizations]', {
+      organizationIds,
+    });
     const command = new BatchGetCommand({
       RequestItems: {
         [this.tableName]: {
@@ -143,6 +149,10 @@ export class UsersAndOrganizationsAdapter {
    * Create a new user with UUID and external auth provider info
    */
   async createUser(user: User, googleSub?: string): Promise<void> {
+    console.log('[UsersAndOrganizationsAdapter.createUser]', {
+      userId: user.id,
+      email: user.email,
+    });
     // Normalize email before checking existence and storing
     const normalizedEmail = user.email.trim().toLowerCase();
 
@@ -174,6 +184,10 @@ export class UsersAndOrganizationsAdapter {
    * Update an existing user's state (e.g., from Invited to Active)
    */
   async updateUserState(userId: string, newState: UserState): Promise<void> {
+    console.log('[UsersAndOrganizationsAdapter.updateUserState]', {
+      userId,
+      newState,
+    });
     const command = new UpdateCommand({
       TableName: this.tableName,
       Key: {
@@ -205,6 +219,10 @@ export class UsersAndOrganizationsAdapter {
    * Update an existing user's name
    */
   async updateUserName(userId: string, newName: string): Promise<void> {
+    console.log('[UsersAndOrganizationsAdapter.updateUserName]', {
+      userId,
+      newName,
+    });
     const command = new UpdateCommand({
       TableName: this.tableName,
       Key: {
@@ -229,6 +247,10 @@ export class UsersAndOrganizationsAdapter {
    * Update an existing user's phone number
    */
   async updateUserPhone(userId: string, newPhone?: string): Promise<void> {
+    console.log('[UsersAndOrganizationsAdapter.updateUserPhone]', {
+      userId,
+      newPhone,
+    });
     const command = new UpdateCommand({
       TableName: this.tableName,
       Key: {
@@ -254,6 +276,7 @@ export class UsersAndOrganizationsAdapter {
   async getUserByEmail(
     email: string
   ): Promise<UserAndAllOrganizations | undefined> {
+    console.log('[UsersAndOrganizationsAdapter.getUserByEmail]', { email });
     // Normalize email before querying
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -302,6 +325,9 @@ export class UsersAndOrganizationsAdapter {
   async getUsersByOrganization(
     organizationId: string
   ): Promise<UserAndUserInOrganization[]> {
+    console.log('[UsersAndOrganizationsAdapter.getUsersByOrganization]', {
+      organizationId,
+    });
     // First, get all UserInOrganization records for this organization
     // Query using organizationId as GSI PK, GSI SK will be the main table's PK (USER#<userId>)
     const userOrgQuery = new QueryCommand({
@@ -348,6 +374,7 @@ export class UsersAndOrganizationsAdapter {
   }
 
   async getUserFromDB(userId: string): Promise<User | undefined> {
+    console.log('[UsersAndOrganizationsAdapter.getUserFromDB]', { userId });
     const command = new GetCommand({
       TableName: this.tableName,
       Key: this.getUserKey(userId),
@@ -363,6 +390,9 @@ export class UsersAndOrganizationsAdapter {
    * Create a new organization
    */
   async createOrganization(organization: Organization): Promise<void> {
+    console.log('[UsersAndOrganizationsAdapter.createOrganization]', {
+      organizationId: organization.id,
+    });
     const organizationDb: OrganizationDb = {
       ...organization,
       PK: `${ORG_PREFIX}${organization.id}`,
@@ -384,6 +414,10 @@ export class UsersAndOrganizationsAdapter {
   async setUserInOrganization(
     userInOrganization: UserInOrganization
   ): Promise<void> {
+    console.log('[UsersAndOrganizationsAdapter.setUserInOrganization]', {
+      userId: userInOrganization.userId,
+      organizationId: userInOrganization.organizationId,
+    });
     const userInOrganizationDb: UserInOrganizationDb = {
       ...userInOrganization,
       PK: `${USER_PREFIX}${userInOrganization.userId}`,

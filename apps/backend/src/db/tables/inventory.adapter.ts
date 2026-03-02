@@ -55,6 +55,10 @@ export class InventoryAdapter {
     organizationId: string,
     userId: string
   ): Promise<InventoryItem[]> {
+    console.log('[InventoryAdapter.getUserInventory]', {
+      organizationId,
+      userId,
+    });
     const command = new QueryCommand({
       TableName: this.tableName,
       IndexName: ITEMS_BY_HOLDER_INDEX,
@@ -116,6 +120,9 @@ export class InventoryAdapter {
   async getAllProductsByOrganization(
     organizationId: string
   ): Promise<Product[]> {
+    console.log('[InventoryAdapter.getAllProductsByOrganization]', {
+      organizationId,
+    });
     const command = new QueryCommand({
       TableName: this.tableName,
       IndexName: PRODUCTS_BY_ORGANIZATION_INDEX,
@@ -133,6 +140,9 @@ export class InventoryAdapter {
   async getOrganizationInventory(
     organizationId: string
   ): Promise<OrganizationInventory> {
+    console.log('[InventoryAdapter.getOrganizationInventory]', {
+      organizationId,
+    });
     const command = new QueryCommand({
       TableName: this.tableName,
       KeyConditionExpression: 'PK = :pk',
@@ -199,6 +209,7 @@ export class InventoryAdapter {
    * @returns All inventory items for the organization
    */
   async getTotalInventory(organizationId: string): Promise<InventoryItem[]> {
+    console.log('[InventoryAdapter.getTotalInventory]', { organizationId });
     const command = new QueryCommand({
       TableName: this.tableName,
       KeyConditionExpression: 'PK = :pk',
@@ -219,6 +230,10 @@ export class InventoryAdapter {
    * Creates a new product definition with flattened fields
    */
   async createProduct(product: Product, organizationId: string): Promise<void> {
+    console.log('[InventoryAdapter.createProduct]', {
+      productId: product.id,
+      organizationId,
+    });
     const productDb: ProductDb = {
       ...this.getProductKey(product.id, organizationId),
       dbItemType: DbItemType.Product,
@@ -242,6 +257,10 @@ export class InventoryAdapter {
     productId: string,
     organizationId: string
   ): Promise<Product | undefined> {
+    console.log('[InventoryAdapter.getProductFromDB]', {
+      productId,
+      organizationId,
+    });
     const command = new GetCommand({
       TableName: this.tableName,
       Key: this.getProductKey(productId, organizationId),
@@ -263,6 +282,12 @@ export class InventoryAdapter {
     organizationId: string,
     holderId: string
   ): Promise<void> {
+    console.log('[InventoryAdapter.createUniqueInventoryItem]', {
+      productId,
+      upi,
+      organizationId,
+      holderId,
+    });
     const inventoryItem: UniqueInventoryItemDb = {
       ...this.getUniqueProductKey(productId, upi, organizationId),
       dbItemType: DbItemType.InventoryUniqueItem,
@@ -292,6 +317,12 @@ export class InventoryAdapter {
     holderId: string,
     quantity: number
   ): Promise<void> {
+    console.log('[InventoryAdapter.createBulkInventoryItem]', {
+      productId,
+      organizationId,
+      holderId,
+      quantity,
+    });
     const inventoryItem: BulkInventoryItemDb = {
       ...this.getBulkProductKey(productId, organizationId, holderId),
       dbItemType: DbItemType.InventoryBulkItem,
@@ -321,6 +352,12 @@ export class InventoryAdapter {
     holderId: string,
     quantity: number
   ): Promise<void> {
+    console.log('[InventoryAdapter.updateInventoryItemQuantity]', {
+      productId,
+      organizationId,
+      holderId,
+      quantity,
+    });
     const key = this.getBulkProductKey(productId, organizationId, holderId);
 
     const command = new UpdateCommand({
@@ -344,6 +381,12 @@ export class InventoryAdapter {
     organizationId: string,
     newHolderId: string
   ): Promise<void> {
+    console.log('[InventoryAdapter.updateUniqueInventoryItemHolder]', {
+      productId,
+      upi,
+      organizationId,
+      newHolderId,
+    });
     const key = this.getUniqueProductKey(productId, upi, organizationId);
 
     const command = new UpdateCommand({
@@ -351,7 +394,7 @@ export class InventoryAdapter {
       Key: key,
       UpdateExpression:
         'SET holderId = :holderId, holderIdQueryKey = :holderIdQueryKey',
-      ExpressionAttributeValues: {
+      ExpressionAttributeValues:  {
         ':holderId': newHolderId,
         ':holderIdQueryKey': `${HOLDER_PREFIX}${organizationId}#${newHolderId}`,
       },
@@ -368,6 +411,11 @@ export class InventoryAdapter {
     upi: string,
     organizationId: string
   ): Promise<void> {
+    console.log('[InventoryAdapter.deleteUniqueInventoryItem]', {
+      productId,
+      upi,
+      organizationId,
+    });
     const key = this.getUniqueProductKey(productId, upi, organizationId);
 
     const command = new DeleteCommand({
@@ -386,6 +434,11 @@ export class InventoryAdapter {
     organizationId: string,
     holderId: string
   ): Promise<void> {
+    console.log('[InventoryAdapter.deleteBulkInventoryItem]', {
+      productId,
+      organizationId,
+      holderId,
+    });
     const key = this.getBulkProductKey(productId, organizationId, holderId);
 
     const command = new DeleteCommand({
@@ -403,6 +456,10 @@ export class InventoryAdapter {
     productId: string,
     organizationId: string
   ): Promise<boolean> {
+    console.log('[InventoryAdapter.isProductUsedInInventory]', {
+      productId,
+      organizationId,
+    });
     const command = new QueryCommand({
       TableName: this.tableName,
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
@@ -427,6 +484,10 @@ export class InventoryAdapter {
     productId: string,
     organizationId: string
   ): Promise<void> {
+    console.log('[InventoryAdapter.deleteProduct]', {
+      productId,
+      organizationId,
+    });
     const key = this.getProductKey(productId, organizationId);
 
     const command = new DeleteCommand({
@@ -447,6 +508,10 @@ export class InventoryAdapter {
     organizationId: string,
     lockTimeoutMs = 3000
   ): Promise<number | false> {
+    console.log('[InventoryAdapter.acquireInventoryLock]', {
+      organizationId,
+      lockTimeoutMs,
+    });
     const lockKey = this.getLockKey(organizationId);
     const currentTimestamp = Date.now();
 
@@ -515,6 +580,10 @@ export class InventoryAdapter {
     organizationId: string,
     lockTimestamp: number
   ): Promise<void> {
+    console.log('[InventoryAdapter.releaseInventoryLock]', {
+      organizationId,
+      lockTimestamp,
+    });
     const lockKey = this.getLockKey(organizationId);
 
     const command = new DeleteCommand({
@@ -552,6 +621,11 @@ export class InventoryAdapter {
     maxRetries = 3,
     retryDelayMs = 100
   ): Promise<T> {
+    console.log('[InventoryAdapter.withInventoryLock]', {
+      organizationId,
+      lockTimeoutMs,
+      maxRetries,
+    });
     // Retry only lock acquisition
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       const lockAcquired: number | false = await this.acquireInventoryLock(

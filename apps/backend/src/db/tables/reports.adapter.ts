@@ -37,6 +37,10 @@ export class ReportsAdapter {
     organizationId: string,
     dates: string[]
   ): Promise<Record<string, ReportItem[]>> {
+    console.log('[ReportsAdapter.getReportsByDates]', {
+      organizationId,
+      dates,
+    });
     const reportsByDate: Record<string, ReportItem[]> = {};
 
     const promises = dates.map(async (date) => {
@@ -176,6 +180,11 @@ export class ReportsAdapter {
     date: string,
     items: ItemReport[]
   ): Promise<number> {
+    console.log('[ReportsAdapter.publishPartialReport]', {
+      organizationId,
+      date,
+      itemCount: items.length,
+    });
     const reportItems = this.prepareReportItems(organizationId, date, items);
     let publishedCount = 0;
 
@@ -194,6 +203,11 @@ export class ReportsAdapter {
     productId: string,
     upi: string
   ): Promise<ReportItem[]> {
+    console.log('[ReportsAdapter.getItemHistory]', {
+      organizationId,
+      productId,
+      upi,
+    });
     const itemKey = `${PRODUCT_PREFIX}${productId}#${UPI_PREFIX}${upi}`;
     const itemOrgKey = `${ORG_PREFIX}${organizationId}#${ITEM_KEY_PREFIX}${itemKey}`;
 
@@ -216,6 +230,7 @@ export class ReportsAdapter {
     organizationId: string,
     date: string
   ): Promise<ReportItem[]> {
+    console.log('[ReportsAdapter.getDailyReport]', { organizationId, date });
     const orgDailyReportId = `${ORG_PREFIX}${organizationId}#${DATE_PREFIX}${date}`;
 
     const result = await this.docClient.send(

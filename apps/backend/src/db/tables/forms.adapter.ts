@@ -29,6 +29,7 @@ export class FormsAdapter {
     userId: string,
     organizationId: string
   ): Promise<InventoryForm[]> {
+    console.log('[FormsAdapter.getUserForms]', { userId, organizationId });
     const command = new QueryCommand({
       TableName: this.tableName,
       KeyConditionExpression: 'PK = :pk',
@@ -43,6 +44,7 @@ export class FormsAdapter {
   }
 
   async getOrganizationForms(organizationId: string): Promise<InventoryForm[]> {
+    console.log('[FormsAdapter.getOrganizationForms]', { organizationId });
     const command = new QueryCommand({
       TableName: this.tableName,
       IndexName: FORMS_BY_ORGANIZATION_INDEX,
@@ -64,6 +66,11 @@ export class FormsAdapter {
     organizationId: string,
     formId: string
   ): Promise<InventoryForm> {
+    console.log('[FormsAdapter.getForm]', {
+      userId,
+      organizationId,
+      formId,
+    });
     const command = new GetCommand({
       TableName: this.tableName,
       Key: this.getFormKey(userId, organizationId, formId),
@@ -78,6 +85,7 @@ export class FormsAdapter {
   }
 
   async getPredefinedForms(organizationId: string): Promise<PredefinedForm[]> {
+    console.log('[FormsAdapter.getPredefinedForms]', { organizationId });
     const command = new QueryCommand({
       TableName: this.tableName,
       KeyConditionExpression: 'PK = :pk',
@@ -94,6 +102,11 @@ export class FormsAdapter {
   }
 
   async createForm(form: InventoryForm): Promise<void> {
+    console.log('[FormsAdapter.createForm]', {
+      formId: form.formID,
+      userId: form.userID,
+      organizationId: form.organizationID,
+    });
     const formDb = {
       ...this.getFormKey(form.userID, form.organizationID, form.formID),
       dbItemType: DbItemType.Form,
@@ -115,6 +128,11 @@ export class FormsAdapter {
     organizationId: string,
     updates: Partial<InventoryForm>
   ): Promise<InventoryForm> {
+    console.log('[FormsAdapter.updateForm]', {
+      formID,
+      userId,
+      organizationId,
+    });
     const key = this.getFormKey(userId, organizationId, formID);
 
     // Build dynamic update expression

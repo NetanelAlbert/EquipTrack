@@ -184,6 +184,18 @@ jobs:
             echo "🔧 Manual custom domain setup may be required"
           fi
 
+      - name: Invalidate CloudFront cache
+        if: success()
+        run: |
+          DIST_ID=$(jq -r '.frontend.cloudfront.distributionId // empty' deployment-info.json)
+          if [[ -n "$DIST_ID" ]]; then
+            echo "🔄 Invalidating CloudFront distribution: $DIST_ID"
+            aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*" "/assets/i18n/*"
+            echo "✅ CloudFront invalidation created"
+          else
+            echo "⏭️ No CloudFront distribution ID in deployment-info.json, skipping invalidation"
+          fi
+
       - name: Generate Deployment Report
         if: always()
         run: |

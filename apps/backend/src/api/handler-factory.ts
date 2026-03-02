@@ -32,6 +32,8 @@ export function createLambdaHandler<
         hasAuthHeader: !!(
           event.headers?.['Authorization'] || event.headers?.['authorization']
         ),
+        user: event.requestContext.authorizer?.jwtPayload,
+        body: event.body,
       });
 
       const req: Req | undefined =

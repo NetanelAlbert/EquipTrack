@@ -214,7 +214,8 @@ export const endpointMetas = {
   publishPartialReport: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports/publish`,
     method: 'POST',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
     requestType: {} as Reports.PublishPartialReportRequest,
     responseType: {} as Reports.PublishPartialReportResponse,
   } as EndpointMeta<
