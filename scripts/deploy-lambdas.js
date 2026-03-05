@@ -9,6 +9,10 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const STAGE = process.env.STAGE || 'dev';
 const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
 const PACKAGES_DIR = 'lambda-packages';
+const INVENTORY_BACKUP_HANDLER = 'inventoryStateBackup';
+const INVENTORY_BACKUP_RULE_NAME = `equip-track-inventory-backup-${STAGE}`;
+const INVENTORY_BACKUP_SCHEDULE_EXPRESSION =
+  process.env.INVENTORY_BACKUP_SCHEDULE_EXPRESSION || 'rate(1 day)';
 
 // Lambda configuration
 const LAMBDA_CONFIG = {
@@ -16,6 +20,26 @@ const LAMBDA_CONFIG = {
   timeout: 30,
   memorySize: 256,
 };
+const HANDLER_CONFIG_OVERRIDES = {
+  [INVENTORY_BACKUP_HANDLER]: {
+    timeout: 300,
+    memorySize: 512,
+  },
+};
+
+function getAccountId() {
+  const callerIdentity = JSON.parse(
+    execSync('aws sts get-caller-identity', { encoding: 'utf8' })
+  );
+  return callerIdentity.Account;
+}
+
+function getLambdaConfig(handlerName) {
+  return {
+    ...LAMBDA_CONFIG,
+    ...(HANDLER_CONFIG_OVERRIDES[handlerName] || {}),
+  };
+}
 
 function getLambdaPolicyDocument() {
   return {
@@ -61,6 +85,25 @@ function getLambdaPolicyDocument() {
         Resource: [
           `arn:aws:s3:::equip-track-forms/*`,
           `arn:aws:s3:::equip-track-forms-${STAGE}/*`
+        ]
+      },
+      {
+        Effect: 'Allow',
+        Action: [
+          's3:ListBucket'
+        ],
+        Resource: [
+          'arn:aws:s3:::equip-track-inventory-backup'
+        ]
+      },
+      {
+        Effect: 'Allow',
+        Action: [
+          's3:PutObject',
+          's3:GetObject'
+        ],
+        Resource: [
+          'arn:aws:s3:::equip-track-inventory-backup/*'
         ]
       }
     ]
@@ -255,6 +298,7 @@ async function waitForLambdaUpdate(functionName, maxAttempts = 12) {
 async function deployLambdaFunction(handlerName, roleArn) {
   const functionName = `equip-track-${handlerName}-${STAGE}`;
   const zipPath = path.join(PACKAGES_DIR, `${handlerName}.zip`);
+  const lambdaConfig = getLambdaConfig(handlerName);
   
   if (!fs.existsSync(zipPath)) {
     throw new Error(`Package not found: ${zipPath}`);
@@ -284,7 +328,7 @@ async function deployLambdaFunction(handlerName, roleArn) {
         try {
           execSync(
             `aws lambda update-function-configuration --function-name ${functionName} ` +
-            `--timeout ${LAMBDA_CONFIG.timeout} --memory-size ${LAMBDA_CONFIG.memorySize} ` +
+            `--timeout ${lambdaConfig.timeout} --memory-size ${lambdaConfig.memorySize} ` +
             `--environment "Variables={STAGE=${STAGE}}"`,
             { stdio: 'inherit' }
           );
@@ -308,12 +352,12 @@ async function deployLambdaFunction(handlerName, roleArn) {
     console.log(`Creating Lambda function: ${functionName}`);
     execSync(
       `aws lambda create-function --function-name ${functionName} ` +
-      `--runtime ${LAMBDA_CONFIG.runtime} ` +
+      `--runtime ${lambdaConfig.runtime} ` +
       `--role ${roleArn} ` +
       `--handler index.handler ` +
       `--zip-file fileb://${zipPath} ` +
-      `--timeout ${LAMBDA_CONFIG.timeout} ` +
-      `--memory-size ${LAMBDA_CONFIG.memorySize} ` +
+      `--timeout ${lambdaConfig.timeout} ` +
+      `--memory-size ${lambdaConfig.memorySize} ` +
       `--environment "Variables={STAGE=${STAGE}}"`,
       { stdio: 'inherit' }
     );
@@ -321,6 +365,63 @@ async function deployLambdaFunction(handlerName, roleArn) {
   
   console.log(`✅ Deployed ${functionName}`);
   return functionName;
+}
+
+function configureInventoryBackupSchedule(functionName) {
+  const accountId = getAccountId();
+  const functionArn = `arn:aws:lambda:${AWS_REGION}:${accountId}:function:${functionName}`;
+  const sourceArn = `arn:aws:events:${AWS_REGION}:${accountId}:rule/${INVENTORY_BACKUP_RULE_NAME}`;
+  const targetConfigPath = 'inventory-backup-event-target.json';
+
+  console.log(
+    `Configuring EventBridge schedule (${INVENTORY_BACKUP_SCHEDULE_EXPRESSION}) for ${functionName}`
+  );
+
+  execSync(
+    `aws events put-rule --name ${INVENTORY_BACKUP_RULE_NAME} ` +
+    `--schedule-expression "${INVENTORY_BACKUP_SCHEDULE_EXPRESSION}" ` +
+    '--state ENABLED',
+    { stdio: 'inherit' }
+  );
+
+  fs.writeFileSync(
+    targetConfigPath,
+    JSON.stringify([
+      {
+        Id: 'inventory-state-backup',
+        Arn: functionArn,
+      },
+    ])
+  );
+
+  execSync(
+    `aws events put-targets --rule ${INVENTORY_BACKUP_RULE_NAME} --targets file://${targetConfigPath}`,
+    { stdio: 'inherit' }
+  );
+  fs.unlinkSync(targetConfigPath);
+
+  const statementId = `${INVENTORY_BACKUP_RULE_NAME}-invoke`;
+  try {
+    execSync(
+      `aws lambda add-permission --function-name ${functionName} ` +
+      `--statement-id ${statementId} --action lambda:InvokeFunction ` +
+      `--principal events.amazonaws.com --source-arn ${sourceArn}`,
+      { stdio: 'pipe' }
+    );
+  } catch (error) {
+    const stderr = String(error.stderr || '');
+    if (stderr.includes('ResourceConflictException')) {
+      console.log(`Permission ${statementId} already exists for ${functionName}`);
+    } else {
+      throw error;
+    }
+  } finally {
+    if (fs.existsSync(targetConfigPath)) {
+      fs.unlinkSync(targetConfigPath);
+    }
+  }
+
+  console.log(`✅ EventBridge schedule configured for ${functionName}`);
 }
 
 async function deployAllLambdas() {
@@ -337,6 +438,9 @@ async function deployAllLambdas() {
   for (const handlerName of handlerNames) {
     const functionName = await deployLambdaFunction(handlerName, roleArn);
     deployedFunctions.push({ handlerName, functionName });
+    if (handlerName === INVENTORY_BACKUP_HANDLER) {
+      configureInventoryBackupSchedule(functionName);
+    }
   }
   
   console.log('\n🎉 All Lambda functions deployed successfully!');
@@ -386,6 +490,9 @@ async function deployAllLambdasParallel() {
   const deploymentPromises = handlerNames.map(async (handlerName) => {
     try {
       const functionName = await deployLambdaFunction(handlerName, roleArn);
+      if (handlerName === INVENTORY_BACKUP_HANDLER) {
+        configureInventoryBackupSchedule(functionName);
+      }
       return { handlerName, functionName, success: true };
     } catch (error) {
       console.error(`❌ Failed to deploy ${handlerName}:`, error.message);

@@ -17,6 +17,7 @@ import {
   PutCommand,
   UpdateCommand,
   GetCommand,
+  ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
   USERS_AND_ORGANIZATIONS_TABLE_NAME,
@@ -96,6 +97,36 @@ export class UsersAndOrganizationsAdapter {
     const organizationsDB =
       (result.Responses?.[this.tableName] as Array<OrganizationDb>) ?? [];
     return organizationsDB.map(this.getOrganization);
+  }
+
+  async getAllOrganizations(): Promise<Organization[]> {
+    console.log('[UsersAndOrganizationsAdapter.getAllOrganizations]');
+
+    const organizations: OrganizationDb[] = [];
+    let lastEvaluatedKey: Record<string, unknown> | undefined;
+
+    do {
+      const command = new ScanCommand({
+        TableName: this.tableName,
+        FilterExpression: 'dbItemType = :organizationType AND SK = :metadataSk',
+        ExpressionAttributeValues: {
+          ':organizationType': DbItemType.Organization,
+          ':metadataSk': METADATA_SK,
+        },
+        ExclusiveStartKey: lastEvaluatedKey,
+      });
+
+      const result = await this.docClient.send(command);
+      const items = (result.Items as OrganizationDb[]) ?? [];
+      organizations.push(...items);
+      lastEvaluatedKey = result.LastEvaluatedKey as
+        | Record<string, unknown>
+        | undefined;
+    } while (lastEvaluatedKey);
+
+    return organizations
+      .map((organization) => this.getOrganization(organization))
+      .sort((a, b) => a.id.localeCompare(b.id));
   }
 
   private getOrganizationKey(organizationId: string): DbKey {
