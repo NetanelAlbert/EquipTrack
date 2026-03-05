@@ -3,6 +3,7 @@ const fs = require('fs');
 
 const STAGE = process.env.STAGE || 'dev';
 const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
+const SCHEDULED_HANDLER_NAMES = ['inventoryStateBackup'];
 
 function loadEndpointMetas() {
   console.log('🔍 Loading endpoint definitions...');
@@ -125,16 +126,20 @@ function loadEndpointMetas() {
 
 function createEndpointsConfig(endpointMetas) {
   console.log('📝 Creating endpoints configuration file...');
+  const endpointHandlerNames = Object.keys(endpointMetas);
+  const handlerNames = [...endpointHandlerNames, ...SCHEDULED_HANDLER_NAMES];
   
   const config = {
     metadata: {
       generated: new Date().toISOString(),
       stage: STAGE,
       region: AWS_REGION,
-      totalEndpoints: Object.keys(endpointMetas).length
+      totalEndpoints: endpointHandlerNames.length,
+      totalHandlers: handlerNames.length
     },
     endpoints: endpointMetas,
-    handlerNames: Object.keys(endpointMetas)
+    scheduledHandlers: SCHEDULED_HANDLER_NAMES,
+    handlerNames
   };
   
   fs.writeFileSync('endpoints-config.json', JSON.stringify(config, null, 2));
