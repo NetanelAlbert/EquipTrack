@@ -19,9 +19,10 @@ import {
   FORMS_BY_ORGANIZATION_INDEX,
 } from '../constants';
 import { InventoryForm, PredefinedForm } from '@equip-track/shared';
+import { getDynamoDbClientConfig } from '../../services/aws-client-config.service';
 
 export class FormsAdapter {
-  private readonly client = new DynamoDBClient({});
+  private readonly client = new DynamoDBClient(getDynamoDbClientConfig());
   private readonly docClient = DynamoDBDocumentClient.from(this.client);
   private readonly tableName = FORMS_TABLE_NAME;
 

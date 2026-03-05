@@ -68,6 +68,12 @@
         }
       }
     },
+    "serve-local-http": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "LOCAL_HTTP_SERVER=true nx serve backend"
+      }
+    },
     "test": {
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],

@@ -1,4 +1,4 @@
-<div class="form-card">
+<div class="form-card" [attr.data-testid]="'form-card-' + form.formID">
   <h3>{{ 'forms.user-name' | translate }}: {{ userName }}</h3>
   <h4>{{ 'forms.description' | translate }}: {{ form.description || 'N/A' }}</h4>
   <p [ngClass]="[form.status]">
@@ -34,36 +34,58 @@
   <inventory-list [inventoryItems]="form.items"></inventory-list>
   <div class="actions">
     @if (form.status === 'pending') {
-      <button mat-raised-button color="primary" (click)="onApprove()">
+      <button
+        mat-raised-button
+        color="primary"
+        [attr.data-testid]="'form-approve-' + form.formID"
+        (click)="onApprove()"
+      >
         {{ 'forms.approve' | translate }}
       </button>
-      <button mat-raised-button color="warn" (click)="onReject()">
+      <button
+        mat-raised-button
+        color="warn"
+        [attr.data-testid]="'form-reject-' + form.formID"
+        (click)="onReject()"
+      >
         {{ 'forms.reject' | translate }}
       </button>
     }
     
     @if (showCheckInButton) {
-      <button mat-raised-button color="primary" (click)="onCheckIn()">
+      <button
+        mat-raised-button
+        color="primary"
+        [attr.data-testid]="'form-checkin-' + form.formID"
+        (click)="onCheckIn()"
+      >
         {{ 'forms.check-in' | translate }}
       </button>
     }
 
-    <button 
+    <button
       mat-raised-button 
       (click)="onCloneForm()" 
+      [attr.data-testid]="'form-clone-' + form.formID"
       class="icon-button first-icon"
       [matTooltip]="'forms.clone-form' | translate">
       <mat-icon>difference</mat-icon>
     </button>
-    <button 
+    <button
       mat-raised-button 
       class="icon-button" 
+      [attr.data-testid]="'form-copy-id-' + form.formID"
       (click)="onCopyFormId()"
       [matTooltip]="'forms.copy-form-id' | translate: { formId: form.formID }">
       <mat-icon>content_copy</mat-icon>
     </button>
     @if (form.pdfUri) {
-      <button mat-raised-button class="icon-button" (click)="onPrintForm()">
+      <button
+        mat-raised-button
+        class="icon-button"
+        [attr.data-testid]="'form-print-' + form.formID"
+        (click)="onPrintForm()"
+      >
         <mat-icon>print</mat-icon>
       </button>
     }

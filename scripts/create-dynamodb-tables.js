@@ -7,6 +7,8 @@ const {
 // Environment variables
 const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
 const STAGE = process.env.STAGE || 'dev';
+const DYNAMODB_ENDPOINT =
+  process.env.AWS_ENDPOINT_URL_DYNAMODB || process.env.AWS_ENDPOINT_URL;
 
 // Constants
 const USERS_AND_ORGANIZATIONS_TABLE_NAME = 'UsersAndOrganizations';
@@ -142,9 +144,19 @@ const tableDefinitions = {
 
 class TableCreator {
   constructor() {
-    this.client = new DynamoDBClient({
+    const clientConfig = {
       region: AWS_REGION,
-    });
+    };
+
+    if (DYNAMODB_ENDPOINT) {
+      clientConfig.endpoint = DYNAMODB_ENDPOINT;
+      clientConfig.credentials = {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'test',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'test',
+      };
+    }
+
+    this.client = new DynamoDBClient(clientConfig);
   }
 
   async createTables() {
@@ -210,4 +222,11 @@ async function main() {
   }
 }
 
-main(); 
+module.exports = {
+  TableCreator,
+  main,
+};
+
+if (require.main === module) {
+  main();
+}
