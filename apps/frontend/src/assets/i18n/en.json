@@ -470,7 +470,8 @@
       "roles": {
         "admin": "Administrator",
         "warehouse-manager": "Warehouse Manager",
-        "customer": "Customer"
+        "customer": "Customer",
+        "inspector": "Inspector"
       },
       "states": {
         "active": "Active",

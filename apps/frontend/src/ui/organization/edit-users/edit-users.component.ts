@@ -208,6 +208,10 @@ export class EditUsersComponent implements OnInit, CanComponentDeactivate {
         return this.translateService.instant(
           'organization.users.roles.customer'
         );
+      case UserRole.Inspector:
+        return this.translateService.instant(
+          'organization.users.roles.inspector'
+        );
       default:
         return role;
     }

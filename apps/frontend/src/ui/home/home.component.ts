@@ -237,6 +237,9 @@ export class HomeComponent implements OnInit {
         case UserRole.Customer:
           targetRoute = '/my-items'; // Customers start with my-items
           break;
+        case UserRole.Inspector:
+          targetRoute = '/reports-history';
+          break;
         default:
           targetRoute = '/my-items';
       }
