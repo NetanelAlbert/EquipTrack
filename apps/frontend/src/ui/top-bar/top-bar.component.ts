@@ -17,6 +17,8 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { User } from '@equip-track/shared';
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../environments/environment';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { SettingsComponent } from '../settings/settings.component';
 
 @Component({
   selector: 'top-bar',
@@ -28,6 +30,7 @@ import { environment } from '../../environments/environment';
     MatButtonModule,
     MatMenuModule,
     MatDividerModule,
+    MatDialogModule,
     TranslateModule,
     RouterModule,
   ],
@@ -42,6 +45,7 @@ export class TopBarComponent implements AfterViewInit {
   titleService = inject(Title);
   routerService = inject(Router);
   translateService = inject(TranslateService);
+  dialog = inject(MatDialog);
 
   menuOpen = input<boolean>(false);
   menuClicked = output<void>();
@@ -53,6 +57,7 @@ export class TopBarComponent implements AfterViewInit {
 
   constructor() {
     this.detectTitleChange();
+    this.detectLanguageChange();
   }
 
   ngAfterViewInit(): void {
@@ -76,6 +81,12 @@ export class TopBarComponent implements AfterViewInit {
       this.pageTitle = this.translateService.instant(titleKey);
       this.titleService.setTitle(this.pageTitle);
     }, 100);
+  }
+
+  private detectLanguageChange() {
+    this.translateService.onLangChange
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.setPageTitle());
   }
 
   isRTL(): boolean {
@@ -113,11 +124,13 @@ export class TopBarComponent implements AfterViewInit {
   }
 
   /**
-   * Navigate to settings (placeholder)
+   * Open settings dialog
    */
   onSettings(): void {
-    // TODO: Implement settings page
-    console.log('Navigate to settings');
+    this.dialog.open(SettingsComponent, {
+      width: '420px',
+      maxWidth: '95vw',
+    });
   }
 
   /**
