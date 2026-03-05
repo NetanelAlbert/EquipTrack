@@ -1,5 +1,6 @@
 import { endpointMetas, EndpointMeta, JwtPayload } from '@equip-track/shared';
 import { handler as googleAuthHandler } from './auth/google';
+import { handler as e2eAuthHandler } from './auth/e2e-login';
 import { handler as getUsersHandler } from './admin/users/get';
 import { handler as setUserHandler } from './admin/users/set';
 import { handler as inviteUserHandler } from './admin/users/invite';
@@ -19,13 +20,17 @@ import { handler as getUserFormsHandler } from './forms/get-user';
 import { handler as getAllFormsHandler } from './forms/get-all';
 import { handler as startHandler } from './start';
 import { handler as getPresignedUrlHandler } from './forms/get-presign';
-import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
+import {
+  APIGatewayProxyEvent,
+  APIGatewayProxyEventPathParameters,
+} from 'aws-lambda';
 
 // Handler signatures
 export type HandlerFunction<Req, Res> = (
   req: Req,
   pathParams?: APIGatewayProxyEventPathParameters,
-  jwtPayload?: JwtPayload
+  jwtPayload?: JwtPayload,
+  event?: APIGatewayProxyEvent
 ) => Promise<Res>;
 
 type HandlersDefinition = {
@@ -40,6 +45,7 @@ type HandlersDefinition = {
 export const handlers: HandlersDefinition = {
   // Authentication
   googleAuth: googleAuthHandler,
+  e2eAuth: e2eAuthHandler,
 
   // Admin Users
   getUsers: getUsersHandler,

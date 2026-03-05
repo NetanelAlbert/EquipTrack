@@ -35,6 +35,13 @@ export const endpointMetas = {
     requestType: {} as Auth.GoogleAuthRequest,
     responseType: {} as Auth.GoogleAuthResponse,
   } as EndpointMeta<Auth.GoogleAuthRequest, Auth.GoogleAuthResponse>,
+  e2eAuth: {
+    path: `/api/auth/e2e-login`,
+    method: 'POST',
+    allowedRoles: [], // Guarded by backend environment + secret header
+    requestType: {} as Auth.E2eAuthRequest,
+    responseType: {} as Auth.E2eAuthResponse,
+  } as EndpointMeta<Auth.E2eAuthRequest, Auth.E2eAuthResponse>,
 
   // Admin Users
   getUsers: {
