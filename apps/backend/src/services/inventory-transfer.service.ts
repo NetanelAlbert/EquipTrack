@@ -148,14 +148,9 @@ export class InventoryTransferService {
           organizationId,
           sourceHolderId,
           destinationHolderId,
-          sourceInventory.find(
-            (sourceInventoryItem) => sourceInventoryItem.productId === item.productId
-          ),
-          destinationInventory.find(
-            (destinationInventoryItem) =>
-              destinationInventoryItem.productId === item.productId
-          )
-        );
+          sourceInventory.find((sourceItem) => sourceItem.productId === item.productId),
+          destinationInventory.find((destinationItem) => destinationItem.productId === item.productId)
+        );  
       }
     }
   }

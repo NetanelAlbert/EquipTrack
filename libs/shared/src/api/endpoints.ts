@@ -229,4 +229,10 @@ export const endpointMetas = {
     Reports.PublishPartialReportRequest,
     Reports.PublishPartialReportResponse
   >,
+  getItemsToReport: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports/items-to-report`,
+    method: 'GET',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    responseType: {} as Reports.GetItemsToReportRequestResponse,
+  } as EndpointMeta<undefined, Reports.GetItemsToReportRequestResponse>,
 };

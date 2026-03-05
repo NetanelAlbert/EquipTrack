@@ -116,6 +116,11 @@ function loadEndpointMetas() {
       path: '/api/organizations/{organizationId}/reports/publish',
       method: 'POST',
       allowedRoles: ['WarehouseManager', 'Admin']
+    },
+    getItemsToReport: {
+      path: '/api/organizations/{organizationId}/reports/items-to-report',
+      method: 'GET',
+      allowedRoles: ['WarehouseManager', 'Admin', 'Customer']
     }
   };
   console.log('🔍 Fallback endpoints:', fallbackEndpoints);
