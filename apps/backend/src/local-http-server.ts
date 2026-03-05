@@ -211,6 +211,11 @@ export async function startLocalHttpServer(): Promise<void> {
       return;
     }
 
+    if (method === 'GET' && pathname === '/health') {
+      sendJsonResponse(res, 200, { status: 'ok' });
+      return;
+    }
+
     const match = findRoute(method, pathname);
     if (!match) {
       sendJsonResponse(res, 404, {

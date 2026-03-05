@@ -41,6 +41,14 @@ npm run e2e:local:stack:down
 npm run e2e:local:stack:reset
 ```
 
+## Run Playwright against local stack
+
+```bash
+npm run e2e:local:test
+```
+
+This command provisions LocalStack resources, starts backend/frontend with local E2E configuration, and runs Playwright (Chromium project).
+
 ## Seeded identities
 
 - `user-e2e-admin` (role: `admin`)
