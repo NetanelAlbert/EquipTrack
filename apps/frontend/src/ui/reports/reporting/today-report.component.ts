@@ -17,7 +17,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { FormsModule } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   ReportsStore,
   UserStore,
@@ -55,6 +55,7 @@ export class TodayReportComponent {
   userStore = inject(UserStore);
   organizationStore = inject(OrganizationStore);
   inventoryStore = inject(InventoryStore);
+  translateService = inject(TranslateService);
 
   sortBy: Signal<'location' | 'product'> = signal('product');
   private focusedCardUpi: WritableSignal<string | null> = signal(null);
@@ -80,19 +81,13 @@ export class TodayReportComponent {
   userInventory = computed(() =>
     this.inventoryStore.getUserInventory(this.userStore.user()?.id)()
   );
-  // TODO: we might want to let user report items of other users, if they are in their department
-  // Also, admin should be able to report all items
-  itemsToReport = computed(() =>
-    this.userInventory().filter((item) => item.upis?.length)
+  
+  itemsToShow: Signal<Array<[string, ItemReport[]]>> = computed(() =>
+    this.inventoryItemsByHolderToItemReports(this.reportsStore.itemsToReport())
   );
-  itemsToShow = computed(() =>
-    this.inventoryItemsToItemReports(this.itemsToReport())
-  );
-  sortedItems = computed(() => {
-    return this.getSortedItems();
-  });
 
   constructor() {
+    this.reportsStore.fetchItemsToReport();
     const { today, yesterday } = getTodayAndYesterday();
     this.today = today;
     this.yesterday = yesterday;
@@ -157,8 +152,8 @@ export class TodayReportComponent {
     item.location = '';
   }
 
-  getSortedItems(): ItemReport[] {
-    return this.itemsToShow().sort((a, b) => {
+  private sortItems(itemReports: ItemReport[]) {
+    itemReports.sort((a, b) => {
       // Show unreported items first
       if (!a.location && b.location) {
         return -1;
@@ -179,8 +174,32 @@ export class TodayReportComponent {
     });
   }
 
-  private inventoryItemsToItemReports(items: InventoryItem[]): ItemReport[] {
-    return items.flatMap((item) => this.inventoryItemToItemReports(item));
+  private inventoryItemsByHolderToItemReports(itemsByHolder: Record<string, InventoryItem[]>): Array<[string, ItemReport[]]> {
+    const itemsByHolderCopy = { ...itemsByHolder };
+    const result: Array<[string, ItemReport[]]> = [];
+    const myUserId = this.userStore.user()?.id ?? '';
+
+    if (!!itemsByHolderCopy[myUserId]) {
+      result.push([myUserId, this.inventoryItemsToItemReports(itemsByHolderCopy[myUserId])]);
+      delete itemsByHolderCopy[myUserId];
+    }
+
+    if (!!itemsByHolderCopy['WAREHOUSE']) {
+      result.push(['WAREHOUSE', this.inventoryItemsToItemReports(itemsByHolderCopy['WAREHOUSE'])]);
+      delete itemsByHolderCopy['WAREHOUSE'];
+    }
+
+    for (const [holderId, items] of Object.entries(itemsByHolderCopy)) {
+      result.push([holderId, this.inventoryItemsToItemReports(items)]);
+    }
+
+    return result;
+  }
+
+  private inventoryItemsToItemReports(inventoryItems: InventoryItem[]): ItemReport[] {
+    const itemReports = inventoryItems.flatMap((item) => this.inventoryItemToItemReports(item));
+    this.sortItems(itemReports);
+    return itemReports;
   }
 
   private inventoryItemToItemReports(item: InventoryItem): ItemReport[] {
@@ -198,6 +217,30 @@ export class TodayReportComponent {
         };
       }) || []
     );
+  }
+
+  getUserName(holderId: string): string {
+    if (holderId === this.userStore.user()?.id) {
+      return this.translateService.instant('reports.my-items');
+    }
+    if (holderId === 'WAREHOUSE') {
+      return this.translateService.instant('reports.warehouse-items');
+    }
+    return this.organizationStore.getUserName(holderId);
+  }
+
+  getUserDepartmentAndSubDepartment(userId?: string): string {
+    if (!userId || userId === this.userStore.user()?.id || userId === 'WAREHOUSE') return '';
+    const user = this.organizationStore.getUser(userId);
+    if (!user) return '';
+    const department = user.userInOrganization.department;
+    if (!department) return '';
+    const mainDepartmentName = this.userStore.getDepartmentName(department.id);
+    if (!department.subDepartmentId) {
+      return `(${mainDepartmentName ?? ''})`;
+    }
+    const subDepartmentName = this.userStore.getDepartmentName(department.subDepartmentId);
+    return `(${mainDepartmentName ?? ''} / ${subDepartmentName ?? ''})`;
   }
 }
 

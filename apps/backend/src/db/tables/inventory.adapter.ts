@@ -73,6 +73,11 @@ export class InventoryAdapter {
     return this.getUserInventoryItems(items);
   }
 
+  /**
+   * Get inventory items for a user
+   * @param items Inventory items to get inventory items for
+   * @returns Inventory items for the user
+   */
   private getUserInventoryItems(items: InventoryItemDb[]): InventoryItem[] {
     const inventoryItemsMap = new Map<string, InventoryItem>();
     // Map of productId to upis
@@ -201,6 +206,38 @@ export class InventoryAdapter {
       warehouseItems,
       usersItems,
     };
+  }
+
+  /**
+   * Get All UPI items for an organization
+   * @param organizationId The organization to get UPI items for
+   * @returns Map of user IDs to all UPI items for the organization
+   */
+  async getOrganizationUpiItems(organizationId: string): Promise<Map<string, InventoryItem[]>> {
+    console.log('[InventoryAdapter.getOrganizationUpiItems]', { organizationId });
+    const command = new QueryCommand({
+      TableName: this.tableName,
+      KeyConditionExpression: 'PK = :pk',
+      FilterExpression: 'dbItemType = :unique',
+      ExpressionAttributeValues: {
+        ':pk': `${ORG_PREFIX}${organizationId}`,
+        ':unique': DbItemType.InventoryUniqueItem,
+      },
+    });
+
+    const result = await this.docClient.send(command);
+    const items = (result.Items ?? []) as UniqueInventoryItemDb[];
+    const itemsByHolder: Map<string, UniqueInventoryItemDb[]> = new Map();
+    items.forEach((item) => {
+      const existingItems = itemsByHolder.get(item.holderId) || [];
+      existingItems.push(item);
+      itemsByHolder.set(item.holderId, existingItems);
+    });
+    const upiItems: Map<string, InventoryItem[]> = new Map();
+    itemsByHolder.forEach((items, holderId) => {
+      upiItems.set(holderId, this.getUserInventoryItems(items));
+    });
+    return upiItems;
   }
 
   /**

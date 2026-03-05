@@ -24,87 +24,92 @@
   }
 
   <div class="cards-grid">
-    @for (item of sortedItems(); track item.upi; let i = $index) {
-      <mat-card [class.unreported]="!item.location" class="item-card" 
-                (focusin)="onCardFocus(item)"
-                (focusout)="onCardBlur()"
-                (click)="onCardFocus(item)" 
-                (keydown.enter)="onCardFocus(item)"
-                (keydown.space)="onCardFocus(item)"
-                >
-        <div class="card-main-content">
-          <div class="card-left-section">
-            <div class="product-info">
-              <span class="product-name">{{ getProductName(item.productId) }}</span>
-              <span class="product-id">{{ item.productId }}</span>
+    @for (userItems of itemsToShow(); track userItems[0]) {
+      @let holderId = userItems[0];
+      @let itemReports = userItems[1];
+      <h2>{{ getUserName(holderId) }} {{ getUserDepartmentAndSubDepartment(holderId) }}</h2>
+      @for (item of itemReports; track item.upi; let j = $index) {
+        <mat-card [class.unreported]="!item.location" class="item-card" 
+                  (focusin)="onCardFocus(item)"
+                  (focusout)="onCardBlur()"
+                  (click)="onCardFocus(item)" 
+                  (keydown.enter)="onCardFocus(item)"
+                  (keydown.space)="onCardFocus(item)"
+                  >
+          <div class="card-main-content">
+            <div class="card-left-section">
+              <div class="product-info">
+                <span class="product-name">{{ getProductName(item.productId) }}</span>
+                <span class="product-id">{{ item.productId }}</span>
+              </div>
+              <div class="upi-info">
+                <span class="upi-label">{{ 'reports.upiLabel' | translate }}:</span>
+                <span class="upi">{{ item.upi }}</span>
+              </div>
             </div>
-            <div class="upi-info">
-              <span class="upi-label">{{ 'reports.upiLabel' | translate }}:</span>
-              <span class="upi">{{ item.upi }}</span>
-            </div>
-          </div>
 
-          <div class="card-center-section">
-            <div class="status-section">
-              @if (isReported(item)()) {
-                <div class="status reported">
-                  <mat-icon>check_circle</mat-icon>
-                  <span class="status-text">{{ 'reports.reported' | translate }}</span>
-                </div>
-              } @else {
-                <div class="status unreported">
-                  <mat-icon>error</mat-icon>
-                  <span class="status-text">{{ 'reports.notReported' | translate }}</span>
+            <div class="card-center-section">
+              <div class="status-section">
+                @if (isReported(item)()) {
+                  <div class="status reported">
+                    <mat-icon>check_circle</mat-icon>
+                    <span class="status-text">{{ 'reports.reported' | translate }}</span>
+                  </div>
+                } @else {
+                  <div class="status unreported">
+                    <mat-icon>error</mat-icon>
+                    <span class="status-text">{{ 'reports.notReported' | translate }}</span>
+                  </div>
+                }
+              </div>
+              @let lastLocation = getLastLocation(item);
+
+              @if (!item.location && lastLocation) {
+                <div class="last-location">
+                  <div class="last-location-info">
+                    <mat-icon>history</mat-icon>
+                    <span>{{ 'reports.lastLocation' | translate }}: {{ lastLocation }}</span>
+                  </div>
+                  <button mat-stroked-button color="primary" (click)="useLastLocation(item, lastLocation)" class="use-last-btn">
+                    {{ 'reports.useLastLocation' | translate }}
+                  </button>
                 </div>
               }
             </div>
-            @let lastLocation = getLastLocation(item);
 
-            @if (!item.location && lastLocation) {
-              <div class="last-location">
-                <div class="last-location-info">
-                  <mat-icon>history</mat-icon>
-                  <span>{{ 'reports.lastLocation' | translate }}: {{ lastLocation }}</span>
+            <div class="card-right-section">
+              @if (shouldShowInput(item)()) {
+                <mat-form-field class="location-input" appearance="outline">
+                  <mat-label>{{ 'reports.enterLocation' | translate }}</mat-label>
+                  <input
+                  matInput 
+                  [(ngModel)]="item.location" 
+                  >
+                  <button tabindex="-1" mat-icon-button matSuffix (click)="clearLocation(item)" type="button">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </mat-form-field>
+                <button 
+                  tabindex="-1"
+                  mat-icon-button 
+                  matSuffix 
+                  [disabled]="!item.location"
+                  (click)="updateItemReport(item)" type="button">
+                  <mat-icon>send</mat-icon>
+                </button>
+              } @else {
+                <div class="current-location">
+                  <mat-icon>location_on</mat-icon>
+                  <span>{{ item.location }}</span>
+                  <mat-icon class="edit-location-icon">
+                    edit
+                  </mat-icon>
                 </div>
-                <button mat-stroked-button color="primary" (click)="useLastLocation(item, lastLocation)" class="use-last-btn">
-                  {{ 'reports.useLastLocation' | translate }}
-                </button>
-              </div>
-            }
+              }
+            </div>
           </div>
-
-          <div class="card-right-section">
-            @if (shouldShowInput(item)()) {
-              <mat-form-field class="location-input" appearance="outline">
-                <mat-label>{{ 'reports.enterLocation' | translate }}</mat-label>
-                <input
-                 matInput 
-                [(ngModel)]="item.location" 
-                >
-                <button tabindex="-1" mat-icon-button matSuffix (click)="clearLocation(item)" type="button">
-                  <mat-icon>close</mat-icon>
-                </button>
-              </mat-form-field>
-              <button 
-                tabindex="-1"
-                mat-icon-button 
-                matSuffix 
-                [disabled]="!item.location"
-                (click)="updateItemReport(item)" type="button">
-                <mat-icon>send</mat-icon>
-              </button>
-            } @else {
-              <div class="current-location">
-                <mat-icon>location_on</mat-icon>
-                <span>{{ item.location }}</span>
-                <mat-icon class="edit-location-icon">
-                  edit
-                </mat-icon>
-              </div>
-            }
-          </div>
-        </div>
-      </mat-card>
+        </mat-card>
+      }
     }
   </div>
 </div> 
