@@ -20,6 +20,7 @@ import { handler as getAllFormsHandler } from './forms/get-all';
 import { handler as startHandler } from './start';
 import { handler as getPresignedUrlHandler } from './forms/get-presign';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
+import { handler as getItemsToReportHandler } from './warehouse/reports/get-items-to-report';
 
 // Handler signatures
 export type HandlerFunction<Req, Res> = (
@@ -69,4 +70,5 @@ export const handlers: HandlersDefinition = {
   // Reports
   getReportsByDates: getReportsByDatesHandler,
   publishPartialReport: publishPartialReportHandler,
+  getItemsToReport: getItemsToReportHandler,
 };

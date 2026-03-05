@@ -11,6 +11,7 @@ import {
   ItemReport,
   ORGANIZATION_ID_PATH_PARAM,
   ItemReportRequest,
+  InventoryItem,
 } from '@equip-track/shared';
 import { ApiService } from '../services/api.service';
 import { NotificationService } from '../services/notification.service';
@@ -20,15 +21,18 @@ import { ApiStatus } from './stores.models';
 
 interface ReportsState {
   reportsByDate: Record<string, ItemReport[]>;
+  itemsToReport: Record<string, InventoryItem[]>;
 
   // API status for operations using ApiStatus
   fetchReportsStatus: ApiStatus;
   updateItemReportStatus: ApiStatus;
   publishMultipleItemsStatus: ApiStatus;
+  fetchItemsToReportStatus: ApiStatus;
 }
 
 const initialState: ReportsState = {
   reportsByDate: {},
+  itemsToReport: {},
   fetchReportsStatus: {
     isLoading: false,
     error: undefined,
@@ -38,6 +42,10 @@ const initialState: ReportsState = {
     error: undefined,
   },
   publishMultipleItemsStatus: {
+    isLoading: false,
+    error: undefined,
+  },
+  fetchItemsToReportStatus: {
     isLoading: false,
     error: undefined,
   },
@@ -52,7 +60,8 @@ export const ReportsStore = signalStore(
         () =>
           state.fetchReportsStatus().isLoading ||
           state.updateItemReportStatus().isLoading ||
-          state.publishMultipleItemsStatus().isLoading
+          state.publishMultipleItemsStatus().isLoading ||
+          state.fetchItemsToReportStatus().isLoading
       ),
     };
   }),
@@ -220,6 +229,43 @@ export const ReportsStore = signalStore(
             [date]: addReports(store.reportsByDate()[date] || [], items),
           },
         });
+      },
+
+      async fetchItemsToReport() {
+        patchState(store, {
+          fetchItemsToReportStatus: { isLoading: true, error: undefined },
+        });
+        try {
+          const organizationId = userStore.selectedOrganizationId();
+          if (!organizationId) {
+            throw new Error('No organization selected');
+          }
+
+          const itemsToReportResponse = await firstValueFrom(
+            apiService.endpoints.getItemsToReport.execute(undefined, { [ORGANIZATION_ID_PATH_PARAM]: organizationId })
+          );
+
+          if (!itemsToReportResponse.status) {
+            notificationService.showError(
+              itemsToReportResponse.errorKey ?? 'errors.reports.fetch-items-to-report-failed',
+              itemsToReportResponse.errorMessage ?? 'Failed to fetch items to report'
+            );
+          }
+
+          patchState(store, {
+            itemsToReport: itemsToReportResponse.itemsByHolder,
+            fetchItemsToReportStatus: { isLoading: false, error: undefined },
+          });
+        } catch (error) {
+          console.error('Failed to fetch items to report:', error);
+          notificationService.handleApiError(
+            error,
+            'errors.reports.fetch-items-to-report-failed'
+          );
+          patchState(store, {
+            fetchItemsToReportStatus: { isLoading: false, error: 'Failed to fetch items to report' },
+          });
+        }
       },
 
       // Clear error methods
