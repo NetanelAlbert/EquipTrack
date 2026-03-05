@@ -83,7 +83,7 @@ export class TodayReportComponent {
   );
   
   itemsToShow: Signal<Array<[string, ItemReport[]]>> = computed(() =>
-    this.inventoryItemsToItemReports(this.reportsStore.itemsToReport())
+    this.inventoryItemsByHolderToItemReports(this.reportsStore.itemsToReport())
   );
 
   constructor() {
@@ -174,20 +174,32 @@ export class TodayReportComponent {
     });
   }
 
-  private inventoryItemsToItemReports(itemsByHolder: Record<string, InventoryItem[]>): Array<[string, ItemReport[]]> {
+  private inventoryItemsByHolderToItemReports(itemsByHolder: Record<string, InventoryItem[]>): Array<[string, ItemReport[]]> {
+    const itemsByHolderCopy = { ...itemsByHolder };
     const result: Array<[string, ItemReport[]]> = [];
-    const myUserId = this.userStore.user()?.id;
-    for (const [holderId, items] of Object.entries(itemsByHolder)) {
-      const itemReports = items.flatMap((item) => this.inventoryItemToItemReports(item));
-      this.sortItems(itemReports);
-      // Show my items first
-      if (holderId === myUserId) {
-        result.unshift([holderId, itemReports]);
-      } else {
-        result.push([holderId, itemReports]);
-      }
+    const myUserId = this.userStore.user()?.id ?? '';
+
+    if (!!itemsByHolderCopy[myUserId]) {
+      result.push([myUserId, this.inventoryItemsToItemReports(itemsByHolderCopy[myUserId])]);
+      delete itemsByHolderCopy[myUserId];
     }
+
+    if (!!itemsByHolderCopy['WAREHOUSE']) {
+      result.push(['WAREHOUSE', this.inventoryItemsToItemReports(itemsByHolderCopy['WAREHOUSE'])]);
+      delete itemsByHolderCopy['WAREHOUSE'];
+    }
+
+    for (const [holderId, items] of Object.entries(itemsByHolderCopy)) {
+      result.push([holderId, this.inventoryItemsToItemReports(items)]);
+    }
+
     return result;
+  }
+
+  private inventoryItemsToItemReports(inventoryItems: InventoryItem[]): ItemReport[] {
+    const itemReports = inventoryItems.flatMap((item) => this.inventoryItemToItemReports(item));
+    this.sortItems(itemReports);
+    return itemReports;
   }
 
   private inventoryItemToItemReports(item: InventoryItem): ItemReport[] {
@@ -215,6 +227,20 @@ export class TodayReportComponent {
       return this.translateService.instant('reports.warehouse-items');
     }
     return this.organizationStore.getUserName(holderId);
+  }
+
+  getUserDepartmentAndSubDepartment(userId?: string): string {
+    if (!userId || userId === this.userStore.user()?.id || userId === 'WAREHOUSE') return '';
+    const user = this.organizationStore.getUser(userId);
+    if (!user) return '';
+    const department = user.userInOrganization.department;
+    if (!department) return '';
+    const mainDepartmentName = this.userStore.getDepartmentName(department.id);
+    if (!department.subDepartmentId) {
+      return `(${mainDepartmentName ?? ''})`;
+    }
+    const subDepartmentName = this.userStore.getDepartmentName(department.subDepartmentId);
+    return `(${mainDepartmentName ?? ''} / ${subDepartmentName ?? ''})`;
   }
 }
 
