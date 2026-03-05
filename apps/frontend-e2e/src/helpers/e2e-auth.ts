@@ -13,11 +13,10 @@ interface E2eAuthResponse {
   jwt: string;
 }
 
-export async function authenticateWithE2eToken(
-  page: Page,
+export async function mintE2eJwt(
   request: APIRequestContext,
   options: E2eAuthOptions
-): Promise<void> {
+): Promise<string> {
   const response = await request.post(
     `${options.backendBaseUrl}/api/auth/e2e-login`,
     {
@@ -36,7 +35,17 @@ export async function authenticateWithE2eToken(
   expect(payload.status).toBeTruthy();
   expect(payload.jwt).toBeTruthy();
 
+  return payload.jwt;
+}
+
+export async function authenticateWithE2eToken(
+  page: Page,
+  request: APIRequestContext,
+  options: E2eAuthOptions
+): Promise<void> {
+  const jwt = await mintE2eJwt(request, options);
+
   await page.addInitScript((jwtToken: string) => {
     window.localStorage.setItem('equip-track-token', jwtToken);
-  }, payload.jwt);
+  }, jwt);
 }
