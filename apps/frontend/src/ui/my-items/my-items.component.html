@@ -1,9 +1,13 @@
-<div class="my-items-container">
+<div class="my-items-container" data-testid="my-items-page">
   <inventory-search
+    data-testid="my-items-search"
     [items]="currentUserInventory()"
     [productsMap]="organizationStore.productsMap()"
     (filteredItems)="onFilteredItemsChange($event)"
   ></inventory-search>
   
-  <inventory-list [inventoryItems]="filteredItems()"></inventory-list>
+  <inventory-list
+    data-testid="my-items-list"
+    [inventoryItems]="filteredItems()"
+  ></inventory-list>
 </div>

@@ -1,5 +1,15 @@
-<div class="login-container" role="main" [attr.aria-label]="'auth.login-page' | translate">
-  <mat-card class="login-card" role="region" aria-labelledby="login-title">
+<div
+  class="login-container"
+  role="main"
+  data-testid="login-page"
+  [attr.aria-label]="'auth.login-page' | translate"
+>
+  <mat-card
+    class="login-card"
+    role="region"
+    aria-labelledby="login-title"
+    data-testid="login-card"
+  >
     <mat-card-header>
       <mat-card-title id="login-title">
         <mat-icon aria-hidden="true">security</mat-icon>
@@ -17,13 +27,21 @@
         </p>
 
         <!-- Google Sign-In Component -->
-        <div class="signin-methods-section" 
-           role="group" 
-           [attr.aria-label]="'auth.google-signin-group' | translate">
+        <div
+          class="signin-methods-section"
+          role="group"
+          data-testid="signin-methods"
+          [attr.aria-label]="'auth.google-signin-group' | translate"
+        >
         
         <!-- Error message display -->
         @if (authState().error) {
-          <div class="error-message" role="alert" aria-live="polite">
+          <div
+            class="error-message"
+            role="alert"
+            aria-live="polite"
+            data-testid="auth-error"
+          >
             <mat-icon aria-hidden="true">error</mat-icon>
             <span>{{ authState().error }}</span>
           </div>
@@ -31,13 +49,21 @@
 
         <!-- Loading state -->
         @if (authState().isLoading) {
-          <div class="loading-message" role="status" aria-live="polite">
+          <div
+            class="loading-message"
+            role="status"
+            aria-live="polite"
+            data-testid="auth-loading"
+          >
             <mat-icon aria-hidden="true">hourglass_empty</mat-icon>
             <span>{{ 'auth.signing-in' | translate }}</span>
           </div>
         }
 
-        <app-google-sign-in (signInSuccess)="onGoogleSignIn($event)"></app-google-sign-in>
+        <app-google-sign-in
+          data-testid="google-signin-widget"
+          (signInSuccess)="onGoogleSignIn($event)"
+        ></app-google-sign-in>
       </div>
 
         <div class="divider" role="separator" [attr.aria-label]="'auth.or-separator' | translate">
@@ -49,11 +75,12 @@
           <p class="help-text" role="note">
             {{ 'auth.need-help' | translate }}
           </p>
-          <button 
+          <button
             mat-raised-button 
             color="primary" 
             class="contact-admin-button"
             type="button"
+            data-testid="contact-admin-button"
             aria-describedby="help-text"
             [attr.aria-label]="'auth.contact-admin' | translate">
             <mat-icon aria-hidden="true">contact_support</mat-icon>

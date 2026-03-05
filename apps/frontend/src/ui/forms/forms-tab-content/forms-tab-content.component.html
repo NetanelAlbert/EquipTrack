@@ -1,10 +1,11 @@
-<div class="forms-container">
-  <div class="forms-controls">
+<div class="forms-container" data-testid="forms-tab-content">
+  <div class="forms-controls" data-testid="forms-controls">
     <mat-form-field appearance="outline" class="search-field">
       <mat-label>{{ 'forms.search.placeholder' | translate }}</mat-label>
-      <input 
+      <input
         matInput 
         type="text" 
+        data-testid="forms-search-input"
         [ngModel]="searchTerm()" 
         (ngModelChange)="searchTerm.set($event)"
         name="searchTerm"
@@ -14,7 +15,12 @@
 
     <mat-form-field appearance="outline">
       <mat-label>{{ 'forms.filter.status' | translate }}</mat-label>
-      <mat-select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)" name="statusFilter">
+      <mat-select
+        [ngModel]="statusFilter()"
+        (ngModelChange)="statusFilter.set($event)"
+        name="statusFilter"
+        data-testid="forms-status-filter"
+      >
         <mat-option value="all">{{ 'forms.filter.all' | translate }}</mat-option>
         <mat-option value="pending">{{ 'forms.status-pending' | translate }}</mat-option>
         <mat-option value="approved">{{ 'forms.status-approved' | translate }}</mat-option>
@@ -24,15 +30,21 @@
 
     <mat-form-field appearance="outline">
       <mat-label>{{ 'forms.sort.label' | translate }}</mat-label>
-      <mat-select [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)" name="sortBy">
+      <mat-select
+        [ngModel]="sortBy()"
+        (ngModelChange)="sortBy.set($event)"
+        name="sortBy"
+        data-testid="forms-sort-select"
+      >
         <mat-option value="newest">{{ 'forms.sort.newest' | translate }}</mat-option>
         <mat-option value="oldest">{{ 'forms.sort.oldest' | translate }}</mat-option>
       </mat-select>
     </mat-form-field>
 
-    <button 
+    <button
       mat-icon-button 
       (click)="clearFilters()" 
+      data-testid="forms-clear-filters"
       [title]="'forms.clearFilters' | translate"
       class="clear-filters-btn"
     >
@@ -42,9 +54,9 @@
 
   @if (filteredForms().length > 0) {
     @for (form of filteredForms(); track form.formID) {
-      <app-form-card [form]="form"></app-form-card>
+      <app-form-card [form]="form" [attr.data-testid]="'forms-card-' + form.formID"></app-form-card>
     }
   } @else {
-    <app-empty-state [message]="emptyStateMessage()"></app-empty-state>
+    <app-empty-state data-testid="forms-empty-state" [message]="emptyStateMessage()"></app-empty-state>
   }
 </div> 
