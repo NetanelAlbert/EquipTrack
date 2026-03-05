@@ -2,4 +2,5 @@
 export const STORAGE_KEYS = {
     TOKEN: 'equip-track-token',
     SELECTED_ORGANIZATION: 'equip-track-selected-org',
+    LANGUAGE: 'equip-track-language',
   } as const;
