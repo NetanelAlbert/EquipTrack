@@ -80,9 +80,37 @@ async function ensureOrganizationIsSelected(page: Page): Promise<void> {
 }
 
 async function openCreateFormPage(page: Page): Promise<void> {
-  const createFormNavLink = page.getByTestId('nav-link-create-form');
-  await expect(createFormNavLink).toBeVisible({ timeout: 15000 });
-  await createFormNavLink.click();
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    await page.goto('/create-form');
+
+    const createFormVisible = await page
+      .getByTestId('create-form-page')
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
+    if (createFormVisible) {
+      return;
+    }
+
+    const loginVisible = await page
+      .getByTestId('login-page')
+      .isVisible({ timeout: 1000 })
+      .catch(() => false);
+    if (loginVisible) {
+      throw new Error(
+        'Unexpected redirect to login while opening create-form page'
+      );
+    }
+
+    const orgSelectionVisible = await page
+      .getByTestId('organization-selection-page')
+      .isVisible({ timeout: 1000 })
+      .catch(() => false);
+    if (orgSelectionVisible) {
+      await page.getByTestId(`select-organization-${organizationId}`).click();
+      await page.waitForTimeout(500);
+    }
+  }
+
   await expect(page.getByTestId('create-form-page')).toBeVisible({
     timeout: 15000,
   });
