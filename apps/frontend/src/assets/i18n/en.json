@@ -91,6 +91,15 @@
     "switch-organization": "Switch Organization",
     "app-version": "App Version"
   },
+  "settings": {
+    "title": "Settings",
+    "language": {
+      "label": "Language",
+      "description": "Choose your preferred application language.",
+      "english": "English",
+      "hebrew": "Hebrew"
+    }
+  },
   "forms": {
     "user-name": "User Name",
     "user-id": "User ID",
