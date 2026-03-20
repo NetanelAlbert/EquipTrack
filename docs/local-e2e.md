@@ -48,6 +48,7 @@ npm run e2e:local:test
 ```
 
 This command provisions LocalStack resources, starts backend/frontend with local E2E configuration, and runs Playwright (Chromium project).
+It also installs the Chromium Playwright browser if missing.
 
 Equivalent Nx target:
 
