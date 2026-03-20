@@ -1,4 +1,4 @@
-<div class="main-row">
+<div class="main-row" data-testid="editable-item-row">
   <mat-form-field class="product-field">
     <mat-label>{{ 'inventory.form.product' | translate }}</mat-label>
     <input
@@ -6,8 +6,14 @@
       [formControl]="searchControl"
       [matAutocomplete]="productAutocomplete"
       [placeholder]="'inventory.form.product-search-placeholder' | translate"
+      data-testid="editable-item-product-input"
     />
-    <button mat-icon-button matSuffix (click)="searchControl.reset()">
+    <button
+      mat-icon-button
+      matSuffix
+      data-testid="editable-item-product-clear"
+      (click)="searchControl.reset()"
+    >
       <mat-icon>close</mat-icon>
     </button>
     <mat-autocomplete 
@@ -16,7 +22,10 @@
       (optionSelected)="onProductSelected($event.option.value)"
     >
       @for (product of filteredProducts(); track product.id) {
-        <mat-option [value]="product">
+        <mat-option
+          [value]="product"
+          [attr.data-testid]="'editable-item-product-option-' + product.id"
+        >
           {{ displayProduct(product) }}
         </mat-option>
       }
@@ -33,6 +42,7 @@
       [formControl]="quantityControl()"
       type="number"
       min="1"
+      data-testid="editable-item-quantity-input"
     />
     @if (quantityErrors()['required']) {
       <mat-error>{{ 'inventory.validation.quantity-required' | translate }}</mat-error>
@@ -45,7 +55,13 @@
     }
   </mat-form-field>
   
-  <button class="delete-button" mat-mini-fab aria-label="Delete" (click)="remove.emit()">
+  <button
+    class="delete-button"
+    mat-mini-fab
+    aria-label="Delete"
+    data-testid="editable-item-delete"
+    (click)="remove.emit()"
+  >
     <mat-icon>delete</mat-icon>
   </button>
 </div>
@@ -63,7 +79,7 @@
   </div>
 }
 @if (isUPI()) {
-  <div class="upis">
+  <div class="upis" data-testid="editable-item-upis-section">
     <h4 class="upi-title">{{ 'inventory.upi.title' | translate }}</h4>
     @for (upi of upisControl().controls; track $index; let upiIndex = $index) {
       <mat-form-field>
@@ -73,9 +89,15 @@
           [formControl]="upi" 
           type="text" 
           [placeholder]="'inventory.form.upi-placeholder' | translate" 
+          [attr.data-testid]="'editable-item-upi-input-' + upiIndex"
           (keydown.enter)="$event.preventDefault()"
         />
-        <button mat-icon-button matSuffix (click)="upisControl().removeAt(upiIndex)">
+        <button
+          mat-icon-button
+          matSuffix
+          [attr.data-testid]="'editable-item-upi-delete-' + upiIndex"
+          (click)="upisControl().removeAt(upiIndex)"
+        >
           <mat-icon>delete</mat-icon>
         </button>
         @if (getUpiErrors(upiIndex)['required']) {
@@ -86,7 +108,12 @@
         }
       </mat-form-field>
     }
-    <button mat-icon-button matSuffix (click)="addUpi()">
+    <button
+      mat-icon-button
+      matSuffix
+      data-testid="editable-item-add-upi"
+      (click)="addUpi()"
+    >
       <mat-icon>add</mat-icon>
     </button>
   </div>

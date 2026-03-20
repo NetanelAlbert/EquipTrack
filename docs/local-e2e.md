@@ -49,6 +49,7 @@ npm run e2e:local:test
 
 This command provisions LocalStack resources, starts backend/frontend with local E2E configuration, and runs Playwright (Chromium project).
 It also installs the Chromium Playwright browser if missing.
+It executes the core regression set (`core-regression.spec.ts` and `core-regression-ui.spec.ts`).
 
 Equivalent Nx target:
 
