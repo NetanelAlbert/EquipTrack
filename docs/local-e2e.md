@@ -49,6 +49,18 @@ npm run e2e:local:test
 
 This command provisions LocalStack resources, starts backend/frontend with local E2E configuration, and runs Playwright (Chromium project).
 
+Equivalent Nx target:
+
+```bash
+npx nx run frontend-e2e:e2e-local-core
+```
+
+## CI
+
+Core regression is automated via:
+
+- `.github/workflows/e2e-localstack-core-regression.yml`
+
 ## Seeded identities
 
 - `user-e2e-admin` (role: `admin`)
