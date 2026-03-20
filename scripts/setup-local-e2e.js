@@ -9,6 +9,10 @@ const {
   CreateSecretCommand,
   PutSecretValueCommand,
 } = require('@aws-sdk/client-secrets-manager');
+const {
+  DynamoDBClient,
+  ListTablesCommand,
+} = require('@aws-sdk/client-dynamodb');
 const { TableCreator } = require('./create-dynamodb-tables');
 const { seedE2eData } = require('./seed-e2e-data');
 
@@ -28,14 +32,61 @@ function awsClientConfig() {
   };
 }
 
+function isReadyState(value) {
+  if (typeof value === 'string') {
+    const normalized = value.toLowerCase();
+    return (
+      normalized === 'running' ||
+      normalized === 'available' ||
+      normalized === 'ready' ||
+      normalized === 'initialized'
+    );
+  }
+
+  if (value && typeof value === 'object') {
+    return isReadyState(value.status || value.state);
+  }
+
+  return false;
+}
+
+function isHealthReady(healthPayload) {
+  if (!healthPayload || typeof healthPayload !== 'object') {
+    return false;
+  }
+
+  const services = healthPayload.services || {};
+  const dynamodbReady = isReadyState(services.dynamodb);
+  const s3Ready = isReadyState(services.s3);
+  const secretsReady = isReadyState(services.secretsmanager);
+
+  return dynamodbReady && s3Ready && secretsReady;
+}
+
+async function isDynamoReachable() {
+  const client = new DynamoDBClient(awsClientConfig());
+  try {
+    await client.send(new ListTablesCommand({ Limit: 1 }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function waitForLocalstack(maxAttempts = 30) {
   const healthUrl = `${LOCALSTACK_ENDPOINT}/_localstack/health`;
+  let lastHealthPayload;
+  let lastHealthStatus;
+
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       const response = await fetch(healthUrl);
+      lastHealthStatus = response.status;
+
       if (response.ok) {
         const body = await response.json();
-        if (body?.services?.dynamodb === 'running') {
+        lastHealthPayload = body;
+        if (isHealthReady(body)) {
           console.log('[setup-local-e2e] LocalStack is ready');
           return;
         }
@@ -44,10 +95,24 @@ async function waitForLocalstack(maxAttempts = 30) {
       // Keep polling until ready.
     }
 
+    // Health endpoint formats vary by LocalStack versions.
+    // Fallback: if DynamoDB API is reachable, LocalStack is operational enough.
+    if (await isDynamoReachable()) {
+      console.log(
+        '[setup-local-e2e] LocalStack reachable via DynamoDB API (health format fallback)'
+      );
+      return;
+    }
+
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  throw new Error('LocalStack did not become ready in time');
+  const compactPayload = lastHealthPayload
+    ? JSON.stringify(lastHealthPayload)
+    : 'none';
+  throw new Error(
+    `LocalStack did not become ready in time (lastHealthStatus=${lastHealthStatus || 'none'}, lastHealthPayload=${compactPayload})`
+  );
 }
 
 async function ensureFormsBucket() {
