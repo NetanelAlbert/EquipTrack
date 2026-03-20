@@ -4,12 +4,6 @@ const {
   DescribeTableCommand,
 } = require('@aws-sdk/client-dynamodb');
 
-// Environment variables
-const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
-const STAGE = process.env.STAGE || 'dev';
-const DYNAMODB_ENDPOINT =
-  process.env.AWS_ENDPOINT_URL_DYNAMODB || process.env.AWS_ENDPOINT_URL;
-
 // Constants
 const USERS_AND_ORGANIZATIONS_TABLE_NAME = 'UsersAndOrganizations';
 const INVENTORY_TABLE_NAME = 'Inventory';
@@ -143,13 +137,20 @@ const tableDefinitions = {
 };
 
 class TableCreator {
-  constructor() {
+  constructor(options = {}) {
+    this.region = options.region || process.env.AWS_REGION || 'il-central-1';
+    this.stage = options.stage || process.env.STAGE || 'dev';
+    this.dynamoDbEndpoint =
+      options.endpoint ||
+      process.env.AWS_ENDPOINT_URL_DYNAMODB ||
+      process.env.AWS_ENDPOINT_URL;
+
     const clientConfig = {
-      region: AWS_REGION,
+      region: this.region,
     };
 
-    if (DYNAMODB_ENDPOINT) {
-      clientConfig.endpoint = DYNAMODB_ENDPOINT;
+    if (this.dynamoDbEndpoint) {
+      clientConfig.endpoint = this.dynamoDbEndpoint;
       clientConfig.credentials = {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'test',
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'test',
@@ -161,15 +162,15 @@ class TableCreator {
 
   async createTables() {
     console.log(
-      `🚀 Creating DynamoDB tables for stage: ${STAGE} in region: ${AWS_REGION}`
+      `🚀 Creating DynamoDB tables for stage: ${this.stage} in region: ${this.region}`
     );
 
     for (const definition of Object.values(tableDefinitions)) {
       // Add stage suffix to table names for environment isolation
       const stageTableName =
-        STAGE === 'production'
+        this.stage === 'production'
           ? definition.tableName
-          : `${definition.tableName}-${STAGE}`;
+          : `${definition.tableName}-${this.stage}`;
 
       const {
         keySchema,

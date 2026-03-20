@@ -189,7 +189,11 @@ async function main() {
   await ensureFormsBucket();
   await ensureJwtSecrets();
 
-  const tableCreator = new TableCreator();
+  const tableCreator = new TableCreator({
+    stage: STAGE,
+    region: AWS_REGION,
+    endpoint: LOCALSTACK_ENDPOINT,
+  });
   await tableCreator.createTables();
   await seedE2eData();
 
