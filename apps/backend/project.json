@@ -71,7 +71,7 @@
     "serve-local-http": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "LOCAL_HTTP_SERVER=true nx serve backend"
+        "command": "env LOCAL_HTTP_SERVER=true bash -c \"nx run backend:build:development && node dist/apps/backend/main.js\""
       }
     },
     "test": {
