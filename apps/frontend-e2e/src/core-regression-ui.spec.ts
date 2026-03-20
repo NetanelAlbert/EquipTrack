@@ -73,13 +73,19 @@ async function ensureOrganizationIsSelected(page: Page): Promise<void> {
   await page.goto('/');
 
   const orgSelectionPage = page.getByTestId('organization-selection-page');
-  const appShell = page.getByTestId('app-shell');
 
   if (await orgSelectionPage.isVisible()) {
     await page.getByTestId(`select-organization-${organizationId}`).click();
   }
+}
 
-  await expect(appShell).toBeVisible();
+async function openCreateFormPage(page: Page): Promise<void> {
+  const createFormNavLink = page.getByTestId('nav-link-create-form');
+  await expect(createFormNavLink).toBeVisible({ timeout: 15000 });
+  await createFormNavLink.click();
+  await expect(page.getByTestId('create-form-page')).toBeVisible({
+    timeout: 15000,
+  });
 }
 
 async function fillInventoryRow(
@@ -162,8 +168,7 @@ test.describe('core regression ui flow', () => {
 
     const checkoutDescription = `e2e ui checkout ${Date.now()}`;
 
-    await page.goto('/create-form');
-    await expect(page.getByTestId('create-form-page')).toBeVisible();
+    await openCreateFormPage(page);
 
     await page.getByTestId('create-form-user-select').click();
     await page.getByTestId(`create-form-user-option-${customerUserId}`).click();
