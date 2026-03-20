@@ -1,0 +1,28 @@
+name: Translation Key Validation
+
+on:
+  pull_request:
+    paths:
+      - 'apps/frontend/src/**/*.ts'
+      - 'apps/frontend/src/**/*.html'
+      - 'apps/frontend/src/assets/i18n/*.json'
+      - 'scripts/validate-translation-keys.js'
+      - 'package.json'
+      - '.github/workflows/translation-key-validation.yml'
+
+jobs:
+  validate-translation-keys:
+    name: Validate translation keys
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run translation key validation
+        run: npm run validate:translations

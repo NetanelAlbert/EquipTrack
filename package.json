@@ -3,7 +3,8 @@
   "version": "0.0.11",
   "license": "MIT",
   "scripts": {
-    "fullstack": "nx run-many --parallel --target=serve --projects=backend,frontend"
+    "fullstack": "nx run-many --parallel --target=serve --projects=backend,frontend",
+    "validate:translations": "node scripts/validate-translation-keys.js"
   },
   "private": true,
   "dependencies": {
