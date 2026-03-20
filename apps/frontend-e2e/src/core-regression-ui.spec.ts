@@ -69,6 +69,19 @@ async function bootstrapAuthenticatedSession(page: Page, token: string) {
   );
 }
 
+async function ensureOrganizationIsSelected(page: Page): Promise<void> {
+  await page.goto('/');
+
+  const orgSelectionPage = page.getByTestId('organization-selection-page');
+  const appShell = page.getByTestId('app-shell');
+
+  if (await orgSelectionPage.isVisible()) {
+    await page.getByTestId(`select-organization-${organizationId}`).click();
+  }
+
+  await expect(appShell).toBeVisible();
+}
+
 async function fillInventoryRow(
   page: Page,
   rowIndex: number,
@@ -145,6 +158,7 @@ test.describe('core regression ui flow', () => {
     const beforeCustomerUpi = getItem(beforeCustomerInventory, upiProductId);
 
     await bootstrapAuthenticatedSession(page, adminToken);
+    await ensureOrganizationIsSelected(page);
 
     const checkoutDescription = `e2e ui checkout ${Date.now()}`;
 
