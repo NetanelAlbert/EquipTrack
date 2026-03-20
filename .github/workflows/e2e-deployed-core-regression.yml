@@ -1,0 +1,59 @@
+name: E2E Deployed Core Regression
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Frontend base URL (e.g. https://app.example.com)'
+        required: true
+        type: string
+      backend_base_url:
+        description: 'Backend API base URL (e.g. https://api.example.com)'
+        required: true
+        type: string
+
+jobs:
+  deployed-core-regression:
+    name: Core regression (deployed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run deployed core regression
+        env:
+          BASE_URL: ${{ github.event.inputs.base_url }}
+          BACKEND_BASE_URL: ${{ github.event.inputs.backend_base_url }}
+          E2E_AUTH_SECRET: ${{ secrets.E2E_AUTH_SECRET }}
+          PLAYWRIGHT_HTML_OPEN: never
+        run: npx nx run frontend-e2e:e2e-deployed-core
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-deployed-core
+          path: playwright-report
+          if-no-files-found: ignore
+
+      - name: Upload Playwright test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results-deployed-core
+          path: test-results
+          if-no-files-found: ignore

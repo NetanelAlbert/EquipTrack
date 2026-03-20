@@ -62,6 +62,19 @@ Core regression is automated via:
 
 - `.github/workflows/e2e-localstack-core-regression.yml`
 
+## Deployed environment run
+
+To run the same core regression test against a deployed environment:
+
+```bash
+BASE_URL="https://your-frontend.example.com" \
+BACKEND_BASE_URL="https://your-api.example.com" \
+E2E_AUTH_SECRET="your-e2e-secret" \
+npm run e2e:deployed:test
+```
+
+This uses `apps/frontend-e2e/playwright.deployed.config.ts` (no local web servers).
+
 ## Seeded identities
 
 - `user-e2e-admin` (role: `admin`)
