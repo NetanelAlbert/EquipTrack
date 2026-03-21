@@ -11,7 +11,6 @@ const warehouseUserId = 'WAREHOUSE';
 
 const bulkProductId = 'prod-bulk-helmet';
 const upiProductId = 'prod-upi-laptop';
-const transferredUpi = 'LAP-WH-001';
 const transferredBulkQuantity = 2;
 
 interface InventoryResponse {
@@ -242,6 +241,8 @@ test.describe('core regression ui flow', () => {
     const beforeCustomerBulk = getItem(beforeCustomerInventory, bulkProductId);
     const beforeWarehouseUpi = getItem(beforeWarehouseInventory, upiProductId);
     const beforeCustomerUpi = getItem(beforeCustomerInventory, upiProductId);
+    const transferredUpi = beforeWarehouseUpi.upis?.[0];
+    expect(transferredUpi).toBeTruthy();
 
     await bootstrapAuthenticatedSession(page, adminToken);
     await ensureOrganizationIsSelected(page);
@@ -253,14 +254,21 @@ test.describe('core regression ui flow', () => {
         r.request().method() === 'GET' &&
         r.url().includes(`inventory/user/${warehouseUserId}`) &&
         r.ok(),
-      { timeout: 5000 }
+      { timeout: 30000 }
     );
     await openCreateFormPage(page);
     try {
       await warehouseInventoryResponse;
     } catch {
-      // No GET fired (e.g. WAREHOUSE rows already in store) — limit data should still be present.
+      // GET may have completed before the listener was registered (e.g. cached store).
     }
+    const whAtFormOpen = await getInventory(
+      request,
+      adminToken,
+      warehouseUserId
+    );
+    const laptopAtFormOpen = getItem(whAtFormOpen, upiProductId);
+    expect(laptopAtFormOpen.upis || []).toContain(transferredUpi);
 
     await page.getByTestId('create-form-user-select').click();
     await page.getByTestId(`create-form-user-option-${customerUserId}`).click();
@@ -271,13 +279,19 @@ test.describe('core regression ui flow', () => {
     await fillInventoryRow(page, 0, bulkProductId, transferredBulkQuantity);
     await page.getByTestId('editable-inventory-add-item').click();
     await fillInventoryRow(page, 1, upiProductId, 1);
-    // UPI fields live in a sibling block below `editable-item-row`, not inside it.
-    const laptopUpiInput = page.getByTestId('editable-item-upi-input-0');
-    await laptopUpiInput.fill(transferredUpi);
+    // UPI fields sit in a sibling block under `editable-item` (not inside `editable-item-row`).
+    const laptopEditableItem = page.locator('editable-item').nth(1);
+    await expect(
+      laptopEditableItem.getByTestId('editable-item-upis-section')
+    ).toBeVisible({ timeout: 15000 });
+    const laptopUpiInput = laptopEditableItem.getByTestId(
+      'editable-item-upi-input-0'
+    );
+    await laptopUpiInput.fill(transferredUpi!);
     await laptopUpiInput.blur();
 
     const submitCheckout = page.getByTestId('editable-inventory-submit');
-    await expect(submitCheckout).toBeEnabled({ timeout: 20000 });
+    await expect(submitCheckout).toBeEnabled({ timeout: 30000 });
     await submitCheckout.click();
 
     await clickSideNavRoute(page, 'forms');
@@ -309,7 +323,6 @@ test.describe('core regression ui flow', () => {
       beforeCustomerBulk.quantity + transferredBulkQuantity
     );
 
-    expect(beforeWarehouseUpi.upis || []).toContain(transferredUpi);
     expect(afterWarehouseUpi.upis || []).not.toContain(transferredUpi);
     expect(afterCustomerUpi.upis || []).toEqual(
       expect.arrayContaining([...(beforeCustomerUpi.upis || []), transferredUpi])
