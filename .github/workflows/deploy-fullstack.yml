@@ -7,6 +7,12 @@ on:
     tags:
       - 'v*'
 
+# Serialize deployments per environment so parallel merges to develop (or concurrent
+# tag pushes) do not run two full-stack deploys at once and race on AWS resources.
+concurrency:
+  group: deploy-fullstack-${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'development' }}
+  cancel-in-progress: false
+
 env:
   # Use the correct lowercase AWS region identifier.
   AWS_REGION: il-central-1
