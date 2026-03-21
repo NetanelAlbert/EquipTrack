@@ -3,6 +3,14 @@ name: E2E Deployed Core Regression
 on:
   workflow_dispatch:
     inputs:
+      target_environment:
+        description: 'GitHub Environment to use for secrets/protection'
+        required: true
+        default: development
+        type: choice
+        options:
+          - development
+          - production
       base_url:
         description: 'Frontend base URL (e.g. https://app.example.com)'
         required: true
@@ -17,6 +25,7 @@ jobs:
     name: Core regression (deployed)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment: ${{ github.event.inputs.target_environment }}
 
     steps:
       - name: Checkout code
