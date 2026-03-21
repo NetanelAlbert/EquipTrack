@@ -66,3 +66,37 @@ jobs:
           name: playwright-test-results-deployed-core
           path: test-results
           if-no-files-found: ignore
+
+      - name: Summarize Playwright failure contexts
+        if: always()
+        run: |
+          python3 <<'PY'
+          import glob
+          import os
+          from pathlib import Path
+
+          candidates = [
+              "dist/.playwright/apps/frontend-e2e/test-output/**/error-context.md",
+              "test-results/**/error-context.md",
+          ]
+          context_files = []
+          for pattern in candidates:
+              context_files.extend(glob.glob(pattern, recursive=True))
+          context_files = sorted(set(context_files))
+
+          summary_file = os.environ.get("GITHUB_STEP_SUMMARY")
+          if not summary_file:
+              raise SystemExit(0)
+
+          with open(summary_file, "a", encoding="utf-8") as handle:
+              handle.write("## Playwright error contexts (deployed)\n\n")
+              if not context_files:
+                  handle.write("- No `error-context.md` files were found.\n")
+              else:
+                  handle.write(
+                      f"- Found **{len(context_files)}** error-context file(s):\n"
+                  )
+                  for file_path in context_files:
+                      relative = Path(file_path).as_posix()
+                      handle.write(f"  - `{relative}`\n")
+          PY
