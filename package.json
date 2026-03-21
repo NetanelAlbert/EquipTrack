@@ -4,6 +4,7 @@
   "license": "MIT",
   "scripts": {
     "fullstack": "nx run-many --parallel --target=serve --projects=backend,frontend",
+    "validate:translations": "node scripts/validate-translation-keys.js",
     "e2e:local:stack:up": "docker compose -f docker-compose.e2e.yml up -d --wait localstack",
     "e2e:local:stack:down": "docker compose -f docker-compose.e2e.yml down",
     "e2e:local:stack:reset": "docker compose -f docker-compose.e2e.yml down -v",

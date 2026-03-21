@@ -308,7 +308,9 @@
     "noReportForDate": "אין דוח זמין",
     "noReportForDateDescription": "לא הופק דוח עבור התאריך שנבחר.",
     "item-published": "דוח הפריט עודכן בהצלחה",
-    "items-published": "דוחות מרובים עודכנו בהצלחה"
+    "items-published": "דוחות מרובים עודכנו בהצלחה",
+    "my-items": "הפריטים שלי",
+    "warehouse-items": "פריטי מחסן"
   },
   "errors": {
     "not-allowed": {
