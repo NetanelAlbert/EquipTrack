@@ -8,6 +8,7 @@ const {
   SecretsManagerClient,
   CreateSecretCommand,
   PutSecretValueCommand,
+  ListSecretsCommand,
 } = require('@aws-sdk/client-secrets-manager');
 const {
   DynamoDBClient,
@@ -73,45 +74,55 @@ async function isDynamoReachable() {
   }
 }
 
-async function waitForLocalstack(maxAttempts = 30) {
+async function isSecretsManagerReachable() {
+  const client = new SecretsManagerClient(awsClientConfig());
+  try {
+    await client.send(new ListSecretsCommand({ MaxResults: 1 }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Single check — no polling. Callers must start LocalStack first (e.g. docker compose up --wait).
+ * Fails fast with exit 1 via main().catch when LocalStack or required services are not usable.
+ */
+async function assertLocalstackReady() {
   const healthUrl = `${LOCALSTACK_ENDPOINT}/_localstack/health`;
-  let lastHealthPayload;
   let lastHealthStatus;
+  let lastHealthPayload;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      const response = await fetch(healthUrl);
-      lastHealthStatus = response.status;
-
-      if (response.ok) {
-        const body = await response.json();
-        lastHealthPayload = body;
-        if (isHealthReady(body)) {
-          console.log('[setup-local-e2e] LocalStack is ready');
-          return;
-        }
+  try {
+    const response = await fetch(healthUrl);
+    lastHealthStatus = response.status;
+    if (response.ok) {
+      const body = await response.json();
+      lastHealthPayload = body;
+      if (isHealthReady(body)) {
+        console.log('[setup-local-e2e] LocalStack is ready');
+        return;
       }
-    } catch {
-      // Keep polling until ready.
     }
+  } catch {
+    // Health URL may be unavailable; try API probes below.
+  }
 
-    // Health endpoint formats vary by LocalStack versions.
-    // Fallback: if DynamoDB API is reachable, LocalStack is operational enough.
-    if (await isDynamoReachable()) {
-      console.log(
-        '[setup-local-e2e] LocalStack reachable via DynamoDB API (health format fallback)'
-      );
-      return;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  // Health JSON shapes differ across LocalStack versions — require DynamoDB + Secrets Manager.
+  if ((await isDynamoReachable()) && (await isSecretsManagerReachable())) {
+    console.log(
+      '[setup-local-e2e] LocalStack reachable via DynamoDB + Secrets Manager (health format fallback)'
+    );
+    return;
   }
 
   const compactPayload = lastHealthPayload
     ? JSON.stringify(lastHealthPayload)
     : 'none';
   throw new Error(
-    `LocalStack did not become ready in time (lastHealthStatus=${lastHealthStatus || 'none'}, lastHealthPayload=${compactPayload})`
+    `LocalStack is not ready at ${LOCALSTACK_ENDPOINT} (healthStatus=${lastHealthStatus ?? 'n/a'}, healthPayload=${compactPayload}). ` +
+      'DynamoDB and Secrets Manager must both respond. Ensure the container is running and healthy before setup ' +
+      '(e.g. npm run e2e:local:stack:up uses docker compose --wait).'
   );
 }
 
@@ -156,6 +167,7 @@ async function upsertSecret(client, secretName, value) {
 }
 
 async function ensureJwtSecrets() {
+  console.log('[setup-local-e2e] Ensuring JWT key secrets in Secrets Manager...');
   const secretsClient = new SecretsManagerClient(awsClientConfig());
   const { privateKey, publicKey } = generateKeyPairSync('rsa', {
     modulusLength: 2048,
@@ -185,7 +197,7 @@ async function main() {
     `[setup-local-e2e] endpoint=${LOCALSTACK_ENDPOINT}, region=${AWS_REGION}, stage=${STAGE}`
   );
 
-  await waitForLocalstack();
+  await assertLocalstackReady();
   await ensureFormsBucket();
   await ensureJwtSecrets();
 
