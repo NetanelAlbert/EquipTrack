@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { TranslateModule } from '@ngx-translate/core';
 import { EditableInventoryComponent } from './editable-inventory.component';
 
 describe('EditableInventoryComponent', () => {
@@ -7,7 +9,11 @@ describe('EditableInventoryComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [EditableInventoryComponent],
+      imports: [
+        EditableInventoryComponent,
+        NoopAnimationsModule,
+        TranslateModule.forRoot(),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(EditableInventoryComponent);

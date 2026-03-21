@@ -51,28 +51,6 @@ interface GoogleButtonConfiguration {
   locale?: string;
 }
 
-/**
- * Global Google API declaration
- */
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (config: GoogleIdConfiguration) => void;
-          renderButton: (
-            parent: HTMLElement,
-            config: GoogleButtonConfiguration
-          ) => void;
-          prompt: () => void;
-          disableAutoSelect: () => void;
-        };
-      };
-    };
-    onGoogleLibraryLoad?: () => void;
-  }
-}
-
 @Component({
   selector: 'app-google-sign-in',
   standalone: true,
