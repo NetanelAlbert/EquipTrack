@@ -1,5 +1,9 @@
 import { APIRequestContext, expect, Page } from '@playwright/test';
 import { UserRole } from '@equip-track/shared';
+import {
+  E2E_LANGUAGE_STORAGE_KEY,
+  E2E_TEST_APP_LANGUAGE,
+} from './e2e-locale';
 
 interface E2eAuthOptions {
   backendBaseUrl: string;
@@ -45,7 +49,23 @@ export async function authenticateWithE2eToken(
 ): Promise<void> {
   const jwt = await mintE2eJwt(request, options);
 
-  await page.addInitScript((jwtToken: string) => {
-    window.localStorage.setItem('equip-track-token', jwtToken);
-  }, jwt);
+  await page.addInitScript(
+    ({
+      jwtToken,
+      languageKey,
+      languageValue,
+    }: {
+      jwtToken: string;
+      languageKey: string;
+      languageValue: string;
+    }) => {
+      window.localStorage.setItem('equip-track-token', jwtToken);
+      window.localStorage.setItem(languageKey, languageValue);
+    },
+    {
+      jwtToken: jwt,
+      languageKey: E2E_LANGUAGE_STORAGE_KEY,
+      languageValue: E2E_TEST_APP_LANGUAGE,
+    }
+  );
 }

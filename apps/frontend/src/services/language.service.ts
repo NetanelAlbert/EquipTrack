@@ -11,6 +11,7 @@ export interface LanguageOption {
   direction: LanguageDirection;
 }
 
+/** First-visit default; Playwright E2E sets STORAGE_KEYS.LANGUAGE to `en` before bootstrap. */
 const DEFAULT_LANGUAGE: AppLanguage = 'he';
 
 @Injectable({ providedIn: 'root' })

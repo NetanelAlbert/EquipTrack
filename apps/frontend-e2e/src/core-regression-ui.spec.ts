@@ -1,6 +1,10 @@
 import { APIRequestContext, Page, expect, test } from '@playwright/test';
 import { InventoryItem, UserRole } from '@equip-track/shared';
 import { mintE2eJwt } from './helpers/e2e-auth';
+import {
+  E2E_LANGUAGE_STORAGE_KEY,
+  E2E_TEST_APP_LANGUAGE,
+} from './helpers/e2e-locale';
 
 const backendBaseUrl =
   process.env['BACKEND_BASE_URL'] || 'http://localhost:3000';
@@ -51,19 +55,26 @@ async function bootstrapAuthenticatedSession(page: Page, token: string) {
     ({
       jwt,
       selectedOrganizationId,
+      languageKey,
+      languageValue,
     }: {
       jwt: string;
       selectedOrganizationId: string;
+      languageKey: string;
+      languageValue: string;
     }) => {
       window.localStorage.setItem('equip-track-token', jwt);
       window.localStorage.setItem(
         'equip-track-selected-org',
         selectedOrganizationId
       );
+      window.localStorage.setItem(languageKey, languageValue);
     },
     {
       jwt: token,
       selectedOrganizationId: organizationId,
+      languageKey: E2E_LANGUAGE_STORAGE_KEY,
+      languageValue: E2E_TEST_APP_LANGUAGE,
     }
   );
 }
@@ -205,10 +216,9 @@ async function approveLatestPendingForm(page: Page, description: string) {
     .locator('[data-testid^="form-card-"]')
     .filter({ hasText: description })
     .first();
-  await expect(cardAfterApprove.locator('[data-testid^="form-status-"]')).toContainText(
-    /approved/i,
-    { timeout: 30000 }
-  );
+  await expect(
+    cardAfterApprove.locator('[data-testid^="form-status-"]')
+  ).toHaveClass('approved', { timeout: 30000 });
 }
 
 test.describe('core regression ui flow', () => {
