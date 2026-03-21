@@ -1,5 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TranslateModule } from '@ngx-translate/core';
 import { FormsTabContentComponent } from './forms-tab-content.component';
 import { InventoryForm, FormStatus, FormType } from '@equip-track/shared';
@@ -37,9 +39,10 @@ describe('FormsTabContentComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         FormsTabContentComponent,
-        BrowserAnimationsModule,
+        NoopAnimationsModule,
         TranslateModule.forRoot(),
       ],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(FormsTabContentComponent);
@@ -68,12 +71,14 @@ describe('FormsTabContentComponent', () => {
   });
 
   it('should sort forms by newest first', () => {
+    component.statusFilter.set('all');
     component.sortBy.set('newest');
     const filtered = component.filteredForms();
     expect(filtered[0].formID).toBe('form1'); // newer form first
   });
 
   it('should sort forms by oldest first', () => {
+    component.statusFilter.set('all');
     component.sortBy.set('oldest');
     const filtered = component.filteredForms();
     expect(filtered[0].formID).toBe('form2'); // older form first

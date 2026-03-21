@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TranslateModule } from '@ngx-translate/core';
 import { InventorySearchComponent } from './inventory-search.component';
-import { InventoryItem } from '@equip-track/shared';
+import { InventoryItem, Product } from '@equip-track/shared';
 
 describe('InventorySearchComponent', () => {
   let component: InventorySearchComponent;
@@ -26,6 +26,12 @@ describe('InventorySearchComponent', () => {
     },
   ] as InventoryItem[];
 
+  const mockProductsMap = new Map<string, Product>([
+    ['LAPTOP-001', { id: 'LAPTOP-001', name: 'Laptop', hasUpi: true }],
+    ['MOUSE-002', { id: 'MOUSE-002', name: 'Mouse', hasUpi: true }],
+    ['KEYBOARD-003', { id: 'KEYBOARD-003', name: 'Keyboard', hasUpi: false }],
+  ]);
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [
@@ -38,6 +44,7 @@ describe('InventorySearchComponent', () => {
     fixture = TestBed.createComponent(InventorySearchComponent);
     component = fixture.componentInstance;
     fixture.componentRef.setInput('items', mockInventoryItems);
+    fixture.componentRef.setInput('productsMap', mockProductsMap);
     fixture.detectChanges();
   });
 
@@ -175,37 +182,44 @@ describe('InventorySearchComponent', () => {
 
   it('should emit filtered items', () => {
     let emittedItems: InventoryItem[] = [];
-
-    component.filteredItems.subscribe((items) => {
+    const emitFixture = TestBed.createComponent(InventorySearchComponent);
+    const emitComponent = emitFixture.componentInstance;
+    emitComponent.filteredItems.subscribe((items) => {
       emittedItems = items;
     });
+    emitFixture.componentRef.setInput('items', mockInventoryItems);
+    emitFixture.componentRef.setInput('productsMap', mockProductsMap);
+    emitFixture.detectChanges();
 
-    // Initial items should be emitted
     expect(emittedItems).toHaveLength(3);
 
-    // Filter items
-    component.searchTerm.set('laptop');
+    emitComponent.searchTerm.set('laptop');
+    emitFixture.detectChanges();
     expect(emittedItems).toHaveLength(1);
     expect(emittedItems[0].productId).toBe('LAPTOP-001');
   });
 
   it('should emit filter changes', () => {
-    let emittedFilters: any = null;
-
-    component.filtersChanged.subscribe((filters) => {
+    let emittedFilters: unknown = null;
+    const filterFixture = TestBed.createComponent(InventorySearchComponent);
+    const filterComponent = filterFixture.componentInstance;
+    filterComponent.filtersChanged.subscribe((filters) => {
       emittedFilters = filters;
     });
+    filterFixture.componentRef.setInput('items', mockInventoryItems);
+    filterFixture.componentRef.setInput('productsMap', mockProductsMap);
+    filterFixture.detectChanges();
 
-    // Change search term
-    component.searchTerm.set('test');
+    filterComponent.searchTerm.set('test');
+    filterFixture.detectChanges();
     expect(emittedFilters).toEqual({
       searchTerm: 'test',
       sortBy: 'productId',
       sortDirection: 'asc',
     });
 
-    // Change sort
-    component.sortBy.set('quantity');
+    filterComponent.sortBy.set('quantity');
+    filterFixture.detectChanges();
     expect(emittedFilters).toEqual({
       searchTerm: 'test',
       sortBy: 'quantity',
@@ -217,9 +231,11 @@ describe('InventorySearchComponent', () => {
     expect(component.resultCount()).toBe(3);
 
     component.searchTerm.set('laptop');
+    fixture.detectChanges();
     expect(component.resultCount()).toBe(1);
 
     component.searchTerm.set('nonexistent');
+    fixture.detectChanges();
     expect(component.resultCount()).toBe(0);
   });
 });

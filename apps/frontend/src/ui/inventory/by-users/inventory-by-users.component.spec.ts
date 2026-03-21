@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TranslateModule } from '@ngx-translate/core';
 import { InventoryByUsersComponent } from './inventory-by-users.component';
@@ -14,15 +15,17 @@ describe('InventoryByUsersComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         InventoryByUsersComponent,
-        HttpClientTestingModule,
         NoopAnimationsModule,
         TranslateModule.forRoot(),
       ],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
+
+    organizationService = TestBed.inject(OrganizationService);
+    jest.spyOn(organizationService, 'getUsers').mockResolvedValue(undefined);
 
     fixture = TestBed.createComponent(InventoryByUsersComponent);
     component = fixture.componentInstance;
-    organizationService = TestBed.inject(OrganizationService);
     fixture.detectChanges();
   });
 
@@ -30,15 +33,15 @@ describe('InventoryByUsersComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should have selectedUserID as a signal', () => {
-    expect(component.selectedUserID).toBeDefined();
-    expect(typeof component.selectedUserID).toBe('function');
-    expect(typeof component.selectedUserID.set).toBe('function');
+  it('should have selectedUserIds as a signal', () => {
+    expect(component.selectedUserIds).toBeDefined();
+    expect(typeof component.selectedUserIds).toBe('function');
+    expect(typeof component.selectedUserIds.set).toBe('function');
   });
 
-  it('should have userItems as a computed property', () => {
-    expect(component.userItems).toBeDefined();
-    expect(typeof component.userItems).toBe('function');
+  it('should have tableData as a computed property', () => {
+    expect(component.tableData).toBeDefined();
+    expect(typeof component.tableData).toBe('function');
   });
 
   it('should inject required stores and services', () => {
@@ -48,31 +51,25 @@ describe('InventoryByUsersComponent', () => {
   });
 
   it('should handle WAREHOUSE selection correctly', () => {
-    // Set selectedUserID to WAREHOUSE
-    component.selectedUserID.set('WAREHOUSE');
+    component.selectedUserIds.set(['WAREHOUSE']);
 
-    // The computed should react and use warehouse inventory
-    const userItems = component.userItems();
-    expect(Array.isArray(userItems)).toBe(true);
+    const rows = component.tableData();
+    expect(Array.isArray(rows)).toBe(true);
   });
 
   it('should handle user selection correctly', () => {
-    // Set selectedUserID to a test user ID
     const testUserId = 'test-user-123';
-    component.selectedUserID.set(testUserId);
+    component.selectedUserIds.set(['WAREHOUSE', testUserId]);
 
-    // The computed should react and use user inventory
-    const userItems = component.userItems();
-    expect(Array.isArray(userItems)).toBe(true);
+    const rows = component.tableData();
+    expect(Array.isArray(rows)).toBe(true);
   });
 
-  it('should return empty array when no user selected', () => {
-    // Ensure no user is selected
-    component.selectedUserID.set(undefined);
+  it('should return empty table when no users selected', () => {
+    component.selectedUserIds.set([]);
 
-    // Should return empty array
-    const userItems = component.userItems();
-    expect(userItems).toEqual([]);
+    const rows = component.tableData();
+    expect(rows).toEqual([]);
   });
 
   it('should have user loading computed properties', () => {
@@ -86,11 +83,6 @@ describe('InventoryByUsersComponent', () => {
     expect(typeof component.hasUsers).toBe('function');
   });
 
-  it('should have onUserChange method', () => {
-    expect(component.onUserChange).toBeDefined();
-    expect(typeof component.onUserChange).toBe('function');
-  });
-
   it('should have loadUsers method', () => {
     expect(component.loadUsers).toBeDefined();
     expect(typeof component.loadUsers).toBe('function');
@@ -98,7 +90,8 @@ describe('InventoryByUsersComponent', () => {
 
   it('should call getUsers on OrganizationService during ngOnInit', () => {
     const spy = jest.spyOn(organizationService, 'getUsers');
-    component.ngOnInit();
+    const f = TestBed.createComponent(InventoryByUsersComponent);
+    f.detectChanges();
     expect(spy).toHaveBeenCalled();
   });
 

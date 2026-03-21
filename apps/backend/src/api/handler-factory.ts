@@ -1,5 +1,8 @@
-import { APIGatewayProxyEvent, APIGatewayProxyHandler } from 'aws-lambda';
-import { Context } from 'aws-lambda/handler';
+import {
+  APIGatewayProxyEvent,
+  APIGatewayProxyHandler,
+  APIGatewayProxyResult,
+} from 'aws-lambda';
 import {
   endpointMetas,
   EndpointMeta,
@@ -7,12 +10,21 @@ import {
   OptionalObject,
 } from '@equip-track/shared';
 import { HandlerFunction, handlers } from './handlers';
-import { unauthorized, internalServerError, CORS_HEADERS } from './responses';
+import {
+  ErrorResponse,
+  unauthorized,
+  internalServerError,
+  CORS_HEADERS,
+} from './responses';
 import { authenticateAndGetJwt } from './auth';
 
-function parseBody<T>(event: any): T {
-  if (!event.body) return undefined as any;
-  return typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+function parseBody<T>(event: APIGatewayProxyEvent): T | undefined {
+  if (!event.body) {
+    return undefined;
+  }
+  return (
+    typeof event.body === 'string' ? JSON.parse(event.body) : event.body
+  ) as T;
 }
 
 export function createLambdaHandler<
@@ -22,7 +34,7 @@ export function createLambdaHandler<
   meta: EndpointMeta<Req, Res>,
   handler: HandlerFunction<Req, Res>
 ): APIGatewayProxyHandler {
-  return async (event: APIGatewayProxyEvent, _context: Context) => {
+  return async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
       console.log(`[${meta.path}] Processing request`, {
         method: meta.method,
@@ -69,14 +81,14 @@ export function createLambdaHandler<
       // If the error is an ErrorResponse, ensure it has CORS headers
       if (error && typeof error === 'object' && 'statusCode' in error) {
         console.log(`[${meta.path}] Returning error response:`, error);
-        // Ensure CORS headers are present on the error response
-        const errorResponse = error as any;
+        const errorResponse = error as ErrorResponse;
         return {
-          ...errorResponse,
+          statusCode: errorResponse.statusCode,
           headers: {
             ...CORS_HEADERS,
             ...errorResponse.headers,
           },
+          body: errorResponse.body,
         };
       }
 

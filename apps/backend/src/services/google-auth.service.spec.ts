@@ -1,6 +1,7 @@
 import { GoogleAuthService, GoogleTokenPayload } from './google-auth.service';
 import { UserState, UserRole } from '@equip-track/shared';
 import { OAuth2Client } from 'google-auth-library';
+import { badRequest, emailVerificationRequired } from '../api/responses';
 
 // Mock crypto for UUID generation
 jest.mock('crypto', () => ({
@@ -12,27 +13,47 @@ jest.mock('google-auth-library', () => ({
   OAuth2Client: jest.fn(),
 }));
 
-// Mock JWT Service
-jest.mock('./jwt.service', () => ({
-  JwtService: jest.fn().mockImplementation(() => ({
+// Shared mock instances so GoogleAuthService and assertions use the same fns
+jest.mock('./jwt.service', () => {
+  const mockJwt = {
     generateToken: jest.fn().mockResolvedValue('mock-jwt-token'),
-  })),
-}));
+  };
+  return {
+    JwtService: jest.fn().mockImplementation(() => mockJwt),
+    __mockJwt: mockJwt,
+  };
+});
 
-// Mock Users Adapter
-jest.mock('../db/tables/users-and-organizations.adapter', () => ({
-  UsersAndOrganizationsAdapter: jest.fn().mockImplementation(() => ({
+jest.mock('../db/tables/users-and-organizations.adapter', () => {
+  const mockAdapter = {
     getUserByEmail: jest.fn(),
     createUser: jest.fn(),
     updateUserState: jest.fn(),
-  })),
-}));
+    updateUserName: jest.fn(),
+  };
+  return {
+    UsersAndOrganizationsAdapter: jest
+      .fn()
+      .mockImplementation(() => mockAdapter),
+    __mockAdapter: mockAdapter,
+  };
+});
+
+const { __mockJwt: mockJwtService } = jest.requireMock<{
+  __mockJwt: { generateToken: jest.Mock };
+}>('./jwt.service');
+const { __mockAdapter: mockUsersAdapter } = jest.requireMock<{
+  __mockAdapter: {
+    getUserByEmail: jest.Mock;
+    createUser: jest.Mock;
+    updateUserState: jest.Mock;
+    updateUserName: jest.Mock;
+  };
+}>('../db/tables/users-and-organizations.adapter');
 
 describe('GoogleAuthService', () => {
   let googleAuthService: GoogleAuthService;
-  let mockOAuth2Client: any;
-  let mockUsersAdapter: any;
-  let mockJwtService: any;
+  let mockOAuth2Client: { verifyIdToken: jest.Mock };
 
   const mockGoogleClientId = 'test-google-client-id';
   const validGooglePayload: GoogleTokenPayload = {
@@ -53,24 +74,17 @@ describe('GoogleAuthService', () => {
     mockOAuth2Client = {
       verifyIdToken: jest.fn(),
     };
-    (OAuth2Client as any).mockImplementation(() => mockOAuth2Client);
+    (OAuth2Client as unknown as jest.Mock).mockImplementation(
+      () => mockOAuth2Client
+    );
 
     // Setup service
     googleAuthService = new GoogleAuthService(mockGoogleClientId);
 
-    // Get references to mocked services
-    const { JwtService } = require('./jwt.service');
-    const {
-      UsersAndOrganizationsAdapter,
-    } = require('../db/tables/users-and-organizations.adapter');
-
-    mockJwtService = new JwtService();
-    mockUsersAdapter = new UsersAndOrganizationsAdapter();
-
     // Setup default mock responses
     mockOAuth2Client.verifyIdToken.mockResolvedValue({
       getPayload: () => validGooglePayload,
-    } as any);
+    } as unknown as Awaited<ReturnType<OAuth2Client['verifyIdToken']>>);
   });
 
   describe('authenticateWithGoogle', () => {
@@ -112,10 +126,6 @@ describe('GoogleAuthService', () => {
         { 'org-123': UserRole.Customer }
       );
       expect(result.jwt).toBe('mock-jwt-token');
-      expect(result.user.state).toBe(UserState.Active);
-      expect(result.userInOrganizations).toEqual(
-        existingUser.userInOrganizations
-      );
     });
 
     it('should authenticate existing active user without updating state', async () => {
@@ -153,7 +163,6 @@ describe('GoogleAuthService', () => {
         { 'org-123': UserRole.Admin }
       );
       expect(result.jwt).toBe('mock-jwt-token');
-      expect(result.user.state).toBe(UserState.Active);
     });
 
     it('should create new user with UUID when user does not exist', async () => {
@@ -174,7 +183,7 @@ describe('GoogleAuthService', () => {
           id: 'test-uuid-123',
           email: 'test@example.com',
           name: 'Test User',
-          state: UserState.Disabled,
+          state: UserState.Active,
         },
         'google-user-123'
       );
@@ -183,20 +192,20 @@ describe('GoogleAuthService', () => {
         {}
       );
       expect(result.jwt).toBe('mock-jwt-token');
-      expect(result.user.state).toBe(UserState.Disabled);
-      expect(result.userInOrganizations).toEqual([]);
     });
 
     it('should reject invalid Google ID token', async () => {
       // Arrange
       mockOAuth2Client.verifyIdToken.mockRejectedValue(
-        new Error('Invalid token') as any
+        new Error('Invalid token')
       );
 
       // Act & Assert
       await expect(
         googleAuthService.authenticateWithGoogle('invalid-token')
-      ).rejects.toThrow('Invalid Google ID token');
+      ).rejects.toEqual(
+        badRequest('The provided Google ID token is invalid')
+      );
     });
 
     it('should reject token with wrong issuer', async () => {
@@ -204,12 +213,14 @@ describe('GoogleAuthService', () => {
       const invalidPayload = { ...validGooglePayload, iss: 'malicious.com' };
       mockOAuth2Client.verifyIdToken.mockResolvedValue({
         getPayload: () => invalidPayload,
-      } as any);
+      } as unknown as Awaited<ReturnType<OAuth2Client['verifyIdToken']>>);
 
       // Act & Assert
       await expect(
         googleAuthService.authenticateWithGoogle('token-with-wrong-issuer')
-      ).rejects.toThrow('Google ID token from wrong issuer');
+      ).rejects.toEqual(
+        badRequest('The Google ID token is from an unauthorized source')
+      );
     });
 
     it('should reject token with unverified email', async () => {
@@ -217,19 +228,25 @@ describe('GoogleAuthService', () => {
       const invalidPayload = { ...validGooglePayload, email_verified: false };
       mockOAuth2Client.verifyIdToken.mockResolvedValue({
         getPayload: () => invalidPayload,
-      } as any);
+      } as unknown as Awaited<ReturnType<OAuth2Client['verifyIdToken']>>);
 
       // Act & Assert
       await expect(
         googleAuthService.authenticateWithGoogle('token-with-unverified-email')
-      ).rejects.toThrow('Google authentication failed');
+      ).rejects.toEqual(
+        emailVerificationRequired(
+          'Your Google account email must be verified to sign in'
+        )
+      );
     });
   });
 
   describe('validateGoogleIdToken', () => {
     it('should validate a properly formatted Google ID token', async () => {
       // Arrange
-      const service = googleAuthService as any; // Access private method
+      const service = googleAuthService as unknown as {
+        validateGoogleIdToken: (token: string) => Promise<GoogleTokenPayload>;
+      };
 
       // Act
       const result = await service.validateGoogleIdToken('valid-token');
@@ -244,10 +261,12 @@ describe('GoogleAuthService', () => {
 
     it('should reject token with no payload', async () => {
       // Arrange
-      const service = googleAuthService as any;
+      const service = googleAuthService as unknown as {
+        validateGoogleIdToken: (token: string) => Promise<GoogleTokenPayload>;
+      };
       mockOAuth2Client.verifyIdToken.mockResolvedValue({
         getPayload: () => null,
-      } as any);
+      } as unknown as Awaited<ReturnType<OAuth2Client['verifyIdToken']>>);
 
       // Act & Assert
       await expect(

@@ -4,7 +4,7 @@ import { InventoryForm, User, FormType } from '@equip-track/shared';
 
 declare module 'jspdf' {
   interface jsPDF {
-    autoTable: (options: any) => jsPDF;
+    autoTable: (options: Record<string, unknown>) => jsPDF;
   }
 }
 

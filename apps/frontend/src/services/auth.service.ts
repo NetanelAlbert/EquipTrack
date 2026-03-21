@@ -159,7 +159,7 @@ export class AuthService {
       const payload = JSON.parse(atob(parts[1]));
       const currentTime = Math.floor(Date.now() / 1000);
       return payload.exp > currentTime;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

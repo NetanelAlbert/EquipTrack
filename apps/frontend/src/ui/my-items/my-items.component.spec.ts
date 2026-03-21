@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TranslateModule } from '@ngx-translate/core';
 import { MyItemsComponent } from './my-items.component';
@@ -12,10 +13,10 @@ describe('MyItemsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         MyItemsComponent,
-        HttpClientTestingModule,
         NoopAnimationsModule,
         TranslateModule.forRoot(),
       ],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(MyItemsComponent);

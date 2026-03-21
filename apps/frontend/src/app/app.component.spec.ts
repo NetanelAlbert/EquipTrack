@@ -4,7 +4,8 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TranslateModule } from '@ngx-translate/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatIconTestingModule } from '@angular/material/icon/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 
 describe('AppComponent', () => {
   let component: AppComponent;
@@ -20,14 +21,13 @@ describe('AppComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        AppComponent,
         NoopAnimationsModule,
         TranslateModule.forRoot(),
         MatIconModule,
         MatIconTestingModule,
-        HttpClientTestingModule,
       ],
-      declarations: [AppComponent],
-      providers: [],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(AppComponent);
@@ -37,7 +37,7 @@ describe('AppComponent', () => {
 
   afterEach(() => {
     // Clean up the mock
-    delete (global as any).fetch;
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
   });
 
   it('should create', () => {

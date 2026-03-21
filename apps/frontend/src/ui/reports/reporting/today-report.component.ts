@@ -179,12 +179,12 @@ export class TodayReportComponent {
     const result: Array<[string, ItemReport[]]> = [];
     const myUserId = this.userStore.user()?.id ?? '';
 
-    if (!!itemsByHolderCopy[myUserId]) {
+    if (itemsByHolderCopy[myUserId]) {
       result.push([myUserId, this.inventoryItemsToItemReports(itemsByHolderCopy[myUserId])]);
       delete itemsByHolderCopy[myUserId];
     }
 
-    if (!!itemsByHolderCopy['WAREHOUSE']) {
+    if (itemsByHolderCopy['WAREHOUSE']) {
       result.push(['WAREHOUSE', this.inventoryItemsToItemReports(itemsByHolderCopy['WAREHOUSE'])]);
       delete itemsByHolderCopy['WAREHOUSE'];
     }

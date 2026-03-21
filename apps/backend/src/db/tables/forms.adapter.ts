@@ -138,7 +138,7 @@ export class FormsAdapter {
 
     // Build dynamic update expression
     const updateExpressions: string[] = [];
-    const expressionAttributeValues: Record<string, any> = {};
+    const expressionAttributeValues: Record<string, unknown> = {};
     const expressionAttributeNames: Record<string, string> = {};
 
     // Map of field names that might need attribute name aliases
@@ -185,8 +185,13 @@ export class FormsAdapter {
         throw new Error(`Form with ID ${formID} for user ${userId} not found`);
       }
       return this.getInventoryForm(result.Attributes);
-    } catch (error: any) {
-      if (error.name === 'ConditionalCheckFailedException') {
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'name' in error &&
+        (error as { name: string }).name === 'ConditionalCheckFailedException'
+      ) {
         throw new Error(`Form with ID ${formID} for user ${userId} not found`);
       }
       throw error;
@@ -211,19 +216,19 @@ export class FormsAdapter {
     };
   }
 
-  private getInventoryForm(item: any): InventoryForm {
-    if (item.dbItemType !== DbItemType.Form) {
+  private getInventoryForm(item: Record<string, unknown>): InventoryForm {
+    if (item['dbItemType'] !== DbItemType.Form) {
       throw new Error(`Item is not a form: ${JSON.stringify(item)}`);
     }
 
-    return item as InventoryForm;
+    return item as unknown as InventoryForm;
   }
 
-  private getPredefinedForm(item: any): PredefinedForm {
-    if (item.dbItemType !== DbItemType.PredefinedForm) {
+  private getPredefinedForm(item: Record<string, unknown>): PredefinedForm {
+    if (item['dbItemType'] !== DbItemType.PredefinedForm) {
       throw new Error(`Item is not a predefined form: ${JSON.stringify(item)}`);
     }
 
-    return item as PredefinedForm;
+    return item as unknown as PredefinedForm;
   }
 }

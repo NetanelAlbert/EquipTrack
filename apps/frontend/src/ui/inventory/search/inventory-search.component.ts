@@ -161,8 +161,6 @@ export interface InventorySearchFilters {
         [attr.aria-label]="'inventory.search.sortDirection' | translate"
         class="sort-direction-btn"
         [@pulseButton]="'inactive'"
-        (mouseenter)="onButtonHover(true)"
-        (mouseleave)="onButtonHover(false)"
         [title]="
           (sortDirection() === 'asc'
             ? 'inventory.search.sortAscending'
@@ -357,8 +355,8 @@ export class InventorySearchComponent {
     const direction = this.sortDirection() === 'asc' ? 1 : -1;
 
     filtered = [...filtered].sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
+      let aValue: string | number;
+      let bValue: string | number;
 
       switch (sortBy) {
         case 'productId':
@@ -370,8 +368,10 @@ export class InventorySearchComponent {
           bValue = b.quantity;
           break;
         case 'name':
-          aValue = this.productsMap().get(a.productId)?.name.toLowerCase();
-          bValue = this.productsMap().get(b.productId)?.name.toLowerCase();
+          aValue =
+            this.productsMap().get(a.productId)?.name.toLowerCase() ?? '';
+          bValue =
+            this.productsMap().get(b.productId)?.name.toLowerCase() ?? '';
           break;
         default:
           return 0;
@@ -449,10 +449,5 @@ export class InventorySearchComponent {
         }
         break;
     }
-  }
-
-  onButtonHover(isHovered: boolean) {
-    // This method is used for button hover state management
-    // Currently used for animation triggers, can be extended for more complex interactions
   }
 }
