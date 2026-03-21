@@ -1,0 +1,492 @@
+{
+  "title": "EquipTrack",
+  "auth": {
+    "login-page": "התחברות ל-EquipTrack",
+    "sign-in-title": "ברוכים הבאים ל-EquipTrack",
+    "sign-in-subtitle": "מעקב וניהול מלאי ציוד",
+    "welcome-message": "נא להתחבר כדי לגשת ללוח ניהול הציוד שלך.",
+    "signin-methods": "שיטות התחברות",
+    "google-signin-group": "אפשרויות התחברות עם Google",
+    "google-signin-section": "אזור התחברות עם Google",
+    "google-signin-button-group": "קבוצת כפתורי התחברות עם Google",
+    "or-separator": "מפריד בין שיטות התחברות חלופיות",
+    "or": "או",
+    "help-section": "אפשרויות עזרה ותמיכה",
+    "need-help": "צריך עזרה בגישה לחשבון שלך?",
+    "contact-admin": "צור קשר עם מנהל המערכת",
+    "security-icon": "מידע על אבטחה ופרטיות",
+    "security-note": "הנתונים שלך מוגנים ברמת אבטחה ארגונית.",
+    "signing-in": "מתחבר...",
+    "loading": "טוען...",
+    "fallback-signin": "התחברות חלופית",
+    "sign-in-with-google": "התחברות עם Google",
+    "sign-in-with-google-fallback": "התחברות עם Google (חלופי)",
+    "fallback-description": "אם הכפתור למעלה לא עובד, נסה את השיטה החלופית הזו.",
+    "error-icon": "סמל שגיאה",
+    "signin-error": "שגיאת התחברות",
+    "google-unavailable": "ההתחברות עם Google אינה זמינה כעת. נסה שוב מאוחר יותר.",
+    "try-again": "נסה שוב",
+    "try-again-detailed": "נסה להתחבר שוב",
+    "error": "שגיאת אימות",
+    "success": "האימות הצליח"
+  },
+  "common": {
+    "close": "סגור",
+    "cancel": "ביטול",
+    "save": "שמור",
+    "saving": "שומר...",
+    "delete": "מחק",
+    "edit": "ערוך",
+    "add": "הוסף",
+    "yes": "כן",
+    "no": "לא",
+    "ok": "אישור",
+    "retry": "נסה שוב",
+    "refresh": "רענן",
+    "loading": "טוען...",
+    "copied-to-clipboard": "הועתק ללוח",
+    "success": "הפעולה הושלמה בהצלחה",
+    "error": "אירעה שגיאה: {{error}}",
+    "error-simple": "אירעה שגיאה",
+    "info": "מידע",
+    "user-info-unavailable": "פרטי משתמש אינם זמינים",
+    "email-request-generated": "לקוח הדוא\"ל נפתח עם בקשת גישה",
+    "email-request-failed": "יצירת בקשת גישה נכשלה",
+    "navigation-failed": "הניווט נכשל. נסה שוב.",
+    "confirm": "אישור",
+    "unsaved-changes-warning": "יש לך שינויים שלא נשמרו. האם אתה בטוח שברצונך לעזוב את הדף?",
+    "leave": "עזוב",
+    "stay": "הישאר",
+    "signature": {
+      "signature-pad": "אזור חתימה",
+      "clear": "נקה",
+      "title": "נא לחתום לאישור"
+    }
+  },
+  "navigation": {
+    "dashboard": "לוח מחוונים",
+    "inventory": "מלאי",
+    "forms": "טפסים",
+    "reports": "דוחות",
+    "settings": "הגדרות",
+    "user-menu": "תפריט משתמש",
+    "view-profile": "צפה בפרופיל",
+    "sign-out": "התנתק",
+    "sign-in": "התחבר",
+    "my-items": "הפריטים שלי",
+    "today-report": "דוח יומי",
+    "reports-history": "היסטוריית דוחות",
+    "my-forms": "הטפסים שלי",
+    "check-in": "החזרה",
+    "edit-products": "עריכת מוצרים",
+    "edit-users": "עריכת משתמשים",
+    "all-inventory": "כל המלאי",
+    "inventory-by-users": "מלאי לפי משתמשים",
+    "add-inventory": "הוספת מלאי",
+    "remove-inventory": "הסרת מלאי",
+    "create-form": "יצירת טופס",
+    "trace-product": "מעקב מוצר",
+    "admin-dashboard": "לוח ניהול",
+    "switch-organization": "החלף ארגון",
+    "app-version": "גרסת אפליקציה"
+  },
+  "settings": {
+    "title": "הגדרות",
+    "language": {
+      "label": "שפה",
+      "description": "בחר את שפת הממשק המועדפת עליך.",
+      "english": "אנגלית",
+      "hebrew": "עברית"
+    }
+  },
+  "forms": {
+    "user-name": "שם משתמש",
+    "user-id": "מזהה משתמש",
+    "form-id": "מזהה טופס",
+    "description": "תיאור",
+    "status": "סטטוס",
+    "status-pending": "ממתין",
+    "status-approved": "אושר",
+    "status-rejected": "נדחה",
+    "created-at": "נוצר בתאריך",
+    "created-by": "נוצר על ידי",
+    "approved-at": "אושר בתאריך",
+    "approved-by": "אושר על ידי",
+    "rejected-at": "נדחה בתאריך",
+    "by": "על ידי",
+    "rejection-reason": "סיבת דחייה",
+    "view-pdf": "צפייה ב-PDF",
+    "approve": "אשר",
+    "reject": "דחה",
+    "check-in": "החזרה",
+    "check-out": "לקיחה",
+    "empty-check-in": "אין טפסי החזרה זמינים.",
+    "empty-check-out": "אין טפסי לקיחה זמינים.",
+    "check-in-submitted": "בקשת ההחזרה נשלחה בהצלחה",
+    "check-out-submitted": "בקשת הלקיחה נשלחה בהצלחה",
+    "form-approved": "הטופס אושר בהצלחה",
+    "form-rejected": "הטופס נדחה בהצלחה",
+    "form-invalid": "הטופס אינו תקין. בדוק את הקלט ונסה שוב.",
+    "search": {
+      "placeholder": "חיפוש בפרטי הטפסים"
+    },
+    "filter": {
+      "status": "סינון לפי סטטוס",
+      "all": "כל הסטטוסים"
+    },
+    "sort": {
+      "label": "מיון לפי תאריך",
+      "newest": "החדשים תחילה",
+      "oldest": "הישנים תחילה"
+    },
+    "clearFilters": "נקה סינונים",
+    "copy-form-id": "העתקת מזהה טופס: {{formId}}",
+    "form-id-copied": "מזהה הטופס הועתק ללוח",
+    "view-submitted-form": "האם ברצונך לצפות בטופס ששלחת?",
+    "clone-form": "שכפול טופס",
+    "reject-dialog": {
+      "title": "דחיית טופס",
+      "reason": "סיבה",
+      "reason-placeholder": "הזן סיבת דחייה",
+      "cancel": "ביטול",
+      "confirm": "אישור"
+    }
+  },
+  "inventory": {
+    "title": "מלאי",
+    "add-item": "הוספת פריט",
+    "edit-item": "עריכת פריט",
+    "remove-item": "הסרת פריט",
+    "location": "מיקום",
+    "status": "סטטוס",
+    "loading": "טוען מלאי...",
+    "views": {
+      "warehouse": "מחסן",
+      "organization": "ארגון",
+      "selectUser": "בחר משתמש"
+    },
+    "users": {
+      "loading": "טוען משתמשים...",
+      "errorLoading": "שגיאה בטעינת משתמשים",
+      "noUsers": "אין משתמשים זמינים",
+      "errorMessage": "טעינת המשתמשים נכשלה"
+    },
+    "search": {
+      "placeholder": "חיפוש פריטי מלאי...",
+      "clear": "נקה חיפוש",
+      "sortBy": "מיין לפי",
+      "sortByProductId": "מזהה מוצר",
+      "sortByQuantity": "כמות",
+      "sortByName": "שם",
+      "sortDirection": "כיוון מיון",
+      "sortAscending": "מיון עולה (A-Z, 0-9)",
+      "sortDescending": "מיון יורד (Z-A, 9-0)",
+      "results": "נמצאו {{count}} פריטים",
+      "clearFilters": "נקה את כל הסינונים",
+      "selectUserFirst": "יש לבחור משתמש כדי לצפות במלאי שלו",
+      "type": "סוג",
+      "typeAll": "הכול",
+      "typeUpi": "UPI",
+      "typeNonUpi": "ללא UPI"
+    },
+    "table": {
+      "selectedUsers": "משתמשים שנבחרו",
+      "addUser": "הוסף משתמש",
+      "showAllUsers": "הצג את כל המשתמשים",
+      "resetToWarehouse": "איפוס למחסן",
+      "product": "מוצר",
+      "upiProduct": "למוצר זה יש מזהים ייחודיים (UPI)",
+      "noInventory": "אין נתוני מלאי",
+      "noInventoryDescription": "אין נתוני מלאי זמינים עבור המשתמשים שנבחרו."
+    },
+    "item": {
+      "expandable": "פריט מלאי {{name}} - לחץ להרחבת {{count}} פרטי UPI",
+      "static": "פריט מלאי {{name}} - אין פרטים נוספים"
+    },
+    "quantity": {
+      "value": "כמות: {{quantity}} פריטים"
+    },
+    "error": {
+      "failed_to_load": "טעינת המלאי נכשלה"
+    },
+    "empty": {
+      "title": "אין פריטי מלאי",
+      "description": "לא נמצאו פריטי מלאי עבור בחירה זו.",
+      "empty-state": "אין פריטי מלאי זמינים."
+    },
+    "form": {
+      "product": "מוצר",
+      "quantity": "כמות",
+      "upi": "UPI",
+      "upi-placeholder": "הזן קוד UPI",
+      "product-search-placeholder": "חפש מוצר",
+      "confirm-remove": "האם אתה בטוח שברצונך להסיר את {{product}} מהרשימה?"
+    },
+    "button": {
+      "add-item": "הוסף פריט",
+      "save": "שמור",
+      "create-check-in": "צור החזרה",
+      "create-checkout": "צור לקיחה",
+      "remove-items": "הסר פריטים",
+      "add-items": "שמור פריטים חדשים"
+    },
+    "validation": {
+      "duplicate": "נמצאו פריטים כפולים: {{duplicates}}",
+      "duplicate-simple": "פריט כפול",
+      "product-required": "נדרש מוצר",
+      "quantity-required": "נדרשת כמות",
+      "quantity-min": "הכמות חייבת להיות לפחות 1",
+      "quantity-pattern": "הכמות חייבת להיות מספר תקין",
+      "upi-required": "נדרש UPI",
+      "upi-duplicate": "UPI חייב להיות ייחודי",
+      "product-not-found": "המוצר לא נמצא במקור",
+      "product-limit": "הגעת למגבלת מוצרים: {{limit}}",
+      "product-missing-upis": "חסרים UPI: {{missingUpis}}"
+    },
+    "upi": {
+      "title": "מידע UPI",
+      "item": "קוד UPI: {{upi}}",
+      "help": "מכיל {{count}} קודי UPI. לחץ Enter או רווח להרחבה.",
+      "copied": "UPI הועתק ללוח"
+    },
+    "add": {
+      "title": "הוספת מלאי",
+      "subtitle": "הוסף פריטים חדשים למלאי המחסן",
+      "adding": "מוסיף פריטי מלאי...",
+      "success": "נוספו בהצלחה {{count}} פריטי מלאי",
+      "error": {
+        "no-items": "נא להוסיף לפחות פריט אחד לפני השמירה"
+      }
+    },
+    "remove": {
+      "title": "הסרת מלאי",
+      "subtitle": "הסר פריטים ממלאי המחסן",
+      "warning": "אזהרה: פעולה זו תסיר פריטים מהמלאי לצמיתות. ודא שהכמויות וה-UPI נכונים.",
+      "removing": "מסיר פריטי מלאי...",
+      "success": "הוסרו בהצלחה {{count}} פריטי מלאי",
+      "success-simple": "פריטי מלאי הוסרו בהצלחה",
+      "error": {
+        "no-items": "נא להוסיף לפחות פריט אחד להסרה"
+      }
+    }
+  },
+  "create-form": {
+    "title": "יצירת טופס",
+    "select-user": "בחר משתמש",
+    "form-description": "תיאור טופס",
+    "predefined-forms": "טפסים מוגדרים מראש",
+    "items": "פריטים",
+    "success": "הלקיחה הושלמה בהצלחה",
+    "error": "הלקיחה נכשלה. נסה שוב.",
+    "type": {
+      "check-in": "החזרה",
+      "check-out": "לקיחה"
+    },
+    "explanation": {
+      "check-in": "החזרת פריטים למחסן",
+      "check-out": "לקיחת פריטים מהמחסן"
+    },
+    "submit-button": {
+      "check-in": "החזרה",
+      "check-out": "לקיחה"
+    }
+  },
+  "reports": {
+    "title": "דוחות",
+    "historyTitle": "היסטוריית דוחות",
+    "sortBy": "מיין לפי",
+    "sortByLocation": "מיקום",
+    "sortByProduct": "מוצר",
+    "selectDate": "בחר תאריך",
+    "items": "פריטים",
+    "upiLabel": "UPI",
+    "reported": "דווח",
+    "notReported": "לא דווח",
+    "lastLocation": "מיקום אחרון",
+    "useLastLocation": "השתמש במיקום האחרון",
+    "enterLocation": "הזן מיקום",
+    "noReportForDate": "אין דוח זמין",
+    "noReportForDateDescription": "לא הופק דוח עבור התאריך שנבחר.",
+    "item-published": "דוח הפריט עודכן בהצלחה",
+    "items-published": "דוחות מרובים עודכנו בהצלחה"
+  },
+  "errors": {
+    "not-allowed": {
+      "title": "הגישה נדחתה",
+      "message": "אין לך הרשאה לגשת לדף זה.",
+      "back-home": "חזרה לדף הבית"
+    },
+    "api": {
+      "general": "אירעה שגיאה. נסה שוב.",
+      "unauthorized": "אין לך הרשאה לבצע פעולה זו.",
+      "forbidden": "אין לך הרשאה לגשת למשאב זה.",
+      "not-found": "המשאב המבוקש לא נמצא.",
+      "bad-request": "בקשה לא תקינה. בדוק את הקלט ונסה שוב.",
+      "email-verification-required": "נא לאמת את כתובת הדוא\"ל כדי להמשיך.",
+      "internal-server-error": "אירעה שגיאת שרת. נסה שוב מאוחר יותר.",
+      "not-implemented": "תכונה זו עדיין לא מיושמת. נסה שוב מאוחר יותר.",
+      "network-error": "שגיאת רשת. בדוק את החיבור ונסה שוב.",
+      "timeout": "פג הזמן הקצוב לבקשה. נסה שוב.",
+      "user-id-required": "נדרש מזהה משתמש",
+      "description-required": "נדרש תיאור",
+      "jwt-payload-required": "נדרש JWT payload",
+      "organization-id-required": "נדרש מזהה ארגון",
+      "form-id-required": "נדרש מזהה טופס",
+      "invalid-form-type": "סוג טופס לא תקין"
+    },
+    "auth": {
+      "no-token": "נדרש אימות. נא להתחבר מחדש.",
+      "session-expired": "תוקף ההתחברות שלך פג. נא להתחבר מחדש.",
+      "invalid-credentials": "פרטי ההתחברות שגויים. נסה שוב."
+    },
+    "organization": {
+      "not-selected": "נא לבחור ארגון כדי להמשיך.",
+      "access-denied": "אין לך גישה לארגון זה."
+    },
+    "forms": {
+      "fetch-failed": "טעינת הטפסים נכשלה. נסה שוב.",
+      "submit-failed": "שליחת הטופס נכשלה. נסה שוב.",
+      "approve-failed": "אישור הטופס נכשל. נסה שוב.",
+      "reject-failed": "דחיית הטופס נכשלה. נסה שוב."
+    },
+    "inventory": {
+      "fetch-failed": "טעינת המלאי נכשלה. נסה שוב.",
+      "add-failed": "הוספת פריטי מלאי נכשלה. נסה שוב.",
+      "remove-failed": "הסרת פריטי מלאי נכשלה. נסה שוב.",
+      "update-failed": "עדכון המלאי נכשל. נסה שוב."
+    },
+    "reports": {
+      "fetch-failed": "טעינת הדוחות נכשלה. נסה שוב.",
+      "generate-failed": "יצירת הדוח נכשלה. נסה שוב.",
+      "publish-failed": "פרסום הדוח נכשל. נסה שוב."
+    },
+    "users": {
+      "fetch-failed": "טעינת המשתמשים נכשלה. נסה שוב.",
+      "invite-failed": "שליחת ההזמנה נכשלה. נסה שוב.",
+      "update-failed": "עדכון המשתמש נכשל. נסה שוב."
+    },
+    "products": {
+      "fetch-failed": "טעינת המוצרים נכשלה. נסה שוב.",
+      "save-failed": "שמירת המוצר נכשלה. נסה שוב.",
+      "delete-failed": "מחיקת המוצר נכשלה. נסה שוב."
+    },
+    "presigned-url": {
+      "get-failed": "קבלת presigned URL נכשלה. נסה שוב."
+    }
+  },
+  "organization": {
+    "select": {
+      "title": "בחירת ארגון",
+      "subtitle": "בחר את הארגון שבו תרצה לעבוד",
+      "select-button": "בחר",
+      "no-organizations": {
+        "title": "אין ארגונים זמינים",
+        "message": "אינך חבר כרגע באף ארגון. פנה למנהל המערכת כדי שיוסיף אותך לארגון.",
+        "contact-admin": "צור קשר עם מנהל המערכת"
+      },
+      "loading": "טוען ארגונים...",
+      "error": "טעינת הארגונים נכשלה",
+      "success": "הארגון נבחר בהצלחה!"
+    },
+    "invitation": {
+      "request-subject": "בקשת גישה ל-EquipTrack",
+      "request-body": "שלום,\n\nברצוני לבקש גישה ל-EquipTrack עבור הארגון שלי.\n\nהאימייל שלי: {{email}}\nכתובת האפליקציה: {{appUrl}}\n\nאנא הוסיפו אותי לארגון כדי שאוכל להתחיל להשתמש במערכת מעקב הציוד.\n\nתודה!",
+      "copied": "הודעת ההזמנה הועתקה ללוח"
+    },
+    "editProducts": {
+      "title": "הוספת מוצר",
+      "existing": "מוצרים קיימים",
+      "existingSubtitle": "מוצרים שכבר קיימים במערכת. ניתן לערוך את שמם בלחיצה על סמל העיפרון.",
+      "search": "חפש מוצר",
+      "id": "מזהה מוצר",
+      "name": "שם מוצר",
+      "upi": "דורש UPI",
+      "idRequired": "נדרש מזהה מוצר",
+      "idMinLength": "מזהה המוצר חייב להכיל לפחות 3 תווים",
+      "nameRequired": "נדרש שם מוצר",
+      "nameMinLength": "שם המוצר חייב להכיל לפחות 2 תווים",
+      "duplicateIds": "לא ניתן להשתמש במזהי מוצר כפולים",
+      "addProduct": "הוסף מוצר",
+      "save": "שמור מוצרים",
+      "filter": {
+        "upi": "UPI",
+        "noUpi": "ללא UPI",
+        "all": "הכול"
+      },
+      "editDialog": {
+        "title": "עריכת שם מוצר",
+        "currentName": "שם נוכחי",
+        "newName": "שם מוצר חדש",
+        "cancel": "ביטול",
+        "save": "שמור"
+      }
+    },
+    "products": {
+      "get": {
+        "error": "טעינת המוצרים נכשלה"
+      },
+      "save": {
+        "error": "שמירת המוצר נכשלה"
+      },
+      "delete": {
+        "error": "מחיקת המוצר נכשלה"
+      },
+      "save-success": "המוצר נשמר בהצלחה",
+      "delete-success": "המוצר נמחק בהצלחה"
+    },
+    "users": {
+      "title": "עריכת משתמשים",
+      "subtitle": "נהל משתמשים בארגון ושלח הזמנות",
+      "get": {
+        "error": "קבלת המשתמשים נכשלה"
+      },
+      "invite": {
+        "title": "הזמנת משתמש חדש",
+        "subtitle": "שלח הזמנה להצטרף לארגון זה",
+        "email-label": "כתובת דוא\"ל",
+        "email-placeholder": "user@example.com",
+        "role-label": "תפקיד",
+        "button-sending": "שולח...",
+        "button-send": "שלח הזמנה",
+        "success": "הזמנה נשלחה אל {{email}}",
+        "email-required": "נדרשת כתובת דוא\"ל",
+        "email-invalid": "נא להזין כתובת דוא\"ל תקינה",
+        "error": "שליחת ההזמנה נכשלה",
+        "department-label": "מחלקה",
+        "sub-department-label": "תת-מחלקה",
+        "department-required": "נדרשת מחלקה",
+        "role-description-required": "נדרש תיאור תפקיד",
+        "name-label": "שם",
+        "name-placeholder": "ישראל ישראלי",
+        "role-description-label": "תיאור תפקיד",
+        "role-description-placeholder": "הזן תיאור תפקיד"
+      },
+      "table": {
+        "title": "משתמשי הארגון",
+        "subtitle": "חברים נוכחיים בארגון זה",
+        "name": "שם",
+        "email": "דוא\"ל",
+        "role": "תפקיד",
+        "status": "סטטוס",
+        "actions": "פעולות",
+        "edit-tooltip": "ערוך משתמש",
+        "edit-coming-soon": "אפשרות עריכת משתמש תתווסף בקרוב"
+      },
+      "roles": {
+        "admin": "מנהל מערכת",
+        "warehouse-manager": "מנהל מחסן",
+        "customer": "לקוח"
+      },
+      "states": {
+        "active": "פעיל",
+        "invited": "הוזמן",
+        "disabled": "מושבת"
+      },
+      "empty": {
+        "title": "לא נמצאו משתמשים",
+        "message": "התחל בהזמנת משתמשים לארגון באמצעות הטופס למעלה."
+      },
+      "invite-success": "הזמנת המשתמש נשלחה בהצלחה"
+    }
+  }
+}

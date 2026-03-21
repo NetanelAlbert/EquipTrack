@@ -1,20 +1,18 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../environments/environment';
 import { Observable, throwError } from 'rxjs';
 import { endpointMetas, EndpointMeta, OptionalObject } from '@equip-track/shared';
 import { AuthStore } from '../store/auth.store';
+import { RuntimeConfigService } from './runtime-config.service';
 
 class EndpointExecutor<Req extends OptionalObject, Res extends OptionalObject> {
-  private requestUrl: string;
   constructor(
     private endpointMeta: EndpointMeta<Req, Res>,
     private http: HttpClient,
-    private apiUrl: string,
+    private getApiUrl: () => string,
     private authStore: InstanceType<typeof AuthStore>
-  ) {
-    this.requestUrl = `${this.apiUrl}${this.endpointMeta.path}`;
-  }
+  ) {}
+
   execute(
     data: Req,
     pathParams: Record<string, string> = {},
@@ -31,7 +29,8 @@ class EndpointExecutor<Req extends OptionalObject, Res extends OptionalObject> {
         return throwError(() => new Error('No token found'));
       }
     }
-    const url = this.requestUrl.replace(
+    const requestUrl = `${this.getApiUrl()}${this.endpointMeta.path}`;
+    const url = requestUrl.replace(
       /{(\w+)}/g,
       (match, key) => pathParams[key] || match
     );
@@ -55,20 +54,37 @@ type EndpointsDefinition = {
   providedIn: 'root',
 })
 export class ApiService {
-  private apiUrl = environment.apiUrl;
   private http = inject(HttpClient);
   private authStore = inject(AuthStore);
+  private runtimeConfig = inject(RuntimeConfigService);
 
-  endpoints: EndpointsDefinition = Object.entries(endpointMetas).reduce(
-    (acc, [key, value]) => {
-      const typedKey = key as keyof typeof endpointMetas;
-      acc[typedKey] = new EndpointExecutor<
-        (typeof value)['requestType'],
-        (typeof value)['responseType']
-      >(value, this.http, this.apiUrl, this.authStore);
-      return acc;
-    },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    {} as any
-  );
+  endpoints: EndpointsDefinition = this.createEndpointExecutors();
+
+  private createEndpointExecutors(): EndpointsDefinition {
+    const endpoints = {} as EndpointsDefinition;
+
+    const setEndpointExecutor = <K extends keyof typeof endpointMetas>(
+      key: K
+    ) => {
+      const endpointMeta = endpointMetas[key];
+
+      endpoints[key] = new EndpointExecutor<
+        (typeof endpointMeta)['requestType'],
+        (typeof endpointMeta)['responseType']
+      >(
+        endpointMeta,
+        this.http,
+        () => this.runtimeConfig.apiUrl,
+        this.authStore
+      ) as EndpointsDefinition[K];
+    };
+
+    for (const key of Object.keys(endpointMetas) as Array<
+      keyof typeof endpointMetas
+    >) {
+      setEndpointExecutor(key);
+    }
+
+    return endpoints;
+  }
 }

@@ -55,7 +55,7 @@ export function createLambdaHandler<
       }
 
       console.log(`[${meta.path}] Calling handler...`);
-      const result = await handler(req, event.pathParameters, jwtPayload);
+      const result = await handler(req, event.pathParameters, jwtPayload, event);
       console.log(`[${meta.path}] Handler completed successfully`);
 
       return {

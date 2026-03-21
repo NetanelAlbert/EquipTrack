@@ -1,4 +1,4 @@
-<mat-sidenav-container class="sidenav-container">
+<mat-sidenav-container class="sidenav-container" data-testid="app-shell">
   <mat-sidenav #sidenav
                [mode]="getSidenavMode()"
                [opened]="isExpanded()"
@@ -8,9 +8,15 @@
                [class.expanded]="isExpanded()"
                [class.collapsed]="!isExpanded()">
 
-    <mat-nav-list>
+    <mat-nav-list data-testid="side-nav-list">
       @for (item of filteredNavItems(); track item.route) {
-        <a mat-list-item [routerLink]="item.route" routerLinkActive="active" (click)="onNavItemClick()">
+        <a
+          mat-list-item
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [attr.data-testid]="'nav-link-' + item.route"
+          (click)="onNavItemClick()"
+        >
           <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
           <!-- consider removing the if this as the bad dissapear -->
           @if (isExpanded()) {
@@ -22,9 +28,13 @@
   </mat-sidenav>
 
   <mat-sidenav-content>
-    <top-bar [menuOpen]="isExpanded()" (menuClicked)="toggleExpanded()"></top-bar>
+    <top-bar
+      data-testid="top-bar"
+      [menuOpen]="isExpanded()"
+      (menuClicked)="toggleExpanded()"
+    ></top-bar>
 
-    <div class="content">
+    <div class="content" data-testid="app-content">
       <router-outlet></router-outlet>
     </div>
   </mat-sidenav-content>

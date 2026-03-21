@@ -14,6 +14,7 @@ import { computed, inject, signal, Signal } from '@angular/core';
 import { ApiService } from '../services/api.service';
 import { NotificationService } from '../services/notification.service';
 import { UserStore } from './user.store';
+import { OrganizationStore } from './organization.store';
 import { firstValueFrom } from 'rxjs';
 import { ApiStatus } from './stores.models';
 
@@ -63,12 +64,17 @@ export const InventoryStore = signalStore(
           store.addInventoryStatus().isLoading ||
           store.removeInventoryStatus().isLoading
       ),
+      /** Stable signal for WAREHOUSE rows — use from feature computeds so updates propagate. */
+      warehouseInventoryItems: computed(
+        () => store.inventory()['WAREHOUSE'] ?? []
+      ),
     };
   }),
   withMethods((store) => {
     const apiService = inject(ApiService);
     const notificationService = inject(NotificationService);
     const userStore = inject(UserStore);
+    const organizationStore = inject(OrganizationStore);
 
     const updateState = (newState: Partial<InventoryState>) => {
       patchState(store, (state) => {
@@ -163,6 +169,10 @@ export const InventoryStore = signalStore(
             throw new Error('Failed to fetch user inventory');
           }
 
+          if (userInventoryResponse.products?.length) {
+            organizationStore.setProducts(userInventoryResponse.products);
+          }
+
           // It's important to update the inventory state only if the user has items
           // otherwise the computed that call getUserInventory will trigger infinite loop
           if (userInventoryResponse.items?.length) {
@@ -202,6 +212,9 @@ export const InventoryStore = signalStore(
         if (!userID) {
           return signal([]);
         }
+        if (userID === 'WAREHOUSE') {
+          return this.getWarehouseInventory();
+        }
         const answer = computed(() => store.inventory()[userID] ?? []);
         if (!answer().length) {
           // Risky workaround. make sure to not update on empty response, to avoid infinite loop
@@ -213,7 +226,15 @@ export const InventoryStore = signalStore(
       },
 
       getWarehouseInventory(): Signal<InventoryItem[]> {
-        return this.getUserInventory('WAREHOUSE');
+        const { warehouseInventoryItems } = this as unknown as {
+          warehouseInventoryItems: Signal<InventoryItem[]>;
+        };
+        if (!warehouseInventoryItems().length) {
+          setTimeout(() => {
+            void this.fetchUserInventory('WAREHOUSE');
+          });
+        }
+        return warehouseInventoryItems;
       },
 
       async addInventory(items: InventoryItem[]): Promise<boolean> {
