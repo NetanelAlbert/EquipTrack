@@ -34,7 +34,7 @@ import { CanComponentDeactivate } from '../../app/guards/unsaved-changes.guard';
 interface CreateFormConfig {
   explanationKey: string;
   submitButtonTextKey: string;
-  limitItems: Signal<InventoryItem[]>;
+  limitItems: InventoryItem[];
 }
 
 @Component({
@@ -93,12 +93,12 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
       ? {
           explanationKey: 'create-form.explanation.check-out',
           submitButtonTextKey: 'create-form.submit-button.check-out',
-          limitItems: this.inventoryStore.getWarehouseInventory(),
+          limitItems: this.inventoryStore.getWarehouseInventory()(),
         }
       : {
           explanationKey: 'create-form.explanation.check-in',
           submitButtonTextKey: 'create-form.submit-button.check-in',
-          limitItems: this.inventoryStore.getUserInventory(this.userId() ?? ''),
+          limitItems: this.inventoryStore.getUserInventory(this.userId() ?? '')(),
         };
   });
 
@@ -107,17 +107,6 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
     icon: 'check',
     color: 'primary',
   }));
-
-  /**
-   * Read inventory limits here (not only inside createFormConfig) so Angular tracks
-   * getWarehouseInventory()/getUserInventory() and checkout UPI limits update when WAREHOUSE loads.
-   */
-  inventoryLimitItems = computed(() => {
-    if (this.formType() === FormType.CheckOut) {
-      return this.inventoryStore.getWarehouseInventory()();
-    }
-    return this.inventoryStore.getUserInventory(this.userId() ?? '')();
-  });
 
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {

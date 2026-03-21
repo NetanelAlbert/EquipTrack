@@ -76,7 +76,7 @@
     <editable-inventory
       data-testid="create-form-editable-inventory"
       [itemsToAdd]="itemsToAdd()"
-      [limitItems]="inventoryLimitItems()"
+      [limitItems]="createFormConfig().limitItems"
       (editedItems)="onItemsEdited()"
       (submitItems)="onSubmit($event)"
       [submitButton]="submitButton()"
