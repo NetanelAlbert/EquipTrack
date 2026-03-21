@@ -1,0 +1,71 @@
+name: E2E LocalStack Core Regression
+
+on:
+  pull_request:
+    branches:
+      - master
+      - develop
+  push:
+    branches:
+      - develop
+
+concurrency:
+  group: e2e-localstack-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-core-regression:
+    name: Core regression (LocalStack + Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Prepare local E2E infrastructure
+        run: npm run e2e:local:prepare
+
+      - name: Run core regression E2E
+        env:
+          E2E_AUTH_SECRET: e2e-local-secret
+          BACKEND_BASE_URL: http://localhost:3000
+          E2E_SKIP_LOCAL_E2E_ENSURE: 'true'
+        run: |
+          npx nx run frontend-e2e:e2e-local-core
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-localstack-core
+          path: playwright-report
+          if-no-files-found: ignore
+
+      - name: Upload Playwright test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results-localstack-core
+          path: test-results
+          if-no-files-found: ignore
+
+      - name: Summarize Playwright failure contexts
+        if: always()
+        run: python3 scripts/summarize-playwright-error-contexts.py --label localstack
+
+      - name: Tear down local stack
+        if: always()
+        run: npm run e2e:local:stack:down

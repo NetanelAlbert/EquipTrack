@@ -1,11 +1,12 @@
-<div class="container">
+<div class="container" data-testid="inventory-by-users-page">
   <!-- User Selection Controls -->
-  <div class="user-controls">
+  <div class="user-controls" data-testid="inventory-by-users-controls">
     <div class="selected-users">
       <h3>{{ 'inventory.table.selectedUsers' | translate }}</h3>
-      <div class="user-chips">
+      <div class="user-chips" data-testid="inventory-by-users-selected-users">
         @for (userColumn of userColumns(); track userColumn.userId) {
-          <mat-chip-row 
+          <mat-chip-row
+            [attr.data-testid]="'inventory-user-chip-' + userColumn.userId"
             [removable]="userColumn.userId !== 'WAREHOUSE'"
             (removed)="removeUser(userColumn.userId)"
           >
@@ -27,7 +28,8 @@
       <div class="add-user-section">
         <mat-form-field>
           <mat-label>{{ 'inventory.table.addUser' | translate }}</mat-label>
-          <mat-select 
+          <mat-select
+            data-testid="inventory-by-users-add-user-select"
             #userSelect
             [disabled]="isLoadingUsers()"
             (selectionChange)="addUser($event.value); userSelect.value = null"
@@ -56,17 +58,19 @@
       </div>
 
       <div class="action-buttons">
-        <button 
+        <button
           mat-button 
           color="primary"
+          data-testid="inventory-by-users-show-all"
           (click)="showAllUsers()"
           [disabled]="!hasUsers() || isLoadingUsers()"
         >
           {{ 'inventory.table.showAllUsers' | translate }}
         </button>
         
-        <button 
+        <button
           mat-button
+          data-testid="inventory-by-users-reset-warehouse"
           (click)="resetToWarehouse()"
           [disabled]="selectedUserIds().length === 1 && selectedUserIds()[0] === 'WAREHOUSE'"
         >
@@ -74,9 +78,10 @@
         </button>
 
         @if (productColumnSort().productId) {
-          <button 
+          <button
             mat-button
             color="accent"
+            data-testid="inventory-by-users-clear-column-sort"
             (click)="clearProductColumnSort()"
           >
             Clear Column Sort
@@ -87,7 +92,7 @@
 
     <!-- Error message for users loading -->
     @if (usersError()) {
-      <div class="error-message">
+      <div class="error-message" data-testid="inventory-by-users-users-error">
         <mat-icon>error</mat-icon>
         <span>{{ 'inventory.users.errorMessage' | translate }}: {{ usersError() }}</span>
         <button mat-button (click)="loadUsers()" color="primary">
@@ -98,9 +103,9 @@
   </div>
 
   <!-- Inventory Table -->
-  <div class="table-container">
+  <div class="table-container" data-testid="inventory-by-users-table-container">
     @if (tableData().length > 0) {
-      <table mat-table [dataSource]="tableData()" class="inventory-table">
+      <table mat-table [dataSource]="tableData()" class="inventory-table" data-testid="inventory-by-users-table">
         
         <!-- Product Column -->
         <ng-container matColumnDef="product">
@@ -177,7 +182,7 @@
         </tr>
       </table>
     } @else {
-      <div class="empty-state">
+      <div class="empty-state" data-testid="inventory-by-users-empty-state">
         <mat-icon>inventory</mat-icon>
         <h3>{{ 'inventory.table.noInventory' | translate }}</h3>
         <p>{{ 'inventory.table.noInventoryDescription' | translate }}</p>
