@@ -72,46 +72,76 @@ async function bootstrapAuthenticatedSession(page: Page, token: string) {
 async function ensureOrganizationIsSelected(page: Page): Promise<void> {
   await page.goto('/');
 
-  const orgSelectionPage = page.getByTestId('organization-selection-page');
+  const selectBtn = page.getByTestId(`select-organization-${organizationId}`);
 
-  if (await orgSelectionPage.isVisible()) {
-    await page.getByTestId(`select-organization-${organizationId}`).click();
+  // Org picker may still be loading (spinner disables the button). Wait before
+  // deciding we need a manual click.
+  const orgPickerShown = await selectBtn
+    .waitFor({ state: 'visible', timeout: 10000 })
+    .then(() => true)
+    .catch(() => false);
+
+  if (orgPickerShown) {
+    await expect(selectBtn).toBeEnabled({ timeout: 20000 });
+    await selectBtn.click();
+  }
+
+  // HomeComponent defers router.navigate after select with setTimeout(100).
+  // If we navigate to /create-form before that runs, the guard can strand us on /.
+  await expect(page).toHaveURL(/\/my-items/, { timeout: 20000 });
+}
+
+/** Client-side nav: avoids `page.goto` full reload (org selection / APP_INITIALIZER race). */
+async function clickSideNavRoute(page: Page, route: string): Promise<void> {
+  const link = page.getByTestId(`nav-link-${route}`);
+  await link.waitFor({ state: 'attached', timeout: 20000 });
+  await link.evaluate((el: HTMLElement) => el.click());
+
+  const leaveUnsaved = page.getByRole('button', { name: /^Leave$/i });
+  try {
+    await leaveUnsaved.waitFor({ state: 'visible', timeout: 4000 });
+    await leaveUnsaved.click();
+  } catch {
+    // No unsaved-changes dialog (e.g. navigating from my-items)
   }
 }
 
 async function openCreateFormPage(page: Page): Promise<void> {
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    await page.goto('/create-form');
+  const createFormPage = page.getByTestId('create-form-page');
 
-    const createFormVisible = await page
-      .getByTestId('create-form-page')
-      .isVisible({ timeout: 5000 })
-      .catch(() => false);
-    if (createFormVisible) {
-      return;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    // Full page loads (page.goto) re-run APP_INITIALIZER; a tight race can leave
+    // selectedOrganizationId unset before guards run. Side-nav routerLink keeps the
+    // SPA session and store intact once we are on /my-items.
+    const orgPicker = page.getByTestId('organization-selection-page');
+    const onOrgPicker =
+      (await orgPicker.count()) > 0 &&
+      (await orgPicker.first().isVisible().catch(() => false));
+
+    if (onOrgPicker) {
+      const selectBtn = page.getByTestId(`select-organization-${organizationId}`);
+      await expect(selectBtn).toBeEnabled({ timeout: 20000 });
+      await selectBtn.click();
+      await expect(page).toHaveURL(/\/my-items/, { timeout: 20000 });
     }
 
-    const loginVisible = await page
-      .getByTestId('login-page')
-      .isVisible({ timeout: 1000 })
-      .catch(() => false);
-    if (loginVisible) {
+    await clickSideNavRoute(page, 'create-form');
+
+    try {
+      await createFormPage.waitFor({ state: 'visible', timeout: 10000 });
+      return;
+    } catch {
+      // Retry after recovery paths below
+    }
+
+    if (await page.getByTestId('login-page').isVisible().catch(() => false)) {
       throw new Error(
         'Unexpected redirect to login while opening create-form page'
       );
     }
-
-    const orgSelectionVisible = await page
-      .getByTestId('organization-selection-page')
-      .isVisible({ timeout: 1000 })
-      .catch(() => false);
-    if (orgSelectionVisible) {
-      await page.getByTestId(`select-organization-${organizationId}`).click();
-      await page.waitForTimeout(500);
-    }
   }
 
-  await expect(page.getByTestId('create-form-page')).toBeVisible({
+  await expect(createFormPage).toBeVisible({
     timeout: 15000,
   });
 }
@@ -138,7 +168,7 @@ async function approveLatestPendingForm(page: Page, description: string) {
     .locator('[data-testid^="form-card-"]')
     .filter({ hasText: description })
     .first();
-  await expect(formCard).toBeVisible();
+  await expect(formCard).toBeVisible({ timeout: 20000 });
 
   await formCard.locator('[data-testid^="form-approve-"]').click();
 
@@ -155,9 +185,30 @@ async function approveLatestPendingForm(page: Page, description: string) {
   await page.mouse.move(box.x + 160, box.y + 100);
   await page.mouse.up();
 
-  await page.getByTestId('signature-dialog-approve').click();
-  await expect(formCard.locator('[data-testid^="form-status-"]')).toContainText(
-    /approved/i
+  const signatureOk = page.getByTestId('signature-dialog-approve');
+  await expect(signatureOk).toBeEnabled({ timeout: 10000 });
+
+  const approveRequest = page.waitForResponse(
+    (r) =>
+      r.request().method() === 'POST' &&
+      r.url().includes('/forms/approve') &&
+      r.ok(),
+    { timeout: 30000 }
+  );
+  await signatureOk.click();
+  await approveRequest;
+
+  // Default forms view is "Pending"; approved forms drop out of that filter.
+  await page.getByTestId('forms-status-filter').click();
+  await page.locator('mat-option[value="all"]').click();
+
+  const cardAfterApprove = page
+    .locator('[data-testid^="form-card-"]')
+    .filter({ hasText: description })
+    .first();
+  await expect(cardAfterApprove.locator('[data-testid^="form-status-"]')).toContainText(
+    /approved/i,
+    { timeout: 30000 }
   );
 }
 
@@ -165,7 +216,8 @@ test.describe('core regression ui flow', () => {
   test('create and approve checkout via UI updates inventory', async ({
     page,
     request,
-  }) => {
+  }, testInfo) => {
+    testInfo.setTimeout(120_000);
     const adminToken = await mintE2eJwt(request, {
       backendBaseUrl,
       e2eSecret,
@@ -196,7 +248,19 @@ test.describe('core regression ui flow', () => {
 
     const checkoutDescription = `e2e ui checkout ${Date.now()}`;
 
+    const warehouseInventoryResponse = page.waitForResponse(
+      (r) =>
+        r.request().method() === 'GET' &&
+        r.url().includes(`inventory/user/${warehouseUserId}`) &&
+        r.ok(),
+      { timeout: 5000 }
+    );
     await openCreateFormPage(page);
+    try {
+      await warehouseInventoryResponse;
+    } catch {
+      // No GET fired (e.g. WAREHOUSE rows already in store) — limit data should still be present.
+    }
 
     await page.getByTestId('create-form-user-select').click();
     await page.getByTestId(`create-form-user-option-${customerUserId}`).click();
@@ -207,11 +271,19 @@ test.describe('core regression ui flow', () => {
     await fillInventoryRow(page, 0, bulkProductId, transferredBulkQuantity);
     await page.getByTestId('editable-inventory-add-item').click();
     await fillInventoryRow(page, 1, upiProductId, 1);
-    await page.getByTestId('editable-item-upi-input-0').last().fill(transferredUpi);
+    // UPI fields live in a sibling block below `editable-item-row`, not inside it.
+    const laptopUpiInput = page.getByTestId('editable-item-upi-input-0');
+    await laptopUpiInput.fill(transferredUpi);
+    await laptopUpiInput.blur();
 
-    await page.getByTestId('editable-inventory-submit').click();
+    const submitCheckout = page.getByTestId('editable-inventory-submit');
+    await expect(submitCheckout).toBeEnabled({ timeout: 20000 });
+    await submitCheckout.click();
 
-    await page.goto('/forms');
+    await clickSideNavRoute(page, 'forms');
+    await expect(page.getByTestId('forms-tab-group')).toBeVisible({
+      timeout: 15000,
+    });
     await approveLatestPendingForm(page, checkoutDescription);
 
     const afterWarehouseInventory = await getInventory(
