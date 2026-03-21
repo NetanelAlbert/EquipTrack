@@ -50,6 +50,7 @@ npm run e2e:local:test
 This command provisions LocalStack resources, starts backend/frontend with local E2E configuration, and runs Playwright (Chromium project).
 It also installs the Chromium Playwright browser if missing.
 It executes the core regression set (`core-regression.spec.ts` and `core-regression-ui.spec.ts`).
+It sets `E2E_SKIP_LOCAL_E2E_ENSURE=true` for the Nx step because `e2e:local:prepare` already ran setup.
 
 Equivalent Nx target:
 
@@ -57,7 +58,9 @@ Equivalent Nx target:
 npx nx run frontend-e2e:e2e-local-core
 ```
 
-Run `npm run e2e:local:prepare` (or at least `e2e:local:setup`) first so LocalStack is up and tables/secrets/S3/seed data exist; the Nx target only starts the app servers and runs Playwright.
+The `e2e-local-core` target runs `scripts/ensure-local-e2e-before-playwright.js` first: it **fails fast** if LocalStack is not reachable (with instructions), otherwise runs `e2e:local:setup` so DynamoDB/S3/secrets/seed are present before Playwright starts. Set `E2E_SKIP_LOCAL_E2E_ENSURE=true` to skip that step.
+
+If you have not started Docker yet, run `npm run e2e:local:prepare` once (stack up + setup).
 
 ## CI
 
