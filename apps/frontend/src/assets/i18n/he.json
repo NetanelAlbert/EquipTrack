@@ -477,7 +477,8 @@
       "roles": {
         "admin": "מנהל מערכת",
         "warehouse-manager": "מנהל מחסן",
-        "customer": "לקוח"
+        "customer": "לקוח",
+        "inspector": "מבקר"
       },
       "states": {
         "active": "פעיל",
