@@ -18,6 +18,7 @@ const backendBaseURL = process.env['BACKEND_BASE_URL'] || 'http://localhost:3000
  */
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
+  globalSetup: require.resolve('./global-setup.js'),
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     baseURL,

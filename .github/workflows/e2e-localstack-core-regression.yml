@@ -42,6 +42,7 @@ jobs:
         env:
           E2E_AUTH_SECRET: e2e-local-secret
           BACKEND_BASE_URL: http://localhost:3000
+          SKIP_E2E_GLOBAL_SETUP: 'true'
         run: |
           npx nx run frontend-e2e:e2e-local-core
 

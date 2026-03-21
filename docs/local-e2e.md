@@ -57,6 +57,8 @@ Equivalent Nx target:
 npx nx run frontend-e2e:e2e-local-core
 ```
 
+`e2e-local-core` runs Playwright `globalSetup`, which executes `scripts/setup-local-e2e.js` so DynamoDB/S3/secrets and seed data exist even if you only started LocalStack (`e2e:local:stack:up`) without `e2e:local:prepare`. Set `SKIP_E2E_GLOBAL_SETUP=true` to skip (GitHub Actions sets this when `e2e:local:prepare` already ran).
+
 ## CI
 
 Core regression is automated via:
