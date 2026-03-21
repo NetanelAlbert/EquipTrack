@@ -1,5 +1,5 @@
-<mat-toolbar color="primary" class="top-bar">
-  <button mat-icon-button (click)="menuClicked.emit()">
+<mat-toolbar color="primary" class="top-bar" data-testid="top-toolbar">
+  <button mat-icon-button data-testid="menu-toggle-button" (click)="menuClicked.emit()">
     <mat-icon>{{ menuOpen() ? 'menu_open' : 'menu' }}</mat-icon>
   </button>
   <span class="organization-name">{{userStore.currentOrganization()?.name}}</span>
@@ -14,9 +14,10 @@
   <!-- Authenticated User Menu -->
   @if (currentUser()) {
     @if (currentUser(); as user) {
-      <button 
+      <button
         mat-icon-button 
         class="user-menu-button"
+        data-testid="user-menu-button"
         [matMenuTriggerFor]="userMenu"
         [attr.aria-label]="'navigation.user-menu' | translate">
           <mat-icon>person</mat-icon>
@@ -34,19 +35,19 @@
         <mat-divider></mat-divider>
 
         <!-- Menu Actions -->
-        <button mat-menu-item (click)="onViewProfile()">
+        <button mat-menu-item data-testid="view-profile-button" (click)="onViewProfile()">
           <mat-icon>person</mat-icon>
           <span>{{ 'navigation.view-profile' | translate }}</span>
         </button>
 
-        <button mat-menu-item (click)="onSettings()">
+        <button mat-menu-item data-testid="settings-button" (click)="onSettings()">
           <mat-icon>settings</mat-icon>
           <span>{{ 'navigation.settings' | translate }}</span>
         </button>
 
         <mat-divider></mat-divider>
 
-        <button mat-menu-item (click)="onSwitchOrganization()">
+        <button mat-menu-item data-testid="switch-organization-button" (click)="onSwitchOrganization()">
           <mat-icon>switch_account</mat-icon>
           <span>{{ 'navigation.switch-organization' | translate }}</span>
         </button>
@@ -61,7 +62,12 @@
 
         <mat-divider></mat-divider>
 
-        <button mat-menu-item (click)="onSignOut()" class="sign-out-button">
+        <button
+          mat-menu-item
+          data-testid="sign-out-button"
+          (click)="onSignOut()"
+          class="sign-out-button"
+        >
           <mat-icon>logout</mat-icon>
           <span>{{ 'navigation.sign-out' | translate }}</span>
         </button>
@@ -69,7 +75,7 @@
     }
   } @else {
     <!-- Unauthenticated State -->
-    <button mat-button color="accent" (click)="onSignOut()">
+    <button mat-button color="accent" data-testid="sign-out-button" (click)="onSignOut()">
       <mat-icon>logout</mat-icon>
       <span>{{ 'navigation.sign-out' | translate }}</span>
     </button>

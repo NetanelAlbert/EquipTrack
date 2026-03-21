@@ -1,4 +1,8 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import {
+  ApplicationConfig,
+  inject,
+  provideZoneChangeDetection,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import {
@@ -14,10 +18,16 @@ import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { appInitializer } from './app.init';
 import { errorInterceptor } from '../services/error-interceptor.service';
+import { RuntimeConfigService } from '../services/runtime-config.service';
 
 // Factory function for TranslateHttpLoader
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
+}
+
+export function runtimeConfigInitializer() {
+  const runtimeConfig = inject(RuntimeConfigService);
+  return () => runtimeConfig.load();
 }
 
 export const appConfig: ApplicationConfig = {
@@ -36,6 +46,11 @@ export const appConfig: ApplicationConfig = {
         defaultLanguage: 'he',
       })
     ),
+    {
+      provide: APP_INITIALIZER,
+      useFactory: runtimeConfigInitializer,
+      multi: true,
+    },
     {
       provide: APP_INITIALIZER,
       useFactory: appInitializer,

@@ -4,6 +4,7 @@ import {
 } from '@aws-sdk/client-secrets-manager';
 import * as jwt from 'jsonwebtoken';
 import { UserRole, JwtPayload } from '@equip-track/shared';
+import { getSecretsManagerClientConfig } from './aws-client-config.service';
 
 /**
  * JWT service for token generation and validation using RS256 algorithm
@@ -20,9 +21,7 @@ export class JwtService {
   private readonly cacheExpiry = 5 * 60 * 1000; // 5 minutes in milliseconds
 
   constructor() {
-    this.secretsClient = new SecretsManagerClient({
-      region: process.env.AWS_REGION || 'us-east-1',
-    });
+    this.secretsClient = new SecretsManagerClient(getSecretsManagerClientConfig());
   }
 
   /**

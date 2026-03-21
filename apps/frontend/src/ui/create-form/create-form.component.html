@@ -1,16 +1,20 @@
-<div *ngIf="formsStore.addFormStatus.isLoading()" class="checkout-spinner-overlay">
+<div
+  *ngIf="formsStore.addFormStatus.isLoading()"
+  class="checkout-spinner-overlay"
+  data-testid="create-form-loading-overlay"
+>
   <mat-progress-spinner mode="indeterminate" color="primary"></mat-progress-spinner>
 </div>
 
-<div class="container">
+<div class="container" data-testid="create-form-page">
   <h1>{{ 'create-form.title' | translate }}</h1>
   
-  <form [formGroup]="form">
+  <form [formGroup]="form" data-testid="create-form-form">
 
     <div class="form-type">
-      <mat-radio-group formControlName="formType">
-        <mat-radio-button value="check-out">{{ 'create-form.type.check-out' | translate }}</mat-radio-button>
-        <mat-radio-button value="check-in">{{ 'create-form.type.check-in' | translate }}</mat-radio-button>
+      <mat-radio-group formControlName="formType" data-testid="form-type-group">
+        <mat-radio-button value="check-out" data-testid="form-type-checkout">{{ 'create-form.type.check-out' | translate }}</mat-radio-button>
+        <mat-radio-button value="check-in" data-testid="form-type-checkin">{{ 'create-form.type.check-in' | translate }}</mat-radio-button>
       </mat-radio-group>
     </div>
 
@@ -20,9 +24,9 @@
 
     <mat-form-field>
       <mat-label>{{ 'create-form.select-user' | translate }}</mat-label>
-      <mat-select formControlName="userID">
+      <mat-select formControlName="userID" data-testid="create-form-user-select">
         @for (user of users(); track user.user.id) {
-          <mat-option [value]="user.user.id">
+          <mat-option [value]="user.user.id" [attr.data-testid]="'create-form-user-option-' + user.user.id">
             <app-user-display [user]="user" />
           </mat-option>
         }
@@ -31,10 +35,15 @@
 
     <mat-form-field>
       <mat-label>{{ 'create-form.form-description' | translate }}</mat-label>
-      <input matInput formControlName="formDescription" name="formDescription">
+      <input
+        matInput
+        formControlName="formDescription"
+        name="formDescription"
+        data-testid="create-form-description-input"
+      >
     </mat-form-field>
 
-    <div class="predefined-forms" *ngIf="showPredefinedForms()">
+    <div class="predefined-forms" *ngIf="showPredefinedForms()" data-testid="predefined-forms-section">
       <h2>{{ 'create-form.predefined-forms' | translate }}</h2>
       <mat-accordion>
         <mat-expansion-panel *ngFor="let form of predefinedForms()">
@@ -48,6 +57,7 @@
                 mat-icon-button
                 color="primary"
                 class="add-form-header-btn"
+                [attr.data-testid]="'add-predefined-form-' + form.formID"
                 (click)="addAllItems(form.items); $event.stopPropagation();"
                 matTooltip="Add all items from this form"
                 aria-label="Add Form"
@@ -64,8 +74,9 @@
 
     <h2>{{ 'create-form.items' | translate }}</h2>
     <editable-inventory
+      data-testid="create-form-editable-inventory"
       [itemsToAdd]="itemsToAdd()"
-      [limitItems]="createFormConfig().limitItems()"
+      [limitItems]="createFormConfig().limitItems"
       (editedItems)="onItemsEdited()"
       (submitItems)="onSubmit($event)"
       [submitButton]="submitButton()"

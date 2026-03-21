@@ -5,6 +5,7 @@ import { workspaceRoot } from '@nx/devkit';
 
 // For CI, you may want to set BASE_URL to the deployed application.
 const baseURL = process.env['BASE_URL'] || 'http://localhost:4200';
+const backendBaseURL = process.env['BACKEND_BASE_URL'] || 'http://localhost:3000';
 
 /**
  * Read environment variables from file.
@@ -20,16 +21,26 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     baseURL,
+    /* Match E2E localStorage language so UI copy and a11y names stay English. */
+    locale: 'en-US',
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'npx nx run frontend:serve',
-    url: 'http://localhost:4200',
-    reuseExistingServer: !process.env.CI,
-    cwd: workspaceRoot,
-  },
+  webServer: [
+    {
+      command: 'npm run backend:serve:e2e-local',
+      url: `${backendBaseURL}/health`,
+      reuseExistingServer: !process.env['CI'],
+      cwd: workspaceRoot,
+    },
+    {
+      command: 'npm run frontend:serve:e2e-local',
+      url: baseURL,
+      reuseExistingServer: !process.env['CI'],
+      cwd: workspaceRoot,
+    },
+  ],
   projects: [
     {
       name: 'chromium',

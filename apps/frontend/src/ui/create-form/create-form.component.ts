@@ -34,7 +34,7 @@ import { CanComponentDeactivate } from '../../app/guards/unsaved-changes.guard';
 interface CreateFormConfig {
   explanationKey: string;
   submitButtonTextKey: string;
-  limitItems: Signal<InventoryItem[]>;
+  limitItems: InventoryItem[];
 }
 
 @Component({
@@ -93,12 +93,12 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
       ? {
           explanationKey: 'create-form.explanation.check-out',
           submitButtonTextKey: 'create-form.submit-button.check-out',
-          limitItems: this.inventoryStore.getWarehouseInventory(),
+          limitItems: this.inventoryStore.getWarehouseInventory()(),
         }
       : {
           explanationKey: 'create-form.explanation.check-in',
           submitButtonTextKey: 'create-form.submit-button.check-in',
-          limitItems: this.inventoryStore.getUserInventory(this.userId() ?? ''),
+          limitItems: this.inventoryStore.getUserInventory(this.userId() ?? '')(),
         };
   });
 

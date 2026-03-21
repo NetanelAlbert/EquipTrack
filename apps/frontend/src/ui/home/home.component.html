@@ -1,4 +1,4 @@
-<div class="home-container">
+<div class="home-container" data-testid="organization-selection-page">
   <!-- Header -->
   <div class="header">
     <h1>{{ 'organization.select.title' | translate }}</h1>
@@ -6,16 +6,24 @@
   </div>
 
   <!-- Organizations Grid -->
-  <div class="organizations-section" *ngIf="hasOrganizations(); else noOrganizations">
+  <div
+    class="organizations-section"
+    data-testid="organizations-section"
+    *ngIf="hasOrganizations(); else noOrganizations"
+  >
     <mat-grid-list 
       [cols]="getGridCols()" 
       [rowHeight]="getRowHeight()" 
       gutterSize="16px"
       class="organizations-grid">
       
-      <mat-grid-tile *ngFor="let org of availableOrganizations()">
+      <mat-grid-tile
+        *ngFor="let org of availableOrganizations()"
+        [attr.data-testid]="'organization-tile-' + org.id"
+      >
         <mat-card 
           class="organization-card"
+          [attr.data-testid]="'organization-card-' + org.id"
           [class.selecting]="isSelectingOrganization(org.id)"
           (click)="selectOrganization(org)">
           
@@ -33,9 +41,10 @@
 
           <!-- Select Button -->
           <mat-card-actions class="card-actions">
-            <button 
+            <button
               mat-raised-button 
               color="primary"
+              [attr.data-testid]="'select-organization-' + org.id"
               [disabled]="isLoading()"
               class="select-button">
               
@@ -50,15 +59,16 @@
 
   <!-- No Organizations State -->
   <ng-template #noOrganizations>
-    <div class="no-organizations">
+    <div class="no-organizations" data-testid="no-organizations-state">
       <mat-icon class="no-org-icon">group_off</mat-icon>
       <h2>{{ 'organization.select.no-organizations.title' | translate }}</h2>
       <p>{{ 'organization.select.no-organizations.message' | translate }}</p>
       
       <div class="actions">
-        <button 
+        <button
           mat-raised-button 
           color="primary"
+          data-testid="request-organization-access"
           (click)="requestAccess()">
           <mat-icon>mail</mat-icon>
           {{ 'organization.select.no-organizations.contact-admin' | translate }}

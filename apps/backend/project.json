@@ -68,6 +68,12 @@
         }
       }
     },
+    "serve-local-http": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "env LOCAL_HTTP_SERVER=true bash -c \"nx run backend:build:development && node dist/apps/backend/main.js\""
+      }
+    },
     "test": {
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
