@@ -49,8 +49,9 @@ export const AuthStore = signalStore(
       const lastValidation = store.lastTokenValidation();
       const cacheValid = now - lastValidation < 30000; // 30 seconds
 
-      if (cacheValid && store.tokenValidationCache() !== null) {
-        return store.tokenValidationCache()!;
+      const cachedValidation = store.tokenValidationCache();
+      if (cacheValid && cachedValidation !== null) {
+        return cachedValidation;
       }
 
       // Perform validation and cache result
@@ -152,7 +153,7 @@ function isTokenValid(token: string): boolean {
     const payload = JSON.parse(atob(parts[1]));
     const currentTime = Math.floor(Date.now() / 1000);
     return payload.exp > currentTime;
-  } catch (error) {
+  } catch {
     return false;
   }
 }

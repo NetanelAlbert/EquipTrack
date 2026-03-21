@@ -7,7 +7,6 @@ import {
 } from '@ngrx/signals';
 import { computed, inject, Signal } from '@angular/core';
 import {
-  formatDateToString,
   ItemReport,
   ORGANIZATION_ID_PATH_PARAM,
   ItemReportRequest,

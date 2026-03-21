@@ -74,8 +74,8 @@
     "sign-out": "התנתק",
     "sign-in": "התחבר",
     "my-items": "הפריטים שלי",
-    "today-report": "דוח יומי",
-    "reports-history": "היסטוריית דוחות",
+    "today-report": "דוח צ׳ יומי",
+    "reports-history": "היסטוריית דוחות צ׳",
     "my-forms": "הטפסים שלי",
     "check-in": "החזרה",
     "edit-products": "עריכת מוצרים",
@@ -186,8 +186,8 @@
       "selectUserFirst": "יש לבחור משתמש כדי לצפות במלאי שלו",
       "type": "סוג",
       "typeAll": "הכול",
-      "typeUpi": "UPI",
-      "typeNonUpi": "ללא UPI"
+      "typeUpi": "צ׳",
+      "typeNonUpi": "ללא צ׳"
     },
     "table": {
       "selectedUsers": "משתמשים שנבחרו",
@@ -195,12 +195,12 @@
       "showAllUsers": "הצג את כל המשתמשים",
       "resetToWarehouse": "איפוס למחסן",
       "product": "מוצר",
-      "upiProduct": "למוצר זה יש מזהים ייחודיים (UPI)",
+      "upiProduct": "למוצר זה יש מזהים ייחודיים (צ׳)",
       "noInventory": "אין נתוני מלאי",
       "noInventoryDescription": "אין נתוני מלאי זמינים עבור המשתמשים שנבחרו."
     },
     "item": {
-      "expandable": "פריט מלאי {{name}} - לחץ להרחבת {{count}} פרטי UPI",
+      "expandable": "פריט מלאי {{name}} - לחץ להרחבת {{count}} פרטי צ׳",
       "static": "פריט מלאי {{name}} - אין פרטים נוספים"
     },
     "quantity": {
@@ -217,8 +217,8 @@
     "form": {
       "product": "מוצר",
       "quantity": "כמות",
-      "upi": "UPI",
-      "upi-placeholder": "הזן קוד UPI",
+      "upi": "צ׳",
+      "upi-placeholder": "הזן צ׳",
       "product-search-placeholder": "חפש מוצר",
       "confirm-remove": "האם אתה בטוח שברצונך להסיר את {{product}} מהרשימה?"
     },
@@ -237,17 +237,17 @@
       "quantity-required": "נדרשת כמות",
       "quantity-min": "הכמות חייבת להיות לפחות 1",
       "quantity-pattern": "הכמות חייבת להיות מספר תקין",
-      "upi-required": "נדרש UPI",
-      "upi-duplicate": "UPI חייב להיות ייחודי",
+      "upi-required": "נדרש צ׳",
+      "upi-duplicate": "צ׳ חייב להיות ייחודי",
       "product-not-found": "המוצר לא נמצא במקור",
       "product-limit": "הגעת למגבלת מוצרים: {{limit}}",
-      "product-missing-upis": "חסרים UPI: {{missingUpis}}"
+      "product-missing-upis": "חסרים צ׳: {{missingUpis}}"
     },
     "upi": {
-      "title": "מידע UPI",
-      "item": "קוד UPI: {{upi}}",
-      "help": "מכיל {{count}} קודי UPI. לחץ Enter או רווח להרחבה.",
-      "copied": "UPI הועתק ללוח"
+      "title": "מידע צ׳",
+      "item": "צ׳: {{upi}}",
+      "help": "מכיל {{count}} קודי צ׳. לחץ Enter או רווח להרחבה.",
+      "copied": "צ׳ הועתק ללוח"
     },
     "add": {
       "title": "הוספת מלאי",
@@ -261,7 +261,7 @@
     "remove": {
       "title": "הסרת מלאי",
       "subtitle": "הסר פריטים ממלאי המחסן",
-      "warning": "אזהרה: פעולה זו תסיר פריטים מהמלאי לצמיתות. ודא שהכמויות וה-UPI נכונים.",
+      "warning": "אזהרה: פעולה זו תסיר פריטים מהמלאי לצמיתות. ודא שהכמויות וה-צ׳ נכונים.",
       "removing": "מסיר פריטי מלאי...",
       "success": "הוסרו בהצלחה {{count}} פריטי מלאי",
       "success-simple": "פריטי מלאי הוסרו בהצלחה",
@@ -299,7 +299,7 @@
     "sortByProduct": "מוצר",
     "selectDate": "בחר תאריך",
     "items": "פריטים",
-    "upiLabel": "UPI",
+    "upiLabel": "צ׳",
     "reported": "דווח",
     "notReported": "לא דווח",
     "lastLocation": "מיקום אחרון",
@@ -308,7 +308,9 @@
     "noReportForDate": "אין דוח זמין",
     "noReportForDateDescription": "לא הופק דוח עבור התאריך שנבחר.",
     "item-published": "דוח הפריט עודכן בהצלחה",
-    "items-published": "דוחות מרובים עודכנו בהצלחה"
+    "items-published": "דוחות מרובים עודכנו בהצלחה",
+    "my-items": "הפריטים שלי",
+    "warehouse-items": "פריטי מחסן"
   },
   "errors": {
     "not-allowed": {
@@ -400,7 +402,7 @@
       "search": "חפש מוצר",
       "id": "מזהה מוצר",
       "name": "שם מוצר",
-      "upi": "דורש UPI",
+      "upi": "דורש צ׳",
       "idRequired": "נדרש מזהה מוצר",
       "idMinLength": "מזהה המוצר חייב להכיל לפחות 3 תווים",
       "nameRequired": "נדרש שם מוצר",
@@ -409,8 +411,8 @@
       "addProduct": "הוסף מוצר",
       "save": "שמור מוצרים",
       "filter": {
-        "upi": "UPI",
-        "noUpi": "ללא UPI",
+        "upi": "צ׳",
+        "noUpi": "ללא צ׳",
         "all": "הכול"
       },
       "editDialog": {

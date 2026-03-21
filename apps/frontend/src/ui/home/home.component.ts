@@ -8,7 +8,6 @@ import { MatGridListModule } from '@angular/material/grid-list';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { NotificationService } from '../../services/notification.service';
 import { UserStore } from '../../store';
-import { OrganizationService } from '../../services/organization.service';
 import { Organization } from '@equip-track/shared';
 import { UserRole } from '@equip-track/shared';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
