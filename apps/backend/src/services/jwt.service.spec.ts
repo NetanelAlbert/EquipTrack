@@ -1,206 +1,187 @@
 import { JwtService } from './jwt.service';
 import { UserRole } from '@equip-track/shared';
-import { SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
+import { generateKeyPairSync } from 'crypto';
 import * as jwt from 'jsonwebtoken';
 
-// Mock AWS Secrets Manager
-jest.mock('@aws-sdk/client-secrets-manager');
+const { mockSend } = jest.requireMock<{
+  mockSend: jest.Mock;
+}>('@aws-sdk/client-secrets-manager');
 
-// Mock RSA key pair for testing
-const mockPrivateKey = `-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKB
-xhQnhcparFpUA1EdJBDNBHMVGkEWJRnOdBfHGQlCuJi8jjCmUH4DJFmnUF5+rZ4k
-BQ7vJgD+lT5b+JqLmBQY4qTJCWQW1pIJ5i4bW9bQ+9Z7l8M+VZ7CZ2Z8v9s4B7O
------END PRIVATE KEY-----`;
+jest.mock('@aws-sdk/client-secrets-manager', () => {
+  const mockSend = jest.fn();
+  return {
+    SecretsManagerClient: jest.fn().mockImplementation(() => ({
+      send: mockSend,
+    })),
+    GetSecretValueCommand: jest.fn().mockImplementation(
+      (input: { SecretId: string }) => ({ input })
+    ),
+    mockSend,
+  };
+});
 
-const mockPublicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu1SU1L7VLPHCgcYUJ4XJ
-2qxaVANRHSQQzQRzFRpBFiUZznQXxxkJQriYvI4wplB+AyRZp1Befq2eJAUO7yYA
-/pU+W/iai5gUGOKkyQlkFtaSCeYuG1vW0PvWe5fDPlWewmdmfL/bOAez
------END PUBLIC KEY-----`;
+let mockPrivateKey: string;
+let mockPublicKey: string;
+
+beforeAll(() => {
+  const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  });
+  mockPrivateKey = privateKey;
+  mockPublicKey = publicKey;
+});
 
 describe('JwtService', () => {
   let jwtService: JwtService;
-  let mockSecretsManagerClient: jest.Mocked<SecretsManagerClient>;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Setup SecretsManagerClient mock
-    mockSecretsManagerClient = new SecretsManagerClient(
-      {}
-    ) as jest.Mocked<SecretsManagerClient>;
-    mockSecretsManagerClient.send = jest.fn();
-
-    // Default mock responses for getSecretValue
-    mockSecretsManagerClient.send.mockImplementation((command: any) => {
-      if (command.input?.SecretId?.includes('private-key')) {
-        return Promise.resolve({
-          SecretString: mockPrivateKey,
-        });
-      } else if (command.input?.SecretId?.includes('public-key')) {
-        return Promise.resolve({
-          SecretString: mockPublicKey,
-        });
+    mockSend.mockImplementation(
+      (command: { input?: { SecretId?: string } }) => {
+        const secretId = command.input?.SecretId ?? '';
+        if (secretId.includes('private-key')) {
+          return Promise.resolve({ SecretString: mockPrivateKey });
+        }
+        if (secretId.includes('public-key')) {
+          return Promise.resolve({ SecretString: mockPublicKey });
+        }
+        return Promise.reject(new Error('Secret not found'));
       }
-      return Promise.reject(new Error('Secret not found'));
-    });
+    );
 
     jwtService = new JwtService();
   });
 
   describe('generateToken', () => {
     it('should generate a valid JWT token', async () => {
-      // Arrange
       const userId = 'user123';
       const orgIdToRole = {
         org456: UserRole.Admin,
         org789: UserRole.Customer,
       };
 
-      // Act
       const token = await jwtService.generateToken(userId, orgIdToRole);
 
-      // Assert
       expect(typeof token).toBe('string');
-      expect(token.split('.')).toHaveLength(3); // JWT should have 3 parts
+      expect(token.split('.')).toHaveLength(3);
 
-      // Verify token payload
-      const decoded = jwt.decode(token) as any;
-      expect(decoded.userId).toBe(userId);
+      const decoded = jwt.decode(token) as Record<string, unknown>;
+      expect(decoded.sub).toBe(userId);
       expect(decoded.orgIdToRole).toEqual(orgIdToRole);
       expect(decoded.iat).toBeDefined();
       expect(decoded.exp).toBeDefined();
 
-      // Verify expiration is ~1 week from now (within 1 minute tolerance)
       const expectedExp = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60;
-      expect(Math.abs(decoded.exp - expectedExp)).toBeLessThan(60);
+      expect(
+        Math.abs((decoded.exp as number) - expectedExp)
+      ).toBeLessThan(60);
     });
 
     it('should handle empty organization roles', async () => {
-      // Arrange
       const userId = 'user123';
       const orgIdToRole = {};
 
-      // Act
       const token = await jwtService.generateToken(userId, orgIdToRole);
 
-      // Assert
       expect(typeof token).toBe('string');
-      const decoded = jwt.decode(token) as any;
-      expect(decoded.userId).toBe(userId);
+      const decoded = jwt.decode(token) as Record<string, unknown>;
+      expect(decoded.sub).toBe(userId);
       expect(decoded.orgIdToRole).toEqual({});
     });
 
     it('should handle AWS Secrets Manager errors', async () => {
-      // Arrange
-      mockSecretsManagerClient.send.mockRejectedValue(
-        new Error('AWS Error') as never
-      );
+      mockSend.mockRejectedValue(new Error('AWS Error'));
 
-      // Act & Assert
       await expect(
         jwtService.generateToken('user', { org: UserRole.Customer })
-      ).rejects.toThrow('AWS Error');
+      ).rejects.toThrow('Failed to generate authentication token');
     });
   });
 
   describe('validateToken', () => {
     it('should validate a token generated by the service', async () => {
-      // Arrange
       const userId = 'user123';
       const orgIdToRole = {
         org456: UserRole.WarehouseManager,
         org789: UserRole.Customer,
       };
 
-      // Generate a token first
       const token = await jwtService.generateToken(userId, orgIdToRole);
 
-      // Act
-      const isValid = await jwtService.validateToken(token);
+      const payload = await jwtService.validateToken(token);
 
-      // Assert
-      expect(isValid).toBe(true);
+      expect(payload.sub).toBe(userId);
+      expect(payload.orgIdToRole).toEqual(orgIdToRole);
 
-      // Verify decoded payload
-      const decoded = jwt.decode(token) as any;
-      expect(decoded.userId).toBe(userId);
+      const decoded = jwt.decode(token) as Record<string, unknown>;
+      expect(decoded.sub).toBe(userId);
       expect(decoded.orgIdToRole).toEqual(orgIdToRole);
     });
 
     it('should reject invalid tokens', async () => {
-      // Act & Assert
-      const isValid = await jwtService.validateToken('invalid.jwt.token');
-      expect(isValid).toBe(false);
+      await expect(
+        jwtService.validateToken('invalid.jwt.token')
+      ).rejects.toThrow('Invalid authentication token');
     });
 
     it('should reject expired tokens', async () => {
-      // This would require creating an expired token, which is complex
-      // For now, we'll test with a malformed token
-      const isValid = await jwtService.validateToken('expired');
-      expect(isValid).toBe(false);
+      await expect(jwtService.validateToken('expired')).rejects.toThrow(
+        'Invalid authentication token'
+      );
     });
   });
 
   describe('getUserIdFromToken', () => {
     it('should extract user ID from valid token', async () => {
-      // Arrange
       const userId = 'user123';
       const orgIdToRole = { org456: UserRole.Admin };
       const token = await jwtService.generateToken(userId, orgIdToRole);
 
-      // Act
-      const extractedUserId = await jwtService.getUserIdFromToken(token);
+      const extractedUserId = jwtService.getUserIdFromToken(token);
 
-      // Assert
       expect(extractedUserId).toBe(userId);
     });
 
-    it('should return null for invalid token', async () => {
-      // Act
-      const extractedUserId = await jwtService.getUserIdFromToken('invalid');
+    it('should return null for invalid token', () => {
+      const extractedUserId = jwtService.getUserIdFromToken('invalid');
 
-      // Assert
       expect(extractedUserId).toBeNull();
     });
   });
 
   describe('isTokenExpired', () => {
     it('should return false for valid token', async () => {
-      // Arrange
       const token = await jwtService.generateToken('user', {
         org: UserRole.Customer,
       });
 
-      // Act
       const isExpired = jwtService.isTokenExpired(token);
 
-      // Assert
       expect(isExpired).toBe(false);
     });
 
     it('should return true for invalid token format', () => {
-      // Act
       const isExpired = jwtService.isTokenExpired('invalid');
 
-      // Assert
       expect(isExpired).toBe(true);
     });
   });
 
   describe('caching', () => {
     it('should cache private key to avoid repeated AWS calls', async () => {
-      // Arrange
       const userId = 'user123';
       const orgIdToRole = { org456: UserRole.Customer };
 
-      // Act - Generate two tokens
       await jwtService.generateToken(userId, orgIdToRole);
       await jwtService.generateToken(userId, orgIdToRole);
 
-      // Assert - Should only call AWS once (cache hit on second call)
-      expect(mockSecretsManagerClient.send).toHaveBeenCalledTimes(1);
+      expect(mockSend.mock.calls.filter((c) => {
+        const cmd = c[0] as { input?: { SecretId?: string } };
+        return cmd.input?.SecretId?.includes('private-key');
+      })).toHaveLength(1);
     });
   });
 });
