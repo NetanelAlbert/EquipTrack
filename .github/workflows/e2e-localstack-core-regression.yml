@@ -83,6 +83,10 @@ jobs:
           path: test-results
           if-no-files-found: ignore
 
+      - name: Summarize Playwright failure contexts
+        if: always()
+        run: python3 scripts/summarize-playwright-error-contexts.py --label localstack
+
       - name: Tear down local stack
         if: always()
         run: npm run e2e:local:stack:down

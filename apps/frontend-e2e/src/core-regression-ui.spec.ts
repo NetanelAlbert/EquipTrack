@@ -50,14 +50,6 @@ function getItem(items: InventoryItem[], productId: string): InventoryItem {
   return item;
 }
 
-function getFirstUpiFromItem(item: InventoryItem): string {
-  const u = item.upis?.[0];
-  if (!u) {
-    throw new Error(`Missing UPI on item for product ${item.productId}`);
-  }
-  return u;
-}
-
 async function bootstrapAuthenticatedSession(page: Page, token: string) {
   await page.addInitScript(
     ({
@@ -259,7 +251,8 @@ test.describe('core regression ui flow', () => {
     const beforeCustomerBulk = getItem(beforeCustomerInventory, bulkProductId);
     const beforeWarehouseUpi = getItem(beforeWarehouseInventory, upiProductId);
     const beforeCustomerUpi = getItem(beforeCustomerInventory, upiProductId);
-    const transferredUpi = getFirstUpiFromItem(beforeWarehouseUpi);
+    const transferredUpi = beforeWarehouseUpi.upis?.[0];
+    expect(transferredUpi).toBeTruthy();
 
     await bootstrapAuthenticatedSession(page, adminToken);
     await ensureOrganizationIsSelected(page);
@@ -304,7 +297,7 @@ test.describe('core regression ui flow', () => {
     const laptopUpiInput = laptopEditableItem.getByTestId(
       'editable-item-upi-input-0'
     );
-    await laptopUpiInput.fill(transferredUpi);
+    await laptopUpiInput.fill(transferredUpi!);
     await laptopUpiInput.blur();
 
     const submitCheckout = page.getByTestId('editable-inventory-submit');

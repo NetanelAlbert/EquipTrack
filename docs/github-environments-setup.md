@@ -121,6 +121,26 @@ For enhanced security, migrate from access keys to OIDC:
 | `STAGE` | `dev` | `production` |
 | `BASE_DOMAIN` | `dev.equip-track.com` | `equip-track.com` |
 
+## 🧪 E2E Workflow Environment Secrets
+
+The deployed regression workflow (`.github/workflows/e2e-deployed-core-regression.yml`) reads:
+
+- `E2E_AUTH_SECRET` (from the selected GitHub Environment)
+
+Add this secret to each environment:
+
+- **development** → `E2E_AUTH_SECRET` for your dev API
+- **production** → `E2E_AUTH_SECRET` for your production API
+
+When manually running the workflow:
+
+1. Open **Actions** → **E2E Deployed Core Regression**
+2. Click **Run workflow**
+3. Select `target_environment` (`development`/`production`)
+4. Fill:
+   - `base_url` (frontend deployed URL)
+   - `backend_base_url` (API deployed URL)
+
 ## 🧪 Testing the Setup
 
 ### Development Deployment Test
