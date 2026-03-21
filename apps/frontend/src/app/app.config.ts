@@ -11,13 +11,12 @@ import { APP_INITIALIZER, importProvidersFrom } from '@angular/core';
 
 import { appRoutes } from './app.routes';
 import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
-import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { appInitializer } from './app.init';
 import { errorInterceptor } from '../services/error-interceptor.service';
+import { VersionedTranslateHttpLoader } from './versioned-translate-http-loader';
 
-// Factory function for TranslateHttpLoader
-export function HttpLoaderFactory(http: HttpClient) {
-  return new TranslateHttpLoader(http, './assets/i18n/', '.json');
+export function translateLoaderFactory(http: HttpClient) {
+  return new VersionedTranslateHttpLoader(http);
 }
 
 export const appConfig: ApplicationConfig = {
@@ -30,7 +29,7 @@ export const appConfig: ApplicationConfig = {
       TranslateModule.forRoot({
         loader: {
           provide: TranslateLoader,
-          useFactory: HttpLoaderFactory,
+          useFactory: translateLoaderFactory,
           deps: [HttpClient],
         },
         defaultLanguage: 'he',
