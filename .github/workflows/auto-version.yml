@@ -12,11 +12,11 @@ on:
       - 'apps/frontend/src/environments/environment.prod.ts'
 
 jobs:
-  version-bump-master:
-    name: Bump Version (release)
+  version-bump:
+    name: Bump Version
     runs-on: ubuntu-latest
 
-    if: ${{ github.ref == 'refs/heads/master' && !contains(github.event.head_commit.message, '[skip version]') }}
+    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop') && !contains(github.event.head_commit.message, '[skip version]') }}
 
     permissions:
       contents: write
@@ -40,37 +40,26 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
-      - name: Get current version
-        id: current-version
-        run: |
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          echo "Current version: $CURRENT_VERSION"
-
-      - name: Bump patch version
+      - name: Bump version
         id: bump-version
         run: |
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-
-          npm version patch --no-git-tag-version
-
-          NEW_VERSION=$(node -p "require('./package.json').version")
-
-          echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "Bumping version from $CURRENT_VERSION to $NEW_VERSION"
-
-          sed -i "s/version: '[^']*'/version: '$NEW_VERSION'/g" apps/frontend/src/environments/environment.ts
-          sed -i "s/version: '[^']*'/version: '$NEW_VERSION'/g" apps/frontend/src/environments/environment.prod.ts
+          new_version=$(bash scripts/bump-version-ci.sh)
+          echo "new=${new_version}" >> "${GITHUB_OUTPUT}"
 
       - name: Commit version bump
         run: |
           git add package.json package-lock.json apps/frontend/src/environments/environment.ts apps/frontend/src/environments/environment.prod.ts
-          git commit -m "chore: bump version to ${{ steps.bump-version.outputs.new }} [skip version]"
+          if [ "${{ github.ref }}" = "refs/heads/develop" ]; then
+            msg="chore: bump pre-release version to ${{ steps.bump-version.outputs.new }} [skip version]"
+          else
+            msg="chore: bump version to ${{ steps.bump-version.outputs.new }} [skip version]"
+          fi
+          git commit -m "${msg}"
 
       - name: Create and push tag
         run: |
           git tag "v${{ steps.bump-version.outputs.new }}"
-          git push origin HEAD:master
+          git push origin "HEAD:${{ github.ref_name }}"
           git push origin "v${{ steps.bump-version.outputs.new }}"
 
       - name: Create GitHub Release
@@ -79,85 +68,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: "v${{ steps.bump-version.outputs.new }}"
-          release_name: "Release v${{ steps.bump-version.outputs.new }}"
+          release_name: ${{ github.ref == 'refs/heads/develop' && format('Pre-release v{0}', steps.bump-version.outputs.new) || format('Release v{0}', steps.bump-version.outputs.new) }}
           body: |
-            Auto-generated release for version ${{ steps.bump-version.outputs.new }}
+            Auto-generated ${{ github.ref == 'refs/heads/develop' && 'pre-release' || 'release' }} for version ${{ steps.bump-version.outputs.new }}
 
-            Changes in this release:
+            Changes:
             ${{ github.event.head_commit.message }}
           draft: false
-          prerelease: false
-
-  version-bump-develop:
-    name: Bump Version (pre-release)
-    runs-on: ubuntu-latest
-
-    if: ${{ github.ref == 'refs/heads/develop' && !contains(github.event.head_commit.message, '[skip version]') }}
-
-    permissions:
-      contents: write
-      pull-requests: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.PAT_TOKEN }}
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Configure Git
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-
-      - name: Bump pre-release version
-        id: bump-version
-        run: |
-          set -euo pipefail
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          echo "Current version: $CURRENT_VERSION"
-
-          if [[ "$CURRENT_VERSION" == *-* ]]; then
-            npm version prerelease --preid=beta --no-git-tag-version
-          else
-            npm version prepatch --preid=beta --no-git-tag-version
-          fi
-
-          NEW_VERSION=$(node -p "require('./package.json').version")
-          echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "Bumped pre-release version to $NEW_VERSION"
-
-          sed -i "s/version: '[^']*'/version: '$NEW_VERSION'/g" apps/frontend/src/environments/environment.ts
-          sed -i "s/version: '[^']*'/version: '$NEW_VERSION'/g" apps/frontend/src/environments/environment.prod.ts
-
-      - name: Commit version bump
-        run: |
-          git add package.json package-lock.json apps/frontend/src/environments/environment.ts apps/frontend/src/environments/environment.prod.ts
-          git commit -m "chore: bump pre-release version to ${{ steps.bump-version.outputs.new }} [skip version]"
-
-      - name: Create and push tag
-        run: |
-          git tag "v${{ steps.bump-version.outputs.new }}"
-          git push origin HEAD:develop
-          git push origin "v${{ steps.bump-version.outputs.new }}"
-
-      - name: Create GitHub Pre-release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: "v${{ steps.bump-version.outputs.new }}"
-          release_name: "Pre-release v${{ steps.bump-version.outputs.new }}"
-          body: |
-            Auto-generated pre-release for version ${{ steps.bump-version.outputs.new }}
-
-            Changes in this build:
-            ${{ github.event.head_commit.message }}
-          draft: false
-          prerelease: true
+          prerelease: ${{ github.ref == 'refs/heads/develop' }}
