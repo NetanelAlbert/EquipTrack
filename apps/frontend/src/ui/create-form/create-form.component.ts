@@ -108,6 +108,17 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
     color: 'primary',
   }));
 
+  /**
+   * Read inventory limits here (not only inside createFormConfig) so Angular tracks
+   * getWarehouseInventory()/getUserInventory() and checkout UPI limits update when WAREHOUSE loads.
+   */
+  inventoryLimitItems = computed(() => {
+    if (this.formType() === FormType.CheckOut) {
+      return this.inventoryStore.getWarehouseInventory()();
+    }
+    return this.inventoryStore.getUserInventory(this.userId() ?? '')();
+  });
+
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
       if (params['formType'] && params['items']) {

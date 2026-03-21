@@ -141,6 +141,10 @@ export class EditableInventoryComponent implements OnInit {
         this.editedItems.emit(this.getItems());
       });
     this.addItemsToAddEffect();
+    effect(() => {
+      this.limitItems();
+      this.revalidateLimitRows();
+    });
   }
 
   ngOnInit(): void {
@@ -157,6 +161,14 @@ export class EditableInventoryComponent implements OnInit {
       ? FormInventoryItemMapperFromItem(this.fb, item, this.limitValidator)
       : emptyItem(this.fb, this.limitValidator);
     this.items.push(formItem, { emitEvent: false });
+    this.revalidateLimitRows();
+  }
+
+  private revalidateLimitRows(): void {
+    for (const row of this.items.controls) {
+      row.updateValueAndValidity({ emitEvent: false });
+    }
+    this.items.updateValueAndValidity({ emitEvent: false });
   }
 
   removeEmptyItems() {
