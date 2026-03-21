@@ -67,6 +67,8 @@ npx nx run frontend-e2e:e2e-local-core
 
 Set `E2E_SKIP_LOCAL_E2E_ENSURE=true` to skip the ensure step entirely (CI / `e2e:local:test` after prepare). Set `E2E_SKIP_LOCALSTACK_AUTO_UP=true` to only probe + setup without starting Docker (use a manually managed LocalStack).
 
+Those Playwright Nx targets use `cache: false` (see `apps/frontend-e2e/project.json`): end-to-end results must not be reused from the Nx cache, and this avoids spurious **“Nx detected a flaky task”** hints when a past failure was cached.
+
 ## CI
 
 Core regression is automated via:
