@@ -1,4 +1,4 @@
-<form [formGroup]="form">
+<form [formGroup]="form" data-testid="editable-inventory-form">
   <ng-container formArrayName="items">
     <mat-list class="dynamic-height-list">
       @for (itemControl of items.controls; track itemControl.value.productId ; let i = $index){
@@ -21,11 +21,24 @@
 </form>
 
 <div class="button-container">
-  <button mat-raised-button color="primary" class="add-item-button" (click)="addItem()">
+  <button
+    mat-raised-button
+    color="primary"
+    class="add-item-button"
+    data-testid="editable-inventory-add-item"
+    (click)="addItem()"
+  >
     <mat-icon>add</mat-icon>
     {{ 'inventory.button.add-item' | translate }}
   </button>
-  <button mat-raised-button [color]="submitButton().color" class="save-button" (click)="save()" [disabled]="!form.valid">
+  <button
+    mat-raised-button
+    [color]="submitButton().color"
+    class="save-button"
+    data-testid="editable-inventory-submit"
+    (click)="save()"
+    [disabled]="!form.valid"
+  >
     <mat-icon>{{ submitButton().icon }}</mat-icon>
     {{ submitButton().text | translate }}
   </button>

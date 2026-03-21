@@ -1,7 +1,7 @@
-<div class="container">
+<div class="container" data-testid="all-inventory-page">
   <!-- Loading indicator -->
   @if (isLoading()) {
-    <div class="loading-container">
+    <div class="loading-container" data-testid="all-inventory-loading">
       <mat-spinner diameter="50"></mat-spinner>
       <p>{{ 'inventory.loading' | translate }}</p>
     </div>
@@ -9,11 +9,16 @@
   
   <!-- Error state with retry button -->
   @else if (errorMessage()) {
-    <div class="error-container">
+    <div class="error-container" data-testid="all-inventory-error">
       <mat-icon color="warn">error</mat-icon>
       <p>{{ 'inventory.error.failed_to_load' | translate }}</p>
       <p class="error-details">{{ errorMessage() }}</p>
-      <button mat-raised-button color="primary" (click)="loadInventory()">
+      <button
+        mat-raised-button
+        color="primary"
+        data-testid="all-inventory-retry"
+        (click)="loadInventory()"
+      >
         <mat-icon>refresh</mat-icon>
         {{ 'common.retry' | translate }}
       </button>
@@ -22,7 +27,7 @@
   
   <!-- Empty state -->
   @else if (!hasInventory()) {
-    <div class="empty-container">
+    <div class="empty-container" data-testid="all-inventory-empty">
       <mat-icon>inventory_2</mat-icon>
       <h3>{{ 'inventory.empty.title' | translate }}</h3>
       <p>{{ 'inventory.empty.description' | translate }}</p>
@@ -32,11 +37,15 @@
   <!-- Inventory content with search -->
   @else {
     <inventory-search
+      data-testid="all-inventory-search"
       [items]="allInventoryItems()"
       [productsMap]="organizationStore.productsMap()"
       (filteredItems)="onFilteredItemsChange($event)"
     ></inventory-search>
     
-    <inventory-list [inventoryItems]="filteredItems()"></inventory-list>
+    <inventory-list
+      data-testid="all-inventory-list"
+      [inventoryItems]="filteredItems()"
+    ></inventory-list>
   }
 </div> 

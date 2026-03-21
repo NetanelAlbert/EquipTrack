@@ -34,6 +34,7 @@ import {
   UserInOrganization,
   UserState,
 } from '@equip-track/shared';
+import { getDynamoDbClientConfig } from '../../services/aws-client-config.service';
 
 export interface UserAndAllOrganizations {
   user: User;
@@ -41,7 +42,7 @@ export interface UserAndAllOrganizations {
 }
 
 export class UsersAndOrganizationsAdapter {
-  private readonly client = new DynamoDBClient({});
+  private readonly client = new DynamoDBClient(getDynamoDbClientConfig());
   private readonly docClient = DynamoDBDocumentClient.from(this.client);
   private readonly tableName = USERS_AND_ORGANIZATIONS_TABLE_NAME;
 

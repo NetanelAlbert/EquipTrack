@@ -4,15 +4,14 @@ import {
   GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { getS3ClientConfig } from './aws-client-config.service';
 
 export class S3Service {
   private readonly client: S3Client;
   private readonly bucketName = 'equip-track-forms';
 
   constructor() {
-    this.client = new S3Client({
-      region: process.env.AWS_REGION || 'us-east-1',
-    });
+    this.client = new S3Client(getS3ClientConfig());
   }
 
   /**

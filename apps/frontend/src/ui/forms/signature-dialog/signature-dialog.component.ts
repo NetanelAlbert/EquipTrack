@@ -20,8 +20,8 @@ import { TranslateModule } from '@ngx-translate/core';
     TranslateModule,
   ],
   template: `
-    <h2 mat-dialog-title>{{ 'common.signature.title' | translate }}</h2>
-    <mat-dialog-content>
+    <h2 mat-dialog-title data-testid="signature-dialog-title">{{ 'common.signature.title' | translate }}</h2>
+    <mat-dialog-content data-testid="signature-dialog-content">
       <app-signature-pad
         [width]="300"
         [height]="200"
@@ -31,13 +31,14 @@ import { TranslateModule } from '@ngx-translate/core';
         #sigPad
       ></app-signature-pad>
     </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()">
+    <mat-dialog-actions align="end" data-testid="signature-dialog-actions">
+      <button mat-button data-testid="signature-dialog-cancel" (click)="onCancel()">
         {{ 'common.cancel' | translate }}
       </button>
       <button
         mat-raised-button
         color="primary"
+        data-testid="signature-dialog-approve"
         [disabled]="!signatureData"
         (click)="onOk()"
       >

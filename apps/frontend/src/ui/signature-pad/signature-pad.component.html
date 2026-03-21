@@ -1,12 +1,18 @@
-<div class="signature-pad-container">
+<div class="signature-pad-container" data-testid="signature-pad-container">
   <h3 class="signature-pad-title">{{ 'common.signature.signature-pad' | translate }}</h3>
   <canvas #signaturePad
           [width]="width"
           [height]="height"
-          class="signature-pad-canvas">
+          class="signature-pad-canvas"
+          data-testid="signature-pad-canvas">
   </canvas>
   <div class="signature-pad-actions">
-    <button type="button" (click)="clear()" class="clear-button">
+    <button
+      type="button"
+      class="clear-button"
+      data-testid="signature-pad-clear"
+      (click)="clear()"
+    >
       {{ 'common.signature.clear' | translate }}
     </button>
   </div>

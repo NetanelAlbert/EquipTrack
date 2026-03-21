@@ -39,6 +39,7 @@ import {
   mergeInventoryItem,
   Product,
 } from '@equip-track/shared';
+import { getDynamoDbClientConfig } from '../../services/aws-client-config.service';
 
 export interface OrganizationInventory {
   products: Product[];
@@ -47,7 +48,7 @@ export interface OrganizationInventory {
 }
 
 export class InventoryAdapter {
-  private readonly client = new DynamoDBClient({});
+  private readonly client = new DynamoDBClient(getDynamoDbClientConfig());
   private readonly docClient = DynamoDBDocumentClient.from(this.client);
   private readonly tableName = INVENTORY_TABLE_NAME;
 
