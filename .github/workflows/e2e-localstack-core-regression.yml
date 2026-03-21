@@ -3,7 +3,7 @@ name: E2E LocalStack Core Regression
 on:
   pull_request:
     branches:
-      - main
+      - master
       - develop
   push:
     branches:
