@@ -14,6 +14,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint-and-unit-test:
+    name: Lint & unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint and unit tests
+        run: npx nx run-many -t lint,test --all --nxBail
+
   e2e-core-regression:
     name: Core regression (LocalStack + Playwright)
     runs-on: ubuntu-latest
