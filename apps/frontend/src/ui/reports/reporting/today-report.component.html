@@ -27,7 +27,7 @@
     @for (userItems of itemsToShow(); track userItems[0]) {
       @let holderId = userItems[0];
       @let itemReports = userItems[1];
-      <h2>{{ getUserName(holderId) }}</h2>
+      <h2>{{ getUserName(holderId) }} {{ getUserDepartmentAndSubDepartment(holderId) }}</h2>
       @for (item of itemReports; track item.upi; let j = $index) {
         <mat-card [class.unreported]="!item.location" class="item-card" 
                   (focusin)="onCardFocus(item)"

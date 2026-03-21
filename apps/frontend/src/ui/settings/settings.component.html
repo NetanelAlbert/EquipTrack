@@ -1,0 +1,23 @@
+<h2 mat-dialog-title>{{ 'settings.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="description">{{ 'settings.language.description' | translate }}</p>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>{{ 'settings.language.label' | translate }}</mat-label>
+    <mat-select
+      [value]="selectedLanguage()"
+      (selectionChange)="onLanguageChange($event)"
+    >
+      @for (language of availableLanguages; track language.code) {
+        <mat-option [value]="language.code">
+          {{ language.labelKey | translate }}
+        </mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>{{ 'common.close' | translate }}</button>
+</mat-dialog-actions>
