@@ -58,9 +58,14 @@ Equivalent Nx target:
 npx nx run frontend-e2e:e2e-local-core
 ```
 
-The `e2e-local-core` target runs `scripts/ensure-local-e2e-before-playwright.js` first: it **fails fast** if LocalStack is not reachable (with instructions), otherwise runs `e2e:local:setup` so DynamoDB/S3/secrets/seed are present before Playwright starts. Set `E2E_SKIP_LOCAL_E2E_ENSURE=true` to skip that step.
+The `e2e-local-core` target runs `scripts/ensure-local-e2e-before-playwright.js` first: it probes LocalStack; if nothing is listening it runs `docker compose … up -d localstack` (same as `e2e:local:stack:up`), waits until the endpoint is ready, then runs `e2e:local:setup`. So after a clean slate you can run:
 
-If you have not started Docker yet, run `npm run e2e:local:prepare` once (stack up + setup).
+```bash
+npm run e2e:local:stack:reset
+npx nx run frontend-e2e:e2e-local-core
+```
+
+Set `E2E_SKIP_LOCAL_E2E_ENSURE=true` to skip the ensure step entirely (CI / `e2e:local:test` after prepare). Set `E2E_SKIP_LOCALSTACK_AUTO_UP=true` to only probe + setup without starting Docker (use a manually managed LocalStack).
 
 ## CI
 

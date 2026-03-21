@@ -1,8 +1,10 @@
 /**
- * Runs before Playwright local E2E: fast-fail when LocalStack is down (clear message),
- * otherwise runs setup-local-e2e.js so tables/secrets/S3/seed exist.
+ * Runs before Playwright local E2E:
+ * - Probes LocalStack; if down, runs `docker compose up -d localstack` (same as e2e:local:stack:up)
+ * - Waits until LocalStack answers, then runs setup-local-e2e.js (tables/secrets/S3/seed).
  *
- * Skip with E2E_SKIP_LOCAL_E2E_ENSURE=true (e.g. exotic CI layouts).
+ * E2E_SKIP_LOCAL_E2E_ENSURE=true — skip entirely (CI after prepare, e2e:local:test).
+ * E2E_SKIP_LOCALSTACK_AUTO_UP=true — do not run docker compose (only probe + setup).
  */
 const { execSync } = require('child_process');
 const path = require('path');
@@ -11,10 +13,15 @@ const {
   ListTablesCommand,
 } = require('@aws-sdk/client-dynamodb');
 
+const workspaceRoot = path.join(__dirname, '..');
 const LOCALSTACK_ENDPOINT =
   process.env['AWS_ENDPOINT_URL'] || 'http://localhost:4566';
-const MAX_ATTEMPTS = 8;
-const POLL_MS = 400;
+
+const PROBE_ATTEMPTS = 8;
+const PROBE_MS = 400;
+/** After `docker compose up`, cold LocalStack can take a while to pass health checks. */
+const POST_UP_ATTEMPTS = 90;
+const POST_UP_MS = 500;
 
 function awsClientConfig() {
   return {
@@ -47,14 +54,35 @@ async function isLocalstackReachable() {
   }
 }
 
-async function waitUntilReachable() {
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+async function waitUntilReachable(maxAttempts, pollMs) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     if (await isLocalstackReachable()) {
       return true;
     }
-    await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+    await new Promise((resolve) => setTimeout(resolve, pollMs));
   }
   return false;
+}
+
+function tryStartLocalstack() {
+  if (process.env['E2E_SKIP_LOCALSTACK_AUTO_UP'] === 'true') {
+    return false;
+  }
+  try {
+    execSync('docker compose -f docker-compose.e2e.yml up -d localstack', {
+      cwd: workspaceRoot,
+      stdio: 'inherit',
+    });
+    console.log(
+      '[ensure-local-e2e] LocalStack container start requested (docker compose)'
+    );
+    return true;
+  } catch {
+    console.error(
+      '[ensure-local-e2e] docker compose failed (is Docker running and compose v2 available?)'
+    );
+    return false;
+  }
 }
 
 async function main() {
@@ -62,22 +90,35 @@ async function main() {
     return;
   }
 
-  const ok = await waitUntilReachable();
+  let ok = await waitUntilReachable(PROBE_ATTEMPTS, PROBE_MS);
+  if (!ok) {
+    console.log(
+      '[ensure-local-e2e] LocalStack not reachable yet; trying to start the stack…'
+    );
+    const started = tryStartLocalstack();
+    if (started) {
+      ok = await waitUntilReachable(POST_UP_ATTEMPTS, POST_UP_MS);
+    }
+  }
+
   if (!ok) {
     console.error(`[ensure-local-e2e] LocalStack is not reachable at ${LOCALSTACK_ENDPOINT}
 
-Start the stack and provision data, then retry:
+If Docker is running, start LocalStack manually:
 
-  npm run e2e:local:prepare
+  npm run e2e:local:stack:up
 
-If the container is already running:
+Then provision:
 
   npm run e2e:local:setup
+
+Or in one step:
+
+  npm run e2e:local:prepare
 `);
     process.exit(1);
   }
 
-  const workspaceRoot = path.join(__dirname, '..');
   execSync('node scripts/setup-local-e2e.js', {
     cwd: workspaceRoot,
     stdio: 'inherit',
