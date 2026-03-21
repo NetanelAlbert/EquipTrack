@@ -37,7 +37,7 @@ describe('AppComponent', () => {
 
   afterEach(() => {
     // Clean up the mock
-    delete (global as any).fetch;
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
   });
 
   it('should create', () => {

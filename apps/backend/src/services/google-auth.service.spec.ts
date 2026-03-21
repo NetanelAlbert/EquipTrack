@@ -74,7 +74,9 @@ describe('GoogleAuthService', () => {
     mockOAuth2Client = {
       verifyIdToken: jest.fn(),
     };
-    (OAuth2Client as any).mockImplementation(() => mockOAuth2Client);
+    (OAuth2Client as unknown as jest.Mock).mockImplementation(
+      () => mockOAuth2Client
+    );
 
     // Setup service
     googleAuthService = new GoogleAuthService(mockGoogleClientId);
@@ -82,7 +84,7 @@ describe('GoogleAuthService', () => {
     // Setup default mock responses
     mockOAuth2Client.verifyIdToken.mockResolvedValue({
       getPayload: () => validGooglePayload,
-    } as any);
+    } as unknown as Awaited<ReturnType<OAuth2Client['verifyIdToken']>>);
   });
 
   describe('authenticateWithGoogle', () => {
@@ -195,7 +197,7 @@ describe('GoogleAuthService', () => {
     it('should reject invalid Google ID token', async () => {
       // Arrange
       mockOAuth2Client.verifyIdToken.mockRejectedValue(
-        new Error('Invalid token') as any
+        new Error('Invalid token')
       );
 
       // Act & Assert
@@ -211,7 +213,7 @@ describe('GoogleAuthService', () => {
       const invalidPayload = { ...validGooglePayload, iss: 'malicious.com' };
       mockOAuth2Client.verifyIdToken.mockResolvedValue({
         getPayload: () => invalidPayload,
-      } as any);
+      } as unknown as Awaited<ReturnType<OAuth2Client['verifyIdToken']>>);
 
       // Act & Assert
       await expect(
@@ -226,7 +228,7 @@ describe('GoogleAuthService', () => {
       const invalidPayload = { ...validGooglePayload, email_verified: false };
       mockOAuth2Client.verifyIdToken.mockResolvedValue({
         getPayload: () => invalidPayload,
-      } as any);
+      } as unknown as Awaited<ReturnType<OAuth2Client['verifyIdToken']>>);
 
       // Act & Assert
       await expect(
@@ -242,7 +244,9 @@ describe('GoogleAuthService', () => {
   describe('validateGoogleIdToken', () => {
     it('should validate a properly formatted Google ID token', async () => {
       // Arrange
-      const service = googleAuthService as any; // Access private method
+      const service = googleAuthService as unknown as {
+        validateGoogleIdToken: (token: string) => Promise<GoogleTokenPayload>;
+      };
 
       // Act
       const result = await service.validateGoogleIdToken('valid-token');
@@ -257,10 +261,12 @@ describe('GoogleAuthService', () => {
 
     it('should reject token with no payload', async () => {
       // Arrange
-      const service = googleAuthService as any;
+      const service = googleAuthService as unknown as {
+        validateGoogleIdToken: (token: string) => Promise<GoogleTokenPayload>;
+      };
       mockOAuth2Client.verifyIdToken.mockResolvedValue({
         getPayload: () => null,
-      } as any);
+      } as unknown as Awaited<ReturnType<OAuth2Client['verifyIdToken']>>);
 
       // Act & Assert
       await expect(

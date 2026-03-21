@@ -42,7 +42,7 @@ export class LoginComponent implements OnInit {
           this.router.navigate(['/']);
         }
       },
-      error: (error: any) => {
+      error: (error: unknown) => {
         console.error('Login failed:', error);
         // Error is handled by AuthService and displayed via authState
       },

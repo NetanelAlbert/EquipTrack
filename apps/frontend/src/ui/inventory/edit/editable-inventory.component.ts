@@ -34,7 +34,7 @@ import {
 } from './form.mudels';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EditableItemComponent } from './item/editable-item.component';
-import { debounceTime, distinctUntilChanged, filter, skip } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter } from 'rxjs';
 import { ConfirmDeleteDialogComponent } from './confirm-delete-dialog.component';
 import { isSubset } from '@equip-track/shared';
 

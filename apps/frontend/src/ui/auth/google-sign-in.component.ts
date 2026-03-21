@@ -24,33 +24,6 @@ interface GoogleCredentialResponse {
   select_by: string; // How the user signed in
 }
 
-/**
- * Google Identity Services configuration
- */
-interface GoogleIdConfiguration {
-  client_id: string;
-  callback: (response: GoogleCredentialResponse) => void;
-  auto_select?: boolean;
-  cancel_on_tap_outside?: boolean;
-  context?: 'signin' | 'signup' | 'use';
-  use_fedcm_for_prompt?: boolean;
-  itp_support?: boolean;
-}
-
-/**
- * Google Sign-In button configuration
- */
-interface GoogleButtonConfiguration {
-  type?: 'standard' | 'icon';
-  theme?: 'outline' | 'filled_blue' | 'filled_black';
-  size?: 'large' | 'medium' | 'small';
-  text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
-  shape?: 'rectangular' | 'pill' | 'circle' | 'square';
-  logo_alignment?: 'left' | 'center';
-  width?: string;
-  locale?: string;
-}
-
 @Component({
   selector: 'app-google-sign-in',
   standalone: true,

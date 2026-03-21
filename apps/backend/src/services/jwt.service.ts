@@ -107,7 +107,7 @@ export class JwtService {
       }
       const now = Math.floor(Date.now() / 1000);
       return decoded.exp < now;
-    } catch (error) {
+    } catch {
       return true;
     }
   }

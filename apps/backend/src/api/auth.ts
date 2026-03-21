@@ -1,19 +1,19 @@
 import {
   EndpointMeta,
+  JwtPayload,
+  OptionalObject,
   ORGANIZATION_ID_PATH_PARAM,
   USER_ID_PATH_PARAM,
   UserInOrganization,
-  OptionalObject,
 } from '@equip-track/shared';
 import { APIGatewayProxyEvent } from 'aws-lambda';
 import { badRequest, forbidden, unauthorized } from './responses';
 import { JwtService } from '../services/jwt.service';
-import { JwtPayload } from '@equip-track/shared';
 
 const jwtService = new JwtService();
 
 export async function authenticateAndGetJwt<Req extends OptionalObject>(
-  meta: EndpointMeta<Req, any>,
+  meta: EndpointMeta<Req, OptionalObject>,
   event: APIGatewayProxyEvent,
   req?: Req
 ): Promise<JwtPayload> {
@@ -89,7 +89,7 @@ async function validateAndExtractJwt(
 
 function validateOrganizationAccess(
   jwtPayload: JwtPayload,
-  meta: EndpointMeta<any, any>,
+  meta: EndpointMeta<OptionalObject, OptionalObject>,
   event: APIGatewayProxyEvent
 ): UserInOrganization | undefined {
   if (meta.path.includes(`{${ORGANIZATION_ID_PATH_PARAM}}`)) {
@@ -124,7 +124,7 @@ function validateOrganizationAccess(
 
 function validateUserAccess<Req extends OptionalObject>(
   jwtPayload: JwtPayload,
-  meta: EndpointMeta<any, any>,
+  meta: EndpointMeta<OptionalObject, OptionalObject>,
   event: APIGatewayProxyEvent,
   req?: Req,
   organization?: UserInOrganization
@@ -154,7 +154,7 @@ function validateUserAccess<Req extends OptionalObject>(
 
 function validateUserAccessByUserId(
   accessedUserId: string,
-  meta: EndpointMeta<any, any>,
+  meta: EndpointMeta<OptionalObject, OptionalObject>,
   jwtPayload: JwtPayload,
   organization?: UserInOrganization
 ) {

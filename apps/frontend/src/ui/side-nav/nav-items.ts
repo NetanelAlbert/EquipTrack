@@ -1,3 +1,4 @@
+import { Type } from '@angular/core';
 import { UserRole } from '@equip-track/shared';
 
 export interface NavItem {
@@ -5,7 +6,8 @@ export interface NavItem {
   labelKey: string;
   route: string;
   roles: UserRole[];
-  loadComponent: () => Promise<any>; // Function for lazy loading
+  /** Lazy-loaded standalone component; Angular route `loadComponent` expects `Promise<Type<…>>`. */
+  loadComponent: () => Promise<Type<unknown>>;
   canDeactivateCheck?: boolean;
 }
 

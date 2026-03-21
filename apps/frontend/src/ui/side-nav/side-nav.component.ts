@@ -65,8 +65,8 @@ export class SideNavComponent implements OnInit {
     this.checkMobile();
   }
 
-  @HostListener('window:resize', ['$event'])
-  onResize(event: any): void {
+  @HostListener('window:resize')
+  onResize(): void {
     this.checkMobile();
   }
 

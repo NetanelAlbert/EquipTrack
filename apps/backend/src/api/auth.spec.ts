@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent } from 'aws-lambda';
-import { UserRole, EndpointMeta } from '@equip-track/shared';
+import { JwtPayload, UserRole, EndpointMeta } from '@equip-track/shared';
 import { unauthorized, forbidden } from './responses';
 
 // Manual mocks for cleaner testing
@@ -21,7 +21,7 @@ import { authenticateAndGetJwt } from './auth';
 
 describe('Optimized JWT Authentication System', () => {
   let mockEvent: APIGatewayProxyEvent;
-  let mockMeta: EndpointMeta<any, any>;
+  let mockMeta: EndpointMeta;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -30,7 +30,7 @@ describe('Optimized JWT Authentication System', () => {
     mockEvent = {
       headers: {},
       pathParameters: { organizationId: 'org-123' },
-      requestContext: {} as any,
+      requestContext: {} as APIGatewayProxyEvent['requestContext'],
       httpMethod: 'GET',
       path: '/api/test',
       queryStringParameters: null,
@@ -136,11 +136,11 @@ describe('Optimized JWT Authentication System', () => {
       mockEvent.headers['Authorization'] = `Bearer ${tokenWithoutSub}`;
 
       mockJwtService.validateToken.mockResolvedValue({
-        sub: undefined as any,
+        sub: undefined,
         orgIdToRole: { 'org-123': UserRole.Admin },
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
-      });
+      } as unknown as JwtPayload);
 
       // Act & Assert
       await expect(authenticateAndGetJwt(mockMeta, mockEvent)).rejects.toEqual(

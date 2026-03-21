@@ -190,7 +190,10 @@ describe('GoogleSignInComponent', () => {
       const initializeCall =
         mockGoogleApi.accounts.id.initialize.mock.calls.at(-1);
       expect(initializeCall).toBeDefined();
-      const callback = (initializeCall![0] as { callback: (r: unknown) => void })
+      if (!initializeCall) {
+        throw new Error('expected initialize to have been called');
+      }
+      const callback = (initializeCall[0] as { callback: (r: unknown) => void })
         .callback;
 
       callback(mockCredentialResponse);
@@ -209,7 +212,10 @@ describe('GoogleSignInComponent', () => {
 
       const initializeCall =
         mockGoogleApi.accounts.id.initialize.mock.calls.at(-1);
-      const callback = (initializeCall![0] as { callback: (r: unknown) => void })
+      if (!initializeCall) {
+        throw new Error('expected initialize to have been called');
+      }
+      const callback = (initializeCall[0] as { callback: (r: unknown) => void })
         .callback;
 
       callback({ select_by: 'user' });
@@ -226,7 +232,10 @@ describe('GoogleSignInComponent', () => {
 
       const initializeCall =
         mockGoogleApi.accounts.id.initialize.mock.calls.at(-1);
-      const callback = (initializeCall![0] as { callback: (r: unknown) => void })
+      if (!initializeCall) {
+        throw new Error('expected initialize to have been called');
+      }
+      const callback = (initializeCall[0] as { callback: (r: unknown) => void })
         .callback;
 
       callback({});

@@ -1,4 +1,4 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, WriteRequest } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
   QueryCommand,
@@ -131,7 +131,7 @@ export class ReportsAdapter {
   }
 
   private async retryUnprocessedItems(
-    unprocessedRequests: any[]
+    unprocessedRequests: WriteRequest[]
   ): Promise<number> {
     let successCount = 0;
 

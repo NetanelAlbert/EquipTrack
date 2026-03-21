@@ -126,7 +126,11 @@ class PerformanceMonitor {
    */
   private getMemoryUsage(): number | undefined {
     if ('memory' in performance) {
-      const perfMemory = (performance as any).memory;
+      const perfMemory = (
+        performance as Performance & {
+          memory?: { usedJSHeapSize: number };
+        }
+      ).memory;
       return perfMemory?.usedJSHeapSize;
     }
     return undefined;
@@ -307,7 +311,14 @@ export const logPerformanceStats = () => performanceMonitor.logStats();
 
 // Expose on window for debugging in development
 if (typeof window !== 'undefined' && !performanceMonitor['isProduction']()) {
-  (window as any).inventoryPerf = {
+  const w = window as Window & {
+    inventoryPerf?: {
+      getStats: typeof getPerformanceStats;
+      logStats: typeof logPerformanceStats;
+      monitor: typeof performanceMonitor;
+    };
+  };
+  w.inventoryPerf = {
     getStats: getPerformanceStats,
     logStats: logPerformanceStats,
     monitor: performanceMonitor,

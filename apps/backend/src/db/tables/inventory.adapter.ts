@@ -601,8 +601,13 @@ export class InventoryAdapter {
 
       await this.docClient.send(putCommand);
       return currentTimestamp;
-    } catch (error: any) {
-      if (error.name === 'ConditionalCheckFailedException') {
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'name' in error &&
+        (error as { name: string }).name === 'ConditionalCheckFailedException'
+      ) {
         // Another process acquired the lock between our check and put
         return false;
       }

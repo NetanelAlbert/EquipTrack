@@ -1,4 +1,4 @@
-import { User, UserInOrganization, UserRole } from '../elements';
+import { UserRole } from '../elements';
 import { BasicResponse } from './basic';
 
 /**

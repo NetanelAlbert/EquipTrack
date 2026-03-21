@@ -1,13 +1,13 @@
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import {
   GetItemsToReportRequestResponse,
+  getUserIDsOfSameSubDepartment,
   InventoryItem,
   JwtPayload,
   UserRole,
 } from '@equip-track/shared';
-import { InventoryAdapter } from 'apps/backend/src/db/tables/inventory.adapter';
-import { UsersAndOrganizationsAdapter } from 'apps/backend/src/db';
-import { getUserIDsOfSameSubDepartment } from '@equip-track/shared';
+import { UsersAndOrganizationsAdapter } from '../../../db';
+import { InventoryAdapter } from '../../../db/tables/inventory.adapter';
 
 export async function handler(
   _req: unknown,
