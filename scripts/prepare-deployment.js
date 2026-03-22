@@ -190,10 +190,7 @@ function createInitialDeploymentInfo() {
       }
     }
   };
-  
-  fs.writeFileSync('deployment-info.json', JSON.stringify(deploymentInfo, null, 2));
-  console.log('✅ Created initial deployment-info.json');
-  
+
   return deploymentInfo;
 }
 
@@ -209,9 +206,19 @@ function prepareDeployment() {
     // Create endpoints config file
     const endpointsConfig = createEndpointsConfig(endpointMetas);
     
-    // Create initial deployment info
+    // Create initial deployment info (gitignored; CI starts with no file)
     const deploymentInfo = createInitialDeploymentInfo();
-    
+
+    try {
+      const { hydrateFrontendInfraFromAws } = require('./setup-cloudfront.js');
+      hydrateFrontendInfraFromAws(deploymentInfo);
+    } catch (e) {
+      console.log('⚠️ Frontend infra hydration skipped:', e.message);
+    }
+
+    fs.writeFileSync('deployment-info.json', JSON.stringify(deploymentInfo, null, 2));
+    console.log('✅ Wrote deployment-info.json');
+
     console.log('\n🎉 Deployment preparation completed successfully!');
     console.log(`📊 Summary:`);
     console.log(`   - ${endpointsConfig.handlerNames.length} API endpoints configured`);
