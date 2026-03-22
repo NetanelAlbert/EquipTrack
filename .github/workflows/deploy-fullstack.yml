@@ -5,9 +5,10 @@ on:
     tags:
       - 'v*'
 
-# One deploy at a time per ref avoids S3 sync --delete races and CloudFront ETag conflicts.
+# One deploy at a time per AWS stage (not per tag ref). Prerelease tags share the same target as dev;
+# using github.ref per tag allowed v1.0.0-beta.1 and v1.0.0-beta.2 to run in parallel and race S3/CloudFront.
 concurrency:
-  group: deploy-fullstack-${{ github.ref }}
+  group: deploy-fullstack-${{ contains(github.ref, '-') && 'dev' || 'production' }}
   cancel-in-progress: false
 
 env:
