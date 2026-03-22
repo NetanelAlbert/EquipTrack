@@ -284,12 +284,10 @@ test.describe('core regression ui flow', () => {
 
     const userSelect = page.getByTestId('create-form-user-select');
     await userSelect.locator('.ng-select-container').click();
-    const dropdownSearch = page
-      .locator('.ng-dropdown-panel')
-      .locator('input[type="text"]')
-      .first();
-    await expect(dropdownSearch).toBeVisible({ timeout: 15000 });
-    await dropdownSearch.fill('E2E');
+    // Filter input stays in the ng-select host; options render in appendTo panel.
+    const filterInput = userSelect.locator('.ng-input input');
+    await expect(filterInput).toBeVisible({ timeout: 15000 });
+    await filterInput.fill('E2E');
     const customerOption = page.getByTestId(
       `create-form-user-option-${customerUserId}`
     );
