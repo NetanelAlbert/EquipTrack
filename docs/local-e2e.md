@@ -121,3 +121,7 @@ Deployed runs use the GitHub Environment secret `E2E_AUTH_SECRET` plus URLs from
 - **Auth failures in tests**: Ensure backend was started with `E2E_AUTH_ENABLED=true` and the same `E2E_AUTH_SECRET` the tests use (`e2e-local-secret` for local scripts).
 - **Flaky Nx cache on E2E**: `frontend-e2e` e2e targets set `cache: false`; if you run Playwright outside Nx, do not rely on cached failures as green.
 - **CI failures**: Download the workflow artifacts (report + test-results) and check the “Summarize Playwright failure contexts” step output.
+
+## GitHub epic (issue mapping)
+
+The end-to-end testing initiative was tracked as **E2E-0002** through **E2E-0701** on GitHub. Implementation is on `develop`; prerequisite **E2E-0001** is [#40](https://github.com/NetanelAlbert/EquipTrack/issues/40) (closed). Remaining epic tickets [#41](https://github.com/NetanelAlbert/EquipTrack/issues/41)–[#53](https://github.com/NetanelAlbert/EquipTrack/issues/53) map to: stable `data-testid` selectors; LocalStack compose + bootstrap + seed scripts; local HTTP adapter; guarded `e2e-login`; AWS endpoint overrides; frontend runtime API URL; Playwright helpers and core regression specs; blocking LocalStack CI; manual and post-`develop`-deploy deployed workflows; and this runbook (plus [github-environments-setup.md](./github-environments-setup.md)). Notable merges: [#54](https://github.com/NetanelAlbert/EquipTrack/pull/54), [#70](https://github.com/NetanelAlbert/EquipTrack/pull/70), [#71](https://github.com/NetanelAlbert/EquipTrack/pull/71).
