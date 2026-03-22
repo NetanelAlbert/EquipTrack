@@ -13,58 +13,8 @@ import { UserStore } from '../../../store/user.store';
   selector: 'app-user-display',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="user-display">
-      <span class="user-name">{{ user().user.name }}</span>
-      @if (departmentInfo(); as info) {
-      <span class="department-info">
-        @if (info.mainDepartment) {
-        <span class="main-department">{{ info.mainDepartment }}</span>
-        } @if (info.subDepartment) {
-        <span class="sub-department">/ {{ info.subDepartment }}</span>
-        } @if (info.roleDescription) {
-        <span class="role-description">({{ info.roleDescription }})</span>
-        }
-      </span>
-      }
-    </div>
-  `,
-  styles: [
-    `
-      .user-display {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-
-      .user-name {
-        font-weight: 500;
-        color: var(--mat-option-label-text-color);
-      }
-
-      .department-info {
-        font-size: 0.875em;
-        color: var(--mat-option-supporting-text-color);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        align-items: center;
-      }
-
-      .main-department {
-        color: var(--mat-option-supporting-text-color);
-      }
-
-      .sub-department {
-        color: var(--mat-option-supporting-text-color);
-      }
-
-      .role-description {
-        color: var(--mat-option-supporting-text-color);
-        font-style: italic;
-      }
-    `,
-  ],
+  templateUrl: './user-display.component.html',
+  styleUrl: './user-display.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UserDisplayComponent {

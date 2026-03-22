@@ -1,0 +1,34 @@
+.user-display {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.5rem;
+  row-gap: 0.125rem;
+}
+
+.user-name {
+  font-weight: 500;
+  flex-shrink: 0;
+  color: var(--mat-option-label-text-color);
+}
+
+.department-info {
+  font-size: 0.875em;
+  color: var(--mat-option-supporting-text-color);
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.main-department,
+.sub-department {
+  color: var(--mat-option-supporting-text-color);
+}
+
+.role-description {
+  color: var(--mat-option-supporting-text-color);
+  font-style: italic;
+}
