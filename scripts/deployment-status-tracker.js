@@ -23,7 +23,8 @@ const DEPLOYMENT_STEPS = {
   'frontend-fast': 'Deploy Frontend (Fast)',
   'frontend-full': 'Deploy Frontend (Full setup)',
   'cloudfront': 'Create CloudFront Distribution',
-  'custom-domain': 'Setup Custom Domain'
+  'custom-domain': 'Setup Custom Domain',
+  'seed-e2e': 'Seed E2E fixture data (dev)'
 };
 
 function loadDeploymentInfo() {
