@@ -123,7 +123,7 @@ For enhanced security, migrate from access keys to OIDC:
 
 ## 🧪 E2E Workflow Environment Secrets
 
-The deployed regression workflow (`.github/workflows/e2e-deployed-core-regression.yml`) reads:
+Deployed Playwright regression (manual and automatic) uses the reusable workflow `.github/workflows/e2e-deployed-core-reusable.yml` and reads:
 
 - `E2E_AUTH_SECRET` (from the selected GitHub Environment)
 
@@ -132,7 +132,18 @@ Add this secret to each environment:
 - **development** → `E2E_AUTH_SECRET` for your dev API
 - **production** → `E2E_AUTH_SECRET` for your production API
 
-When manually running the workflow:
+### Repository variables (optional — auto E2E after develop deploy)
+
+Workflow **E2E Deployed Core After Develop Deploy** (`.github/workflows/e2e-deployed-after-develop-deploy.yml`) runs after a successful **Deploy Full Stack to AWS** on `develop`. It only runs when **both** of these **Actions variables** are non-empty (repository **Settings → Secrets and variables → Actions → Variables**):
+
+| Variable | Example | Purpose |
+|----------|---------|---------|
+| `E2E_DEV_FRONTEND_URL` | `https://app.dev.equip-track.com` | Deployed frontend base URL |
+| `E2E_DEV_BACKEND_URL` | `https://api.dev.equip-track.com` | Deployed API base URL |
+
+If either is unset, the workflow is skipped (no failure). The job uses the **development** environment for `E2E_AUTH_SECRET`.
+
+### Manual deployed E2E
 
 1. Open **Actions** → **E2E Deployed Core Regression**
 2. Click **Run workflow**

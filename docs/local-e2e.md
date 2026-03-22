@@ -116,7 +116,8 @@ Deployed runs additionally use the GitHub Environment secret `E2E_AUTH_SECRET` a
 ## CI behavior
 
 - **LocalStack core regression**: `.github/workflows/e2e-localstack-core-regression.yml` runs on pull requests targeting `main` / `develop` and on pushes to `develop`. It runs lint + unit tests, then `e2e:local:prepare` and `nx run frontend-e2e:e2e-local-core` (Chromium, `workers=1`). Artifacts: Playwright HTML report and `test-results`, plus a summarized failure context log.
-- **Deployed core regression**: `.github/workflows/e2e-deployed-core-regression.yml` is **manual** (`workflow_dispatch`): pick environment, frontend URL, and API URL. It does not start local Docker.
+- **Deployed core regression (manual)**: `.github/workflows/e2e-deployed-core-regression.yml` is **`workflow_dispatch`**: pick environment, frontend URL, and API URL. It does not start local Docker.
+- **Deployed core regression (after develop deploy)**: `.github/workflows/e2e-deployed-after-develop-deploy.yml` runs when [Deploy Full Stack to AWS](.github/workflows/deploy-fullstack.yml) completes successfully on `develop`. It is **skipped** unless repository variables `E2E_DEV_FRONTEND_URL` and `E2E_DEV_BACKEND_URL` are set (Settings → Secrets and variables → Actions → Variables). It checks out the same commit as the deploy (`workflow_run.head_sha`) and uses the **development** GitHub Environment for `E2E_AUTH_SECRET`.
 
 ## Troubleshooting
 
