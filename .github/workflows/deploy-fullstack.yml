@@ -205,6 +205,14 @@ jobs:
           node scripts/create-dynamodb-tables.js
           node scripts/deployment-status-tracker.js track dynamodb success
 
+      # Deployed Playwright core regression expects org-e2e-main / prod-bulk-helmet / etc. in dev DynamoDB.
+      - name: Seed E2E fixture data (dev only)
+        if: ${{ steps.scope.outputs.deploy_backend == 'true' && env.STAGE == 'dev' }}
+        run: |
+          node scripts/deployment-status-tracker.js track seed-e2e started
+          node scripts/seed-e2e-data.js
+          node scripts/deployment-status-tracker.js track seed-e2e success
+
       - name: Create Lambda deployment packages
         id: create-lambda-packages
         if: steps.scope.outputs.deploy_backend == 'true'

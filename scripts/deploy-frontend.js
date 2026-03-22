@@ -99,33 +99,38 @@ function uploadToS3(bucketName) {
     throw new Error(`Frontend build directory not found: ${FRONTEND_DIST_PATH}`);
   }
   
-  // Upload hashed static assets with long-term caching
+  // Two-phase sync: upload new bundles before --delete so stale index.html never
+  // references JS that was already removed (S3 website 404 → index.html → module MIME errors).
+  const immutableExclude =
+    '--exclude "*.html" --exclude "*.xml" --exclude "*.txt"';
+
   execSync(
-    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --delete --exclude "*.html" --exclude "*.xml" --exclude "*.txt" --cache-control "max-age=31536000,immutable"`,
+    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ ${immutableExclude} --cache-control "max-age=31536000,immutable"`,
     { stdio: 'inherit' }
   );
-  
-  // Upload HTML files with no-cache headers
+
   execSync(
     `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "*.html" --cache-control "no-cache,no-store,must-revalidate"`,
     { stdio: 'inherit' }
   );
-  
-  // Upload translation files with short cache (these change frequently)
+
   execSync(
     `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "assets/i18n/*" --cache-control "max-age=300"`,
     { stdio: 'inherit' }
   );
-  
-  // Upload other asset files (images, icons) with medium cache
+
   execSync(
     `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "assets/*" --exclude "assets/i18n/*" --cache-control "max-age=3600"`,
     { stdio: 'inherit' }
   );
-  
-  // Upload other non-hashed files (robots.txt, sitemap.xml, etc.) with short cache
+
   execSync(
     `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "*.xml" --include "*.txt" --cache-control "max-age=3600"`,
+    { stdio: 'inherit' }
+  );
+
+  execSync(
+    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --delete ${immutableExclude} --cache-control "max-age=31536000,immutable"`,
     { stdio: 'inherit' }
   );
   
