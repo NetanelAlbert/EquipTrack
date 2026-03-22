@@ -9,6 +9,41 @@ function isRuntimeConfig(value: unknown): value is RuntimeConfig {
   return typeof value === 'object' && value !== null;
 }
 
+/** True when apiUrl targets loopback or RFC1918 — unsafe from a public HTTPS origin (Chrome PNA, mixed behavior). */
+function isPrivateOrLoopbackApiUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    const h = u.hostname.toLowerCase();
+    if (h === 'localhost' || h === '127.0.0.1' || h === '[::1]') {
+      return true;
+    }
+    if (
+      h.startsWith('192.168.') ||
+      h.startsWith('10.') ||
+      /^172\.(1[6-9]|2\d|3[0-1])\./.test(h)
+    ) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function shouldIgnoreRuntimeApiUrl(fileApiUrl: string): boolean {
+  if (typeof globalThis === 'undefined' || !('location' in globalThis)) {
+    return false;
+  }
+  const loc = globalThis.location as Location;
+  const host = loc.hostname;
+  const onLoopback =
+    host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+  if (onLoopback) {
+    return false;
+  }
+  return isPrivateOrLoopbackApiUrl(fileApiUrl);
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -37,10 +72,16 @@ export class RuntimeConfigService {
 
       const fileApiUrl = configFromFile.apiUrl?.trim();
       if (fileApiUrl) {
-        this.config = {
-          ...this.config,
-          apiUrl: fileApiUrl,
-        };
+        if (shouldIgnoreRuntimeApiUrl(fileApiUrl)) {
+          console.warn(
+            '[RuntimeConfig] Ignoring runtime-config apiUrl pointing to a local/private host while app is served from a public origin. Using build-time environment.apiUrl instead.'
+          );
+        } else {
+          this.config = {
+            ...this.config,
+            apiUrl: fileApiUrl,
+          };
+        }
       }
     } catch {
       // No-op fallback to environment config when runtime file is unavailable.
