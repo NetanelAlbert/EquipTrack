@@ -2,8 +2,6 @@ name: Deploy Full Stack to AWS
 
 on:
   push:
-    branches:
-      - develop
     tags:
       - 'v*'
 
@@ -16,8 +14,8 @@ env:
   # Use the correct lowercase AWS region identifier.
   AWS_REGION: il-central-1
   NODE_VERSION: '20'
-  # Stage name is used by several deployment scripts (defaults to "dev" if omitted).
-  STAGE: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'dev' }}
+  # Pre-release tags (semver prerelease, e.g. v1.2.3-beta.0) deploy to dev; stable release tags deploy to production.
+  STAGE: ${{ contains(github.ref, '-') && 'dev' || 'production' }}
   # Optional: set repository secret NX_CLOUD_ACCESS_TOKEN after `nx connect` for remote cache.
   NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
 
@@ -26,7 +24,7 @@ jobs:
     name: Deploy Full Stack
     runs-on: ubuntu-latest
     # Use GitHub Environments for proper separation and protection
-    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'development' }}
+    environment: ${{ contains(github.ref, '-') && 'development' || 'production' }}
 
     steps:
       - name: Checkout code
