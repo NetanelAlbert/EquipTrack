@@ -15,18 +15,23 @@ import { APP_INITIALIZER, importProvidersFrom } from '@angular/core';
 
 import { appRoutes } from './app.routes';
 import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
-import { appInitializer } from './app.init';
 import { errorInterceptor } from '../services/error-interceptor.service';
 import { RuntimeConfigService } from '../services/runtime-config.service';
 import { VersionedTranslateHttpLoader } from './versioned-translate-http-loader';
+import { AppInitService } from './app.init.service';
 
 export function translateLoaderFactory(http: HttpClient) {
   return new VersionedTranslateHttpLoader(http);
 }
 
-export function runtimeConfigInitializer() {
+/**
+ * Load runtime config before any app-init HTTP calls so apiUrl is stable
+ * (avoids mixed dev-api + localhost when runtime-config overrides mid-bootstrap).
+ */
+export function appBootstrapInitializer() {
   const runtimeConfig = inject(RuntimeConfigService);
-  return () => runtimeConfig.load();
+  const appInitService = inject(AppInitService);
+  return () => runtimeConfig.load().then(() => appInitService.initialize());
 }
 
 export const appConfig: ApplicationConfig = {
@@ -47,12 +52,7 @@ export const appConfig: ApplicationConfig = {
     ),
     {
       provide: APP_INITIALIZER,
-      useFactory: runtimeConfigInitializer,
-      multi: true,
-    },
-    {
-      provide: APP_INITIALIZER,
-      useFactory: appInitializer,
+      useFactory: appBootstrapInitializer,
       multi: true,
     },
     {
