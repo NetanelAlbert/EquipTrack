@@ -238,6 +238,7 @@
       "quantity-required": "Quantity is required",
       "quantity-min": "Quantity must be at least 1",
       "quantity-pattern": "Quantity must be a valid number",
+      "quantity-max-upi": "At most {{max}} UPI fields can be added per item",
       "upi-required": "UPI is required",
       "upi-duplicate": "UPI must be unique",
       "product-not-found": "Product not found in source",
