@@ -20,7 +20,7 @@ function setGithubOutput(name, value) {
 
 function findPrimaryRestApi() {
   const baseApiName = `equip-track-api-${STAGE}`;
-  const result = execSync('aws apigateway get-rest-apis --no-paginate', { encoding: 'utf8' });
+  const result = execSync('aws apigateway get-rest-apis', { encoding: 'utf8' });
   const apis = JSON.parse(result).items || [];
   const primary = apis.find((api) => api.name === baseApiName);
   return primary || null;
