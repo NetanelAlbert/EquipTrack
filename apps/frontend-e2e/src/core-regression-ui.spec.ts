@@ -284,7 +284,15 @@ test.describe('core regression ui flow', () => {
 
     const userSelect = page.getByTestId('create-form-user-select');
     await userSelect.locator('.ng-select-container').click();
-    const customerOption = page.getByRole('option', { name: /E2E Customer/i });
+    const dropdownSearch = page
+      .locator('.ng-dropdown-panel')
+      .locator('input[type="text"]')
+      .first();
+    await expect(dropdownSearch).toBeVisible({ timeout: 15000 });
+    await dropdownSearch.fill('E2E');
+    const customerOption = page.getByTestId(
+      `create-form-user-option-${customerUserId}`
+    );
     await expect(customerOption).toBeVisible({ timeout: 15000 });
     await customerOption.click();
     await page
