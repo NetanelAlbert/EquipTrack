@@ -1,8 +1,9 @@
 name: E2E Deployed Core After Develop Deploy
 
 # Runs the same Playwright suite as the manual deployed workflow after a successful
-# "Deploy Full Stack to AWS" run on `develop`. Requires repository variables
-# `E2E_DEV_FRONTEND_URL` and `E2E_DEV_BACKEND_URL` (see docs/local-e2e.md).
+# dev-stage "Deploy Full Stack to AWS" run. Deploy is triggered by version tags;
+# prerelease tags use a hyphen (e.g. v0.0.12-beta.0), matching deploy-fullstack STAGE=dev.
+# Requires repository variables `E2E_DEV_FRONTEND_URL` and `E2E_DEV_BACKEND_URL` (see docs/local-e2e.md).
 
 on:
   workflow_run:
@@ -10,15 +11,14 @@ on:
       - Deploy Full Stack to AWS
     types:
       - completed
-    branches:
-      - develop
 
 jobs:
   deployed-core-regression:
     uses: ./.github/workflows/e2e-deployed-core-reusable.yml
     if: >
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'develop' &&
+      (github.event.workflow_run.head_branch == 'develop' ||
+        contains(github.event.workflow_run.head_branch, '-')) &&
       vars.E2E_DEV_FRONTEND_URL != '' &&
       vars.E2E_DEV_BACKEND_URL != ''
     with:

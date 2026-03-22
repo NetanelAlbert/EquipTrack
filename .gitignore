@@ -50,6 +50,7 @@ Thumbs.db
 
 # Deployment artifacts
 lambda-packages/
+lambda-deploy-environment-*.json
 deployment-info.json
 endpoints-config.json
 website-config.json
