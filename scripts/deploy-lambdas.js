@@ -2,6 +2,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { pathToFileURL } = require('node:url');
 const { getHandlerNames } = require('./create-lambda-packages');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -16,6 +17,44 @@ const LAMBDA_CONFIG = {
   timeout: 30,
   memorySize: 256,
 };
+
+function lambdaEnvFilePath(handlerName) {
+  return path.join(process.cwd(), `lambda-deploy-environment-${handlerName}.json`);
+}
+
+/**
+ * Writes Lambda environment JSON for AWS CLI (--environment file://...).
+ * When E2E_AUTH_ENABLED=true and E2E_AUTH_SECRET is set, configures deployed
+ * `/api/auth/e2e-login` (dev/stage); otherwise only STAGE (matches prior behavior).
+ * One file per handler so parallel deploys do not clobber each other.
+ */
+function writeLambdaEnvironmentFile(handlerName) {
+  const variables = { STAGE };
+  if (process.env.E2E_AUTH_ENABLED === 'true' && process.env.E2E_AUTH_SECRET) {
+    variables.E2E_AUTH_ENABLED = 'true';
+    variables.E2E_AUTH_SECRET = process.env.E2E_AUTH_SECRET;
+  } else if (process.env.E2E_AUTH_ENABLED === 'true') {
+    console.warn(
+      '⚠️ E2E_AUTH_ENABLED is true but E2E_AUTH_SECRET is empty — Lambdas will not get E2E auth env'
+    );
+  }
+  fs.writeFileSync(lambdaEnvFilePath(handlerName), JSON.stringify({ Variables: variables }));
+}
+
+function removeLambdaEnvironmentFile(handlerName) {
+  try {
+    const filePath = lambdaEnvFilePath(handlerName);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function lambdaEnvironmentCliArg(handlerName) {
+  return pathToFileURL(lambdaEnvFilePath(handlerName)).href;
+}
 
 function getLambdaPolicyDocument() {
   return {
@@ -255,72 +294,77 @@ async function waitForLambdaUpdate(functionName, maxAttempts = 12) {
 async function deployLambdaFunction(handlerName, roleArn) {
   const functionName = `equip-track-${handlerName}-${STAGE}`;
   const zipPath = path.join(PACKAGES_DIR, `${handlerName}.zip`);
-  
+
   if (!fs.existsSync(zipPath)) {
     throw new Error(`Package not found: ${zipPath}`);
   }
-  
-  let functionExists = false;
-  
-  // Check if function exists
+
+  writeLambdaEnvironmentFile(handlerName);
+  const envFileArg = lambdaEnvironmentCliArg(handlerName);
+
   try {
-    execSync(`aws lambda get-function --function-name ${functionName}`, { stdio: 'pipe' });
-    functionExists = true;
-  } catch (error) {
-    functionExists = false;
-  }
-  
-  if (functionExists) {
-    // Update existing function
-    console.log(`Updating Lambda function: ${functionName}`);
+    let functionExists = false;
+
     try {
-      execSync(
-        `aws lambda update-function-code --function-name ${functionName} --zip-file fileb://${zipPath}`,
-        { stdio: 'inherit' }
-      );
-      
-      // Wait for code update to complete before updating configuration
-      if (await waitForLambdaUpdate(functionName)) {
-        try {
-          execSync(
-            `aws lambda update-function-configuration --function-name ${functionName} ` +
-            `--timeout ${LAMBDA_CONFIG.timeout} --memory-size ${LAMBDA_CONFIG.memorySize} ` +
-            `--environment "Variables={STAGE=${STAGE}}"`,
-            { stdio: 'inherit' }
-          );
-        } catch (configError) {
-          if (configError.message.includes('ResourceConflictException')) {
-            console.log(`⚠️ Configuration update skipped for ${functionName} - update still in progress`);
-          } else {
-            throw configError;
+      execSync(`aws lambda get-function --function-name ${functionName}`, { stdio: 'pipe' });
+      functionExists = true;
+    } catch (error) {
+      functionExists = false;
+    }
+
+    if (functionExists) {
+      console.log(`Updating Lambda function: ${functionName}`);
+      try {
+        execSync(
+          `aws lambda update-function-code --function-name ${functionName} --zip-file fileb://${zipPath}`,
+          { stdio: 'inherit' }
+        );
+
+        if (await waitForLambdaUpdate(functionName)) {
+          try {
+            execSync(
+              `aws lambda update-function-configuration --function-name ${functionName} ` +
+                `--timeout ${LAMBDA_CONFIG.timeout} --memory-size ${LAMBDA_CONFIG.memorySize} ` +
+                `--environment "${envFileArg}"`,
+              { stdio: 'inherit' }
+            );
+          } catch (configError) {
+            if (configError.message.includes('ResourceConflictException')) {
+              console.log(
+                `⚠️ Configuration update skipped for ${functionName} - update still in progress`
+              );
+            } else {
+              throw configError;
+            }
           }
         }
+      } catch (codeError) {
+        if (codeError.message.includes('ResourceConflictException')) {
+          console.log(`⚠️ Code update skipped for ${functionName} - update already in progress`);
+        } else {
+          throw codeError;
+        }
       }
-    } catch (codeError) {
-      if (codeError.message.includes('ResourceConflictException')) {
-        console.log(`⚠️ Code update skipped for ${functionName} - update already in progress`);
-      } else {
-        throw codeError;
-      }
+    } else {
+      console.log(`Creating Lambda function: ${functionName}`);
+      execSync(
+        `aws lambda create-function --function-name ${functionName} ` +
+          `--runtime ${LAMBDA_CONFIG.runtime} ` +
+          `--role ${roleArn} ` +
+          `--handler index.handler ` +
+          `--zip-file fileb://${zipPath} ` +
+          `--timeout ${LAMBDA_CONFIG.timeout} ` +
+          `--memory-size ${LAMBDA_CONFIG.memorySize} ` +
+          `--environment "${envFileArg}"`,
+        { stdio: 'inherit' }
+      );
     }
-  } else {
-    // Create new function
-    console.log(`Creating Lambda function: ${functionName}`);
-    execSync(
-      `aws lambda create-function --function-name ${functionName} ` +
-      `--runtime ${LAMBDA_CONFIG.runtime} ` +
-      `--role ${roleArn} ` +
-      `--handler index.handler ` +
-      `--zip-file fileb://${zipPath} ` +
-      `--timeout ${LAMBDA_CONFIG.timeout} ` +
-      `--memory-size ${LAMBDA_CONFIG.memorySize} ` +
-      `--environment "Variables={STAGE=${STAGE}}"`,
-      { stdio: 'inherit' }
-    );
+
+    console.log(`✅ Deployed ${functionName}`);
+    return functionName;
+  } finally {
+    removeLambdaEnvironmentFile(handlerName);
   }
-  
-  console.log(`✅ Deployed ${functionName}`);
-  return functionName;
 }
 
 async function deployAllLambdas() {

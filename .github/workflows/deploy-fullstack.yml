@@ -216,6 +216,10 @@ jobs:
       - name: Deploy Lambda functions
         id: deploy-lambdas
         if: steps.scope.outputs.deploy_backend == 'true'
+        env:
+          # Align with workflow STAGE: dev (prerelease tags, hyphen in ref) enables e2e-login for deployed Playwright; production tags do not.
+          E2E_AUTH_ENABLED: ${{ env.STAGE == 'dev' && 'true' || 'false' }}
+          E2E_AUTH_SECRET: ${{ secrets.E2E_AUTH_SECRET }}
         run: |
           node scripts/deployment-status-tracker.js track lambda-deploy started
           node scripts/deploy-lambdas.js --parallel
