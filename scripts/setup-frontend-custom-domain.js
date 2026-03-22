@@ -183,57 +183,67 @@ function setupSSLCertificate(domain) {
  */
 function updateCloudFrontDistribution(distributionId, domain, certificateArn) {
   console.log(`☁️  Updating CloudFront distribution ${distributionId} with custom domain...`);
-  
-  try {
-    // Get current distribution config
-    const result = execSync(
-      `aws cloudfront get-distribution-config --id ${distributionId}`,
-      { encoding: 'utf8' }
-    );
-    
-    const response = JSON.parse(result);
-    const config = response.DistributionConfig;
-    const etag = response.ETag;
-    
-    // Add custom domain configuration
-    config.Aliases = {
-      Quantity: 1,
-      Items: [domain]
-    };
-    
-    config.ViewerCertificate = {
-      ACMCertificateArn: certificateArn,
-      SSLSupportMethod: 'sni-only',
-      MinimumProtocolVersion: 'TLSv1.2_2021',
-      CertificateSource: 'acm'
-    };
-    
-    // Note: CallerReference cannot be modified during updates, keep the original
-    
-    // Write updated config
-    fs.writeFileSync('cloudfront-update-config.json', JSON.stringify(config));
-    
-    execSync(
-      `aws cloudfront update-distribution --id ${distributionId} --distribution-config file://cloudfront-update-config.json --if-match ${etag}`,
-      { stdio: 'inherit' }
-    );
-    
-    fs.unlinkSync('cloudfront-update-config.json');
-    
-    console.log('✅ CloudFront distribution updated');
-    
-    // Wait for deployment
-    console.log('⏳ Waiting for CloudFront deployment to complete...');
-    execSync(
-      `aws cloudfront wait distribution-deployed --id ${distributionId}`,
-      { stdio: 'inherit' }
-    );
-    
-    console.log('✅ CloudFront deployment completed');
-    
-  } catch (error) {
-    console.error('❌ CloudFront update failed:', error.message);
-    throw error;
+
+  const maxAttempts = 4;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const result = execSync(
+        `aws cloudfront get-distribution-config --id ${distributionId}`,
+        { encoding: 'utf8' }
+      );
+
+      const response = JSON.parse(result);
+      const config = response.DistributionConfig;
+      const etag = response.ETag;
+
+      config.Aliases = {
+        Quantity: 1,
+        Items: [domain]
+      };
+
+      config.ViewerCertificate = {
+        ACMCertificateArn: certificateArn,
+        SSLSupportMethod: 'sni-only',
+        MinimumProtocolVersion: 'TLSv1.2_2021',
+        CertificateSource: 'acm'
+      };
+
+      fs.writeFileSync('cloudfront-update-config.json', JSON.stringify(config));
+
+      execSync(
+        `aws cloudfront update-distribution --id ${distributionId} --distribution-config file://cloudfront-update-config.json --if-match ${etag}`,
+        { stdio: 'inherit' }
+      );
+
+      fs.unlinkSync('cloudfront-update-config.json');
+
+      console.log('✅ CloudFront distribution updated');
+
+      console.log('⏳ Waiting for CloudFront deployment to complete...');
+      execSync(
+        `aws cloudfront wait distribution-deployed --id ${distributionId}`,
+        { stdio: 'inherit' }
+      );
+
+      console.log('✅ CloudFront deployment completed');
+      return;
+    } catch (error) {
+      if (fs.existsSync('cloudfront-update-config.json')) {
+        fs.unlinkSync('cloudfront-update-config.json');
+      }
+
+      if (attempt < maxAttempts) {
+        console.log(
+          `⚠️ CloudFront update attempt ${attempt} failed (${error.message}); retrying after brief wait...`
+        );
+        execSync('sleep 8');
+        continue;
+      }
+
+      console.error('❌ CloudFront update failed:', error.message);
+      throw error;
+    }
   }
 }
 

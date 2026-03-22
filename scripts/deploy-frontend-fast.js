@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 const { execSync } = require('child_process');
 const fs = require('fs');
-const { invalidateCloudFront, loadDeploymentInfo } = require('./setup-cloudfront.js');
+const {
+  invalidateCloudFront,
+  loadDeploymentInfo,
+  hydrateFrontendInfraFromAws
+} = require('./setup-cloudfront.js');
 
 // Disable AWS CLI pager to prevent interactive prompts
 process.env.AWS_PAGER = '';
@@ -156,6 +160,9 @@ async function deployFrontendFast() {
     let deploymentInfo;
     try {
       deploymentInfo = loadDeploymentInfo();
+      if (!deploymentInfo.frontend?.cloudfront?.distributionId) {
+        hydrateFrontendInfraFromAws(deploymentInfo);
+      }
     } catch (error) {
       console.log('❌ No deployment info found. Fast deployment requires initial full deployment first.');
       console.log('🔧 Solution: Run the full deployment script first:');

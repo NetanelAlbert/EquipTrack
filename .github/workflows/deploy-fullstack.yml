@@ -7,6 +7,11 @@ on:
     tags:
       - 'v*'
 
+# One deploy at a time per ref avoids S3 sync --delete races and CloudFront ETag conflicts.
+concurrency:
+  group: deploy-fullstack-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   # Use the correct lowercase AWS region identifier.
   AWS_REGION: il-central-1
