@@ -5,12 +5,19 @@ on:
     tags:
       - 'v*'
 
+# One deploy at a time per ref avoids S3 sync --delete races and CloudFront ETag conflicts.
+concurrency:
+  group: deploy-fullstack-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   # Use the correct lowercase AWS region identifier.
   AWS_REGION: il-central-1
   NODE_VERSION: '20'
   # Pre-release tags (semver prerelease, e.g. v1.2.3-beta.0) deploy to dev; stable release tags deploy to production.
   STAGE: ${{ contains(github.ref, '-') && 'dev' || 'production' }}
+  # Optional: set repository secret NX_CLOUD_ACCESS_TOKEN after `nx connect` for remote cache.
+  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
 
 jobs:
   deploy:
@@ -18,10 +25,45 @@ jobs:
     runs-on: ubuntu-latest
     # Use GitHub Environments for proper separation and protection
     environment: ${{ contains(github.ref, '-') && 'development' || 'production' }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Derive SHAs for nx affected
+        uses: nrwl/nx-set-shas@v4
+        id: set-shas
+        with:
+          main-branch-name: develop
+
+      # nx-set-shas is optimized for pull_request; on direct pushes to develop it often leaves base empty
+      # or base==head, which made "Determine deployment scope" always fall back to a full stack deploy.
+      - name: Resolve nx comparison range (push-safe)
+        id: nx-range
+        env:
+          NS_BASE: ${{ steps.set-shas.outputs.base }}
+          NS_HEAD: ${{ steps.set-shas.outputs.head }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          HEAD="${NS_HEAD:-$GITHUB_SHA}"
+          BASE="${NS_BASE}"
+          if [ -z "$BASE" ] || [ "$BASE" = "$HEAD" ]; then
+            if [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+              BASE="$BEFORE_SHA"
+              echo "📌 nx-range: using github.event.before as base (push to develop)"
+            else
+              BASE=$(git rev-parse HEAD~1 2>/dev/null || true)
+              if [ -n "$BASE" ]; then
+                echo "📌 nx-range: using HEAD~1 as base"
+              fi
+            fi
+          fi
+          echo "base=${BASE}" >> "$GITHUB_OUTPUT"
+          echo "head=${HEAD}" >> "$GITHUB_OUTPUT"
+          echo "📌 nx-range resolved: ${BASE:-<empty>} .. ${HEAD}"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -32,22 +74,117 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Determine deployment scope
+        id: scope
+        env:
+          NX_BASE: ${{ steps.nx-range.outputs.base }}
+          NX_HEAD: ${{ steps.nx-range.outputs.head }}
+          IS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          HEAD_MSG: ${{ github.event.head_commit && github.event.head_commit.message || '' }}
+        run: |
+          set -euo pipefail
+          write() { echo "$1=$2" >> "$GITHUB_OUTPUT"; }
+
+          if [ -z "${NX_BASE}" ] || [ -z "${NX_HEAD}" ]; then
+            echo "⚠️ NX_BASE or NX_HEAD empty — defaulting to full stack deploy"
+            write deploy_backend true
+            write deploy_frontend true
+            write deploy_api_gateway true
+            exit 0
+          fi
+
+          FORCE_FULL=false
+          if echo "${HEAD_MSG}" | grep -qiE 'force full deployment|force-full-deployment|full deploy'; then
+            FORCE_FULL=true
+          fi
+
+          SCRIPTS_CHANGED="$(git diff --name-only "${NX_BASE}" "${NX_HEAD}" -- scripts .github/workflows/deploy-fullstack.yml 2>/dev/null || true)"
+          API_SURFACE_CHANGED="$(git diff --name-only "${NX_BASE}" "${NX_HEAD}" -- \
+            libs/shared/src/api \
+            scripts/deploy-api-gateway.js \
+            scripts/prepare-deployment.js \
+            2>/dev/null || true)"
+
+          if [ "${FORCE_FULL}" = "true" ] || [ "${IS_RELEASE}" = "true" ] || [ -n "${SCRIPTS_CHANGED}" ]; then
+            write deploy_backend true
+            write deploy_frontend true
+            write deploy_api_gateway true
+            echo "📋 Full stack deploy: release, force phrase, or deploy scripts/workflow changed"
+            exit 0
+          fi
+
+          AFFECTED="$(npx nx show projects --affected --base="${NX_BASE}" --head="${NX_HEAD}" 2>/dev/null || true)"
+          if [ -z "${AFFECTED}" ]; then
+            echo "⚠️ No affected projects resolved — defaulting to full stack (safest)"
+            write deploy_backend true
+            write deploy_frontend true
+            write deploy_api_gateway true
+            exit 0
+          fi
+
+          DEPLOY_BACKEND=false
+          DEPLOY_FRONTEND=false
+          if echo "${AFFECTED}" | grep -qx backend; then DEPLOY_BACKEND=true; fi
+          if echo "${AFFECTED}" | grep -qx frontend; then DEPLOY_FRONTEND=true; fi
+          if echo "${AFFECTED}" | grep -qx shared; then DEPLOY_BACKEND=true; DEPLOY_FRONTEND=true; fi
+
+          if [ "${DEPLOY_BACKEND}" = false ] && [ "${DEPLOY_FRONTEND}" = false ]; then
+            echo "⚠️ Affected projects did not include backend, frontend, or shared — defaulting to full stack"
+            write deploy_backend true
+            write deploy_frontend true
+            write deploy_api_gateway true
+            exit 0
+          fi
+
+          write deploy_backend "${DEPLOY_BACKEND}"
+          write deploy_frontend "${DEPLOY_FRONTEND}"
+
+          if [ -n "${API_SURFACE_CHANGED}" ]; then
+            write deploy_api_gateway true
+            echo "📋 API Gateway sync required (shared API surface or gateway/prepare scripts changed)"
+          elif [ "${DEPLOY_BACKEND}" = true ]; then
+            write deploy_api_gateway false
+            echo "📋 Backend deploy without API surface changes — skip REST API rebuild (Lambda updates only)"
+          else
+            write deploy_api_gateway false
+            echo "📋 Frontend-only deploy — skip backend AWS steps"
+          fi
+
+      - name: Deployment scope summary
+        run: |
+          {
+            echo "## Deploy scope (this run)"
+            echo ""
+            echo "| Setting | Value |"
+            echo "|--------|-------|"
+            echo "| **deploy_backend** | \`${{ steps.scope.outputs.deploy_backend }}\` |"
+            echo "| **deploy_frontend** | \`${{ steps.scope.outputs.deploy_frontend }}\` |"
+            echo "| **deploy_api_gateway** | \`${{ steps.scope.outputs.deploy_api_gateway }}\` |"
+            echo "| **nx base** | \`${{ steps.nx-range.outputs.base }}\` |"
+            echo "| **nx head** | \`${{ steps.nx-range.outputs.head }}\` |"
+            echo ""
+            echo "### When does the workflow get faster?"
+            echo "- **Skip API Gateway (~10+ min)** when \`deploy_api_gateway\` is \`false\`: backend deploys but \`libs/shared/src/api/\` and gateway/prepare scripts did not change since base SHA, and an API already exists in AWS."
+            echo "- **Skip one app build** when only frontend or only backend is affected (not both)."
+            echo "- **Shared library:** almost any change under \`libs/shared\` marks **both** apps affected (both import it), so many real commits still build and deploy both."
+            echo "- **Nx Cloud:** add \`NX_CLOUD_ACCESS_TOKEN\` to shorten \`nx build\` when cache hits."
+            echo "- **Lambda packaging** uses one \`npm install\` for all handler zips; zipping every function still takes time."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Build backend
+        if: steps.scope.outputs.deploy_backend == 'true'
         run: npx nx build backend --configuration=${{ env.STAGE == 'production' && 'production' || 'development' }}
 
       - name: Build frontend
+        if: steps.scope.outputs.deploy_frontend == 'true'
         run: npx nx build frontend --configuration=${{ env.STAGE == 'production' && 'production' || 'development' }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          # Use environment-specific AWS credentials for proper isolation
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-          # Optional: Enable OIDC for enhanced security (requires environment-specific roles)
-          # role-to-assume: ${{ vars.AWS_DEPLOYMENT_ROLE_ARN }}
-          # role-session-name: GitHubActions-${{ github.run_id }}
 
       - name: Prepare deployment configuration
         id: prepare-deployment
@@ -56,8 +193,13 @@ jobs:
           node scripts/prepare-deployment.js
           node scripts/deployment-status-tracker.js track prepare success
 
+      - name: Hydrate backend API from AWS
+        id: hydrate-backend
+        run: node scripts/hydrate-backend-infra.js
+
       - name: Create DynamoDB tables
         id: create-dynamodb
+        if: steps.scope.outputs.deploy_backend == 'true'
         run: |
           node scripts/deployment-status-tracker.js track dynamodb started
           node scripts/create-dynamodb-tables.js
@@ -65,6 +207,7 @@ jobs:
 
       - name: Create Lambda deployment packages
         id: create-lambda-packages
+        if: steps.scope.outputs.deploy_backend == 'true'
         run: |
           node scripts/deployment-status-tracker.js track lambda-packages started
           node scripts/create-lambda-packages.js
@@ -72,6 +215,7 @@ jobs:
 
       - name: Deploy Lambda functions
         id: deploy-lambdas
+        if: steps.scope.outputs.deploy_backend == 'true'
         run: |
           node scripts/deployment-status-tracker.js track lambda-deploy started
           node scripts/deploy-lambdas.js --parallel
@@ -79,43 +223,37 @@ jobs:
 
       - name: Deploy API Gateway
         id: deploy-api-gateway
+        if: ${{ steps.scope.outputs.deploy_backend == 'true' && (steps.scope.outputs.deploy_api_gateway == 'true' || steps.hydrate-backend.outputs.api_exists != 'true') }}
         run: |
           echo "🚀 Deploying API Gateway for stage: ${{ env.STAGE }}"
           node scripts/deployment-status-tracker.js track api-gateway started
-          
-          # First attempt: Normal deployment
+
           if node scripts/deploy-api-gateway.js; then
             echo "✅ API Gateway deployed successfully"
             node scripts/deployment-status-tracker.js track api-gateway success
             exit 0
           fi
-          
-          # If first attempt fails, check if it's a resource conflict
+
           echo "⚠️ First API Gateway deployment failed, analyzing error..."
-          
-          # Wait a moment for AWS to stabilize
           sleep 10
-          
-          # Second attempt: Use RECREATE_API to clean up conflicts
+
           echo "🔄 Retrying with RECREATE_API=true to resolve conflicts..."
           if RECREATE_API=true node scripts/deploy-api-gateway.js; then
             echo "✅ API Gateway deployed successfully after recreation"
             node scripts/deployment-status-tracker.js track api-gateway success
             exit 0
           fi
-          
-          # If both attempts fail, exit with error
+
           echo "❌ API Gateway deployment failed after two attempts"
-          echo "🔧 Manual intervention may be required"
           node scripts/deployment-status-tracker.js track api-gateway failed "Both normal and recreation attempts failed"
           exit 1
 
       - name: Check if force full deployment is requested
         id: check-force-deployment
         run: |
-          if [[ "${{ github.event.head_commit.message }}" == *"force full deployment"* ]] || [[ "${{ github.event.head_commit.message }}" == *"force-full-deployment"* ]] || [[ "${{ github.event.head_commit.message }}" == *"full deploy"* ]]; then
+          if [[ "${{ github.event.head_commit && github.event.head_commit.message || '' }}" == *"force full deployment"* ]] || [[ "${{ github.event.head_commit && github.event.head_commit.message || '' }}" == *"force-full-deployment"* ]] || [[ "${{ github.event.head_commit && github.event.head_commit.message || '' }}" == *"full deploy"* ]]; then
             echo "force_deployment=true" >> $GITHUB_OUTPUT
-            echo "🚀 Force full deployment detected in commit message: '${{ github.event.head_commit.message }}'"
+            echo "🚀 Force full deployment detected in commit message"
           else
             echo "force_deployment=false" >> $GITHUB_OUTPUT
             echo "✅ No force deployment requested, will attempt fast deployment first"
@@ -123,7 +261,7 @@ jobs:
 
       - name: Deploy Frontend to S3 (Fast - first attempt)
         id: deploy-frontend-fast
-        if: steps.check-force-deployment.outputs.force_deployment != 'true'
+        if: steps.scope.outputs.deploy_frontend == 'true' && steps.check-force-deployment.outputs.force_deployment != 'true'
         run: |
           node scripts/deployment-status-tracker.js track frontend-fast started
           if node scripts/deploy-frontend-fast.js; then
@@ -136,11 +274,10 @@ jobs:
 
       - name: Deploy Frontend to S3 (Full setup on fast failure or force trigger)
         id: deploy-frontend-full
-        if: steps.deploy-frontend-fast.outcome == 'failure' || steps.check-force-deployment.outputs.force_deployment == 'true'
+        if: ${{ steps.scope.outputs.deploy_frontend == 'true' && (steps.deploy-frontend-fast.outcome == 'failure' || steps.check-force-deployment.outputs.force_deployment == 'true') }}
         run: |
-          if steps.check-force-deployment.outputs.force_deployment == 'true'; then
-            echo "🚀 Force full deployment triggered by commit message: '${{ github.event.head_commit.message }}'"
-            echo "🔄 Running full infrastructure setup..."
+          if [ "${{ steps.check-force-deployment.outputs.force_deployment }}" = "true" ]; then
+            echo "🚀 Force full deployment — running full frontend infrastructure setup..."
           else
             echo "Fast frontend deployment failed. Deploying with full infrastructure setup..."
           fi
@@ -150,9 +287,9 @@ jobs:
 
       - name: Create CloudFront Distribution (if needed)
         id: setup-cloudfront
-        if: steps.deploy-frontend-fast.outcome == 'failure' || steps.check-force-deployment.outputs.force_deployment == 'true'
+        if: ${{ steps.scope.outputs.deploy_frontend == 'true' && (steps.deploy-frontend-fast.outcome == 'failure' || steps.check-force-deployment.outputs.force_deployment == 'true') }}
         run: |
-          if steps.check-force-deployment.outputs.force_deployment == 'true'; then
+          if [ "${{ steps.check-force-deployment.outputs.force_deployment }}" = "true" ]; then
             echo "🚀 Force full deployment: Setting up CloudFront distribution..."
           else
             echo "Setting up CloudFront distribution after fast deployment failure..."
@@ -162,14 +299,14 @@ jobs:
           node scripts/deployment-status-tracker.js track cloudfront success
 
       - name: Verify Frontend Deployment Success
-        if: (steps.deploy-frontend-fast.outcome == 'failure' || steps.check-force-deployment.outputs.force_deployment == 'true') && steps.deploy-frontend-full.outcome == 'failure'
+        if: ${{ steps.scope.outputs.deploy_frontend == 'true' && (steps.deploy-frontend-fast.outcome == 'failure' || steps.check-force-deployment.outputs.force_deployment == 'true') && steps.deploy-frontend-full.outcome == 'failure' }}
         run: |
           echo "❌ Both fast and full frontend deployments failed!"
-          echo "This is a critical failure that prevents the application from being accessible."
           exit 1
 
       - name: Setup Frontend Custom Domain
         id: setup-custom-domain
+        if: steps.scope.outputs.deploy_frontend == 'true'
         run: |
           node scripts/deployment-status-tracker.js track custom-domain started
           if node scripts/setup-frontend-custom-domain.js; then
@@ -177,13 +314,11 @@ jobs:
             echo "✅ Custom domain setup completed successfully"
           else
             node scripts/deployment-status-tracker.js track custom-domain failed "Non-critical failure"
-            echo "⚠️ Custom domain setup failed - this is non-critical"
-            echo "ℹ️ Your application is still accessible via CloudFront URL"
-            echo "🔧 Manual custom domain setup may be required"
+            echo "⚠️ Custom domain setup failed - non-critical"
           fi
 
       - name: Invalidate CloudFront cache
-        if: success()
+        if: success() && steps.scope.outputs.deploy_frontend == 'true'
         run: |
           DIST_ID=$(jq -r '.frontend.cloudfront.distributionId // empty' deployment-info.json)
           if [[ -n "$DIST_ID" ]]; then
@@ -199,22 +334,18 @@ jobs:
         run: |
           echo "📊 Generating final deployment report..."
           node scripts/deployment-status-tracker.js report
-          
+
       - name: Output URLs
         if: success()
         run: |
           echo "🌐 Deployment URLs:"
-          echo "API deployed to: $(cat deployment-info.json | jq -r '.api.apiUrl')"
-          echo "Frontend deployed to: $(cat deployment-info.json | jq -r '.frontend.cloudfrontUrl')"
+          echo "API deployed to: $(cat deployment-info.json | jq -r '.api.apiUrl // empty')"
+          echo "Frontend deployed to: $(cat deployment-info.json | jq -r '.frontend.cloudfrontUrl // empty')"
           echo "Custom domain: https://$(cat deployment-info.json | jq -r 'if .customDomains then (.customDomains | keys | map(select(test("api") | not)))[0] else "not-configured" end')"
-          
+
       - name: Deployment Failed Summary
         if: failure()
         run: |
           echo "💥 Deployment Failed!"
           echo "Check the deployment report above for detailed failure information."
-          echo "Common issues and solutions:"
-          echo "  - AWS permissions: Verify IAM policies and credentials"
-          echo "  - Resource conflicts: Check for existing resources with same names"
-          echo "  - Region consistency: Ensure all services use il-central-1"
-          exit 1 
+          exit 1

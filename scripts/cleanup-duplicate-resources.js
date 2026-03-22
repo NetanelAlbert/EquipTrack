@@ -44,7 +44,7 @@ async function findDuplicateAPIGateways() {
   console.log(`🔍 Checking for duplicate API Gateways...`);
   
   try {
-    const result = execSync(`aws apigateway get-rest-apis --no-paginate`, { encoding: 'utf8' });
+    const result = execSync(`aws apigateway get-rest-apis`, { encoding: 'utf8' });
     const apis = JSON.parse(result).items;
     
     // Group APIs by stage

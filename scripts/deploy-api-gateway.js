@@ -195,7 +195,8 @@ async function createOrUpdateAPI() {
   
   try {
     // Try to find existing API
-    const result = execSync(`aws apigateway get-rest-apis --no-paginate`, { encoding: 'utf8' });
+    // Never use --no-paginate: truncated lists miss existing resources and cause duplicate create-resource conflicts.
+    const result = execSync(`aws apigateway get-rest-apis`, { encoding: 'utf8' });
     const apis = JSON.parse(result).items;
     
     // Find ALL APIs that match our naming pattern (including old ones)
@@ -290,8 +291,9 @@ function getAccountId() {
 }
 
 function getResources(apiId) {
-  const result = execSync(`aws apigateway get-resources --rest-api-id ${apiId} --no-paginate`, { encoding: 'utf8' });
-  return JSON.parse(result).items;
+  // Never use --no-paginate: large APIs return only the first page; missing nodes → ConflictException on create-resource.
+  const result = execSync(`aws apigateway get-resources --rest-api-id ${apiId}`, { encoding: 'utf8' });
+  return JSON.parse(result).items || [];
 }
 
 function createResourcePath(apiId, path, existingResources) {
@@ -694,11 +696,11 @@ async function deployAPIGateway() {
   });
   
   if (potentialConflicts.length > 0) {
-    console.log(`\n⚠️  Detected ${potentialConflicts.length} potentially conflicting legacy resources:`);
-    potentialConflicts.forEach(path => {
-      console.log(`  📍 ${path}`);
+    console.log(`\nℹ️  Heuristic: ${potentialConflicts.length} existing resource path(s) differ in static vs variable segments from current routes (often harmless with API Gateway):`);
+    potentialConflicts.forEach((p) => {
+      console.log(`  📍 ${p}`);
     });
-    console.log('💡 These may cause conflicts during deployment. Consider using RECREATE_API=true if issues occur.\n');
+    console.log('💡 If create-resource fails with ConflictException, ensure get-resources is fully paginated or run RECREATE_API=true once.\n');
   }
   
   // Create resources and methods for each endpoint

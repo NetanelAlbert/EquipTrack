@@ -82,22 +82,24 @@ async function bootstrapAuthenticatedSession(page: Page, token: string) {
 async function ensureOrganizationIsSelected(page: Page): Promise<void> {
   await page.goto('/');
 
-  const selectBtn = page.getByTestId(`select-organization-${organizationId}`);
-
-  // Org picker may still be loading (spinner disables the button). Wait before
-  // deciding we need a manual click.
-  const orgPickerShown = await selectBtn
-    .waitFor({ state: 'visible', timeout: 10000 })
-    .then(() => true)
-    .catch(() => false);
-
-  if (orgPickerShown) {
-    await expect(selectBtn).toBeEnabled({ timeout: 20000 });
-    await selectBtn.click();
+  // After runtime config + APP_INITIALIZER run sequentially, start data and persisted
+  // org selection are often ready before Home renders. HomeComponent then navigates to
+  // /my-items without a click — waiting only for a select button flakes (disabled forever
+  // or element detached mid-navigation).
+  try {
+    await expect(page).toHaveURL(/\/my-items/, { timeout: 20000 });
+    return;
+  } catch {
+    // Staying on / — show org grid and require a click.
   }
 
+  const orgSelect = page.getByTestId(`select-organization-${organizationId}`);
+  await expect(orgSelect).toBeVisible({ timeout: 15000 });
+  // One action with timeout: Playwright retries until the control is stable and clickable
+  // (avoids stale locator between toBeEnabled and click).
+  await orgSelect.click({ timeout: 30000 });
+
   // HomeComponent defers router.navigate after select with setTimeout(100).
-  // If we navigate to /create-form before that runs, the guard can strand us on /.
   await expect(page).toHaveURL(/\/my-items/, { timeout: 20000 });
 }
 

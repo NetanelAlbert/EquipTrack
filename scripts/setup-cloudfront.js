@@ -3,6 +3,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 
 const STAGE = process.env.STAGE || 'dev';
+const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
 const CLOUDFRONT_PRICE_CLASS = process.env.CLOUDFRONT_PRICE_CLASS || 'PriceClass_100';
 const SKIP_CLOUDFRONT = process.env.SKIP_CLOUDFRONT === 'true';
 
@@ -204,6 +205,46 @@ function createCloudFrontDistribution(bucketName, s3WebsiteUrl) {
     }
     throw error;
   }
+}
+
+/**
+ * When deployment-info.json is recreated (e.g. CI), restore frontend S3 + CloudFront IDs from AWS
+ * so fast deploy and invalidation still target the correct distribution.
+ */
+function hydrateFrontendInfraFromAws(deploymentInfo) {
+  const bucketName = `equip-track-frontend-${STAGE}`;
+  try {
+    execSync(`aws s3api head-bucket --bucket ${bucketName}`, { stdio: 'pipe' });
+  } catch {
+    console.log(`ℹ️ S3 bucket ${bucketName} not found yet — skipping frontend infra hydration`);
+    return deploymentInfo;
+  }
+
+  const s3WebsiteUrl = `http://${bucketName}.s3-website.${AWS_REGION}.amazonaws.com`;
+  deploymentInfo.frontend = deploymentInfo.frontend || {};
+  deploymentInfo.frontend.s3 = {
+    ...deploymentInfo.frontend.s3,
+    bucketName,
+    s3WebsiteUrl,
+    region: AWS_REGION,
+    stage: STAGE,
+    status: 'deployed'
+  };
+
+  const existing = findExistingDistribution(bucketName);
+  if (existing) {
+    deploymentInfo.frontend.cloudfront = {
+      distributionId: existing.distributionId,
+      cloudfrontUrl: existing.cloudfrontUrl,
+      status: existing.status
+    };
+    deploymentInfo.frontend.cloudfrontUrl = existing.cloudfrontUrl;
+    console.log(`✅ Hydrated CloudFront distribution from AWS: ${existing.distributionId}`);
+  } else {
+    console.log('ℹ️ No CloudFront distribution found for this bucket yet');
+  }
+
+  return deploymentInfo;
 }
 
 function findExistingDistribution(bucketName) {
@@ -570,5 +611,7 @@ module.exports = {
   setupCloudFront, 
   invalidateCloudFront,
   loadDeploymentInfo,
-  saveDeploymentInfo
+  saveDeploymentInfo,
+  hydrateFrontendInfraFromAws,
+  findExistingDistribution
 }; 
