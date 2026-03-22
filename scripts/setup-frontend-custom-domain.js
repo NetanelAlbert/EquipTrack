@@ -38,6 +38,181 @@ function getFrontendDomain(stage, baseDomain) {
 
 const FRONTEND_DOMAIN = process.env.FRONTEND_DOMAIN || getFrontendDomain(STAGE, BASE_DOMAIN);
 
+function stripHostedZoneId(id) {
+  if (!id) return id;
+  return String(id).replace(/^\/hostedzone\//, '');
+}
+
+function normalizeDnsName(name) {
+  if (!name) return '';
+  const n = name.trim().toLowerCase();
+  return n.endsWith('.') ? n.slice(0, -1) : n;
+}
+
+function normalizeCnameTarget(value) {
+  if (!value) return '';
+  const v = value.trim().toLowerCase();
+  return v.endsWith('.') ? v.slice(0, -1) : v;
+}
+
+function fqdnRecordName(name) {
+  const n = name.trim();
+  return n.endsWith('.') ? n : `${n}.`;
+}
+
+function fqdnCnameValue(value) {
+  const v = value.trim();
+  return v.endsWith('.') ? v : `${v}.`;
+}
+
+/**
+ * List all RRsets at an exact DNS name (paginates list-resource-record-sets).
+ */
+function listRecordsAtName(hostedZoneId, recordName) {
+  const zoneId = stripHostedZoneId(hostedZoneId);
+  const target = normalizeDnsName(recordName);
+  const matches = [];
+  let startName;
+  let startType;
+  for (;;) {
+    let cmd = `aws route53 list-resource-record-sets --hosted-zone-id "${zoneId}"`;
+    if (startName && startType) {
+      cmd += ` --start-record-name "${startName}" --start-record-type "${startType}"`;
+    }
+    const out = execSync(cmd, { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
+    const data = JSON.parse(out);
+    for (const rs of data.ResourceRecordSets || []) {
+      if (normalizeDnsName(rs.Name) === target) {
+        matches.push(rs);
+      }
+    }
+    if (!data.IsTruncated) break;
+    startName = data.NextRecordName;
+    startType = data.NextRecordType;
+  }
+  return matches;
+}
+
+function isInvalidChangeBatchError(error) {
+  const text = (error.stderr && error.stderr.toString()) || error.message || '';
+  return /InvalidChangeBatch|invalid set of changes|already exists|Tried to create resource record set/i.test(
+    text
+  );
+}
+
+function applyRoute53ChangeBatch(hostedZoneId, changesBatch) {
+  const zoneId = stripHostedZoneId(hostedZoneId);
+  fs.writeFileSync('dns-changes.json', JSON.stringify(changesBatch));
+  try {
+    execSync(
+      `aws route53 change-resource-record-sets --hosted-zone-id "${zoneId}" --change-batch file://dns-changes.json`,
+      { stdio: 'inherit' }
+    );
+  } finally {
+    if (fs.existsSync('dns-changes.json')) {
+      fs.unlinkSync('dns-changes.json');
+    }
+  }
+}
+
+/**
+ * Create, UPSERT, or replace ACM DNS validation records without InvalidChangeBatch
+ * when the same CNAME name already exists (e.g. re-requested certificate).
+ */
+function upsertAcmDnsValidationRecord(hostedZoneId, validationOption) {
+  const rr = validationOption.ResourceRecord;
+  if (!rr?.Name || !rr?.Value) {
+    throw new Error('ACM validation option missing ResourceRecord name/value');
+  }
+
+  const desired = {
+    Name: fqdnRecordName(rr.Name),
+    Type: rr.Type,
+    TTL: 300,
+    ResourceRecords: [{ Value: fqdnCnameValue(rr.Value) }],
+  };
+
+  if (desired.Type !== 'CNAME') {
+    console.log(`📝 UPSERT ${desired.Type} validation record ${desired.Name}`);
+    applyRoute53ChangeBatch(hostedZoneId, {
+      Changes: [{ Action: 'UPSERT', ResourceRecordSet: desired }],
+    });
+    return;
+  }
+
+  const atName = listRecordsAtName(hostedZoneId, rr.Name);
+  const cnameExisting = atName.find((r) => r.Type === 'CNAME');
+  const blocking = atName.find(
+    (r) => r.Type !== 'CNAME' && r.Type !== 'NS' && r.Type !== 'SOA'
+  );
+
+  if (blocking) {
+    throw new Error(
+      `Route53 name ${desired.Name} has non-CNAME record type ${blocking.Type}; fix DNS manually`
+    );
+  }
+
+  if (!cnameExisting) {
+    console.log(`📝 Creating ACM validation CNAME ${desired.Name}`);
+    try {
+      applyRoute53ChangeBatch(hostedZoneId, {
+        Changes: [{ Action: 'UPSERT', ResourceRecordSet: desired }],
+      });
+    } catch (e) {
+      if (isInvalidChangeBatchError(e)) {
+        console.log('⚠️  UPSERT failed; retrying after refresh...');
+        execSync('sleep 2');
+        applyRoute53ChangeBatch(hostedZoneId, {
+          Changes: [{ Action: 'UPSERT', ResourceRecordSet: desired }],
+        });
+      } else {
+        throw e;
+      }
+    }
+    return;
+  }
+
+  const have = normalizeCnameTarget(cnameExisting.ResourceRecords[0]?.Value);
+  const want = normalizeCnameTarget(desired.ResourceRecords[0].Value);
+  if (have === want) {
+    console.log(`ℹ️  ACM validation CNAME already correct: ${cnameExisting.Name}`);
+    return;
+  }
+
+  console.log(`📝 Replacing ACM validation CNAME at ${cnameExisting.Name}`);
+  const deleteSet = {
+    Name: cnameExisting.Name,
+    Type: cnameExisting.Type,
+    TTL: cnameExisting.TTL,
+    ResourceRecords: cnameExisting.ResourceRecords.map((x) => ({ ...x })),
+  };
+
+  try {
+    applyRoute53ChangeBatch(hostedZoneId, {
+      Changes: [
+        { Action: 'DELETE', ResourceRecordSet: deleteSet },
+        { Action: 'CREATE', ResourceRecordSet: desired },
+      ],
+    });
+  } catch (e) {
+    if (isInvalidChangeBatchError(e)) {
+      console.log('⚠️  DELETE+CREATE failed; trying UPSERT to reconcile...');
+      applyRoute53ChangeBatch(hostedZoneId, {
+        Changes: [{ Action: 'UPSERT', ResourceRecordSet: desired }],
+      });
+    } else {
+      throw e;
+    }
+  }
+}
+
+function applyAcmValidationRecords(hostedZoneId, validationRecords) {
+  const ready = validationRecords.filter((r) => r.ResourceRecord?.Name && r.ResourceRecord?.Value);
+  for (const vr of ready) {
+    upsertAcmDnsValidationRecord(hostedZoneId, vr);
+  }
+}
+
 console.log(`🌐 Setting up custom domain for frontend: ${FRONTEND_DOMAIN}`);
 console.log(`📍 Stage: ${STAGE}`);
 console.log(`🏗️  Base domain: ${BASE_DOMAIN}`);
@@ -134,33 +309,10 @@ function setupSSLCertificate(domain) {
       return CertificateArn;
     }
     
-    // Create DNS validation records
-    console.log('📝 Creating DNS validation records...');
-    
-    const changes = validationRecords.map(record => ({
-      Action: 'UPSERT',
-      ResourceRecordSet: {
-        Name: record.ResourceRecord.Name,
-        Type: record.ResourceRecord.Type,
-        TTL: 300,
-        ResourceRecords: [{ Value: record.ResourceRecord.Value }]
-      }
-    }));
-    
-    const changesBatch = {
-      Changes: changes
-    };
-    
-    fs.writeFileSync('dns-changes.json', JSON.stringify(changesBatch));
-    
-    execSync(
-      `aws route53 change-resource-record-sets --hosted-zone-id ${hostedZone.Id} --change-batch file://dns-changes.json`,
-      { stdio: 'inherit' }
-    );
-    
-    fs.unlinkSync('dns-changes.json');
-    
-    console.log('✅ DNS validation records created');
+    // Create / reconcile DNS validation records (handles existing CNAME / InvalidChangeBatch)
+    console.log('📝 Creating or reconciling DNS validation records...');
+    applyAcmValidationRecords(hostedZone.Id, validationRecords);
+    console.log('✅ DNS validation records applied');
     console.log('⏳ Waiting for certificate validation (this may take several minutes)...');
     
     // Wait for certificate validation
