@@ -284,9 +284,9 @@ test.describe('core regression ui flow', () => {
 
     const userSelect = page.getByTestId('create-form-user-select');
     await userSelect.locator('.ng-select-container').click();
-    const dropdown = page.locator('.ng-dropdown-panel').last();
-    await expect(dropdown).toBeVisible({ timeout: 15000 });
-    await dropdown.getByRole('option', { name: /E2E Customer/i }).click();
+    const customerOption = page.getByRole('option', { name: /E2E Customer/i });
+    await expect(customerOption).toBeVisible({ timeout: 15000 });
+    await customerOption.click();
     await page
       .getByTestId('create-form-description-input')
       .fill(checkoutDescription);
