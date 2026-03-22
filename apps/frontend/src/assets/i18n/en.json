@@ -64,6 +64,10 @@
       
     }
   },
+  "user-select": {
+    "no-results": "No matching users",
+    "type-to-search": "Type to search"
+  },
   "navigation": {
     "dashboard": "Dashboard",
     "inventory": "Inventory",

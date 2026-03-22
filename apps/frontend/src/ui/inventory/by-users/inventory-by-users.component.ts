@@ -8,15 +8,14 @@ import {
   Signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
+import { NgSelectModule } from '@ng-select/ng-select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { InventoryStore } from '../../../store/inventory.store';
 import { OrganizationStore } from '../../../store/organization.store';
 import { OrganizationService } from '../../../services/organization.service';
@@ -27,6 +26,7 @@ import {
 } from '@equip-track/shared';
 import { UserStore } from '../../../store/user.store';
 import { UserDisplayComponent } from '../../shared/user-display/user-display.component';
+import { userMatchesSelectSearch } from '../../shared/user-select-search';
 
 interface TableData {
   product: Product;
@@ -55,8 +55,7 @@ interface ProductColumnSort {
   standalone: true,
   imports: [
     CommonModule,
-    MatSelectModule,
-    MatFormFieldModule,
+    NgSelectModule,
     MatIconModule,
     MatButtonModule,
     MatTableModule,
@@ -74,6 +73,17 @@ export class InventoryByUsersComponent implements OnInit {
   organizationStore = inject(OrganizationStore);
   organizationService = inject(OrganizationService);
   userStore = inject(UserStore);
+  private translate = inject(TranslateService);
+
+  selectedUserToAdd: string | null = null;
+
+  readonly userSelectSearchFn = (
+    term: string,
+    item: UserAndUserInOrganization
+  ) =>
+    userMatchesSelectSearch(term, item, (id) =>
+      this.userStore.getDepartmentName(id) ?? ''
+    );
 
   // Selected user IDs for columns
   selectedUserIds = signal<string[]>(['WAREHOUSE']);
@@ -212,6 +222,20 @@ export class InventoryByUsersComponent implements OnInit {
     }
   );
 
+  addUserSelectItems: Signal<UserAndUserInOrganization[]> = computed(() => {
+    if (this.isLoadingUsers() || this.usersError() || !this.hasUsers()) {
+      return [];
+    }
+    return this.availableUsersForSelection();
+  });
+
+  addUserSelectDisabled = computed(
+    () =>
+      this.isLoadingUsers() ||
+      Boolean(this.usersError()) ||
+      !this.hasUsers()
+  );
+
   constructor() {
     // Fetch user inventory when selected users change
     effect(() => {
@@ -249,6 +273,30 @@ export class InventoryByUsersComponent implements OnInit {
     if (!currentUsers.includes(userId)) {
       this.selectedUserIds.set([...currentUsers, userId]);
     }
+  }
+
+  addUserSelectPlaceholder(): string {
+    const t = (key: string) => this.translate.instant(key);
+    if (this.isLoadingUsers()) {
+      return t('inventory.users.loading');
+    }
+    if (this.usersError()) {
+      return t('inventory.users.errorLoading');
+    }
+    if (!this.hasUsers()) {
+      return t('inventory.users.noUsers');
+    }
+    return t('user-select.type-to-search');
+  }
+
+  onAddUserSelected(userId: string | null): void {
+    if (!userId) {
+      return;
+    }
+    this.addUser(userId);
+    queueMicrotask(() => {
+      this.selectedUserToAdd = null;
+    });
   }
 
   // Remove a user from the table

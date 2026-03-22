@@ -9,13 +9,17 @@ import {
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { NgSelectModule } from '@ng-select/ng-select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { EditableInventoryComponent } from '../inventory/edit/editable-inventory.component';
-import { FormType, InventoryItem } from '@equip-track/shared';
+import {
+  FormType,
+  InventoryItem,
+  UserAndUserInOrganization,
+} from '@equip-track/shared';
 import { OrganizationStore } from '../../store/organization.store';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { InventoryListComponent } from '../inventory/list/inventory-list.component';
@@ -25,6 +29,7 @@ import { UserStore } from '../../store/user.store';
 import { FormsStore } from '../../store/forms.store';
 import { InventoryStore } from '../../store/inventory.store';
 import { UserDisplayComponent } from '../shared/user-display/user-display.component';
+import { userMatchesSelectSearch } from '../shared/user-select-search';
 import { MatRadioModule } from '@angular/material/radio';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { of } from 'rxjs';
@@ -44,7 +49,7 @@ interface CreateFormConfig {
     CommonModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule,
+    NgSelectModule,
     MatButtonModule,
     MatIconModule,
     ReactiveFormsModule,
@@ -82,6 +87,14 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
 
   users = this.organizationStore.users;
   predefinedForms = this.organizationStore.predefinedForms;
+
+  readonly userSelectSearchFn = (
+    term: string,
+    item: UserAndUserInOrganization
+  ) =>
+    userMatchesSelectSearch(term, item, (id) =>
+      this.userStore.getDepartmentName(id) ?? ''
+    );
   itemsToAdd = signal<InventoryItem[] | null>(null);
   itemEdited = signal(false);
   showPredefinedForms = computed(

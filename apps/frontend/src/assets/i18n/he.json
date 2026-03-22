@@ -63,6 +63,10 @@
       "title": "נא לחתום לאישור"
     }
   },
+  "user-select": {
+    "no-results": "אין משתמשים תואמים",
+    "type-to-search": "הקלד לחיפוש"
+  },
   "navigation": {
     "dashboard": "לוח מחוונים",
     "inventory": "מלאי",
