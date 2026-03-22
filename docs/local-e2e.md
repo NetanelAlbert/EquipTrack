@@ -97,3 +97,32 @@ This uses `apps/frontend-e2e/playwright.deployed.config.ts` (no local web server
 Organization:
 
 - `org-e2e-main`
+
+## Environment variables (local)
+
+| Variable | Typical value | Purpose |
+|----------|---------------|---------|
+| `E2E_AUTH_SECRET` | `e2e-local-secret` (local default) | Shared secret for `/api/auth/e2e-login` |
+| `E2E_AUTH_ENABLED` | `true` | Enables the test-only login path on the backend |
+| `BACKEND_BASE_URL` | `http://localhost:3000` | API base for Playwright / API tests |
+| `BASE_URL` | `http://localhost:4200` | Frontend base for Playwright |
+| `E2E_SKIP_LOCAL_E2E_ENSURE` | `true` | Skip ensure script when infra was prepared already (e.g. CI after `e2e:local:prepare`) |
+| `E2E_SKIP_LOCALSTACK_AUTO_UP` | `true` | Do not start Docker from the ensure script; expect LocalStack already running |
+| `STAGE` | `local` | Backend stage for table/bucket naming |
+| `AWS_ENDPOINT_URL*` | `http://localhost:4566` | LocalStack endpoints for AWS SDK (see `backend:serve:e2e-local` in `package.json`) |
+
+Deployed runs additionally use the GitHub Environment secret `E2E_AUTH_SECRET` and manual `base_url` / `backend_base_url` inputs; see [github-environments-setup.md](./github-environments-setup.md#-e2e-workflow-environment-secrets).
+
+## CI behavior
+
+- **LocalStack core regression**: `.github/workflows/e2e-localstack-core-regression.yml` runs on pull requests targeting `main` / `develop` and on pushes to `develop`. It runs lint + unit tests, then `e2e:local:prepare` and `nx run frontend-e2e:e2e-local-core` (Chromium, `workers=1`). Artifacts: Playwright HTML report and `test-results`, plus a summarized failure context log.
+- **Deployed core regression**: `.github/workflows/e2e-deployed-core-regression.yml` is **manual** (`workflow_dispatch`): pick environment, frontend URL, and API URL. It does not start local Docker.
+
+## Troubleshooting
+
+- **LocalStack not healthy**: Run `npm run e2e:local:stack:down` then `npm run e2e:local:prepare`, or `npm run e2e:local:stack:reset` for a clean volume.
+- **Port 4566 / 3000 / 4200 in use**: Stop conflicting processes or adjust compose ports / `BACKEND_BASE_URL` / `BASE_URL` consistently in Playwright env.
+- **Playwright “browser not installed”**: Run `npm run e2e:local:install-browsers` or `npx playwright install chromium`.
+- **Auth failures in tests**: Ensure backend was started with `E2E_AUTH_ENABLED=true` and the same `E2E_AUTH_SECRET` the tests use (`e2e-local-secret` for local scripts).
+- **Flaky Nx cache on E2E**: `frontend-e2e` e2e targets set `cache: false`; if you run Playwright outside Nx, do not rely on cached failures as green.
+- **CI failures**: Download the workflow artifacts (report + test-results) and check the “Summarize Playwright failure contexts” step output.
