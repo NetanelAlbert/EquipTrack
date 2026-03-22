@@ -164,13 +164,12 @@ async function deployFrontendFast() {
         hydrateFrontendInfraFromAws(deploymentInfo);
       }
     } catch (error) {
-      console.log('❌ No deployment info found. Fast deployment requires initial full deployment first.');
-      console.log('🔧 Solution: Run the full deployment script first:');
+      const msg = error instanceof Error ? error.message : String(error);
+      console.log('❌ Could not load or hydrate deployment info for fast deploy:', msg);
+      console.log('🔧 If deployment-info.json is missing, run full deploy first:');
       console.log('   node scripts/deploy-frontend.js');
       console.log('   node scripts/setup-cloudfront.js');
-      console.log('');
-      console.log('📋 This will create the necessary deployment-info.json file.');
-      throw new Error('❌ deployment-info.json not found. Run full deployment first.');
+      throw new Error(`Fast deploy prerequisites failed: ${msg}`);
     }
     
     // Validate frontend build

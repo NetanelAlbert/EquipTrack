@@ -193,7 +193,8 @@ export const endpointMetas = {
     responseType: {} as BasicUser.RejectFormResponse,
   } as EndpointMeta<BasicUser.RejectForm, BasicUser.RejectFormResponse>,
   getPresignedUrl: {
-    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/users/{${USER_ID_PATH_PARAM}}/forms/{${FORM_ID_PATH_PARAM}}/presigned-url`,
+    // Under /forms/... to match other form routes and avoid legacy /users/{userId}/... API GW trees
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/user/{${USER_ID_PATH_PARAM}}/{${FORM_ID_PATH_PARAM}}/presigned-url`,
     method: 'GET',
     allowedRoles: [
       UserRole.WarehouseManager,

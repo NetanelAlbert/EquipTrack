@@ -3,6 +3,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 
 const STAGE = process.env.STAGE || 'dev';
+const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
 const CLOUDFRONT_PRICE_CLASS = process.env.CLOUDFRONT_PRICE_CLASS || 'PriceClass_100';
 const SKIP_CLOUDFRONT = process.env.SKIP_CLOUDFRONT === 'true';
 

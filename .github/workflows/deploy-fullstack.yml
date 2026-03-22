@@ -40,6 +40,33 @@ jobs:
         with:
           main-branch-name: develop
 
+      # nx-set-shas is optimized for pull_request; on direct pushes to develop it often leaves base empty
+      # or base==head, which made "Determine deployment scope" always fall back to a full stack deploy.
+      - name: Resolve nx comparison range (push-safe)
+        id: nx-range
+        env:
+          NS_BASE: ${{ steps.set-shas.outputs.base }}
+          NS_HEAD: ${{ steps.set-shas.outputs.head }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          HEAD="${NS_HEAD:-$GITHUB_SHA}"
+          BASE="${NS_BASE}"
+          if [ -z "$BASE" ] || [ "$BASE" = "$HEAD" ]; then
+            if [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+              BASE="$BEFORE_SHA"
+              echo "📌 nx-range: using github.event.before as base (push to develop)"
+            else
+              BASE=$(git rev-parse HEAD~1 2>/dev/null || true)
+              if [ -n "$BASE" ]; then
+                echo "📌 nx-range: using HEAD~1 as base"
+              fi
+            fi
+          fi
+          echo "base=${BASE}" >> "$GITHUB_OUTPUT"
+          echo "head=${HEAD}" >> "$GITHUB_OUTPUT"
+          echo "📌 nx-range resolved: ${BASE:-<empty>} .. ${HEAD}"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -52,8 +79,8 @@ jobs:
       - name: Determine deployment scope
         id: scope
         env:
-          NX_BASE: ${{ steps.set-shas.outputs.base }}
-          NX_HEAD: ${{ steps.set-shas.outputs.head }}
+          NX_BASE: ${{ steps.nx-range.outputs.base }}
+          NX_HEAD: ${{ steps.nx-range.outputs.head }}
           IS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
           HEAD_MSG: ${{ github.event.head_commit && github.event.head_commit.message || '' }}
         run: |
@@ -124,6 +151,27 @@ jobs:
             write deploy_api_gateway false
             echo "📋 Frontend-only deploy — skip backend AWS steps"
           fi
+
+      - name: Deployment scope summary
+        run: |
+          {
+            echo "## Deploy scope (this run)"
+            echo ""
+            echo "| Setting | Value |"
+            echo "|--------|-------|"
+            echo "| **deploy_backend** | \`${{ steps.scope.outputs.deploy_backend }}\` |"
+            echo "| **deploy_frontend** | \`${{ steps.scope.outputs.deploy_frontend }}\` |"
+            echo "| **deploy_api_gateway** | \`${{ steps.scope.outputs.deploy_api_gateway }}\` |"
+            echo "| **nx base** | \`${{ steps.nx-range.outputs.base }}\` |"
+            echo "| **nx head** | \`${{ steps.nx-range.outputs.head }}\` |"
+            echo ""
+            echo "### When does the workflow get faster?"
+            echo "- **Skip API Gateway (~10+ min)** when \`deploy_api_gateway\` is \`false\`: backend deploys but \`libs/shared/src/api/\` and gateway/prepare scripts did not change since base SHA, and an API already exists in AWS."
+            echo "- **Skip one app build** when only frontend or only backend is affected (not both)."
+            echo "- **Shared library:** almost any change under \`libs/shared\` marks **both** apps affected (both import it), so many real commits still build and deploy both."
+            echo "- **Nx Cloud:** add \`NX_CLOUD_ACCESS_TOKEN\` to shorten \`nx build\` when cache hits."
+            echo "- **Lambda packaging** uses one \`npm install\` for all handler zips; zipping every function still takes time."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build backend
         if: steps.scope.outputs.deploy_backend == 'true'
