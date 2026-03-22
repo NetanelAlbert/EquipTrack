@@ -29,6 +29,7 @@
       <ng-select
         [inputAttrs]="{ id: 'create-form-user-select-input' }"
         [attr.data-testid]="'create-form-user-select'"
+        appendTo="body"
         formControlName="userID"
         [items]="users()"
         bindLabel="user.name"

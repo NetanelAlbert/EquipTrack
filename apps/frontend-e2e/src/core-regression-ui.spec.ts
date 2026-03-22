@@ -282,8 +282,11 @@ test.describe('core regression ui flow', () => {
     const laptopAtFormOpen = getItem(whAtFormOpen, upiProductId);
     expect(laptopAtFormOpen.upis || []).toContain(transferredUpi);
 
-    await page.getByTestId('create-form-user-select').click();
-    await page.getByTestId(`create-form-user-option-${customerUserId}`).click();
+    const userSelect = page.getByTestId('create-form-user-select');
+    await userSelect.locator('.ng-select-container').click();
+    const dropdown = page.locator('.ng-dropdown-panel').last();
+    await expect(dropdown).toBeVisible({ timeout: 15000 });
+    await dropdown.getByRole('option', { name: /E2E Customer/i }).click();
     await page
       .getByTestId('create-form-description-input')
       .fill(checkoutDescription);

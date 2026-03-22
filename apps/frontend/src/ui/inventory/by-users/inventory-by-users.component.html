@@ -32,6 +32,7 @@
         <ng-select
           [inputAttrs]="{ id: 'inventory-by-users-add-user-input' }"
           [attr.data-testid]="'inventory-by-users-add-user-select'"
+          appendTo="body"
           [(ngModel)]="selectedUserToAdd"
           (change)="onAddUserSelected($event)"
           [items]="addUserSelectItems()"
