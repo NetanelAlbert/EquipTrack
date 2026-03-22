@@ -2,6 +2,9 @@
 
 Guidance for autonomous coding agents working in this repository.
 
+## Github context
+- When asked about Github issue, pr, job etc., you can use gh cli to get more context
+
 ## Tests
 
 - When changes affect behavior, contracts, or user flows, **add or update automated tests** as appropriate.
