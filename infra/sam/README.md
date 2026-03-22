@@ -1,44 +1,61 @@
-# EquipTrack API — AWS SAM (infrastructure as code)
+# EquipTrack API — AWS SAM
 
-This directory holds a [SAM](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) template that models the **REST API topology**: API Gateway stage, routes, `AWS_PROXY` integrations to the existing per-handler Lambda functions, and `AWS::Lambda::Permission` resources so API Gateway can invoke them.
+The REST API is deployed with **AWS SAM** / CloudFormation. The template is **generated** from `libs/shared/src/api/endpoints.ts` so routes match the shared contract.
 
-It is the single reviewed source for **which paths and methods exist** and **which Lambda function name** each route uses (`equip-track-<handlerKey>-<Stage>`, matching `scripts/deploy-api-gateway.js` and `scripts/deploy-lambdas.js`).
-
-## Generate the template
-
-The OpenAPI `DefinitionBody` is **generated** from `libs/shared/src/api/endpoints.ts` so it cannot drift from the shared API contract:
+## Regenerate the template
 
 ```bash
 npm run generate:sam
 ```
 
-Commit the updated `template.yaml` whenever endpoints change.
+Commit `infra/sam/template.yaml` when endpoints change.
 
-## Validate locally
+## What gets deployed
 
-After `npm ci` (for `ts-node`):
+- **REST API** `equip-track-api-<Stage>` (regional), stage name = `Stage` (`dev` | `production`).
+- **Routes** — OpenAPI `aws_proxy` to existing Lambdas `equip-track-<handlerKey>-<Stage>` (created by `deploy-lambdas.js`).
+- **`AWS::Lambda::Permission`** — API Gateway → Lambda invoke on this API.
+- **Optional (when GitHub secrets are set)** — custom domain name, base path mapping, Route53 alias (see below).
+
+**CloudFormation stack name:** `equip-track-api-stack-<Stage>`.
+
+## CI / full stack deploy
+
+Release workflow runs `node scripts/deploy-sam-api.js` after Lambdas are updated. SAM CLI is installed via `aws-actions/setup-sam`.
+
+## Local / manual deploy
 
 ```bash
-npm run generate:sam
-sam validate --lint --template infra/sam/template.yaml
+export STAGE=dev
+export AWS_REGION=il-central-1
+npm ci
+node scripts/prepare-deployment.js
+npx nx build backend --configuration=development   # or production
+node scripts/create-lambda-packages.js
+node scripts/deploy-lambdas.js
+node scripts/deploy-sam-api.js
 ```
 
-On CI, use `aws-actions/setup-sam` (see `.github/workflows/sam-validate.yml`).
+Optional: copy `samconfig.toml.example` to `samconfig.toml` and use `sam deploy` yourself with the same parameters as `deploy-sam-api.js`.
 
-## Deploy (phased migration)
+## GitHub secrets (per environment)
 
-**Today:** Production still provisions the API with `scripts/deploy-api-gateway.js`. The SAM template is validated in CI and documents the intended topology.
+| Secret | Purpose |
+|--------|---------|
+| `API_GATEWAY_REGIONAL_CERTIFICATE_ARN` | ACM certificate ARN in the **same region as the API** (e.g. `il-central-1`) for `dev-api.*` / `api.*`. If unset, SAM skips custom domain resources and `setup-api-custom-domain.js` runs after deploy (ACM lookup + mapping + DNS as today). |
+| `ROUTE53_HOSTED_ZONE_ID` | Hosted zone ID for the apex domain (e.g. `equip-track.com`). If set together with the cert, SAM creates the API **Route53 alias** record. If unset while cert is set, add the alias manually to the API Gateway regional domain. |
 
-**First-time SAM deploy (when you cut over):**
+Override hostname: set env `API_HOSTNAME` in the workflow or locally.
 
-1. Copy `samconfig.toml.example` to `samconfig.toml` and adjust `stack_name`, `region`, and `Stage`.
-2. Ensure all Lambdas already exist (`deploy-lambdas.js`) with the same names as in the template.
-3. Run `sam deploy --guided` once, then use non-interactive deploy in your infra pipeline.
+## Legacy API cleanup
 
-**Custom domains** (`dev-api.equip-track.com`, `api.equip-track.com`) remain managed by `scripts/setup-api-custom-domain.js` / existing runbooks until you model `AWS::ApiGateway::DomainName` and base path mappings in SAM (or a separate stack).
+Before the **first** deploy when no stack exists yet, `deploy-sam-api.js` removes REST APIs named `equip-track-api-<Stage>` and removes base path mappings on the stage hostname that still point at those APIs. Disable with `PRUNE_LEGACY_API_GATEWAY=false`.
 
-**`RECREATE_API` / stack replace:** Document a runbook before switching: mapping custom domain to a new REST API ID, updating `deployment-info.json`, and avoiding duplicate APIs named `equip-track-api-<Stage>`.
+## Troubleshooting
 
-## Routine application deploys
+- **`AlreadyExistsException` for custom domain** — An API Gateway domain name for that hostname exists outside this stack. Delete it in the API Gateway console (or leave the cert secret empty so only `setup-api-custom-domain.js` manages the domain).
+- **`sam deploy` IAM errors** — Ensure deploy credentials allow CloudFormation, API Gateway, Lambda (pass role / permissions), S3 (packaging bucket), and Route53 if using `HostedZoneId`.
 
-Unchanged from today: CI continues to run `update-function-code` for Lambdas when only backend code changes and API routes are unchanged. SAM is the **declarative reference** for when an infra deploy is required (template or `libs/shared/src/api` changes).
+## Deprecated
+
+`scripts/deploy-api-gateway.js` is **deprecated**; use `deploy-sam-api.js` and this template.

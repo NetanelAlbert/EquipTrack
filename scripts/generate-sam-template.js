@@ -96,7 +96,7 @@ function generateTemplate() {
 # Regenerate: node scripts/generate-sam-template.js
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: EquipTrack REST API (API Gateway) and Lambda invoke permissions — topology from libs/shared/src/api/endpoints.ts
+Description: EquipTrack REST API (API Gateway), Lambda invoke permissions, optional custom domain — topology from libs/shared/src/api/endpoints.ts
 
 Parameters:
   Stage:
@@ -106,6 +106,37 @@ Parameters:
       - dev
       - production
     Description: Deployment stage (matches STAGE in deploy scripts)
+  CertificateArn:
+    Type: String
+    Default: ''
+    Description: ACM certificate ARN in the API region for REGIONAL custom domain; leave empty to skip domain resources in this stack (use setup-api-custom-domain.js instead)
+  HostedZoneId:
+    Type: String
+    Default: ''
+    Description: Route53 hosted zone ID (e.g. Z123...) for ApiHostname; leave empty to skip alias record
+  ApiHostname:
+    Type: String
+    Default: ''
+    Description: API hostname (e.g. dev-api.equip-track.com); required with CertificateArn for custom domain in stack
+
+Conditions:
+  HasCustomDomain:
+    Fn::And:
+      - Fn::Not:
+          - Fn::Equals:
+              - !Ref CertificateArn
+              - ''
+      - Fn::Not:
+          - Fn::Equals:
+              - !Ref ApiHostname
+              - ''
+  HasDns:
+    Fn::And:
+      - Condition: HasCustomDomain
+      - Fn::Not:
+          - Fn::Equals:
+              - !Ref HostedZoneId
+              - ''
 
 Resources:
   EquipTrackApi:
@@ -129,6 +160,37 @@ Resources:
 `;
 
   const footer = `
+  ApiCustomDomain:
+    Type: AWS::ApiGateway::DomainName
+    Condition: HasCustomDomain
+    Properties:
+      DomainName: !Ref ApiHostname
+      RegionalCertificateArn: !Ref CertificateArn
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      SecurityPolicy: TLS_1_2
+
+  ApiBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Condition: HasCustomDomain
+    Properties:
+      DomainName: !Ref ApiCustomDomain
+      RestApiId: !Ref EquipTrackApi
+      Stage: !Ref Stage
+
+  ApiCustomDomainDns:
+    Type: AWS::Route53::RecordSet
+    Condition: HasDns
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub '\${ApiHostname}.'
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
+        HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
+        EvaluateTargetHealth: false
+
 Outputs:
   RestApiId:
     Description: API Gateway REST API ID
@@ -136,6 +198,10 @@ Outputs:
   ApiUrl:
     Description: Default execute-api URL for this stage
     Value: !Sub 'https://\${EquipTrackApi}.execute-api.\${AWS::Region}.amazonaws.com/\${Stage}'
+  CustomDomainUrl:
+    Condition: HasCustomDomain
+    Description: HTTPS URL when custom domain is managed by this stack
+    Value: !Sub 'https://\${ApiHostname}'
 `;
 
   const body =

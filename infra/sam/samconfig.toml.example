@@ -2,7 +2,7 @@
 version = 0.1
 
 [default.global.parameters]
-stack_name = "equip-track-sam-api-dev"
+stack_name = "equip-track-api-stack-dev"
 
 [default.deploy.parameters]
 capabilities = "CAPABILITY_IAM"

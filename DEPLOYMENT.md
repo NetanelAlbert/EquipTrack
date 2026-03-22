@@ -78,7 +78,7 @@ You can customize the deployment by editing:
 
 - **`.github/workflows/deploy-fullstack.yml`** - GitHub Actions workflow
 - **`scripts/deploy-lambdas.js`** - Lambda configuration (timeout, memory, etc.)
-- **`scripts/deploy-api-gateway.js`** - API Gateway settings
+- **`infra/sam/template.yaml`** + **`scripts/deploy-sam-api.js`** - API Gateway (SAM / CloudFormation)
 - **`scripts/deploy-frontend.js`** - S3 and frontend configuration
 - **`scripts/setup-cloudfront.js`** - CloudFront CDN settings
 
@@ -107,7 +107,7 @@ The deployment creates the following AWS resources:
 - `equip-track-lambda-role-production` with necessary permissions
 
 #### API Gateway
-- REST API: `equip-track-api-production`
+- REST API: `equip-track-api-production` (deployed via SAM stack `equip-track-api-stack-production`)
 - Stage: `production` (or your configured stage)
 - All endpoints configured with Lambda proxy integration
 
@@ -190,7 +190,7 @@ node scripts/prepare-deployment.js
 npx nx build backend --configuration=production
 node scripts/create-lambda-packages.js
 node scripts/deploy-lambdas.js
-node scripts/deploy-api-gateway.js
+node scripts/deploy-sam-api.js
 
 npx nx build frontend --configuration=production  
 node scripts/deploy-frontend.js
@@ -226,7 +226,7 @@ prepare-deployment.js  →  endpoints-config.json
 
 create-lambda-packages.js  →  reads endpoints-config.json
 deploy-lambdas.js         →  updates deployment-info.json
-deploy-api-gateway.js     →  reads endpoints-config.json, updates deployment-info.json
+deploy-sam-api.js         →  sam build/deploy, updates deployment-info.json (optional setup-api-custom-domain.js)
 deploy-frontend.js        →  updates deployment-info.json
 setup-cloudfront.js       →  updates deployment-info.json
 ```
