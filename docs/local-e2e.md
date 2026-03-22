@@ -69,12 +69,6 @@ Set `E2E_SKIP_LOCAL_E2E_ENSURE=true` to skip the ensure step entirely (CI / `e2e
 
 Those Playwright Nx targets use `cache: false` (see `apps/frontend-e2e/project.json`): end-to-end results must not be reused from the Nx cache, and this avoids spurious **“Nx detected a flaky task”** hints when a past failure was cached.
 
-## CI
-
-Core regression is automated via:
-
-- `.github/workflows/e2e-localstack-core-regression.yml`
-
 ## Deployed environment run
 
 To run the same core regression test against a deployed environment:
@@ -111,7 +105,7 @@ Organization:
 | `STAGE` | `local` | Backend stage for table/bucket naming |
 | `AWS_ENDPOINT_URL*` | `http://localhost:4566` | LocalStack endpoints for AWS SDK (see `backend:serve:e2e-local` in `package.json`) |
 
-Deployed runs additionally use the GitHub Environment secret `E2E_AUTH_SECRET` and manual `base_url` / `backend_base_url` inputs; see [github-environments-setup.md](./github-environments-setup.md#-e2e-workflow-environment-secrets).
+Deployed runs use the GitHub Environment secret `E2E_AUTH_SECRET` plus URLs from manual workflow inputs or from repository variables for the post-deploy workflow; see [github-environments-setup.md](./github-environments-setup.md#-e2e-workflow-environment-secrets).
 
 ## CI behavior
 
