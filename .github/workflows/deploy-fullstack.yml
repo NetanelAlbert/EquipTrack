@@ -101,7 +101,9 @@ jobs:
           SCRIPTS_CHANGED="$(git diff --name-only "${NX_BASE}" "${NX_HEAD}" -- scripts .github/workflows/deploy-fullstack.yml 2>/dev/null || true)"
           API_SURFACE_CHANGED="$(git diff --name-only "${NX_BASE}" "${NX_HEAD}" -- \
             libs/shared/src/api \
+            infra/sam \
             scripts/deploy-api-gateway.js \
+            scripts/generate-sam-template.js \
             scripts/prepare-deployment.js \
             2>/dev/null || true)"
 
