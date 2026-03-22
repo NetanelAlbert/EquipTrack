@@ -43,7 +43,9 @@ jobs:
       - name: Bump version
         id: bump-version
         run: |
-          new_version=$(bash scripts/bump-version-ci.sh)
+          bash scripts/bump-version-ci.sh
+          # Read from package.json so GITHUB_OUTPUT is not affected by npm's stdout (npm version prints the new semver).
+          new_version=$(node -p "require('./package.json').version")
           echo "new=${new_version}" >> "${GITHUB_OUTPUT}"
 
       - name: Commit version bump
