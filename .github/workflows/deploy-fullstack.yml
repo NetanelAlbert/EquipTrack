@@ -218,6 +218,11 @@ jobs:
       - name: Deploy Lambda functions
         id: deploy-lambdas
         if: steps.scope.outputs.deploy_backend == 'true'
+        env:
+          # Non-tag pushes (develop): enable e2e-login for deployed Playwright regression.
+          # Version tags (production): omit E2E env on Lambdas (see scripts/deploy-lambdas.js).
+          E2E_AUTH_ENABLED: ${{ !startsWith(github.ref, 'refs/tags/v') && 'true' || 'false' }}
+          E2E_AUTH_SECRET: ${{ secrets.E2E_AUTH_SECRET }}
         run: |
           node scripts/deployment-status-tracker.js track lambda-deploy started
           node scripts/deploy-lambdas.js --parallel
