@@ -1,0 +1,84 @@
+name: E2E Deployed Core (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      base_url:
+        description: Frontend base URL
+        required: true
+        type: string
+      backend_base_url:
+        description: Backend API base URL
+        required: true
+        type: string
+      target_environment:
+        description: GitHub Environment (for E2E_AUTH_SECRET)
+        required: true
+        type: string
+      checkout_ref:
+        description: Git commit SHA to checkout (tests run against this revision)
+        required: true
+        type: string
+      artifact_suffix:
+        description: Suffix for Playwright artifact names
+        required: false
+        type: string
+        default: deployed-core
+      summarize_label:
+        description: Label passed to summarize-playwright-error-contexts.py
+        required: false
+        type: string
+        default: deployed
+
+jobs:
+  deployed-core-regression:
+    name: Core regression (deployed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ inputs.target_environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run deployed core regression
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          BACKEND_BASE_URL: ${{ inputs.backend_base_url }}
+          E2E_AUTH_SECRET: ${{ secrets.E2E_AUTH_SECRET }}
+          PLAYWRIGHT_HTML_OPEN: never
+        run: npx nx run frontend-e2e:e2e-deployed-core
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ inputs.artifact_suffix }}
+          path: playwright-report
+          if-no-files-found: ignore
+
+      - name: Upload Playwright test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results-${{ inputs.artifact_suffix }}
+          path: test-results
+          if-no-files-found: ignore
+
+      - name: Summarize Playwright failure contexts
+        if: always()
+        run: python3 scripts/summarize-playwright-error-contexts.py --label ${{ inputs.summarize_label }}
