@@ -250,7 +250,6 @@ jobs:
         if: ${{ steps.scope.outputs.deploy_backend == 'true' && (steps.scope.outputs.deploy_api_gateway == 'true' || steps.hydrate-backend.outputs.api_exists != 'true') }}
         env:
           API_GATEWAY_REGIONAL_CERTIFICATE_ARN: ${{ secrets.API_GATEWAY_REGIONAL_CERTIFICATE_ARN }}
-          ROUTE53_HOSTED_ZONE_ID: ${{ secrets.ROUTE53_HOSTED_ZONE_ID }}
         run: |
           echo "🚀 Deploying REST API via SAM for stage: ${{ env.STAGE }}"
           node scripts/deployment-status-tracker.js track api-gateway started

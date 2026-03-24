@@ -7,7 +7,7 @@
  *   STAGE, AWS_REGION, BASE_DOMAIN (default equip-track.com)
  *   API_HOSTNAME — optional override; default dev-api.<base> / api.<base>
  *   API_GATEWAY_REGIONAL_CERTIFICATE_ARN — optional; if set with ApiHostname, SAM creates custom domain + base path mapping
- *   ROUTE53_HOSTED_ZONE_ID — optional; if set with cert, SAM creates Route53 alias
+ *   After deploy, setup-api-custom-domain.js always runs (mapping + Route53 UPSERT)
  *   PRUNE_LEGACY_API_GATEWAY — must be 'true' to opt in: before first stack create, remove REST APIs
  *     named equip-track-api-<STAGE> and domain mappings pointing at them (destructive; confirm account/stage)
  */
@@ -179,13 +179,8 @@ function samBuild() {
   }
 }
 
-function samDeploy(certArn, hostedZoneId, apiHostname) {
-  const overrides = [
-    `Stage=${STAGE}`,
-    `CertificateArn=${certArn}`,
-    `HostedZoneId=${hostedZoneId}`,
-    `ApiHostname=${apiHostname}`,
-  ];
+function samDeploy(certArn, apiHostname) {
+  const overrides = [`Stage=${STAGE}`, `CertificateArn=${certArn}`, `ApiHostname=${apiHostname}`];
   console.log('🚀 sam deploy...');
   execFileSync(
     'sam',
@@ -260,8 +255,10 @@ function mergeDeploymentInfo(outputs, apiHostname, usedSamDomain) {
   console.log(`✅ Updated ${deploymentInfoPath}`);
 }
 
-function runOptionalScriptDomainSetup() {
-  console.log('🌐 Running setup-api-custom-domain.js (no regional cert in env for SAM stack)');
+function runCustomDomainReconciliation() {
+  console.log(
+    '🌐 Running setup-api-custom-domain.js (base path mapping + Route53 UPSERT; safe if domain already exists)'
+  );
   execFileSync('node', ['scripts/setup-api-custom-domain.js'], {
     stdio: 'inherit',
     cwd: ROOT,
@@ -274,25 +271,32 @@ function main() {
   assertSafeHostname(apiHostname);
 
   const certArn = (process.env.API_GATEWAY_REGIONAL_CERTIFICATE_ARN || '').trim();
-  const hostedZoneId = (process.env.ROUTE53_HOSTED_ZONE_ID || '').trim();
   const usedSamDomain = Boolean(certArn);
 
-  if (usedSamDomain && !hostedZoneId) {
-    console.log(
-      '⚠️ API_GATEWAY_REGIONAL_CERTIFICATE_ARN is set but ROUTE53_HOSTED_ZONE_ID is empty — SAM will create the custom domain and mapping but not the Route53 alias; add the DNS record manually or set the hosted zone secret.'
-    );
+  pruneLegacyApisIfNeeded(apiHostname);
+
+  const preStack = describeStack(STACK_NAME);
+  if (preStack) {
+    const st = preStack.StackStatus || '';
+    if (
+      st === 'ROLLBACK_COMPLETE' ||
+      st === 'CREATE_FAILED' ||
+      st === 'UPDATE_ROLLBACK_FAILED'
+    ) {
+      throw new Error(
+        `CloudFormation stack ${STACK_NAME} is ${st}. Delete the stack in AWS (console or \`aws cloudformation delete-stack\`) and re-run this deploy.`
+      );
+    }
   }
 
-  pruneLegacyApisIfNeeded(apiHostname);
   samBuild();
-  samDeploy(certArn, hostedZoneId, apiHostname);
+  samDeploy(certArn, apiHostname);
 
   const outputs = readStackOutputs();
   mergeDeploymentInfo(outputs, apiHostname, usedSamDomain);
 
-  if (!usedSamDomain) {
-    runOptionalScriptDomainSetup();
-  }
+  // Route53 alias + mapping reconciliation (UPSERT) — avoids CFN conflicts with existing A records
+  runCustomDomainReconciliation();
 
   console.log('\n🎉 SAM API deploy complete');
   console.log(`   Execute-api: ${outputs.ApiUrl}`);
