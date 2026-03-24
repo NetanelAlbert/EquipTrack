@@ -15,7 +15,9 @@ Commit `infra/sam/template.yaml` when endpoints change.
 - **REST API** `equip-track-api-<Stage>` (regional), stage name = `Stage` (`dev` | `production`).
 - **Routes** — OpenAPI `aws_proxy` to existing Lambdas `equip-track-<handlerKey>-<Stage>` (created by `deploy-lambdas.js`).
 - **`AWS::Lambda::Permission`** — API Gateway → Lambda invoke on this API.
-- **Optional (when GitHub secrets are set)** — custom domain name, base path mapping, Route53 alias (see below).
+- **Optional (when `API_GATEWAY_REGIONAL_CERTIFICATE_ARN` is set)** — `AWS::ApiGateway::DomainName` + `BasePathMapping` for the stage hostname (`dev-api.*` / `api.*` by default).
+
+**DNS** is **not** created in CloudFormation (avoids conflicts with existing A records). After every successful `sam deploy`, `scripts/setup-api-custom-domain.js` runs to **UPSERT** the Route53 alias and reconcile the base path mapping.
 
 **CloudFormation stack name:** `equip-track-api-stack-<Stage>`.
 
@@ -42,8 +44,7 @@ Optional: copy `samconfig.toml.example` to `samconfig.toml` and use `sam deploy`
 
 | Secret | Purpose |
 |--------|---------|
-| `API_GATEWAY_REGIONAL_CERTIFICATE_ARN` | ACM certificate ARN in the **same region as the API** (e.g. `il-central-1`) for `dev-api.*` / `api.*`. If unset, SAM skips custom domain resources and `setup-api-custom-domain.js` runs after deploy (ACM lookup + mapping + DNS as today). |
-| `ROUTE53_HOSTED_ZONE_ID` | Hosted zone ID for the apex domain (e.g. `equip-track.com`). If set together with the cert, SAM creates the API **Route53 alias** record. If unset while cert is set, add the alias manually to the API Gateway regional domain. |
+| `API_GATEWAY_REGIONAL_CERTIFICATE_ARN` | ACM certificate ARN in the **same region as the API** (e.g. `il-central-1`) for `dev-api.*` / `api.*`. If unset, SAM skips custom domain resources; `setup-api-custom-domain.js` still runs after deploy (ACM lookup + mapping + DNS). |
 
 Override hostname: set env `API_HOSTNAME` in the workflow or locally.
 
@@ -56,7 +57,9 @@ Use only as a **go-live checklist** item: confirm **account ID**, **region**, **
 ## Troubleshooting
 
 - **`AlreadyExistsException` for custom domain** — An API Gateway domain name for that hostname exists outside this stack. Delete it in the API Gateway console (or leave the cert secret empty so only `setup-api-custom-domain.js` manages the domain).
-- **`sam deploy` IAM errors** — Ensure deploy credentials allow CloudFormation, API Gateway, Lambda (pass role / permissions), S3 (packaging bucket), and Route53 if using `HostedZoneId`.
+- **`Invalid stage identifier` on BasePathMapping** — Fixed in template by depending on SAM’s `EquipTrackApiStage`; regenerate and redeploy.
+- **Stack stuck in `ROLLBACK_COMPLETE`** — Delete the stack `equip-track-api-stack-<Stage>` in CloudFormation, then re-run deploy (the deploy script will fail fast with instructions if it detects this state).
+- **`sam deploy` IAM errors** — Ensure deploy credentials allow CloudFormation, API Gateway, Lambda (pass role / permissions), S3 (packaging bucket), and Route53 (used by `setup-api-custom-domain.js`).
 
 ## Deprecated
 

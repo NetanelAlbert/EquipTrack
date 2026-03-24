@@ -110,10 +110,6 @@ Parameters:
     Type: String
     Default: ''
     Description: ACM certificate ARN in the API region for REGIONAL custom domain; leave empty to skip domain resources in this stack (use setup-api-custom-domain.js instead)
-  HostedZoneId:
-    Type: String
-    Default: ''
-    Description: Route53 hosted zone ID (e.g. Z123...) for ApiHostname; leave empty to skip alias record
   ApiHostname:
     Type: String
     Default: ''
@@ -130,14 +126,6 @@ Conditions:
           - Fn::Equals:
               - !Ref ApiHostname
               - ''
-  HasDns:
-    Fn::And:
-      - Condition: HasCustomDomain
-      - Fn::Not:
-          - Fn::Equals:
-              - !Ref HostedZoneId
-              - ''
-
 Resources:
   EquipTrackApi:
     Type: AWS::Serverless::Api
@@ -174,22 +162,11 @@ Resources:
   ApiBasePathMapping:
     Type: AWS::ApiGateway::BasePathMapping
     Condition: HasCustomDomain
+    DependsOn: EquipTrackApiStage
     Properties:
       DomainName: !Ref ApiCustomDomain
       RestApiId: !Ref EquipTrackApi
       Stage: !Ref Stage
-
-  ApiCustomDomainDns:
-    Type: AWS::Route53::RecordSet
-    Condition: HasDns
-    Properties:
-      HostedZoneId: !Ref HostedZoneId
-      Name: !Sub '\${ApiHostname}.'
-      Type: A
-      AliasTarget:
-        DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
-        HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
-        EvaluateTargetHealth: false
 
 Outputs:
   RestApiId:
