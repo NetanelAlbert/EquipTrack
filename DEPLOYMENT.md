@@ -226,7 +226,7 @@ prepare-deployment.js  →  endpoints-config.json
 
 create-lambda-packages.js  →  reads endpoints-config.json
 deploy-lambdas.js         →  updates deployment-info.json
-deploy-sam-api.js         →  sam build/deploy, updates deployment-info.json (optional setup-api-custom-domain.js)
+deploy-sam-api.js         →  sam build/deploy, updates deployment-info.json (optional setup-api-custom-domain.js); optional opt-in legacy API prune via PRUNE_LEGACY_API_GATEWAY=true
 deploy-frontend.js        →  updates deployment-info.json
 setup-cloudfront.js       →  updates deployment-info.json
 ```

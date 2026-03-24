@@ -47,9 +47,11 @@ Optional: copy `samconfig.toml.example` to `samconfig.toml` and use `sam deploy`
 
 Override hostname: set env `API_HOSTNAME` in the workflow or locally.
 
-## Legacy API cleanup
+## Legacy API cleanup (opt-in, destructive)
 
-Before the **first** deploy when no stack exists yet, `deploy-sam-api.js` removes REST APIs named `equip-track-api-<Stage>` and removes base path mappings on the stage hostname that still point at those APIs. Disable with `PRUNE_LEGACY_API_GATEWAY=false`.
+**Default: off.** When **`PRUNE_LEGACY_API_GATEWAY=true`** and the CloudFormation stack **`equip-track-api-stack-<Stage>`** does not exist yet, `deploy-sam-api.js` **permanently deletes** every REST API named **`equip-track-api-<Stage>`** in the current account/region and removes base path mappings on the configured API hostname that point at those APIs.
+
+Use only as a **go-live checklist** item: confirm **account ID**, **region**, **`STAGE`**, and that those APIs are really the legacy ones. In GitHub Actions, set a repository or environment variable `PRUNE_LEGACY_API_GATEWAY=true` for the cutover run, then remove or set it back to false.
 
 ## Troubleshooting
 

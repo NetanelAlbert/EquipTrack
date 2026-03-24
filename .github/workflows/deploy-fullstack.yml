@@ -249,8 +249,16 @@ jobs:
         run: |
           echo "🚀 Deploying REST API via SAM for stage: ${{ env.STAGE }}"
           node scripts/deployment-status-tracker.js track api-gateway started
+          set +e
           node scripts/deploy-sam-api.js
-          node scripts/deployment-status-tracker.js track api-gateway success
+          sam_exit=$?
+          set -e
+          if [ "$sam_exit" -eq 0 ]; then
+            node scripts/deployment-status-tracker.js track api-gateway success
+          else
+            node scripts/deployment-status-tracker.js track api-gateway failed "SAM deploy failed (exit ${sam_exit})"
+            exit "$sam_exit"
+          fi
 
       - name: Check if force full deployment is requested
         id: check-force-deployment

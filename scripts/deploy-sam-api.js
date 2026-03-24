@@ -8,7 +8,8 @@
  *   API_HOSTNAME — optional override; default dev-api.<base> / api.<base>
  *   API_GATEWAY_REGIONAL_CERTIFICATE_ARN — optional; if set with ApiHostname, SAM creates custom domain + base path mapping
  *   ROUTE53_HOSTED_ZONE_ID — optional; if set with cert, SAM creates Route53 alias
- *   PRUNE_LEGACY_API_GATEWAY — default 'true': before first stack create, remove legacy REST APIs named equip-track-api-<STAGE> and domain mappings pointing at them
+ *   PRUNE_LEGACY_API_GATEWAY — must be 'true' to opt in: before first stack create, remove REST APIs
+ *     named equip-track-api-<STAGE> and domain mappings pointing at them (destructive; confirm account/stage)
  */
 const { execFileSync, execSync } = require('child_process');
 const fs = require('fs');
@@ -117,9 +118,11 @@ function deleteRestApi(apiId) {
 }
 
 function pruneLegacyApisIfNeeded(apiHostname) {
-  const enabled = (process.env.PRUNE_LEGACY_API_GATEWAY || 'true').toLowerCase() !== 'false';
+  const enabled = (process.env.PRUNE_LEGACY_API_GATEWAY || '').toLowerCase() === 'true';
   if (!enabled) {
-    console.log('ℹ️ PRUNE_LEGACY_API_GATEWAY=false — skipping legacy API cleanup');
+    console.log(
+      'ℹ️ Legacy API prune is off (set PRUNE_LEGACY_API_GATEWAY=true only after confirming account, STAGE, and API names to remove)'
+    );
     return;
   }
 
@@ -132,9 +135,29 @@ function pruneLegacyApisIfNeeded(apiHostname) {
   const targetName = `equip-track-api-${STAGE}`;
   const apis = listRestApis().filter((a) => a.name === targetName);
   if (apis.length === 0) {
-    console.log(`ℹ️ No legacy REST APIs named ${targetName}`);
+    console.log(`ℹ️ No REST APIs named ${targetName} to prune`);
     return;
   }
+
+  let accountId = 'unknown';
+  try {
+    const idOut = execFileSync(
+      'aws',
+      ['sts', 'get-caller-identity', '--query', 'Account', '--output', 'text'],
+      { encoding: 'utf8', cwd: ROOT }
+    );
+    accountId = idOut.trim() || accountId;
+  } catch {
+    // continue with unknown account in banner only
+  }
+
+  console.log('\n⚠️  PRUNE_LEGACY_API_GATEWAY=true — irreversible delete of the following:');
+  console.log(`   AWS account: ${accountId}`);
+  console.log(`   Region:      ${AWS_REGION}`);
+  console.log(`   STAGE:       ${STAGE}`);
+  console.log(`   API name:    ${targetName}`);
+  apis.forEach((a) => console.log(`   - REST API id ${a.id} (${a.name})`));
+  console.log(`   Custom host: ${apiHostname} (base path mappings to those APIs will be removed)\n`);
 
   const ids = apis.map((a) => a.id);
   assertSafeHostname(apiHostname);
@@ -143,7 +166,7 @@ function pruneLegacyApisIfNeeded(apiHostname) {
   for (const a of apis) {
     deleteRestApi(a.id);
   }
-  console.log(`✅ Pruned ${apis.length} legacy API(s) named ${targetName}`);
+  console.log(`✅ Pruned ${apis.length} REST API(s) named ${targetName}`);
   console.log('⏳ Waiting for API Gateway deletes to propagate...');
   execSync('sleep 8', { stdio: 'inherit', cwd: ROOT });
 }
