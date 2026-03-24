@@ -10,7 +10,7 @@ The deployment process automatically:
 2. **Builds** the frontend (Angular) using Nx  
 3. **Creates** individual Lambda deployment packages for each API handler
 4. **Deploys** Lambda functions to AWS
-5. **Sets up** API Gateway with proper routing
+5. **Deploys** the REST API via **AWS SAM** (CloudFormation stack `equip-track-api-stack-<stage>`) and reconciles custom domain / Route53
 6. **Creates** DynamoDB tables if they don't exist
 7. **Deploys** frontend to S3 with static website hosting
 8. **Sets up** CloudFront CDN for global distribution and HTTPS
@@ -36,14 +36,16 @@ Your AWS secret access key for programmatic access.
 
 ### Step 2: Attach Required Policies
 
-Attach the following AWS managed policies to the user:
+Attach policies that cover the resources below (exact managed policy names can be replaced with tighter custom policies in production):
 
-- **AWSLambdaFullAccess** - For Lambda function management
-- **AmazonAPIGatewayAdministrator** - For API Gateway management  
-- **AmazonDynamoDBFullAccess** - For DynamoDB table management
-- **AmazonS3FullAccess** - For S3 bucket and static website hosting
-- **CloudFrontFullAccess** - For CloudFront CDN management
-- **IAMFullAccess** - For creating Lambda execution roles
+- **AWSLambdaFullAccess** — Lambda function management
+- **AmazonAPIGatewayAdministrator** — API Gateway (REST API, custom domains, base path mappings)
+- **AmazonDynamoDBFullAccess** — DynamoDB tables
+- **AmazonS3FullAccess** — Frontend buckets and **SAM CLI** packaging uploads (`sam deploy --resolve-s3` uses a managed artifacts bucket in the account)
+- **CloudFrontFullAccess** — CloudFront CDN
+- **IAMFullAccess** — Lambda execution roles (consider narrowing to PassRole + role/policy edits for `equip-track-lambda-role-*` only)
+- **AWSCloudFormationFullAccess** — **Required for SAM**: creates/updates stack `equip-track-api-stack-<stage>`
+- **AmazonRoute53FullAccess** (or a zone-scoped policy) — If `setup-api-custom-domain.js` upserts **Route53** alias records for the API hostname
 
 ### Step 3: Get Access Keys
 
@@ -63,14 +65,26 @@ Attach the following AWS managed policies to the user:
    **Name:** `AWS_SECRET_ACCESS_KEY`  
    **Value:** Your secret access key
 
+For **environment-scoped** secrets (recommended), use **Settings → Environments** (`development` / `production`) as in **`docs/github-environments-setup.md`**.
+
+### API custom domain (per environment, optional but typical)
+
+Used by **SAM** (`infra/sam`) and **`setup-api-custom-domain.js`**:
+
+| Secret | Purpose |
+|--------|---------|
+| `API_GATEWAY_REGIONAL_CERTIFICATE_ARN` | ACM certificate ARN in the **same region as the API** (e.g. `il-central-1`) for `dev-api.*` / `api.*`. If unset, SAM skips in-stack custom domain resources; the post-deploy script still reconciles mapping + Route53 when possible. |
+
+See **`infra/sam/README.md`** for stack names, DNS behavior, and optional **`PRUNE_LEGACY_API_GATEWAY`**.
+
 ## Deployment Configuration
 
 ### Environment Variables
 
 The deployment uses these environment variables (set in the workflow):
 
-- `AWS_REGION`: AWS region for deployment (default: us-east-1)
-- `STAGE`: Deployment stage (default: production)
+- `AWS_REGION`: Set in **`.github/workflows/deploy-fullstack.yml`** (currently **`il-central-1`**)
+- `STAGE`: **`dev`** for prerelease tags, **`production`** for stable release tags (derived in the workflow from the tag)
 
 ### Customizing Deployment
 
@@ -238,13 +252,45 @@ setup-cloudfront.js       →  updates deployment-info.json
 - ✅ **CI/CD Resilient**: Fallback to hardcoded definitions when needed
 - ✅ **Easy Debugging**: JSON files can be inspected manually
 
+## Release to production (develop → master)
+
+This section summarizes what **develop** has hardened for **SAM-based API deploys** so you can merge to **`master`** and cut a **stable** release tag with confidence.
+
+### How production is targeted
+
+- Workflow: **`.github/workflows/deploy-fullstack.yml`** runs on **`push` of tags** `v*`.
+- **Pre-release tags** (semver prerelease, e.g. `v1.2.3-beta.0`) deploy to **`STAGE=dev`** and GitHub Environment **`development`**.
+- **Stable tags** (e.g. `v1.2.3` with **no** prerelease segment) deploy to **`STAGE=production`** and GitHub Environment **`production`**.
+
+Concurrency is **per AWS stage** (not per tag), so two prerelease tags cannot race the same dev buckets/API.
+
+### Pre-merge checklist
+
+1. **Green develop pipeline** — Recent pre-release deploy (e.g. `v0.0.12-beta.x`) completed successfully, including **Deploy API (AWS SAM)** and **`setup-api-custom-domain.js`**.
+2. **SAM template CI** — **SAM API template** workflow passes (regenerate + `sam validate --lint` on `infra/sam/template.yaml`).
+3. **Production environment secrets** — In GitHub **Settings → Environments → production**: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and usually **`API_GATEWAY_REGIONAL_CERTIFICATE_ARN`** for `api.<your-domain>` in **`il-central-1`**. Add **`E2E_AUTH_SECRET`** if you run deployed Playwright against production.
+4. **IAM** — Deploy principal allows **CloudFormation**, **API Gateway**, **Lambda**, **S3** (including SAM artifact uploads), **IAM** PassRole for Lambda roles, and **Route53** if API DNS is managed in Route53 (see policies above).
+
+### First stable tag after SAM (production account)
+
+1. Merge **`develop`** into **`master`** (or your release process).
+2. Create and push a **stable** version tag from the commit you intend to ship (e.g. `v1.0.0`). Your **auto-version** workflow on `master` may do this; otherwise tag manually.
+3. Approve the **`production`** environment deployment if you use required reviewers.
+4. **CloudFormation** creates or updates **`equip-track-api-stack-production`**. REST API name remains **`equip-track-api-production`** (same as pre-SAM scripts).
+5. **Legacy REST API cleanup** — If an **old** REST API with the same name still exists outside the stack, delete it once or use a **single** cutover run with **`PRUNE_LEGACY_API_GATEWAY=true`** (see **`infra/sam/README.md`**). Default is **off** to avoid accidental deletes.
+6. **Failed stack** — If a run leaves the stack in **`ROLLBACK_COMPLETE`**, delete **`equip-track-api-stack-production`** in CloudFormation and re-run the workflow once (see **`infra/sam/README.md`**).
+
+### Rollback expectations
+
+- Reverting a **Git** merge does **not** automatically revert **AWS**. Prefer **CloudFormation stack** history, **previous Lambda** builds, or re-tagging a known-good commit for emergency rollback.
+
 ## Troubleshooting
 
 ### Common Issues
 
 1. **Permission Denied**: Ensure your IAM user has all required policies
 2. **Role Creation Failed**: The Lambda role might already exist or need time to propagate
-3. **API Gateway Errors**: Check that Lambda functions were deployed successfully first
+3. **API / SAM errors**: Ensure Lambdas deployed first; check **CloudFormation** stack **`equip-track-api-stack-<stage>`** events. Empty template updates use **`--no-fail-on-empty-changeset`** (no failure). **`ROLLBACK_COMPLETE`** → delete stack and retry once.
 4. **"endpoints-config.json not found"**: Run `node scripts/prepare-deployment.js` first
 5. **"deployment-info.json not found"**: Run the prepare script, or check if scripts are running in correct order
 
@@ -281,8 +327,11 @@ aws s3api delete-bucket --bucket equip-track-frontend-${STAGE}
 # Delete Lambda functions
 aws lambda list-functions --query "Functions[?starts_with(FunctionName, 'equip-track-')]" --output text --query "Functions[].[FunctionName]" | xargs -I {} aws lambda delete-function --function-name {}
 
-# Delete API Gateway (replace with your API ID)
-aws apigateway delete-rest-api --rest-api-id YOUR_API_ID
+# Delete SAM-managed API stack (preferred)
+aws cloudformation delete-stack --stack-name equip-track-api-stack-${STAGE}
+
+# Or delete REST API only if not managed by CloudFormation (replace with your API ID)
+# aws apigateway delete-rest-api --rest-api-id YOUR_API_ID
 
 # Delete IAM role
 aws iam detach-role-policy --role-name equip-track-lambda-role-${STAGE} --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole

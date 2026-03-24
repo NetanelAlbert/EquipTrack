@@ -42,6 +42,7 @@ Navigate to **Settings** → **Environments** → **development** → **Environm
 
 - `AWS_ACCESS_KEY_ID`: Your dev AWS access key
 - `AWS_SECRET_ACCESS_KEY`: Your dev AWS secret key
+- `API_GATEWAY_REGIONAL_CERTIFICATE_ARN`: ACM cert in the API region for `dev-api.*` (optional; see `infra/sam/README.md`)
 - `BASE_DOMAIN`: `dev.equip-track.com` (if using custom domains)
 
 #### Production Environment Secrets  
@@ -49,6 +50,7 @@ Navigate to **Settings** → **Environments** → **production** → **Environme
 
 - `AWS_ACCESS_KEY_ID`: Your production AWS access key
 - `AWS_SECRET_ACCESS_KEY`: Your production AWS secret key
+- `API_GATEWAY_REGIONAL_CERTIFICATE_ARN`: ACM cert in the API region for `api.*` (optional; see `infra/sam/README.md`)
 - `BASE_DOMAIN`: `equip-track.com` (if using custom domains)
 
 ### Step 3: AWS IAM Setup for Environment Separation
@@ -72,6 +74,7 @@ Create separate IAM users/roles with limited permissions:
         "s3:*",
         "cloudfront:*",
         "apigateway:*",
+        "cloudformation:*",
         "lambda:*",
         "dynamodb:*",
         "iam:PassRole",
