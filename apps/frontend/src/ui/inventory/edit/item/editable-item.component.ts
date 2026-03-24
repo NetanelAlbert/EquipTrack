@@ -35,7 +35,15 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { first, map, distinctUntilChanged, filter, Subscription } from 'rxjs';
+import {
+  first,
+  map,
+  distinctUntilChanged,
+  filter,
+  Subscription,
+  merge,
+  of,
+} from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 @UntilDestroy()
@@ -57,6 +65,13 @@ import { toObservable } from '@angular/core/rxjs-interop';
   styleUrl: './editable-item.component.scss',
 })
 export class EditableItemComponent implements OnInit {
+  /** Max UPI fields per line item — avoids freezing the UI on huge quantities. */
+  static readonly MAX_UPI_QUANTITY = 100;
+
+  private readonly maxUpiQuantityValidator = Validators.max(
+    EditableItemComponent.MAX_UPI_QUANTITY
+  );
+
   fb = inject(FormBuilder);
   organizationStore = inject(OrganizationStore);
   control = input<FormGroup<FormInventoryItem>>(emptyItem(this.fb, () => null));
@@ -79,6 +94,7 @@ export class EditableItemComponent implements OnInit {
   });
 
   constructor() {
+    this.syncUpiQuantityMaxValidator();
     this.initialResizeUPIs();
     this.initialProductIdSignal();
     this.initialSearchTerm();
@@ -116,6 +132,9 @@ export class EditableItemComponent implements OnInit {
 
   isUPI: Signal<boolean> = computed(() => this.product()?.hasUpi ?? false);
 
+  /** Exposed for template (max UPI fields per row). */
+  protected readonly maxUpiQuantity = EditableItemComponent.MAX_UPI_QUANTITY;
+
   @HostBinding('class.upi-item')
   get isUpiItem(): boolean {
     return this.isUPI();
@@ -149,6 +168,19 @@ export class EditableItemComponent implements OnInit {
   }
 
   private quantitySubscription: Subscription | null = null;
+  private upisLengthSubscription: Subscription | null = null;
+
+  private syncUpiQuantityMaxValidator() {
+    effect(() => {
+      const qc = this.quantityControl();
+      qc.removeValidators(this.maxUpiQuantityValidator);
+      if (this.isUPI()) {
+        qc.addValidators(this.maxUpiQuantityValidator);
+      }
+      qc.updateValueAndValidity({ emitEvent: false });
+    });
+  }
+
   private initialResizeUPIs() {
     effect(() => {
       const quantityControl = this.quantityControl();
@@ -160,33 +192,61 @@ export class EditableItemComponent implements OnInit {
         return;
       }
       this.quantitySubscription?.unsubscribe();
-      this.quantitySubscription = quantityControl.valueChanges.subscribe(
-        (value) => {
-          if (value === null) return;
+      this.quantitySubscription = merge(
+        of(quantityControl.value),
+        quantityControl.valueChanges
+      ).subscribe((raw) => {
+        if (raw === null) return;
+        const value = typeof raw === 'number' && Number.isNaN(raw) ? null : raw;
+        if (value === null) return;
 
-          if (value < 0) {
-            quantityControl.setValue(0, { emitEvent: false });
-            value = 0;
-          }
+        let qty = value;
+        if (qty < 0) {
+          quantityControl.setValue(0, { emitEvent: false });
+          qty = 0;
+        }
 
-          while (upisControl.length < value) {
-            this.addUpi(false);
-          }
+        if (this.isUPI() && qty > EditableItemComponent.MAX_UPI_QUANTITY) {
+          qty = EditableItemComponent.MAX_UPI_QUANTITY;
+          quantityControl.setValue(qty, { emitEvent: false });
+        }
 
-          while (upisControl.length > value) {
-            if (!this.removeEmptyUpi()) {
-              break;
-            }
-          }
+        if (!this.isUPI()) {
+          return;
+        }
 
-          if (upisControl.length > value) {
-            quantityControl.setValue(upisControl.length, { emitEvent: false });
+        while (upisControl.length < qty) {
+          this.addUpi(false);
+        }
+
+        while (upisControl.length > qty) {
+          if (!this.removeEmptyUpi()) {
+            break;
           }
         }
-      );
 
-      upisControl.valueChanges
+        if (upisControl.length > EditableItemComponent.MAX_UPI_QUANTITY) {
+          while (
+            upisControl.length > EditableItemComponent.MAX_UPI_QUANTITY
+          ) {
+            upisControl.removeAt(upisControl.length - 1, { emitEvent: false });
+          }
+          quantityControl.setValue(
+            EditableItemComponent.MAX_UPI_QUANTITY,
+            { emitEvent: false }
+          );
+          qty = EditableItemComponent.MAX_UPI_QUANTITY;
+        }
+
+        if (upisControl.length > qty) {
+          quantityControl.setValue(upisControl.length, { emitEvent: false });
+        }
+      });
+
+      this.upisLengthSubscription?.unsubscribe();
+      this.upisLengthSubscription = upisControl.valueChanges
         .pipe(
+          filter(() => this.isUPI()),
           filter((value) => value !== null),
           map((value) => value.length),
           distinctUntilChanged()
@@ -275,6 +335,12 @@ export class EditableItemComponent implements OnInit {
   }
 
   protected addUpi(emitEvent = true) {
+    if (
+      this.isUPI() &&
+      this.upisControl().length >= EditableItemComponent.MAX_UPI_QUANTITY
+    ) {
+      return -1;
+    }
     const control = new FormControl('');
     const newIndex = this.upisControl().length;
     this.setUPIValidations(control, newIndex);

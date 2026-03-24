@@ -5,9 +5,10 @@ on:
     tags:
       - 'v*'
 
-# One deploy at a time per ref avoids S3 sync --delete races and CloudFront ETag conflicts.
+# One deploy at a time per AWS stage (not per tag ref). Prerelease tags share the same target as dev;
+# using github.ref per tag allowed v1.0.0-beta.1 and v1.0.0-beta.2 to run in parallel and race S3/CloudFront.
 concurrency:
-  group: deploy-fullstack-${{ github.ref }}
+  group: deploy-fullstack-${{ contains(github.ref, '-') && 'dev' || 'production' }}
   cancel-in-progress: false
 
 env:
@@ -18,6 +19,10 @@ env:
   STAGE: ${{ contains(github.ref, '-') && 'dev' || 'production' }}
   # Optional: set repository secret NX_CLOUD_ACCESS_TOKEN after `nx connect` for remote cache.
   NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+  # Tag pushes report refs/tags/* as the branch in CI metadata; Nx Cloud uses that for cache partitioning,
+  # so deploy jobs would not reuse remote cache from the default-branch pipeline. Pin to the repo default
+  # branch so nx build (frontend/backend) shares the same Nx Cloud cache as develop/main CI and local runs.
+  NX_BRANCH: ${{ github.event.repository.default_branch || 'develop' }}
 
 jobs:
   deploy:
@@ -28,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -66,7 +71,7 @@ jobs:
           echo "📌 nx-range resolved: ${BASE:-<empty>} .. ${HEAD}"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -170,7 +175,7 @@ jobs:
             echo "- **Skip SAM API deploy (~minutes)** when \`deploy_api_gateway\` is \`false\`: backend deploys but \`libs/shared/src/api/\`, \`infra/sam/\`, and related scripts did not change since base SHA, and an API already exists in AWS."
             echo "- **Skip one app build** when only frontend or only backend is affected (not both)."
             echo "- **Shared library:** almost any change under \`libs/shared\` marks **both** apps affected (both import it), so many real commits still build and deploy both."
-            echo "- **Nx Cloud:** add \`NX_CLOUD_ACCESS_TOKEN\` to shorten \`nx build\` when cache hits."
+            echo "- **Nx Cloud:** set \`NX_CLOUD_ACCESS_TOKEN\` (repo secret) for remote cache; this workflow sets \`NX_BRANCH\` to the default branch on tag deploys so cache matches merge CI."
             echo "- **Lambda packaging** uses one \`npm install\` for all handler zips; zipping every function still takes time."
           } >> "$GITHUB_STEP_SUMMARY"
 

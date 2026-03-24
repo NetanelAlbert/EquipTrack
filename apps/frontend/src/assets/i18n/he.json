@@ -237,6 +237,7 @@
       "quantity-required": "נדרשת כמות",
       "quantity-min": "הכמות חייבת להיות לפחות 1",
       "quantity-pattern": "הכמות חייבת להיות מספר תקין",
+      "quantity-max-upi": "ניתן להוסיף עד {{max}} שדות צ׳ לפריט",
       "upi-required": "נדרש צ׳",
       "upi-duplicate": "צ׳ חייב להיות ייחודי",
       "product-not-found": "המוצר לא נמצא במקור",
