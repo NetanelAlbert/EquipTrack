@@ -196,7 +196,12 @@ function createCustomDomain(apiDomain, certificateArn) {
 /** True if this mapping is the implicit root (no path prefix). */
 function isRootBasePathMapping(mapping) {
   const bp = mapping.basePath;
-  return bp === undefined || bp === null || String(bp).trim() === '';
+  if (bp === undefined || bp === null) return true;
+  const s = String(bp).trim();
+  if (s === '') return true;
+  // API Gateway returns this literal for the default / empty base path in list responses
+  if (s.toLowerCase() === '(none)') return true;
+  return false;
 }
 
 /** Whether an existing mapping already points this domain's root at the given API and stage. */
