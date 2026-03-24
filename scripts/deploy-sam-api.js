@@ -190,6 +190,7 @@ function samDeploy(certArn, apiHostname) {
       TEMPLATE_BUILD,
       '--stack-name',
       STACK_NAME,
+      '--no-fail-on-empty-changeset',
       '--no-confirm-changeset',
       '--capabilities',
       'CAPABILITY_IAM',
