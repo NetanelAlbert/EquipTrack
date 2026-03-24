@@ -48,6 +48,9 @@ Thumbs.db
 
 .env
 
+# SAM CLI local build
+.aws-sam/
+
 # Deployment artifacts
 lambda-packages/
 lambda-deploy-environment-*.json
