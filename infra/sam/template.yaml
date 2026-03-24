@@ -429,6 +429,9 @@ Resources:
   ApiBasePathMapping:
     Type: AWS::ApiGateway::BasePathMapping
     Condition: HasCustomDomain
+    # SAM expands EquipTrackApi into Deployment + Stage; mapping must run after the stage exists
+    # or CloudFormation returns "Invalid stage identifier specified".
+    DependsOn: EquipTrackApiStage
     Properties:
       DomainName: !Ref ApiCustomDomain
       RestApiId: !Ref EquipTrackApi

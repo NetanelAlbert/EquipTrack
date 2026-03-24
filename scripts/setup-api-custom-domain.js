@@ -19,6 +19,9 @@ process.env.AWS_PAGER = '';
  * - API_DOMAIN: API subdomain (overrides stage-based selection)
  * - AWS_REGION: Primary region (default: 'il-central-1')
  * - STAGE: Deployment stage (default: 'dev')
+ * - API_GATEWAY_STAGE: Stage name on the REST API for base path mapping (default: same as STAGE).
+ *   Set this if your API was deployed with a different stage name than STAGE (e.g. STAGE=production
+ *   but API Gateway stage is still `prod`).
  * 
  * Domains by stage:
  * - Production: api.equip-track.com
@@ -32,6 +35,8 @@ process.env.AWS_PAGER = '';
 const BASE_DOMAIN = process.env.BASE_DOMAIN || 'equip-track.com';
 const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
 const STAGE = process.env.STAGE || 'dev';
+/** Stage that must exist on the REST API before BasePathMapping; defaults to STAGE */
+const API_GATEWAY_STAGE = process.env.API_GATEWAY_STAGE || STAGE;
 
 // Stage-aware API domain selection
 function getAPIDomain(stage, baseDomain) {
@@ -42,7 +47,12 @@ const API_DOMAIN = process.env.API_DOMAIN || getAPIDomain(STAGE, BASE_DOMAIN);
 
 console.log(`🎯 Setting up API Gateway custom domain: ${API_DOMAIN}`);
 console.log(`🌍 Primary region: ${AWS_REGION}`);
-console.log(`🏷️  Stage: ${STAGE}\n`);
+console.log(`🏷️  Stage (app/lambda): ${STAGE}`);
+if (API_GATEWAY_STAGE !== STAGE) {
+  console.log(`🏷️  API Gateway mapping stage: ${API_GATEWAY_STAGE} (from API_GATEWAY_STAGE)\n`);
+} else {
+  console.log(`🏷️  API Gateway mapping stage: ${API_GATEWAY_STAGE}\n`);
+}
 
 function getDeploymentInfo() {
   if (!fs.existsSync('deployment-info.json')) {
@@ -255,9 +265,41 @@ function deleteBasePath(apiDomain, basePath = '') {
   }
 }
 
+function listRestApiStages(apiId) {
+  try {
+    const result = execSync(
+      `aws apigateway get-stages --rest-api-id ${apiId}`,
+      { encoding: 'utf8', stdio: 'pipe' }
+    );
+    const data = JSON.parse(result);
+    return (data.item || []).map((s) => s.stageName);
+  } catch (error) {
+    throw new Error(
+      `Could not list stages for REST API ${apiId}: ${error.message}`
+    );
+  }
+}
+
+function assertStageExistsOnApi(apiId, stage) {
+  const stages = listRestApiStages(apiId);
+  if (!stages.includes(stage)) {
+    const hint =
+      stages.length === 0
+        ? 'No stages exist yet — run a full API deploy (create-deployment) before mapping a custom domain.'
+        : `Existing stages on this API: ${stages.join(', ')}.`;
+    throw new Error(
+      `Refusing base path mapping: stage "${stage}" is not deployed on REST API ${apiId}. ${hint} ` +
+        `If you use CloudFormation, set AWS::ApiGateway::Deployment StageName and BasePathMapping Stage ` +
+        `to the same value (this repo's scripts use deploy-api-gateway.js with --stage-name \${STAGE}). ` +
+        `Or set API_GATEWAY_STAGE to one of the existing stage names.`
+    );
+  }
+}
+
 function createBasePath(apiDomain, apiId, stage, basePath = '') {
   console.log(`📝 Creating base path mapping: "${basePath || '(root)'}" -> ${apiId}/${stage}`);
-  
+  assertStageExistsOnApi(apiId, stage);
+
   try {
     const basePathArg = basePath ? `--base-path ${basePath}` : '';
     const result = execSync(
@@ -351,7 +393,7 @@ function updateDeploymentInfo(domainInfo) {
     certificateArn: domainInfo.certificateArn,
     status: 'active',
     apiId: domainInfo.currentApiId,
-    stage: STAGE,
+    stage: API_GATEWAY_STAGE,
     createdAt: new Date().toISOString()
   };
   
@@ -395,11 +437,11 @@ async function setupAPICustomDomain(apiId = null) {
     
     // Create new base path mapping for current API
     const needsNewMapping = !existingMappings.find(m => 
-      m.restApiId === currentApiId && m.stage === STAGE && !m.basePath
+      m.restApiId === currentApiId && m.stage === API_GATEWAY_STAGE && !m.basePath
     );
     
     if (needsNewMapping) {
-      createBasePath(API_DOMAIN, currentApiId, STAGE);
+      createBasePath(API_DOMAIN, currentApiId, API_GATEWAY_STAGE);
     } else {
       console.log(`✅ Base path mapping already exists for current API`);
     }

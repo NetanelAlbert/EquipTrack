@@ -254,6 +254,24 @@ setup-cloudfront.js       →  updates deployment-info.json
 - **AWS Lambda**: View function logs in CloudWatch
 - **API Gateway**: Enable CloudWatch logging for your API stage
 
+## Troubleshooting
+
+### API Gateway: `Invalid stage identifier specified` (BasePathMapping / CloudFormation)
+
+AWS returns this when `AWS::ApiGateway::BasePathMapping` (or `create-base-path-mapping`) points at a **stage name that does not exist** on that REST API yet, or that never matches a deployment.
+
+Typical causes:
+
+1. **Stage name mismatch** — e.g. `Deployment` uses `StageName: prod` but `BasePathMapping` uses `Stage: production`.
+2. **Mapping before deployment** — the `BasePathMapping` resource runs before any `AWS::ApiGateway::Deployment` has created that stage on the API.
+3. **Wrong API** — `RestApiId` points at a different API than the one you deployed.
+
+**Fix (CloudFormation / CDK / SAM):** Use the **same** stage string on the deployment and on the base path mapping, and ensure the deployment is created/updated before the mapping. For SAM `AWS::Serverless::Api`, the implicit stage resource is named **`{LogicalId}Stage`** (e.g. `EquipTrackApiStage`); `AWS::ApiGateway::BasePathMapping` should **`DependsOn`** that stage so the stack does not create the mapping before the stage exists (this repo’s generated `infra/sam/template.yaml` includes that dependency).
+
+**This repository:** Stages are created by `scripts/deploy-api-gateway.js` via `aws apigateway create-deployment --stage-name $STAGE`. Custom domain mapping uses `API_GATEWAY_STAGE` (defaults to `STAGE`). If your API was created with another stage name, set `API_GATEWAY_STAGE` in the deploy environment to that name.
+
+`setup-api-custom-domain.js` now **refuses** to create a base path mapping if the stage is missing on the API and prints existing stage names to simplify debugging.
+
 ## Security Considerations
 
 - The deployed Lambda functions have DynamoDB full access
