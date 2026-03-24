@@ -28,6 +28,9 @@ jobs:
   deploy:
     name: Deploy Full Stack
     runs-on: ubuntu-latest
+    # SAM/CloudFormation can take a while; cap total job time so a wedged stack update
+    # does not leave Actions "in progress" until the 6h default runner limit.
+    timeout-minutes: 120
     # Use GitHub Environments for proper separation and protection
     environment: ${{ contains(github.ref, '-') && 'development' || 'production' }}
 
