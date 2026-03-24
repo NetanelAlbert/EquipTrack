@@ -10,6 +10,8 @@
  *   ROUTE53_HOSTED_ZONE_ID — optional; if set with cert, SAM creates Route53 alias
  *   PRUNE_LEGACY_API_GATEWAY — must be 'true' to opt in: before first stack create, remove REST APIs
  *     named equip-track-api-<STAGE> and domain mappings pointing at them (destructive; confirm account/stage)
+ *   SAM_AUTO_DELETE_ROLLBACK_STACK — if 'true', delete the stack when it is ROLLBACK_COMPLETE or CREATE_FAILED
+ *     (CloudFormation cannot update those; sam deploy always fails until the stack is removed). CI sets this in deploy-fullstack.yml.
  */
 const { execFileSync, execSync } = require('child_process');
 const fs = require('fs');
@@ -62,6 +64,77 @@ function stackExistsAndRetained(stack) {
   const s = stack.StackStatus;
   if (s === 'DELETE_COMPLETE') return false;
   return true;
+}
+
+/** Stacks in these states cannot be updated; only delete + recreate works. */
+function stackStatusRequiresDeleteBeforeDeploy(status) {
+  return status === 'ROLLBACK_COMPLETE' || status === 'CREATE_FAILED';
+}
+
+function deleteSamStack(reason) {
+  console.log(`\n🗑️ Deleting CloudFormation stack ${STACK_NAME}`);
+  console.log(`   Reason: ${reason}`);
+  execFileSync(
+    'aws',
+    ['cloudformation', 'delete-stack', '--stack-name', STACK_NAME],
+    { stdio: 'inherit', cwd: ROOT }
+  );
+  console.log(
+    '⏳ Waiting for stack-delete-complete (often 2–15+ minutes if API Gateway resources are involved)...'
+  );
+  execFileSync(
+    'aws',
+    [
+      'cloudformation',
+      'wait',
+      'stack-delete-complete',
+      '--stack-name',
+      STACK_NAME,
+    ],
+    { stdio: 'inherit', cwd: ROOT }
+  );
+  console.log(`✅ Stack ${STACK_NAME} deleted\n`);
+}
+
+/**
+ * ROLLBACK_COMPLETE / CREATE_FAILED after a failed create: `sam deploy` cannot recover.
+ * Optionally auto-delete when SAM_AUTO_DELETE_ROLLBACK_STACK=true (used in GitHub Actions).
+ */
+function ensureStackRecoverableForDeploy() {
+  const stack = describeStack(STACK_NAME);
+  if (!stack) return;
+
+  const status = stack.StackStatus;
+  if (!stackStatusRequiresDeleteBeforeDeploy(status)) {
+    return;
+  }
+
+  const autoDelete =
+    String(process.env.SAM_AUTO_DELETE_ROLLBACK_STACK || '').toLowerCase() ===
+    'true';
+  if (autoDelete) {
+    deleteSamStack(
+      `StackStatus is ${status} — CloudFormation does not allow updates; recreating from scratch`
+    );
+    return;
+  }
+
+  console.error(`\n💥 CloudFormation stack ${STACK_NAME} is in state: ${status}`);
+  console.error(
+    '   SAM cannot update this stack. Delete it in the AWS Console (CloudFormation) or run:'
+  );
+  console.error(
+    `     aws cloudformation delete-stack --stack-name ${STACK_NAME} --region ${AWS_REGION}`
+  );
+  console.error(
+    '     aws cloudformation wait stack-delete-complete --stack-name ' +
+      STACK_NAME +
+      ` --region ${AWS_REGION}`
+  );
+  console.error(
+    '   Then re-run deploy. In CI, set SAM_AUTO_DELETE_ROLLBACK_STACK=true to delete automatically.'
+  );
+  process.exit(1);
 }
 
 function listRestApis() {
@@ -284,6 +357,7 @@ function main() {
   }
 
   pruneLegacyApisIfNeeded(apiHostname);
+  ensureStackRecoverableForDeploy();
   samBuild();
   samDeploy(certArn, hostedZoneId, apiHostname);
 

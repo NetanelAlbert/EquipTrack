@@ -55,6 +55,8 @@ Use only as a **go-live checklist** item: confirm **account ID**, **region**, **
 
 ## Troubleshooting
 
+- **`Waiter StackCreateComplete` / `ROLLBACK_COMPLETE`** — The stack failed during **create**. CloudFormation **does not allow updates** in that state; you must **delete the stack** and deploy again. In GitHub Actions, `SAM_AUTO_DELETE_ROLLBACK_STACK=true` (set on the SAM deploy step) makes `deploy-sam-api.js` delete `equip-track-api-stack-<Stage>` automatically before `sam deploy`. Locally: `aws cloudformation delete-stack --stack-name equip-track-api-stack-dev --region <region>` then `wait stack-delete-complete`.
+- **Invalid stage / BasePathMapping failures** — Ensure `infra/sam/template.yaml` includes `DependsOn: EquipTrackApiStage` on `ApiBasePathMapping` (regenerate with `npm run generate:sam` from a repo that has the generator fix).
 - **`AlreadyExistsException` for custom domain** — An API Gateway domain name for that hostname exists outside this stack. Delete it in the API Gateway console (or leave the cert secret empty so only `setup-api-custom-domain.js` manages the domain).
 - **`sam deploy` IAM errors** — Ensure deploy credentials allow CloudFormation, API Gateway, Lambda (pass role / permissions), S3 (packaging bucket), and Route53 if using `HostedZoneId`.
 

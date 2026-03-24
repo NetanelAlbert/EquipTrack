@@ -254,6 +254,8 @@ jobs:
         env:
           API_GATEWAY_REGIONAL_CERTIFICATE_ARN: ${{ secrets.API_GATEWAY_REGIONAL_CERTIFICATE_ARN }}
           ROUTE53_HOSTED_ZONE_ID: ${{ secrets.ROUTE53_HOSTED_ZONE_ID }}
+          # ROLLBACK_COMPLETE / CREATE_FAILED stacks cannot be updated; delete then redeploy.
+          SAM_AUTO_DELETE_ROLLBACK_STACK: 'true'
         run: |
           echo "🚀 Deploying REST API via SAM for stage: ${{ env.STAGE }}"
           node scripts/deployment-status-tracker.js track api-gateway started
