@@ -8,6 +8,35 @@ const PACKAGES_DIR = 'lambda-packages';
 /** Shared tree with a single npm install; each handler is a hardlink copy + entry index + zip */
 const SHARED_BUNDLE_DIR = path.join(PACKAGES_DIR, '_shared_bundle');
 
+const ZIP_CONCURRENCY = Math.max(
+  1,
+  parseInt(process.env.LAMBDA_ZIP_CONCURRENCY || '8', 10) || 8
+);
+
+/**
+ * @template T, R
+ * @param {T[]} items
+ * @param {number} concurrency
+ * @param {(item: T, index: number) => Promise<R>} mapper
+ * @returns {Promise<R[]>}
+ */
+async function mapWithConcurrency(items, concurrency, mapper) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  const worker = async () => {
+    for (;;) {
+      const i = nextIndex++;
+      if (i >= items.length) break;
+      results[i] = await mapper(items[i], i);
+    }
+  };
+
+  const n = Math.min(Math.max(1, concurrency), Math.max(1, items.length));
+  await Promise.all(Array.from({ length: n }, () => worker()));
+  return results;
+}
+
 function getHandlerNames() {
   console.log('📖 Loading handler names from endpoints config...');
 
@@ -33,7 +62,7 @@ function copyTreeWithHardlinksPrefered(src, dest) {
   }
 }
 
-function createLambdaPackages() {
+async function createLambdaPackages() {
   console.log('Creating Lambda deployment packages...');
 
   if (fs.existsSync(PACKAGES_DIR)) {
@@ -52,9 +81,12 @@ function createLambdaPackages() {
 
   const handlerNames = getHandlerNames();
 
-  handlerNames.forEach((handlerName) => {
-    console.log(`Creating package for ${handlerName}...`);
+  console.log(
+    `📦 Building ${handlerNames.length} handler trees (zip concurrency ${ZIP_CONCURRENCY})...`
+  );
 
+  for (const handlerName of handlerNames) {
+    console.log(`Creating tree for ${handlerName}...`);
     const packageDir = path.join(PACKAGES_DIR, handlerName);
     fs.mkdirSync(packageDir, { recursive: true });
     copyTreeWithHardlinksPrefered(SHARED_BUNDLE_DIR, packageDir);
@@ -66,10 +98,11 @@ exports.handler = lambdaHandlers.${handlerName};
 `;
 
     fs.writeFileSync(path.join(packageDir, 'index.js'), handlerContent);
+  }
 
-    const zipPath = path.join(PACKAGES_DIR, `${handlerName}.zip`);
-    execSync(`cd ${packageDir} && zip -r ../${handlerName}.zip .`, { stdio: 'inherit' });
-
+  await mapWithConcurrency(handlerNames, ZIP_CONCURRENCY, async (handlerName) => {
+    const packageDir = path.join(PACKAGES_DIR, handlerName);
+    execSync(`cd ${packageDir} && zip -qr ../${handlerName}.zip .`, { stdio: 'inherit' });
     console.log(`✅ Created ${handlerName}.zip`);
   });
 
@@ -79,7 +112,10 @@ exports.handler = lambdaHandlers.${handlerName};
 }
 
 if (require.main === module) {
-  createLambdaPackages();
+  createLambdaPackages().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
 }
 
 module.exports = { createLambdaPackages, getHandlerNames };

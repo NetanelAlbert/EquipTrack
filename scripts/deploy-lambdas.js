@@ -11,6 +11,12 @@ const STAGE = process.env.STAGE || 'dev';
 const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
 const PACKAGES_DIR = 'lambda-packages';
 
+/** Default parallel Lambda deploys (CLI + network); override with LAMBDA_DEPLOY_CONCURRENCY */
+const LAMBDA_DEPLOY_CONCURRENCY = Math.max(
+  1,
+  parseInt(process.env.LAMBDA_DEPLOY_CONCURRENCY || '8', 10) || 8
+);
+
 // Lambda configuration
 const LAMBDA_CONFIG = {
   runtime: 'nodejs20.x',
@@ -28,7 +34,7 @@ function lambdaEnvFilePath(handlerName) {
  * `/api/auth/e2e-login` (dev/stage); otherwise only STAGE (matches prior behavior).
  * One file per handler so parallel deploys do not clobber each other.
  */
-function writeLambdaEnvironmentFile(handlerName) {
+function getLambdaEnvironmentVariables() {
   const variables = { STAGE };
   if (process.env.E2E_AUTH_ENABLED === 'true' && process.env.E2E_AUTH_SECRET) {
     variables.E2E_AUTH_ENABLED = 'true';
@@ -38,6 +44,11 @@ function writeLambdaEnvironmentFile(handlerName) {
       '⚠️ E2E_AUTH_ENABLED is true but E2E_AUTH_SECRET is empty — Lambdas will not get E2E auth env'
     );
   }
+  return variables;
+}
+
+function writeLambdaEnvironmentFile(handlerName) {
+  const variables = getLambdaEnvironmentVariables();
   fs.writeFileSync(lambdaEnvFilePath(handlerName), JSON.stringify({ Variables: variables }));
 }
 
@@ -54,6 +65,55 @@ function removeLambdaEnvironmentFile(handlerName) {
 
 function lambdaEnvironmentCliArg(handlerName) {
   return pathToFileURL(lambdaEnvFilePath(handlerName)).href;
+}
+
+/** @param {Record<string, string>} a @param {Record<string, string>} b */
+function environmentVariablesEqual(a, b) {
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+  for (const k of keysA) {
+    if (a[k] !== b[k]) return false;
+  }
+  return true;
+}
+
+/**
+ * @param {{ Timeout?: number; MemorySize?: number; Environment?: { Variables?: Record<string, string> } }} cfg get-function Configuration
+ * @param {{ timeout: number; memorySize: number; variables: Record<string, string> }} desired
+ */
+function lambdaConfigurationNeedsUpdate(cfg, desired) {
+  if (cfg.Timeout !== desired.timeout) return true;
+  if (cfg.MemorySize !== desired.memorySize) return true;
+  const currentVars =
+    cfg.Environment && typeof cfg.Environment === 'object' && 'Variables' in cfg.Environment
+      ? /** @type {{ Variables?: Record<string, string> }} */ (cfg.Environment).Variables || {}
+      : {};
+  return !environmentVariablesEqual(currentVars, desired.variables);
+}
+
+/**
+ * @template T, R
+ * @param {T[]} items
+ * @param {number} concurrency
+ * @param {(item: T, index: number) => Promise<R>} mapper
+ * @returns {Promise<R[]>}
+ */
+async function mapWithConcurrency(items, concurrency, mapper) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  const worker = async () => {
+    for (;;) {
+      const i = nextIndex++;
+      if (i >= items.length) break;
+      results[i] = await mapper(items[i], i);
+    }
+  };
+
+  const n = Math.min(Math.max(1, concurrency), Math.max(1, items.length));
+  await Promise.all(Array.from({ length: n }, () => worker()));
+  return results;
 }
 
 function getLambdaPolicyDocument() {
@@ -252,41 +312,46 @@ async function ensureRole() {
   }
 }
 
-async function waitForLambdaUpdate(functionName, maxAttempts = 12) {
+const LAMBDA_UPDATE_POLL_MS = 2000;
+
+async function waitForLambdaUpdate(functionName, maxAttempts = 24) {
   console.log(`Waiting for ${functionName} to be ready for configuration update...`);
   let attempts = 0;
-  
+
   while (attempts < maxAttempts) {
     try {
-      const result = execSync(
-        `aws lambda get-function --function-name ${functionName}`,
-        { encoding: 'utf8', stdio: 'pipe' }
-      );
+      const result = execSync(`aws lambda get-function --function-name ${functionName}`, {
+        encoding: 'utf8',
+        stdio: 'pipe',
+      });
       const functionInfo = JSON.parse(result);
-      
+
       if (functionInfo.Configuration.LastUpdateStatus === 'Successful') {
         console.log(`✅ ${functionName} is ready for configuration update`);
         return true;
       } else if (functionInfo.Configuration.LastUpdateStatus === 'Failed') {
-        console.log(`❌ ${functionName} update failed: ${functionInfo.Configuration.LastUpdateStatusReason}`);
+        console.log(
+          `❌ ${functionName} update failed: ${functionInfo.Configuration.LastUpdateStatusReason}`
+        );
         return false;
       }
-      
+
       attempts++;
-      console.log(`${functionName} status: ${functionInfo.Configuration.LastUpdateStatus}, waiting... (${attempts}/${maxAttempts})`);
-      await sleep(5000); // 5 seconds
-      
-    } catch (error) {
+      console.log(
+        `${functionName} status: ${functionInfo.Configuration.LastUpdateStatus}, waiting... (${attempts}/${maxAttempts})`
+      );
+      await sleep(LAMBDA_UPDATE_POLL_MS);
+    } catch {
       attempts++;
       if (attempts >= maxAttempts) {
         console.log(`⚠️ Could not verify ${functionName} status, but continuing...`);
         return true;
       }
       console.log(`Error checking status, retrying... (${attempts}/${maxAttempts})`);
-      await sleep(5000); // 5 seconds
+      await sleep(LAMBDA_UPDATE_POLL_MS);
     }
   }
-  
+
   console.log(`⚠️ Timeout waiting for ${functionName} to be ready, but continuing...`);
   return true;
 }
@@ -299,20 +364,35 @@ async function deployLambdaFunction(handlerName, roleArn) {
     throw new Error(`Package not found: ${zipPath}`);
   }
 
+  const desiredEnv = getLambdaEnvironmentVariables();
   writeLambdaEnvironmentFile(handlerName);
   const envFileArg = lambdaEnvironmentCliArg(handlerName);
 
   try {
-    let functionExists = false;
+    /** @type {{ Timeout?: number; MemorySize?: number; Environment?: { Variables?: Record<string, string> }; LastUpdateStatus?: string } | null} */
+    let existingConfig = null;
 
     try {
-      execSync(`aws lambda get-function --function-name ${functionName}`, { stdio: 'pipe' });
-      functionExists = true;
-    } catch (error) {
-      functionExists = false;
+      const getFnResult = execSync(`aws lambda get-function --function-name ${functionName}`, {
+        encoding: 'utf8',
+        stdio: 'pipe',
+      });
+      existingConfig = JSON.parse(getFnResult).Configuration;
+    } catch {
+      existingConfig = null;
     }
 
+    const functionExists = existingConfig !== null;
+
     if (functionExists) {
+      const skipConfigurationUpdate =
+        existingConfig &&
+        !lambdaConfigurationNeedsUpdate(existingConfig, {
+          timeout: LAMBDA_CONFIG.timeout,
+          memorySize: LAMBDA_CONFIG.memorySize,
+          variables: desiredEnv,
+        });
+
       console.log(`Updating Lambda function: ${functionName}`);
       try {
         execSync(
@@ -320,7 +400,9 @@ async function deployLambdaFunction(handlerName, roleArn) {
           { stdio: 'inherit' }
         );
 
-        if (await waitForLambdaUpdate(functionName)) {
+        if (skipConfigurationUpdate) {
+          console.log(`⏭️ ${functionName}: code updated; timeout, memory, and env already match`);
+        } else if (await waitForLambdaUpdate(functionName)) {
           try {
             execSync(
               `aws lambda update-function-configuration --function-name ${functionName} ` +
@@ -424,10 +506,11 @@ async function deployAllLambdasParallel() {
   const roleArn = await ensureRole();
   const handlerNames = getHandlerNames();
   
-  console.log(`Starting parallel deployment of ${handlerNames.length} functions...`);
-  
-  // Deploy all functions in parallel
-  const deploymentPromises = handlerNames.map(async (handlerName) => {
+  console.log(
+    `Starting parallel deployment of ${handlerNames.length} functions (concurrency ${LAMBDA_DEPLOY_CONCURRENCY})...`
+  );
+
+  const results = await mapWithConcurrency(handlerNames, LAMBDA_DEPLOY_CONCURRENCY, async (handlerName) => {
     try {
       const functionName = await deployLambdaFunction(handlerName, roleArn);
       return { handlerName, functionName, success: true };
@@ -436,8 +519,6 @@ async function deployAllLambdasParallel() {
       return { handlerName, functionName: null, success: false, error: error.message };
     }
   });
-  
-  const results = await Promise.all(deploymentPromises);
   
   // Separate successful and failed deployments
   const successful = results.filter(r => r.success);
@@ -503,9 +584,12 @@ if (require.main === module) {
   }
 }
 
-module.exports = { 
-  deployAllLambdas, 
+module.exports = {
+  deployAllLambdas,
   deployAllLambdasParallel,
   deployLambdaFunction,
-  waitForLambdaUpdate
+  waitForLambdaUpdate,
+  environmentVariablesEqual,
+  lambdaConfigurationNeedsUpdate,
+  mapWithConcurrency,
 }; 
