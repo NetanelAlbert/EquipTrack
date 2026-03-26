@@ -26,35 +26,35 @@
 
     <div class="user-selection">
       <div class="add-user-section">
-        <mat-form-field>
-          <mat-label>{{ 'inventory.table.addUser' | translate }}</mat-label>
-          <mat-select
-            data-testid="inventory-by-users-add-user-select"
-            #userSelect
-            [disabled]="isLoadingUsers()"
-            (selectionChange)="addUser($event.value); userSelect.value = null"
-          >
-            @if (isLoadingUsers()) {
-              <mat-option disabled>
-                {{ 'inventory.users.loading' | translate }}
-              </mat-option>
-            } @else if (usersError()) {
-              <mat-option disabled>
-                {{ 'inventory.users.errorLoading' | translate }}
-              </mat-option>
-            } @else if (!hasUsers()) {
-              <mat-option disabled>
-                {{ 'inventory.users.noUsers' | translate }}
-              </mat-option>
-            } @else {
-              @for (user of availableUsersForSelection(); track user.user.id) {
-                <mat-option [value]="user.user.id">
-                  <app-user-display [user]="user" />
-                </mat-option>
-              }
-            }
-          </mat-select>
-        </mat-form-field>
+        <label class="user-select-label" for="inventory-by-users-add-user-input">{{
+          'inventory.table.addUser' | translate
+        }}</label>
+        <ng-select
+          [inputAttrs]="{ id: 'inventory-by-users-add-user-input' }"
+          [attr.data-testid]="'inventory-by-users-add-user-select'"
+          appendTo="body"
+          [(ngModel)]="selectedUserToAdd"
+          (change)="onAddUserSelected($event)"
+          [items]="addUserSelectItems()"
+          [disabled]="addUserSelectDisabled()"
+          [loading]="isLoadingUsers()"
+          bindLabel="user.name"
+          bindValue="user.id"
+          [searchable]="true"
+          [clearable]="false"
+          [searchFn]="userSelectSearchFn"
+          [placeholder]="addUserSelectPlaceholder()"
+          [notFoundText]="'user-select.no-results' | translate"
+          [typeToSearchText]="'user-select.type-to-search' | translate"
+          appearance="outline"
+        >
+          <ng-template ng-label-tmp let-item="item">
+            <app-user-display [user]="item" />
+          </ng-template>
+          <ng-template ng-option-tmp let-item="item">
+            <app-user-display [user]="item" />
+          </ng-template>
+        </ng-select>
       </div>
 
       <div class="action-buttons">

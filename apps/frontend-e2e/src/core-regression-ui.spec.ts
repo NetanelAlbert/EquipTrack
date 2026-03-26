@@ -282,8 +282,16 @@ test.describe('core regression ui flow', () => {
     const laptopAtFormOpen = getItem(whAtFormOpen, upiProductId);
     expect(laptopAtFormOpen.upis || []).toContain(transferredUpi);
 
-    await page.getByTestId('create-form-user-select').click();
-    await page.getByTestId(`create-form-user-option-${customerUserId}`).click();
+    const userSelect = page.getByTestId('create-form-user-select');
+    await userSelect.locator('.ng-select-container').click();
+    // Filter input stays in the ng-select host; options render in appendTo panel.
+    const filterInput = userSelect.locator('.ng-input input');
+    await expect(filterInput).toBeVisible({ timeout: 15000 });
+    // Narrow to one user (several org members match the substring "E2E").
+    await filterInput.fill('E2E Customer');
+    // Option rows do not always surface inner data-testid to Playwright; use keyboard.
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
     await page
       .getByTestId('create-form-description-input')
       .fill(checkoutDescription);

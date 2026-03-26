@@ -7,9 +7,8 @@ import {
   effect,
   Signal,
 } from '@angular/core';
-
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
+import { CommonModule } from '@angular/common';
+import { NgSelectModule } from '@ng-select/ng-select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
@@ -17,7 +16,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FormsModule } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { InventoryStore } from '../../../store/inventory.store';
 import { OrganizationStore } from '../../../store/organization.store';
 import { OrganizationService } from '../../../services/organization.service';
@@ -28,6 +27,7 @@ import {
 } from '@equip-track/shared';
 import { UserStore } from '../../../store/user.store';
 import { UserDisplayComponent } from '../../shared/user-display/user-display.component';
+import { userMatchesSelectSearch } from '../../shared/user-select-search';
 
 interface TableData {
   product: Product;
@@ -55,8 +55,8 @@ interface ProductColumnSort {
   selector: 'inventory-by-users',
   standalone: true,
   imports: [
-    MatSelectModule,
-    MatFormFieldModule,
+    CommonModule,
+    NgSelectModule,
     MatIconModule,
     MatButtonModule,
     MatTableModule,
@@ -75,6 +75,17 @@ export class InventoryByUsersComponent implements OnInit {
   organizationStore = inject(OrganizationStore);
   organizationService = inject(OrganizationService);
   userStore = inject(UserStore);
+  private translate = inject(TranslateService);
+
+  selectedUserToAdd: string | null = null;
+
+  readonly userSelectSearchFn = (
+    term: string,
+    item: UserAndUserInOrganization
+  ) =>
+    userMatchesSelectSearch(term, item, (id) =>
+      this.userStore.getDepartmentName(id) ?? ''
+    );
 
   // Selected user IDs for columns
   selectedUserIds = signal<string[]>(['WAREHOUSE']);
@@ -219,6 +230,20 @@ export class InventoryByUsersComponent implements OnInit {
     }
   );
 
+  addUserSelectItems: Signal<UserAndUserInOrganization[]> = computed(() => {
+    if (this.isLoadingUsers() || this.usersError() || !this.hasUsers()) {
+      return [];
+    }
+    return this.availableUsersForSelection();
+  });
+
+  addUserSelectDisabled = computed(
+    () =>
+      this.isLoadingUsers() ||
+      Boolean(this.usersError()) ||
+      !this.hasUsers()
+  );
+
   constructor() {
     effect(() => {
       const selectedUsers = this.selectedUserIds();
@@ -246,6 +271,37 @@ export class InventoryByUsersComponent implements OnInit {
     if (!currentUsers.includes(userId)) {
       this.selectedUserIds.set([...currentUsers, userId]);
     }
+  }
+
+  addUserSelectPlaceholder(): string {
+    const t = (key: string) => this.translate.instant(key);
+    if (this.isLoadingUsers()) {
+      return t('inventory.users.loading');
+    }
+    if (this.usersError()) {
+      return t('inventory.users.errorLoading');
+    }
+    if (!this.hasUsers()) {
+      return t('inventory.users.noUsers');
+    }
+    return t('user-select.type-to-search');
+  }
+
+  onAddUserSelected(
+    event: UserAndUserInOrganization | string | null
+  ): void {
+    if (!event) {
+      return;
+    }
+    const userId =
+      typeof event === 'string' ? event : event.user?.id;
+    if (!userId) {
+      return;
+    }
+    this.addUser(userId);
+    queueMicrotask(() => {
+      this.selectedUserToAdd = null;
+    });
   }
 
   // Remove a user from the table
