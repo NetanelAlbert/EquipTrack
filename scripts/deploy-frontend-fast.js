@@ -51,34 +51,43 @@ function deployToS3(bucketName) {
   console.log(`📦 Deploying to S3 bucket: ${bucketName}...`);
   
   const startTime = Date.now();
-  
-  // Upload hashed static assets with long-term caching and immutable flag
+
+  // Two-phase sync avoids a race where --delete removes old hashed bundles while
+  // index.html still references them (S3 website ErrorDocument serves HTML for 404 JS → MIME errors).
+  const immutableExclude =
+    '--exclude "*.html" --exclude "*.xml" --exclude "*.txt"';
+
+  // 1) Upload new hashed assets; keep prior bundles until HTML is updated.
   execSync(
-    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --delete --exclude "*.html" --exclude "*.xml" --exclude "*.txt" --cache-control "max-age=31536000,immutable"`,
+    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ ${immutableExclude} --cache-control "max-age=31536000,immutable"`,
     { stdio: 'inherit' }
   );
-  
-  // Upload HTML files with strict no-cache headers
+
+  // 2) Publish fresh index.html (and any other HTML).
   execSync(
     `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "*.html" --cache-control "no-cache,no-store,must-revalidate"`,
     { stdio: 'inherit' }
   );
-  
-  // Upload translation files with very short cache (these change frequently)
+
+  // 3) Translations and static assets (cache tiers).
   execSync(
     `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "assets/i18n/*" --cache-control "max-age=300"`,
     { stdio: 'inherit' }
   );
-  
-  // Upload other asset files (images, icons) with medium cache
+
   execSync(
     `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "assets/*" --exclude "assets/i18n/*" --cache-control "max-age=3600"`,
     { stdio: 'inherit' }
   );
-  
-  // Upload other non-hashed files with short cache
+
   execSync(
     `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --exclude "*" --include "*.xml" --include "*.txt" --cache-control "max-age=3600"`,
+    { stdio: 'inherit' }
+  );
+
+  // 4) Remove obsolete hashed files now that index points at the new bundles.
+  execSync(
+    `aws s3 sync ${FRONTEND_DIST_PATH} s3://${bucketName}/ --delete ${immutableExclude} --cache-control "max-age=31536000,immutable"`,
     { stdio: 'inherit' }
   );
   

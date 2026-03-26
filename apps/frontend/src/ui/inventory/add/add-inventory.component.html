@@ -1,4 +1,4 @@
-<div class="add-inventory-container">
+<div class="add-inventory-container" data-testid="add-inventory-page">
   <mat-card class="add-inventory-card">
     <mat-card-header>
       <mat-card-title>
@@ -12,7 +12,7 @@
 
     <mat-card-content>
       @if (inventoryStore.addInventoryStatus().error) {
-        <div class="error-message" role="alert">
+        <div class="error-message" role="alert" data-testid="add-inventory-error">
           <mat-icon>error</mat-icon>
           <span>{{ inventoryStore.addInventoryStatus().error }}</span>
           <button 
@@ -35,7 +35,8 @@
       <button 
         mat-button 
         (click)="goBack()"
-        [disabled]="inventoryStore.addInventoryStatus().isLoading">
+        [disabled]="inventoryStore.addInventoryStatus().isLoading"
+        data-testid="add-inventory-cancel">
         {{ 'common.cancel' | translate }}
       </button>
     </mat-card-actions>

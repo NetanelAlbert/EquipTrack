@@ -5,19 +5,26 @@ on:
     tags:
       - 'v*'
 
-# One deploy at a time per ref avoids S3 sync --delete races and CloudFront ETag conflicts.
+# One deploy at a time per AWS stage (not per tag ref). Prerelease tags share the same target as dev;
+# using github.ref per tag allowed v1.0.0-beta.1 and v1.0.0-beta.2 to run in parallel and race S3/CloudFront.
 concurrency:
-  group: deploy-fullstack-${{ github.ref }}
+  group: deploy-fullstack-${{ contains(github.ref, '-') && 'dev' || 'production' }}
   cancel-in-progress: false
 
 env:
   # Use the correct lowercase AWS region identifier.
   AWS_REGION: il-central-1
   NODE_VERSION: '20'
+  # Skip Nx Cloud when the linked org is unavailable (CI would otherwise exit immediately).
+  NX_NO_CLOUD: 'true'
   # Pre-release tags (semver prerelease, e.g. v1.2.3-beta.0) deploy to dev; stable release tags deploy to production.
   STAGE: ${{ contains(github.ref, '-') && 'dev' || 'production' }}
   # Optional: set repository secret NX_CLOUD_ACCESS_TOKEN after `nx connect` for remote cache.
   NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+  # Tag pushes report refs/tags/* as the branch in CI metadata; Nx Cloud uses that for cache partitioning,
+  # so deploy jobs would not reuse remote cache from the default-branch pipeline. Pin to the repo default
+  # branch so nx build (frontend/backend) shares the same Nx Cloud cache as develop/main CI and local runs.
+  NX_BRANCH: ${{ github.event.repository.default_branch || 'develop' }}
 
 jobs:
   deploy:
@@ -28,7 +35,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -66,7 +73,7 @@ jobs:
           echo "📌 nx-range resolved: ${BASE:-<empty>} .. ${HEAD}"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -101,8 +108,11 @@ jobs:
           SCRIPTS_CHANGED="$(git diff --name-only "${NX_BASE}" "${NX_HEAD}" -- scripts .github/workflows/deploy-fullstack.yml 2>/dev/null || true)"
           API_SURFACE_CHANGED="$(git diff --name-only "${NX_BASE}" "${NX_HEAD}" -- \
             libs/shared/src/api \
-            scripts/deploy-api-gateway.js \
+            infra/sam \
+            scripts/deploy-sam-api.js \
+            scripts/generate-sam-template.js \
             scripts/prepare-deployment.js \
+            scripts/setup-api-custom-domain.js \
             2>/dev/null || true)"
 
           if [ "${FORCE_FULL}" = "true" ] || [ "${IS_RELEASE}" = "true" ] || [ -n "${SCRIPTS_CHANGED}" ]; then
@@ -164,11 +174,11 @@ jobs:
             echo "| **nx head** | \`${{ steps.nx-range.outputs.head }}\` |"
             echo ""
             echo "### When does the workflow get faster?"
-            echo "- **Skip API Gateway (~10+ min)** when \`deploy_api_gateway\` is \`false\`: backend deploys but \`libs/shared/src/api/\` and gateway/prepare scripts did not change since base SHA, and an API already exists in AWS."
+            echo "- **Skip SAM stack deploy** when \`deploy_api_gateway\` is \`false\` **and** the API already exists in AWS: backend still builds and updates data, but **Lambdas are not redeployed** in that run (run a full deploy or touch API/Lambda-related paths to pick up backend changes)."
             echo "- **Skip one app build** when only frontend or only backend is affected (not both)."
             echo "- **Shared library:** almost any change under \`libs/shared\` marks **both** apps affected (both import it), so many real commits still build and deploy both."
-            echo "- **Nx Cloud:** add \`NX_CLOUD_ACCESS_TOKEN\` to shorten \`nx build\` when cache hits."
-            echo "- **Lambda packaging** uses one \`npm install\` for all handler zips; zipping every function still takes time."
+            echo "- **Nx Cloud:** set \`NX_CLOUD_ACCESS_TOKEN\` (repo secret) for remote cache; this workflow sets \`NX_BRANCH\` to the default branch on tag deploys so cache matches merge CI."
+            echo "- **Lambda packaging** builds one shared zip (\`shared-lambda-bundle.zip\`); **SAM** deploys all Lambdas + API Gateway from \`infra/sam/template.yaml\` (content-addressed S3 key per build)."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build backend
@@ -185,6 +195,10 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup SAM CLI
+        if: steps.scope.outputs.deploy_backend == 'true'
+        uses: aws-actions/setup-sam@v2
 
       - name: Prepare deployment configuration
         id: prepare-deployment
@@ -205,6 +219,14 @@ jobs:
           node scripts/create-dynamodb-tables.js
           node scripts/deployment-status-tracker.js track dynamodb success
 
+      # Deployed Playwright core regression expects org-e2e-main / prod-bulk-helmet / etc. in dev DynamoDB.
+      - name: Seed E2E fixture data (dev only)
+        if: ${{ steps.scope.outputs.deploy_backend == 'true' && env.STAGE == 'dev' }}
+        run: |
+          node scripts/deployment-status-tracker.js track seed-e2e started
+          node scripts/seed-e2e-data.js
+          node scripts/deployment-status-tracker.js track seed-e2e success
+
       - name: Create Lambda deployment packages
         id: create-lambda-packages
         if: steps.scope.outputs.deploy_backend == 'true'
@@ -213,44 +235,27 @@ jobs:
           node scripts/create-lambda-packages.js
           node scripts/deployment-status-tracker.js track lambda-packages success
 
-      - name: Deploy Lambda functions
-        id: deploy-lambdas
-        if: steps.scope.outputs.deploy_backend == 'true'
-        env:
-          # Align with workflow STAGE: dev (prerelease tags, hyphen in ref) enables e2e-login for deployed Playwright; production tags do not.
-          E2E_AUTH_ENABLED: ${{ env.STAGE == 'dev' && 'true' || 'false' }}
-          E2E_AUTH_SECRET: ${{ secrets.E2E_AUTH_SECRET }}
-        run: |
-          node scripts/deployment-status-tracker.js track lambda-deploy started
-          node scripts/deploy-lambdas.js --parallel
-          node scripts/deployment-status-tracker.js track lambda-deploy success
-
-      - name: Deploy API Gateway
+      - name: Deploy API and Lambdas (AWS SAM)
         id: deploy-api-gateway
         if: ${{ steps.scope.outputs.deploy_backend == 'true' && (steps.scope.outputs.deploy_api_gateway == 'true' || steps.hydrate-backend.outputs.api_exists != 'true') }}
+        env:
+          API_GATEWAY_REGIONAL_CERTIFICATE_ARN: ${{ secrets.API_GATEWAY_REGIONAL_CERTIFICATE_ARN }}
+          E2E_AUTH_ENABLED: ${{ env.STAGE == 'dev' && 'true' || 'false' }}
+          E2E_AUTH_SECRET: ${{ secrets.E2E_AUTH_SECRET }}
+          PRUNE_LEGACY_API_GATEWAY: ${{ vars.PRUNE_LEGACY_API_GATEWAY }}
         run: |
-          echo "🚀 Deploying API Gateway for stage: ${{ env.STAGE }}"
+          echo "🚀 Deploying SAM stack (API Gateway + Lambdas) for stage: ${{ env.STAGE }}"
           node scripts/deployment-status-tracker.js track api-gateway started
-
-          if node scripts/deploy-api-gateway.js; then
-            echo "✅ API Gateway deployed successfully"
+          set +e
+          node scripts/deploy-sam-api.js
+          sam_exit=$?
+          set -e
+          if [ "$sam_exit" -eq 0 ]; then
             node scripts/deployment-status-tracker.js track api-gateway success
-            exit 0
+          else
+            node scripts/deployment-status-tracker.js track api-gateway failed "SAM deploy failed (exit ${sam_exit})"
+            exit "$sam_exit"
           fi
-
-          echo "⚠️ First API Gateway deployment failed, analyzing error..."
-          sleep 10
-
-          echo "🔄 Retrying with RECREATE_API=true to resolve conflicts..."
-          if RECREATE_API=true node scripts/deploy-api-gateway.js; then
-            echo "✅ API Gateway deployed successfully after recreation"
-            node scripts/deployment-status-tracker.js track api-gateway success
-            exit 0
-          fi
-
-          echo "❌ API Gateway deployment failed after two attempts"
-          node scripts/deployment-status-tracker.js track api-gateway failed "Both normal and recreation attempts failed"
-          exit 1
 
       - name: Check if force full deployment is requested
         id: check-force-deployment

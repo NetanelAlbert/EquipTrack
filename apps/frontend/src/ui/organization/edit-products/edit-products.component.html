@@ -1,63 +1,95 @@
-<div class="edit-products-container">
+<div class="edit-products-container" data-testid="edit-products-page">
+  @if (isLoadingProducts()) {
+    <div
+      class="edit-products-loading"
+      role="status"
+      aria-live="polite"
+      data-testid="edit-products-loading"
+    >
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>{{ 'common.loading' | translate }}</p>
+    </div>
+  } @else {
   <mat-card>
     <mat-card-header>
       <mat-card-title>{{ 'organization.editProducts.title' | translate }}</mat-card-title>
     </mat-card-header>
     <mat-card-content>
       <form [formGroup]="newProductForm">
-          <div class="product-item">
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'organization.editProducts.id' | translate }}</mat-label>
-              <input matInput formControlName="id" required>
-              <mat-error *ngIf="newProductForm.get('id')?.hasError('required')">
+        <div class="product-item">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'organization.editProducts.id' | translate }}</mat-label>
+            <input matInput formControlName="id" required data-testid="edit-products-id-input">
+            @if (newProductForm.get('id')?.hasError('required')) {
+              <mat-error>
                 {{ 'organization.editProducts.idRequired' | translate }}
               </mat-error>
-              <mat-error *ngIf="newProductForm.get('id')?.hasError('minlength')">
+            }
+            @if (newProductForm.get('id')?.hasError('minlength')) {
+              <mat-error>
                 {{ 'organization.editProducts.idMinLength' | translate }}
               </mat-error>
-              <mat-error *ngIf="newProductForm.get('id')?.hasError('duplicateId')">
+            }
+            @if (newProductForm.get('id')?.hasError('duplicateId')) {
+              <mat-error>
                 {{ 'organization.editProducts.duplicateIds' | translate }}
               </mat-error>
-            </mat-form-field>
+            }
+          </mat-form-field>
 
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'organization.editProducts.name' | translate }}</mat-label>
-              <input matInput formControlName="name" required>
-              <mat-error *ngIf="newProductForm.get('name')?.hasError('required')">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'organization.editProducts.name' | translate }}</mat-label>
+            <input matInput formControlName="name" required data-testid="edit-products-name-input">
+            @if (newProductForm.get('name')?.hasError('required')) {
+              <mat-error>
                 {{ 'organization.editProducts.nameRequired' | translate }}
               </mat-error>
-              <mat-error *ngIf="newProductForm.get('name')?.hasError('minlength')">
+            }
+            @if (newProductForm.get('name')?.hasError('minlength')) {
+              <mat-error>
                 {{ 'organization.editProducts.nameMinLength' | translate }}
               </mat-error>
-            </mat-form-field>
+            }
+          </mat-form-field>
 
-            <mat-checkbox formControlName="upi">
-              {{ 'organization.editProducts.upi' | translate }}
-            </mat-checkbox>
+          <mat-checkbox formControlName="upi" data-testid="edit-products-upi-checkbox">
+            {{ 'organization.editProducts.upi' | translate }}
+          </mat-checkbox>
 
-            <div class="row-actions">
-              <button 
-                mat-raised-button 
-                color="accent" 
-                (click)="saveNewProduct()" 
-                type="button"
-                [disabled]="!newProductForm.valid">
-                <mat-spinner diameter="16" *ngIf="isProductSaving(newProductId)"></mat-spinner>
-                <mat-icon *ngIf="!isProductSaving(newProductId)">save</mat-icon>
-                <span *ngIf="!isProductSaving(newProductId)">{{ 'common.save' | translate }}</span>
-                <span *ngIf="isProductSaving(newProductId)">{{ 'common.saving' | translate }}</span>
-              </button>
+          <div class="row-actions">
+            <button
+              mat-raised-button
+              color="accent"
+              (click)="saveNewProduct()"
+              type="button"
+              [disabled]="!newProductForm.valid"
+              data-testid="edit-products-save-btn">
+              @if (isProductSaving(newProductId)) {
+                <mat-spinner diameter="16"></mat-spinner>
+              }
+              @if (!isProductSaving(newProductId)) {
+                <mat-icon>save</mat-icon>
+              }
+              @if (!isProductSaving(newProductId)) {
+                <span>{{ 'common.save' | translate }}</span>
+              }
+              @if (isProductSaving(newProductId)) {
+                <span>{{ 'common.saving' | translate }}</span>
+              }
+            </button>
 
-              <button 
-                mat-icon-button 
-                color="warn" 
-                (click)="newProductForm.reset()" 
-                type="button"
-                >
-                <mat-icon *ngIf="!isProductDeleting(newProductId)">delete</mat-icon>
-              </button>
-            </div>
+            <button
+              mat-icon-button
+              color="warn"
+              (click)="newProductForm.reset()"
+              type="button"
+              >
+              @if (!isProductDeleting(newProductId)) {
+                <mat-icon>delete</mat-icon>
+              }
+            </button>
           </div>
+        </div>
       </form>
     </mat-card-content>
   </mat-card>
@@ -70,44 +102,46 @@
     <mat-card-content class="existing-products-list">
       <mat-form-field appearance="outline">
         <mat-label>{{ 'organization.editProducts.search' | translate }}</mat-label>
-        <input 
-          matInput 
-          type="text" 
-          [ngModel]="searchTerm()" 
+        <input
+          matInput
+          type="text"
+          [ngModel]="searchTerm()"
           (ngModelChange)="searchTerm.set($event)"
           name="searchTerm"
-        >
+          data-testid="edit-products-search"
+          >
       </mat-form-field>
-      <mat-radio-group [ngModel]="upiFilter()" (ngModelChange)="upiFilter.set($event)" name="upiFilter">
+      <mat-radio-group [ngModel]="upiFilter()" (ngModelChange)="upiFilter.set($event)" name="upiFilter" data-testid="edit-products-filter">
         <mat-radio-button value="upi">{{ 'organization.editProducts.filter.upi' | translate }}</mat-radio-button>
         <mat-radio-button value="no-upi">{{ 'organization.editProducts.filter.noUpi' | translate }}</mat-radio-button>
         <mat-radio-button value="all">{{ 'organization.editProducts.filter.all' | translate }}</mat-radio-button>
       </mat-radio-group>
       @for (product of filteredProducts(); track product.id; let i = $index) {
-        <mat-card [ngClass]="{'existing-product-item': true, 'upi': product.hasUpi}">
-            <span class="existing-product-details">
-              <span class="product-name">{{ product.name }}</span>
-              <span class="product-id">({{ product.id }})</span>
-            </span>
-            <span class="row-actions">
-              <button mat-icon-button (click)="editProductName(product)" type="button">
-                @if (isProductSaving(product.id)) {
-                  <mat-spinner diameter="32"></mat-spinner>
-                } @else {
-                  <mat-icon>edit</mat-icon>
-                }
-                <mat-spinner diameter="32" *ngIf="isProductSaving(product.id)"></mat-spinner>
-              </button>
-              <button mat-icon-button color="warn" (click)="removeProduct(product.id)">
-                @if (isProductDeleting(product.id)) {
-                  <mat-spinner diameter="32"></mat-spinner>
-                } @else {
-                  <mat-icon>delete</mat-icon>
-                }
-              </button>
-            </span>
+        <mat-card [ngClass]="{'existing-product-item': true, 'upi': product.hasUpi}" [attr.data-testid]="'edit-products-card-' + product.id">
+          <span class="existing-product-details">
+            <span class="product-name">{{ product.name }}</span>
+            <span class="product-id">({{ product.id }})</span>
+          </span>
+          <span class="row-actions">
+            <button mat-icon-button (click)="editProductName(product)" type="button" [attr.data-testid]="'edit-products-edit-' + product.id">
+              @if (isProductSaving(product.id)) {
+                <mat-spinner diameter="32"></mat-spinner>
+              } @else {
+                <mat-icon>edit</mat-icon>
+              }
+            </button>
+            <button mat-icon-button color="warn" (click)="removeProduct(product.id)" [attr.data-testid]="'edit-products-delete-' + product.id">
+              @if (isProductDeleting(product.id)) {
+                <mat-spinner diameter="32"></mat-spinner>
+              } @else {
+                <mat-icon>delete</mat-icon>
+              }
+            </button>
+          </span>
         </mat-card>
       }
     </mat-card-content>
   </mat-card>
-</div> 
+  }
+</div>
+

@@ -55,8 +55,28 @@
             aria-live="polite"
             data-testid="auth-loading"
           >
-            <mat-icon aria-hidden="true">hourglass_empty</mat-icon>
+            <mat-progress-spinner
+              mode="indeterminate"
+              diameter="32"
+              aria-hidden="true"
+            ></mat-progress-spinner>
             <span>{{ 'auth.signing-in' | translate }}</span>
+          </div>
+        }
+
+        @if (authState().isInitializing && !authState().isLoading) {
+          <div
+            class="loading-message"
+            role="status"
+            aria-live="polite"
+            data-testid="auth-initializing"
+          >
+            <mat-progress-spinner
+              mode="indeterminate"
+              diameter="32"
+              aria-hidden="true"
+            ></mat-progress-spinner>
+            <span>{{ 'auth.loading' | translate }}</span>
           </div>
         }
 

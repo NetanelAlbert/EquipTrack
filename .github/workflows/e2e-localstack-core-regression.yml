@@ -5,13 +5,14 @@ on:
     branches:
       - main
       - develop
-  push:
-    branches:
-      - develop
 
 concurrency:
   group: e2e-localstack-${{ github.ref }}
   cancel-in-progress: true
+
+# Nx Cloud org may be disabled; without this, `npx nx` exits before running tasks.
+env:
+  NX_NO_CLOUD: 'true'
 
 jobs:
   lint-and-unit-test:
@@ -21,10 +22,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: npm
@@ -42,10 +43,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: npm
@@ -69,7 +70,7 @@ jobs:
 
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report-localstack-core
           path: playwright-report
@@ -77,7 +78,7 @@ jobs:
 
       - name: Upload Playwright test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-test-results-localstack-core
           path: test-results

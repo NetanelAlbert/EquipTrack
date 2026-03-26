@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,12 +18,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import {
-  ReportsStore,
-  UserStore,
-  OrganizationStore,
-  InventoryStore,
-} from '../../../store';
+import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
 import {
   formatJerusalemDBDate,
   InventoryItem,
@@ -34,7 +29,6 @@ import {
   selector: 'app-today-report',
   standalone: true,
   imports: [
-    CommonModule,
     MatCardModule,
     MatListModule,
     MatIconModule,
@@ -45,8 +39,8 @@ import {
     MatProgressSpinnerModule,
     MatRadioModule,
     FormsModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   templateUrl: './today-report.component.html',
   styleUrls: ['./today-report.component.scss'],
 })
@@ -54,7 +48,6 @@ export class TodayReportComponent {
   reportsStore = inject(ReportsStore);
   userStore = inject(UserStore);
   organizationStore = inject(OrganizationStore);
-  inventoryStore = inject(InventoryStore);
   translateService = inject(TranslateService);
 
   sortBy: Signal<'location' | 'product'> = signal('product');
@@ -78,10 +71,6 @@ export class TodayReportComponent {
       return acc;
     }, {} as Record<string, string>);
   });
-  userInventory = computed(() =>
-    this.inventoryStore.getUserInventory(this.userStore.user()?.id)()
-  );
-  
   itemsToShow: Signal<Array<[string, ItemReport[]]>> = computed(() =>
     this.inventoryItemsByHolderToItemReports(this.reportsStore.itemsToReport())
   );

@@ -1,4 +1,15 @@
-<div class="edit-users-container">
+<div class="edit-users-container" data-testid="edit-users-page">
+  @if (isLoadingUsers()) {
+    <div
+      class="edit-users-loading"
+      role="status"
+      aria-live="polite"
+      data-testid="edit-users-loading"
+    >
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>{{ 'inventory.users.loading' | translate }}</p>
+    </div>
+  } @else {
   <!-- Header -->
   <div class="header">
     <h1>{{ 'navigation.edit-users' | translate }}</h1>
@@ -16,34 +27,35 @@
       <form #inviteFormRef [formGroup]="inviteForm" class="invite-form">
         <mat-form-field appearance="outline" class="email-field">
           <mat-label>{{ 'organization.users.invite.email-label' | translate }}</mat-label>
-          <input 
-            matInput 
-            type="email" 
+          <input
+            matInput
+            type="email"
             formControlName="email"
             [placeholder]="'organization.users.invite.email-placeholder' | translate"
+            data-testid="edit-users-email-input"
             >
           <mat-icon matSuffix>email</mat-icon>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="name-field">
           <mat-label>{{ 'organization.users.invite.name-label' | translate }}</mat-label>
-          <input matInput formControlName="name" [placeholder]="'organization.users.invite.name-placeholder' | translate">
+          <input matInput formControlName="name" [placeholder]="'organization.users.invite.name-placeholder' | translate" data-testid="edit-users-name-input">
           <mat-icon matSuffix>person</mat-icon>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="role-field">
           <mat-label>{{ 'organization.users.invite.role-label' | translate }}</mat-label>
-          <mat-select formControlName="role">
+          <mat-select formControlName="role" data-testid="edit-users-role-select">
             <mat-option [value]="UserRole.Customer">{{ 'organization.users.roles.customer' | translate }}</mat-option>
             <mat-option [value]="UserRole.WarehouseManager">{{ 'organization.users.roles.warehouse-manager' | translate }}</mat-option>
             <mat-option [value]="UserRole.Admin">{{ 'organization.users.roles.admin' | translate }}</mat-option>
             <mat-option [value]="UserRole.Inspector">{{ 'organization.users.roles.inspector' | translate }}</mat-option>
           </mat-select>
-        </mat-form-field>        
+        </mat-form-field>
 
         <mat-form-field appearance="outline" class="department-field">
           <mat-label>{{ 'organization.users.invite.department-label' | translate }}</mat-label>
-          <mat-select formControlName="departmentId">
+          <mat-select formControlName="departmentId" data-testid="edit-users-department-select">
             @for (department of userStore.currentOrganization()?.departments; track department.id) {
               <mat-option [value]="department.id">
                 {{ department.name }}
@@ -67,16 +79,17 @@
 
         <mat-form-field appearance="outline" class="role-description-field">
           <mat-label>{{ 'organization.users.invite.role-description-label' | translate }}</mat-label>
-          <input matInput formControlName="roleDescription" [placeholder]="'organization.users.invite.role-description-placeholder' | translate">
+          <input matInput formControlName="roleDescription" [placeholder]="'organization.users.invite.role-description-placeholder' | translate" data-testid="edit-users-role-description-input">
         </mat-form-field>
 
-        <button 
+        <button
           #inviteButton
-          mat-raised-button 
-          color="primary" 
+          mat-raised-button
+          color="primary"
           (click)="inviteUser()"
           [disabled]="!inviteForm.valid || isLoading()"
-          class="invite-button">
+          class="invite-button"
+          data-testid="edit-users-invite-btn">
           @if (isLoading()) {
             <mat-icon>hourglass_empty</mat-icon>
           } @else {
@@ -97,7 +110,7 @@
 
     <mat-card-content>
       <div class="table-container">
-        <table mat-table [dataSource]="users()" class="users-table">
+        <table mat-table [dataSource]="users()" class="users-table" data-testid="edit-users-table">
           <!-- Name Column -->
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef>{{ 'organization.users.table.name' | translate }}</th>
@@ -138,8 +151,8 @@
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef>{{ 'organization.users.table.actions' | translate }}</th>
             <td mat-cell *matCellDef="let user">
-              <button 
-                mat-icon-button 
+              <button
+                mat-icon-button
                 (click)="editUser(user)"
                 [matTooltip]="'organization.users.table.edit-tooltip' | translate"
                 [disabled]="isLoading()">
@@ -153,12 +166,16 @@
         </table>
 
         <!-- Empty State -->
-        <div *ngIf="users().length === 0" class="empty-state">
-          <mat-icon class="empty-icon">group_off</mat-icon>
-          <h3>{{ 'organization.users.empty.title' | translate }}</h3>
-          <p>{{ 'organization.users.empty.message' | translate }}</p>
-        </div>
+        @if (users().length === 0) {
+          <div class="empty-state">
+            <mat-icon class="empty-icon">group_off</mat-icon>
+            <h3>{{ 'organization.users.empty.title' | translate }}</h3>
+            <p>{{ 'organization.users.empty.message' | translate }}</p>
+          </div>
+        }
       </div>
     </mat-card-content>
   </mat-card>
-</div> 
+  }
+</div>
+

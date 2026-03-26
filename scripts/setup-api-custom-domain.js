@@ -193,6 +193,27 @@ function createCustomDomain(apiDomain, certificateArn) {
   }
 }
 
+/** True if this mapping is the implicit root (no path prefix). */
+function isRootBasePathMapping(mapping) {
+  const bp = mapping.basePath;
+  if (bp === undefined || bp === null) return true;
+  const s = String(bp).trim();
+  if (s === '') return true;
+  // API Gateway returns this literal for the default / empty base path in list responses
+  if (s.toLowerCase() === '(none)') return true;
+  return false;
+}
+
+/** Whether an existing mapping already points this domain's root at the given API and stage. */
+function hasRootMappingForApi(existingMappings, currentApiId, stage) {
+  return existingMappings.some(
+    (m) =>
+      String(m.restApiId) === String(currentApiId) &&
+      String(m.stage) === String(stage) &&
+      isRootBasePathMapping(m)
+  );
+}
+
 function getExistingBasePath(apiDomain) {
   console.log(`🔍 Checking existing base path mappings for ${apiDomain}...`);
   
@@ -268,6 +289,18 @@ function createBasePath(apiDomain, apiId, stage, basePath = '') {
     console.log(`✅ Created base path mapping successfully`);
     return JSON.parse(result);
   } catch (error) {
+    const msg = `${error.stderr || ''}${error.message || ''}`;
+    if (
+      msg.includes('ConflictException') &&
+      msg.includes('Base path already exists') &&
+      !basePath
+    ) {
+      const refreshed = getExistingBasePath(apiDomain);
+      if (hasRootMappingForApi(refreshed, apiId, stage)) {
+        console.log(`✅ Root base path mapping already present for ${apiId}/${stage} (idempotent)`);
+        return null;
+      }
+    }
     throw new Error(`❌ Failed to create base path mapping: ${error.message}`);
   }
 }
@@ -393,11 +426,9 @@ async function setupAPICustomDomain(apiId = null) {
       }
     }
     
-    // Create new base path mapping for current API
-    const needsNewMapping = !existingMappings.find(m => 
-      m.restApiId === currentApiId && m.stage === STAGE && !m.basePath
-    );
-    
+    // Create new base path mapping for current API (skip if SAM or a prior run already created it)
+    const needsNewMapping = !hasRootMappingForApi(existingMappings, currentApiId, STAGE);
+
     if (needsNewMapping) {
       createBasePath(API_DOMAIN, currentApiId, STAGE);
     } else {

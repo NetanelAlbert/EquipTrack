@@ -194,6 +194,8 @@
       "addUser": "הוסף משתמש",
       "showAllUsers": "הצג את כל המשתמשים",
       "resetToWarehouse": "איפוס למחסן",
+      "clearColumnSort": "נקה מיון עמודות",
+      "sortByProductClick": "לחץ למיון עמודות המשתמשים לפי מוצר זה",
       "product": "מוצר",
       "upiProduct": "למוצר זה יש מזהים ייחודיים (צ׳)",
       "noInventory": "אין נתוני מלאי",
@@ -237,6 +239,7 @@
       "quantity-required": "נדרשת כמות",
       "quantity-min": "הכמות חייבת להיות לפחות 1",
       "quantity-pattern": "הכמות חייבת להיות מספר תקין",
+      "quantity-max-upi": "ניתן להוסיף עד {{max}} שדות צ׳ לפריט",
       "upi-required": "נדרש צ׳",
       "upi-duplicate": "צ׳ חייב להיות ייחודי",
       "product-not-found": "המוצר לא נמצא במקור",
@@ -289,7 +292,9 @@
     "submit-button": {
       "check-in": "החזרה",
       "check-out": "לקיחה"
-    }
+    },
+    "add-all-items-tooltip": "הוסף את כל הפריטים מטופס זה",
+    "add-form-aria-label": "הוסף טופס"
   },
   "reports": {
     "title": "דוחות",

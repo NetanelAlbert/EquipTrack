@@ -18,12 +18,13 @@ const DEPLOYMENT_STEPS = {
   'prepare': 'Prepare deployment configuration',
   'dynamodb': 'Create DynamoDB tables',
   'lambda-packages': 'Create Lambda deployment packages',
-  'lambda-deploy': 'Deploy Lambda functions',
-  'api-gateway': 'Deploy API Gateway',
+  'lambda-deploy': 'Deploy Lambda functions (legacy CLI; prefer SAM)',
+  'api-gateway': 'Deploy API and Lambdas (AWS SAM stack)',
   'frontend-fast': 'Deploy Frontend (Fast)',
   'frontend-full': 'Deploy Frontend (Full setup)',
   'cloudfront': 'Create CloudFront Distribution',
-  'custom-domain': 'Setup Custom Domain'
+  'custom-domain': 'Setup Custom Domain',
+  'seed-e2e': 'Seed E2E fixture data (dev)'
 };
 
 function loadDeploymentInfo() {

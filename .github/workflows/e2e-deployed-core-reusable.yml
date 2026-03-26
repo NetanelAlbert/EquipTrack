@@ -39,12 +39,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout_ref }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: npm
@@ -61,11 +61,12 @@ jobs:
           BACKEND_BASE_URL: ${{ inputs.backend_base_url }}
           E2E_AUTH_SECRET: ${{ secrets.E2E_AUTH_SECRET }}
           PLAYWRIGHT_HTML_OPEN: never
+          NX_NO_CLOUD: 'true'
         run: npx nx run frontend-e2e:e2e-deployed-core
 
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report-${{ inputs.artifact_suffix }}
           path: playwright-report
@@ -73,7 +74,7 @@ jobs:
 
       - name: Upload Playwright test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-test-results-${{ inputs.artifact_suffix }}
           path: test-results

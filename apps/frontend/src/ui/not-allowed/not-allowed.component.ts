@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { RouterModule } from '@angular/router';
@@ -9,14 +9,13 @@ import { TranslateModule } from '@ngx-translate/core';
   selector: 'app-not-allowed',
   standalone: true,
   imports: [
-    CommonModule,
     MatIconModule,
     MatButtonModule,
     RouterModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   template: `
-    <div class="not-allowed-container">
+    <div class="not-allowed-container" data-testid="not-allowed-page">
       <mat-icon class="error-icon">error_outline</mat-icon>
       <h1>{{ 'errors.not-allowed.title' | translate }}</h1>
       <p>{{ 'errors.not-allowed.message' | translate }}</p>

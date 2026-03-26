@@ -86,9 +86,14 @@
         mat-raised-button
         class="icon-button"
         [attr.data-testid]="'form-print-' + form.formID"
+        [disabled]="isPrintPdfLoading()"
         (click)="onPrintForm()"
       >
-        <mat-icon>print</mat-icon>
+        @if (isPrintPdfLoading()) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          <mat-icon>print</mat-icon>
+        }
       </button>
     }
   </div>

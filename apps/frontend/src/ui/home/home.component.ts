@@ -1,5 +1,5 @@
 import { Component, inject, computed, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,14 +16,13 @@ import { MatProgressSpinner } from '@angular/material/progress-spinner';
   selector: 'app-home',
   standalone: true,
   imports: [
-    CommonModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatGridListModule,
     TranslateModule,
-    MatProgressSpinner,
-  ],
+    MatProgressSpinner
+],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
 })
@@ -35,8 +34,12 @@ export class HomeComponent implements OnInit {
 
   // State signals
   isRedirecting = signal(false);
+  /** True while user/org list bootstrap is in flight (before organizations are known). */
+  isLoadingStartData = computed<boolean>(
+    () => this.userStore.startDataStatus()?.isLoading ?? false
+  );
   isLoading = computed<boolean>(
-    () => this.userStore.startDataStatus()?.isLoading || this.isRedirecting()
+    () => this.isLoadingStartData() || this.isRedirecting()
   );
   selectedOrgId = signal<string | null>(null);
 

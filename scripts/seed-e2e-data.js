@@ -1,5 +1,9 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
+const {
+  DynamoDBDocumentClient,
+  PutCommand,
+  BatchWriteCommand,
+} = require('@aws-sdk/lib-dynamodb');
 
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 const STAGE = process.env.STAGE || 'local';
@@ -14,12 +18,17 @@ const USERS_AND_ORGANIZATIONS_TABLE_NAME = stageTableName(
   'UsersAndOrganizations'
 );
 const INVENTORY_TABLE_NAME = stageTableName('Inventory');
+const FORMS_TABLE_NAME = stageTableName('Forms');
+const REPORT_TABLE_NAME = stageTableName('EquipTrackReport');
 
 const ORG_PREFIX = 'ORG#';
 const USER_PREFIX = 'USER#';
 const PRODUCT_PREFIX = 'PRODUCT#';
 const UPI_PREFIX = 'UPI#';
 const HOLDER_PREFIX = 'HOLDER#';
+const FORM_PREFIX = 'FORM#';
+const DATE_PREFIX = 'DATE#';
+const ITEM_KEY_PREFIX = 'ITEM_KEY#';
 const WAREHOUSE_SUFFIX = 'WAREHOUSE';
 const METADATA_SK = 'METADATA';
 
@@ -192,6 +201,126 @@ async function seedE2eData() {
     holderId: 'user-e2e-customer',
     holderIdQueryKey: `${HOLDER_PREFIX}${organizationId}#user-e2e-customer`,
   });
+
+  // ── Forms ───────────────────────────────────────────
+  const now = Date.now();
+  const customerUserId = 'user-e2e-customer';
+  const adminUserId = 'user-e2e-admin';
+  const formItems = [
+    { productId: 'prod-bulk-helmet', quantity: 1 },
+  ];
+
+  const forms = [
+    {
+      formID: 'form-e2e-pending-checkout',
+      userID: customerUserId,
+      organizationID: organizationId,
+      type: 'check-out',
+      status: 'pending',
+      items: formItems,
+      description: 'e2e-seed-pending-checkout',
+      createdAtTimestamp: now - 3000,
+      lastUpdated: now - 3000,
+      createdByUserId: adminUserId,
+    },
+    {
+      formID: 'form-e2e-approved-checkout',
+      userID: customerUserId,
+      organizationID: organizationId,
+      type: 'check-out',
+      status: 'approved',
+      items: formItems,
+      description: 'e2e-seed-approved-checkout',
+      createdAtTimestamp: now - 60000,
+      lastUpdated: now - 50000,
+      createdByUserId: adminUserId,
+      approvedAtTimestamp: now - 50000,
+      approvedByUserId: adminUserId,
+    },
+    {
+      formID: 'form-e2e-rejected-checkin',
+      userID: customerUserId,
+      organizationID: organizationId,
+      type: 'check-in',
+      status: 'rejected',
+      items: formItems,
+      description: 'e2e-seed-rejected-checkin',
+      createdAtTimestamp: now - 120000,
+      lastUpdated: now - 110000,
+      createdByUserId: adminUserId,
+      rejectionReason: 'wrong items',
+      rejectionAtTimestamp: now - 110000,
+      rejectionByUserId: adminUserId,
+    },
+  ];
+
+  for (const form of forms) {
+    await putItem(docClient, FORMS_TABLE_NAME, {
+      PK: `${ORG_PREFIX}${organizationId}#${USER_PREFIX}${form.userID}`,
+      SK: `${FORM_PREFIX}${form.formID}`,
+      dbItemType: 'FORM',
+      organizationId: `${ORG_PREFIX}${organizationId}`,
+      ...form,
+    });
+  }
+
+  // ── Predefined form ────────────────────────────────
+  await putItem(docClient, FORMS_TABLE_NAME, {
+    PK: `${ORG_PREFIX}${organizationId}`,
+    SK: `${FORM_PREFIX}predefined-e2e-kit`,
+    dbItemType: 'PREDEFINED_FORM',
+    organizationID: organizationId,
+    formID: 'predefined-e2e-kit',
+    description: 'E2E Standard Kit',
+    items: [
+      { productId: 'prod-bulk-helmet', quantity: 1 },
+      { productId: 'prod-upi-laptop', quantity: 1 },
+    ],
+  });
+
+  // ── Report for today ──────────────────────────────
+  const todayDate = new Date()
+    .toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
+
+  const reportItems = [
+    {
+      productId: 'prod-upi-laptop',
+      upi: 'LAP-WH-001',
+      location: 'Building A, Room 101',
+      reportedBy: adminUserId,
+      reportDate: todayDate,
+    },
+    {
+      productId: 'prod-upi-laptop',
+      upi: 'LAP-WH-002',
+      location: 'Building B, Room 205',
+      reportedBy: adminUserId,
+      reportDate: todayDate,
+    },
+  ];
+
+  const reportPutRequests = reportItems.map((item) => {
+    const itemKey = `${PRODUCT_PREFIX}${item.productId}#${UPI_PREFIX}#${item.upi}`;
+    return {
+      PutRequest: {
+        Item: {
+          orgDailyReportId: `${ORG_PREFIX}${organizationId}#${DATE_PREFIX}${todayDate}`,
+          itemKey,
+          itemOrgKey: `${ORG_PREFIX}${organizationId}#${ITEM_KEY_PREFIX}${itemKey}`,
+          reportDate: todayDate,
+          ...item,
+        },
+      },
+    };
+  });
+
+  await docClient.send(
+    new BatchWriteCommand({
+      RequestItems: {
+        [REPORT_TABLE_NAME]: reportPutRequests,
+      },
+    })
+  );
 
   console.log('[seed-e2e-data] Seed completed successfully');
 }

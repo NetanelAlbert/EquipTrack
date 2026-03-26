@@ -1,0 +1,11 @@
+# Copy to samconfig.toml for local deploys (samconfig.toml is gitignored if you prefer).
+version = 0.1
+
+[default.global.parameters]
+stack_name = "equip-track-api-stack-dev"
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Stage=dev"
+resolve_s3 = true
+region = "il-central-1"

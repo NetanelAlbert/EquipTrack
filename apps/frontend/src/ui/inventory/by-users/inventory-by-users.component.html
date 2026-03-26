@@ -84,7 +84,7 @@
             data-testid="inventory-by-users-clear-column-sort"
             (click)="clearProductColumnSort()"
           >
-            Clear Column Sort
+            {{ 'inventory.table.clearColumnSort' | translate }}
           </button>
         }
       </div>
@@ -104,7 +104,17 @@
 
   <!-- Inventory Table -->
   <div class="table-container" data-testid="inventory-by-users-table-container">
-    @if (tableData().length > 0) {
+    @if (isLoadingInitialWarehouseInventory()) {
+      <div
+        class="inventory-table-loading"
+        role="status"
+        aria-live="polite"
+        data-testid="inventory-by-users-table-loading"
+      >
+        <mat-spinner diameter="48"></mat-spinner>
+        <p>{{ 'inventory.loading' | translate }}</p>
+      </div>
+    } @else if (tableData().length > 0) {
       <table mat-table [dataSource]="tableData()" class="inventory-table" data-testid="inventory-by-users-table">
         
         <!-- Product Column -->
@@ -121,16 +131,11 @@
               [class.upi-row]="shouldHighlightUpiRow(row)"
               [class.sorting-columns]="isProductSortingColumns(row.product.id)"
               (click)="onProductClick(row.product.id)"
-              [matTooltip]="'Click to sort user columns by this product'"
+              [matTooltip]="'inventory.table.sortByProductClick' | translate"
               [matTooltipPosition]="'above'">
             <div class="product-info">
               <span class="product-name">{{ row.product.name }}</span>
               <span class="product-id">{{ row.product.id }}</span>
-              @if (row.hasUpi) {
-                <mat-icon class="upi-indicator" matTooltip="{{ 'inventory.table.upiProduct' | translate }}">
-                  key
-                </mat-icon>
-              }
               @if (isProductSortingColumns(row.product.id)) {
                 <span class="sort-indicator">{{ getProductSortIndicator(row.product.id) }}</span>
               }

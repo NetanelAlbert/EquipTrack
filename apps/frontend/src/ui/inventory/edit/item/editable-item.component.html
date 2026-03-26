@@ -42,6 +42,7 @@
       [formControl]="quantityControl()"
       type="number"
       min="1"
+      [attr.max]="isUPI() ? maxUpiQuantity : null"
       data-testid="editable-item-quantity-input"
     />
     @if (quantityErrors()['required']) {
@@ -53,12 +54,17 @@
     @else if (quantityErrors()['pattern']) {
       <mat-error>{{ 'inventory.validation.quantity-pattern' | translate }}</mat-error>
     }
+    @else if (quantityErrors()['max']) {
+      <mat-error>{{
+        'inventory.validation.quantity-max-upi' | translate : { max: maxUpiQuantity }
+      }}</mat-error>
+    }
   </mat-form-field>
   
   <button
     class="delete-button"
     mat-mini-fab
-    aria-label="Delete"
+    [attr.aria-label]="'common.delete' | translate"
     data-testid="editable-item-delete"
     (click)="remove.emit()"
   >

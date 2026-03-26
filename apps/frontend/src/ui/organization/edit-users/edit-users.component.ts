@@ -3,8 +3,9 @@ import {
   ElementRef,
   inject,
   OnInit,
-  signal, 
-  ViewChild
+  computed,
+  signal,
+  ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
@@ -16,6 +17,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import {
   FormBuilder,
   FormControl,
@@ -51,6 +53,7 @@ import { CanComponentDeactivate } from '../../../app/guards/unsaved-changes.guar
     MatInputModule,
     MatSelectModule,
     MatTooltipModule,
+    MatProgressSpinnerModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -84,6 +87,9 @@ export class EditUsersComponent implements OnInit, CanComponentDeactivate {
   // Get data from organization store
   users = this.organizationStore.users;
   isLoading = this.organizationStore.invitingUserStatus.isLoading;
+  isLoadingUsers = computed(
+    () => this.organizationStore.getUsersStatus().isLoading
+  );
 
   // Table configuration
   displayedColumns: string[] = ['name', 'email', 'role', 'state', 'actions'];

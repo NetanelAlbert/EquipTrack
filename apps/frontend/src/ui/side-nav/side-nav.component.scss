@@ -54,13 +54,22 @@
         }
     }
 
-    mat-sidenav-content {
+    // Element + class beats Material's `.mat-drawer-content { overflow: auto }` so only `.content` scrolls.
+    mat-sidenav-content.mat-drawer-content {
         background-color: var(--color-bg-primary);
         height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    top-bar {
+        flex-shrink: 0;
     }
 
     .content {
-        height: 100%;
+        flex: 1 1 auto;
+        min-height: 0;
         overflow: auto;
         margin: 24px;
     }

@@ -1,5 +1,5 @@
 import { Component, Inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import {
   MatDialogModule,
   MAT_DIALOG_DATA,
@@ -15,14 +15,13 @@ import { TranslateModule } from '@ngx-translate/core';
   selector: 'app-reject-form-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
     FormsModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   template: `
     <h2 mat-dialog-title>{{ 'forms.reject-dialog.title' | translate }}</h2>
     <mat-dialog-content>

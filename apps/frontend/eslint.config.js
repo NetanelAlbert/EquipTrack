@@ -3,8 +3,6 @@ const baseConfig = require('../../eslint.config.js');
 
 module.exports = [
   ...baseConfig,
-
-  ...baseConfig,
   ...nx.configs['flat/angular'],
   ...nx.configs['flat/angular-template'],
   {
@@ -32,5 +30,12 @@ module.exports = [
     files: ['**/*.html'],
     // Override or add rules here
     rules: {},
+  },
+  {
+    files: ['**/*.ts'],
+    rules: {
+      '@angular-eslint/prefer-standalone': 'off',
+      '@angular-eslint/prefer-inject': 'off',
+    },
   },
 ];
