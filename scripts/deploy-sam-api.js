@@ -1,19 +1,29 @@
 #!/usr/bin/env node
 /**
- * Deploy EquipTrack REST API + optional custom domain via AWS SAM.
- * Replaces scripts/deploy-api-gateway.js for CloudFormation-managed topology.
+ * Deploy EquipTrack REST API + Lambdas + optional custom domain via AWS SAM.
+ * Lambda functions use one shared zip on S3 (see create-lambda-packages.js); template references it via parameters.
  *
  * Env:
  *   STAGE, AWS_REGION, BASE_DOMAIN (default equip-track.com)
  *   API_HOSTNAME — optional override; default dev-api.<base> / api.<base>
  *   API_GATEWAY_REGIONAL_CERTIFICATE_ARN — optional; if set with ApiHostname, SAM creates custom domain + base path mapping
  *   After deploy, setup-api-custom-domain.js always runs (mapping + Route53 UPSERT)
+ *   E2E_AUTH_ENABLED, E2E_AUTH_SECRET — forwarded to SAM (E2eAuthEnabled / E2eAuthSecret parameters)
+ *   LAMBDA_CODE_BUCKET — override S3 bucket for shared Lambda zip (default equip-track-lambda-code-<STAGE>)
  *   PRUNE_LEGACY_API_GATEWAY — must be 'true' to opt in: before first stack create, remove REST APIs
  *     named equip-track-api-<STAGE> and domain mappings pointing at them (destructive; confirm account/stage)
  */
 const { execFileSync, execSync } = require('child_process');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+
+const {
+  ensureLambdaCodeBucket,
+  uploadSharedLambdaBundle,
+  getLambdaCodeBucketName,
+} = require('./deploy-lambdas');
+const { getHandlerNames, SHARED_BUNDLE_ZIP } = require('./create-lambda-packages');
 
 process.env.AWS_PAGER = '';
 
@@ -24,6 +34,32 @@ const BASE_DOMAIN = process.env.BASE_DOMAIN || 'equip-track.com';
 const STACK_NAME = `equip-track-api-stack-${STAGE}`;
 const TEMPLATE_SRC = path.join(ROOT, 'infra', 'sam', 'template.yaml');
 const TEMPLATE_BUILD = path.join(ROOT, '.aws-sam', 'build', 'template.yaml');
+const PACKAGES_DIR = path.join(ROOT, 'lambda-packages');
+const GENERATE_SAM = path.join(ROOT, 'scripts', 'generate-sam-template.js');
+
+function computeSharedZipS3Key() {
+  const zipPath = path.join(PACKAGES_DIR, SHARED_BUNDLE_ZIP);
+  if (!fs.existsSync(zipPath)) {
+    throw new Error(`Missing ${zipPath} — run node scripts/create-lambda-packages.js first`);
+  }
+  const buf = fs.readFileSync(zipPath);
+  const hash = crypto.createHash('sha256').update(buf).digest('hex').slice(0, 16);
+  return `lambda-code/${hash}/${SHARED_BUNDLE_ZIP}`;
+}
+
+function generateSamTemplateFromEndpoints() {
+  console.log('📝 Regenerating infra/sam/template.yaml from endpoint definitions...');
+  execFileSync(process.execPath, [GENERATE_SAM], { stdio: 'inherit', cwd: ROOT, env: process.env });
+}
+
+function uploadLambdaBundleForSam() {
+  const bucket = getLambdaCodeBucketName();
+  ensureLambdaCodeBucket(bucket);
+  const s3Key = computeSharedZipS3Key();
+  const zipPath = path.join(PACKAGES_DIR, SHARED_BUNDLE_ZIP);
+  uploadSharedLambdaBundle(bucket, s3Key, zipPath);
+  return { bucket, s3Key };
+}
 
 function defaultApiHostname() {
   if (process.env.API_HOSTNAME && process.env.API_HOSTNAME.trim()) {
@@ -179,8 +215,18 @@ function samBuild() {
   }
 }
 
-function samDeploy(certArn, apiHostname) {
-  const overrides = [`Stage=${STAGE}`, `CertificateArn=${certArn}`, `ApiHostname=${apiHostname}`];
+function samDeploy(certArn, apiHostname, lambdaCode) {
+  const e2eEnabled = (process.env.E2E_AUTH_ENABLED || '').toLowerCase() === 'true' ? 'true' : 'false';
+  const e2eSecret = (process.env.E2E_AUTH_SECRET || '').trim();
+  const overrides = [
+    `Stage=${STAGE}`,
+    `CertificateArn=${certArn}`,
+    `ApiHostname=${apiHostname}`,
+    `LambdaCodeBucketName=${lambdaCode.bucket}`,
+    `LambdaCodeS3Key=${lambdaCode.s3Key}`,
+    `E2eAuthEnabled=${e2eEnabled}`,
+    `E2eAuthSecret=${e2eSecret}`,
+  ];
   console.log('🚀 sam deploy...');
   execFileSync(
     'sam',
@@ -214,7 +260,7 @@ function readStackOutputs() {
   return map;
 }
 
-function mergeDeploymentInfo(outputs, apiHostname, usedSamDomain) {
+function mergeDeploymentInfo(outputs, apiHostname, usedSamDomain, lambdaCode) {
   const deploymentInfoPath = path.join(ROOT, 'deployment-info.json');
   if (!fs.existsSync(deploymentInfoPath)) {
     throw new Error('deployment-info.json missing — run prepare-deployment first');
@@ -223,7 +269,26 @@ function mergeDeploymentInfo(outputs, apiHostname, usedSamDomain) {
   const apiId = outputs.RestApiId;
   const apiUrl = outputs.ApiUrl;
 
+  const handlerNames = getHandlerNames();
+  const deployedFunctions = handlerNames.map((handlerName) => ({
+    handlerName,
+    functionName: `equip-track-${handlerName}-${STAGE}`,
+  }));
+
   di.backend = di.backend || {};
+  di.backend.lambdas = {
+    functions: deployedFunctions,
+    role: `sam:${STACK_NAME}/EquipTrackLambdaRole`,
+    codePackage: {
+      bucket: lambdaCode.bucket,
+      key: lambdaCode.s3Key,
+      artifact: SHARED_BUNDLE_ZIP,
+      managedBy: 'sam',
+    },
+    status: 'deployed',
+    samStackName: STACK_NAME,
+  };
+
   di.backend.apiGateway = {
     ...(di.backend.apiGateway || {}),
     apiId,
@@ -290,11 +355,13 @@ function main() {
     }
   }
 
+  generateSamTemplateFromEndpoints();
+  const lambdaCode = uploadLambdaBundleForSam();
   samBuild();
-  samDeploy(certArn, apiHostname);
+  samDeploy(certArn, apiHostname, lambdaCode);
 
   const outputs = readStackOutputs();
-  mergeDeploymentInfo(outputs, apiHostname, usedSamDomain);
+  mergeDeploymentInfo(outputs, apiHostname, usedSamDomain, lambdaCode);
 
   // Route53 alias + mapping reconciliation (UPSERT) — avoids CFN conflicts with existing A records
   runCustomDomainReconciliation();

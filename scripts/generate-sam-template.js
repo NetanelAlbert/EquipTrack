@@ -8,6 +8,10 @@ const path = require('path');
 
 const { loadEndpointMetas } = require('./prepare-deployment');
 
+function handlerKeyToLogicalId(handlerKey) {
+  return `Lambda${handlerKey.replace(/[^a-zA-Z0-9]/g, '')}`;
+}
+
 const OUT = path.join(__dirname, '..', 'infra', 'sam', 'template.yaml');
 
 const CORS_HEADERS =
@@ -76,10 +80,101 @@ function emitLambdaPermissions(handlerKeys) {
         `  ${logical}:`,
         `    Type: AWS::Lambda::Permission`,
         `    Properties:`,
-        `      FunctionName: !Sub 'equip-track-${handlerKey}-\${Stage}'`,
+        `      FunctionName: !Ref ${handlerKeyToLogicalId(handlerKey)}`,
         `      Action: lambda:InvokeFunction`,
         `      Principal: apigateway.amazonaws.com`,
         `      SourceArn: !Sub 'arn:aws:execute-api:\${AWS::Region}:\${AWS::AccountId}:\${EquipTrackApi}/*/*'`,
+      ].join('\n');
+    })
+    .join('\n');
+}
+
+/**
+ * IAM policy for DynamoDB / Secrets Manager / forms bucket — ARNs use !Sub for region/account.
+ */
+function emitLambdaDataPolicyYaml() {
+  return [
+    '            Version: "2012-10-17"',
+    '            Statement:',
+    '              - Effect: Allow',
+    '                Action:',
+    '                  - dynamodb:GetItem',
+    '                  - dynamodb:PutItem',
+    '                  - dynamodb:Query',
+    '                  - dynamodb:Scan',
+    '                  - dynamodb:UpdateItem',
+    '                  - dynamodb:DeleteItem',
+    '                  - dynamodb:BatchGetItem',
+    '                  - dynamodb:BatchWriteItem',
+    '                Resource:',
+    "                  - !Sub 'arn:aws:dynamodb:\${AWS::Region}:*:table/UsersAndOrganizations*'",
+    "                  - !Sub 'arn:aws:dynamodb:\${AWS::Region}:*:table/Inventory*'",
+    "                  - !Sub 'arn:aws:dynamodb:\${AWS::Region}:*:table/Forms*'",
+    "                  - !Sub 'arn:aws:dynamodb:\${AWS::Region}:*:table/EquipTrackReport*'",
+    "                  - !Sub 'arn:aws:dynamodb:\${AWS::Region}:*:table/*/index/*'",
+    '              - Effect: Allow',
+    '                Action:',
+    '                  - secretsmanager:GetSecretValue',
+    '                Resource:',
+    "                  - !Sub 'arn:aws:secretsmanager:\${AWS::Region}:*:secret:equip-track/jwt-private-key*'",
+    "                  - !Sub 'arn:aws:secretsmanager:\${AWS::Region}:*:secret:equip-track/jwt-public-key*'",
+    '              - Effect: Allow',
+    '                Action:',
+    '                  - s3:PutObject',
+    '                  - s3:GetObject',
+    '                  - s3:DeleteObject',
+    '                Resource:',
+    '                  - arn:aws:s3:::equip-track-forms/*',
+    "                  - !Sub 'arn:aws:s3:::equip-track-forms-\${Stage}/*'",
+  ].join('\n');
+}
+
+function emitEquipTrackLambdaRole() {
+  return [
+    '  EquipTrackLambdaRole:',
+    '    Type: AWS::IAM::Role',
+    '    Properties:',
+    '      AssumeRolePolicyDocument:',
+    "        Version: '2012-10-17'",
+    '        Statement:',
+    '          - Effect: Allow',
+    '            Principal:',
+    '              Service: lambda.amazonaws.com',
+    '            Action: sts:AssumeRole',
+    '      ManagedPolicyArns:',
+    '        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole',
+    '      Policies:',
+    '        - PolicyName: EquipTrackLambdaDataAccess',
+    '          PolicyDocument:',
+    emitLambdaDataPolicyYaml(),
+  ].join('\n');
+}
+
+function emitLambdaFunctions(handlerKeys) {
+  const sorted = [...handlerKeys].sort();
+  return sorted
+    .map((handlerKey) => {
+      const logical = handlerKeyToLogicalId(handlerKey);
+      return [
+        `  ${logical}:`,
+        '    Type: AWS::Serverless::Function',
+        '    Properties:',
+        `      FunctionName: !Sub 'equip-track-${handlerKey}-\${Stage}'`,
+        '      Handler: index.handler',
+        '      Runtime: nodejs20.x',
+        '      Timeout: 30',
+        '      MemorySize: 256',
+        '      CodeUri:',
+        '        Bucket: !Ref LambdaCodeBucketName',
+        '        Key: !Ref LambdaCodeS3Key',
+        '      Role: !GetAtt EquipTrackLambdaRole.Arn',
+        '      Environment:',
+        '        Variables:',
+        '          STAGE: !Ref Stage',
+        `          LAMBDA_HANDLER_KEY: '${handlerKey}'`,
+        '          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled',
+        '          E2E_AUTH_SECRET: !Ref E2eAuthSecret',
+        '',
       ].join('\n');
     })
     .join('\n');
@@ -114,6 +209,24 @@ Parameters:
     Type: String
     Default: ''
     Description: API hostname (e.g. dev-api.equip-track.com); required with CertificateArn for custom domain in stack
+  LambdaCodeBucketName:
+    Type: String
+    Description: S3 bucket containing the shared Lambda zip (upload before sam deploy)
+  LambdaCodeS3Key:
+    Type: String
+    Description: S3 object key for shared-lambda-bundle.zip (use content hash in key so updates trigger stack changes)
+  E2eAuthEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: When true, sets E2E_AUTH_* on all handler Lambdas (dev E2E login)
+  E2eAuthSecret:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: E2E auth secret when E2eAuthEnabled is true
 
 Conditions:
   HasCustomDomain:
@@ -127,6 +240,10 @@ Conditions:
               - !Ref ApiHostname
               - ''
 Resources:
+${emitEquipTrackLambdaRole()}
+
+${emitLambdaFunctions(handlerKeys)}
+
   EquipTrackApi:
     Type: AWS::Serverless::Api
     Properties:
