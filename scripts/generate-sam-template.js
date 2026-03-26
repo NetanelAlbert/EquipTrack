@@ -53,13 +53,17 @@ function emitDefinitionPaths(pathsByKey) {
     const methodBlocks = [];
     for (const m of methodKeys) {
       const { handlerKey } = methods[m];
+      const lambdaLogical = handlerKeyToLogicalId(handlerKey);
       methodBlocks.push(
         [
           `${m}:`,
           `  x-amazon-apigateway-integration:`,
           `    type: aws_proxy`,
           `    httpMethod: POST`,
-          `    uri: !Sub 'arn:aws:apigateway:\${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:\${AWS::Region}:\${AWS::AccountId}:function:equip-track-${handlerKey}-\${Stage}/invocations'`,
+          `    uri:`,
+          `      Fn::Sub:`,
+          `        - arn:aws:apigateway:\${AWS::Region}:lambda:path/2015-03-31/functions/\${LambdaArn}/invocations`,
+          `        - LambdaArn: !GetAtt ${lambdaLogical}.Arn`,
           `  responses:`,
           `    default:`,
           `      description: Default response`,
@@ -159,7 +163,6 @@ function emitLambdaFunctions(handlerKeys) {
         `  ${logical}:`,
         '    Type: AWS::Serverless::Function',
         '    Properties:',
-        `      FunctionName: !Sub 'equip-track-${handlerKey}-\${Stage}'`,
         '      Handler: index.handler',
         '      Runtime: nodejs20.x',
         '      Timeout: 30',
@@ -319,4 +322,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { generateTemplate, buildPathsByKey };
+module.exports = { generateTemplate, buildPathsByKey, handlerKeyToLogicalId };

@@ -24,6 +24,7 @@ const {
   getLambdaCodeBucketName,
 } = require('./deploy-lambdas');
 const { getHandlerNames, SHARED_BUNDLE_ZIP } = require('./create-lambda-packages');
+const { handlerKeyToLogicalId } = require('./generate-sam-template');
 
 process.env.AWS_PAGER = '';
 
@@ -260,6 +261,32 @@ function readStackOutputs() {
   return map;
 }
 
+/**
+ * Physical Lambda names from the stack (SAM no longer sets explicit FunctionName — names are generated).
+ * @returns {Record<string, string>} logical id -> physical function name
+ */
+function getLambdaPhysicalNamesByLogicalId(stackName) {
+  const out = execFileSync(
+    'aws',
+    ['cloudformation', 'list-stack-resources', '--stack-name', stackName, '--output', 'json'],
+    { encoding: 'utf8', cwd: ROOT }
+  );
+  const summaries = JSON.parse(out).StackResourceSummaries || [];
+  /** @type {Record<string, string>} */
+  const map = {};
+  for (const r of summaries) {
+    if (
+      r.ResourceType === 'AWS::Lambda::Function' &&
+      r.LogicalResourceId &&
+      r.PhysicalResourceId &&
+      String(r.LogicalResourceId).startsWith('Lambda')
+    ) {
+      map[r.LogicalResourceId] = r.PhysicalResourceId;
+    }
+  }
+  return map;
+}
+
 function mergeDeploymentInfo(outputs, apiHostname, usedSamDomain, lambdaCode) {
   const deploymentInfoPath = path.join(ROOT, 'deployment-info.json');
   if (!fs.existsSync(deploymentInfoPath)) {
@@ -270,10 +297,15 @@ function mergeDeploymentInfo(outputs, apiHostname, usedSamDomain, lambdaCode) {
   const apiUrl = outputs.ApiUrl;
 
   const handlerNames = getHandlerNames();
-  const deployedFunctions = handlerNames.map((handlerName) => ({
-    handlerName,
-    functionName: `equip-track-${handlerName}-${STAGE}`,
-  }));
+  const physicalByLogical = getLambdaPhysicalNamesByLogicalId(STACK_NAME);
+  const deployedFunctions = handlerNames.map((handlerName) => {
+    const logical = handlerKeyToLogicalId(handlerName);
+    return {
+      handlerName,
+      functionName:
+        physicalByLogical[logical] || `equip-track-${handlerName}-${STAGE}`,
+    };
+  });
 
   di.backend = di.backend || {};
   di.backend.lambdas = {
