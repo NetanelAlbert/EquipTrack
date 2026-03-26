@@ -5,13 +5,14 @@ on:
     branches:
       - main
       - develop
-  push:
-    branches:
-      - develop
 
 concurrency:
   group: e2e-localstack-${{ github.ref }}
   cancel-in-progress: true
+
+# Nx Cloud org may be disabled; without this, `npx nx` exits before running tasks.
+env:
+  NX_NO_CLOUD: 'true'
 
 jobs:
   lint-and-unit-test:

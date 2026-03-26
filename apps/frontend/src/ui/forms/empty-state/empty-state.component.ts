@@ -1,12 +1,12 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-empty-state',
   standalone: true,
-  imports: [CommonModule, MatIconModule, TranslateModule],
+  imports: [MatIconModule, TranslateModule],
   template: `
     <div class="empty-state">
       <mat-icon>inventory_2</mat-icon>

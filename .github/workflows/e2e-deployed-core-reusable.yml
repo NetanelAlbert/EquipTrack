@@ -61,6 +61,7 @@ jobs:
           BACKEND_BASE_URL: ${{ inputs.backend_base_url }}
           E2E_AUTH_SECRET: ${{ secrets.E2E_AUTH_SECRET }}
           PLAYWRIGHT_HTML_OPEN: never
+          NX_NO_CLOUD: 'true'
         run: npx nx run frontend-e2e:e2e-deployed-core
 
       - name: Upload Playwright report

@@ -1,5 +1,5 @@
 import { Component, Inject, ViewChild, AfterViewInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import {
   MatDialogModule,
   MAT_DIALOG_DATA,
@@ -13,12 +13,11 @@ import { TranslateModule } from '@ngx-translate/core';
   selector: 'app-signature-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     MatDialogModule,
     MatButtonModule,
     SignaturePadComponent,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   template: `
     <h2 mat-dialog-title data-testid="signature-dialog-title">{{ 'common.signature.title' | translate }}</h2>
     <mat-dialog-content data-testid="signature-dialog-content">

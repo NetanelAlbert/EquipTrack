@@ -1,5 +1,5 @@
 import { Component, computed, model, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TranslateModule } from '@ngx-translate/core';
 import { FormCardComponent } from '../form-card/form-card.component';
 import { EmptyStateComponent } from '../empty-state/empty-state.component';
@@ -18,7 +18,6 @@ type SortOptions = 'newest' | 'oldest';
   selector: 'app-forms-tab-content',
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     FormCardComponent,
     EmptyStateComponent,
@@ -27,8 +26,8 @@ type SortOptions = 'newest' | 'oldest';
     MatSelectModule,
     MatIconModule,
     MatButtonModule,
-    FormsModule,
-  ],
+    FormsModule
+],
   templateUrl: './forms-tab-content.component.html',
   styleUrl: './forms-tab-content.component.scss',
 })

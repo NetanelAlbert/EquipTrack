@@ -8,7 +8,7 @@ import {
   input,
   ChangeDetectorRef,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -28,12 +28,11 @@ interface GoogleCredentialResponse {
   selector: 'app-google-sign-in',
   standalone: true,
   imports: [
-    CommonModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   templateUrl: './google-sign-in.component.html',
   styleUrl: './google-sign-in.component.scss',
 })

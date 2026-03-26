@@ -1,4 +1,4 @@
-import { Component, computed, inject, model } from '@angular/core';
+import { Component, computed, inject, model, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -47,13 +47,23 @@ type upiFilterOptions = 'upi' | 'no-upi' | 'all';
   templateUrl: './edit-products.component.html',
   styleUrls: ['./edit-products.component.scss'],
 })
-export class EditProductsComponent implements CanComponentDeactivate {
+export class EditProductsComponent
+  implements OnInit, CanComponentDeactivate
+{
   private fb = inject(FormBuilder);
   private organizationStore = inject(OrganizationStore);
   private organizationService = inject(OrganizationService);
   private dialog = inject(MatDialog);
 
+  isLoadingProducts = computed(
+    () => this.organizationStore.getProductsStatus().isLoading
+  );
+
   products = this.organizationStore.products;
+
+  ngOnInit(): void {
+    void this.organizationService.fetchProducts();
+  }
   newProductForm: FormGroup = this.fb.group({
     id: ['', [Validators.required, this.duplicateIdValidator()]],
     name: ['', [Validators.required]],

@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, computed, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -18,7 +18,6 @@ import { InventoryItem } from '@equip-track/shared';
   selector: 'app-all-inventory',
   standalone: true,
   imports: [
-    CommonModule,
     MatTabsModule,
     MatSelectModule,
     MatFormFieldModule,
@@ -28,8 +27,8 @@ import { InventoryItem } from '@equip-track/shared';
     FormsModule,
     TranslateModule,
     InventoryListComponent,
-    InventorySearchComponent,
-  ],
+    InventorySearchComponent
+],
   templateUrl: './all-inventory.component.html',
   styleUrls: ['./all-inventory.component.scss'],
 })

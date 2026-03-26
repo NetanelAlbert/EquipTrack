@@ -5,78 +5,92 @@
     <p class="subtitle">{{ 'organization.select.subtitle' | translate }}</p>
   </div>
 
-  <!-- Organizations Grid -->
-  <div
-    class="organizations-section"
-    data-testid="organizations-section"
-    *ngIf="hasOrganizations(); else noOrganizations"
-  >
-    <mat-grid-list 
-      [cols]="getGridCols()" 
-      [rowHeight]="getRowHeight()" 
-      gutterSize="16px"
-      class="organizations-grid">
-      
-      <mat-grid-tile
-        *ngFor="let org of availableOrganizations()"
-        [attr.data-testid]="'organization-tile-' + org.id"
-      >
-        <mat-card 
-          class="organization-card"
-          [attr.data-testid]="'organization-card-' + org.id"
-          [class.selecting]="isSelectingOrganization(org.id)"
-          (click)="selectOrganization(org)">
-          
-          <!-- Organization Image/Icon -->
-          <div class="card-header">
-            <div class="organization-avatar">
-              <mat-icon>business</mat-icon>
-            </div>
-          </div>
-
-          <!-- Organization Info -->
-          <mat-card-content class="card-content">
-            <h3 class="organization-name">{{ org.name }}</h3>
-          </mat-card-content>
-
-          <!-- Select Button -->
-          <mat-card-actions class="card-actions">
-            <button
-              mat-raised-button 
-              color="primary"
-              [attr.data-testid]="'select-organization-' + org.id"
-              [disabled]="isLoading()"
-              class="select-button">
-              
-              <mat-icon *ngIf="isSelectingOrganization(org.id)">hourglass_empty</mat-icon>
-              <span>{{ 'organization.select.select-button' | translate }}</span>
-            </button>
-          </mat-card-actions>
-        </mat-card>
-      </mat-grid-tile>
-    </mat-grid-list>
-  </div>
-
-  <!-- No Organizations State -->
-  <ng-template #noOrganizations>
-    <div class="no-organizations" data-testid="no-organizations-state">
-      <mat-icon class="no-org-icon">group_off</mat-icon>
-      <h2>{{ 'organization.select.no-organizations.title' | translate }}</h2>
-      <p>{{ 'organization.select.no-organizations.message' | translate }}</p>
-      
-      <div class="actions">
-        <button
-          mat-raised-button 
-          color="primary"
-          data-testid="request-organization-access"
-          (click)="requestAccess()">
-          <mat-icon>mail</mat-icon>
-          {{ 'organization.select.no-organizations.contact-admin' | translate }}
-        </button>
-      </div>
+  @if (isLoadingStartData()) {
+    <div
+      class="start-data-loading"
+      role="status"
+      aria-live="polite"
+      data-testid="organizations-loading"
+    >
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>{{ 'organization.select.loading' | translate }}</p>
     </div>
-  </ng-template>
-</div> 
-@if (isLoading()) {
-  <mat-spinner></mat-spinner> 
+  } @else {
+    @if (hasOrganizations()) {
+      <div
+        class="organizations-section"
+        data-testid="organizations-section"
+      >
+        <mat-grid-list
+          [cols]="getGridCols()"
+          [rowHeight]="getRowHeight()"
+          gutterSize="16px"
+          class="organizations-grid"
+        >
+          @for (org of availableOrganizations(); track org) {
+            <mat-grid-tile [attr.data-testid]="'organization-tile-' + org.id">
+              <mat-card
+                class="organization-card"
+                [attr.data-testid]="'organization-card-' + org.id"
+                [class.selecting]="isSelectingOrganization(org.id)"
+                (click)="selectOrganization(org)"
+              >
+                <div class="card-header">
+                  <div class="organization-avatar">
+                    <mat-icon>business</mat-icon>
+                  </div>
+                </div>
+                <mat-card-content class="card-content">
+                  <h3 class="organization-name">{{ org.name }}</h3>
+                </mat-card-content>
+                <mat-card-actions class="card-actions">
+                  <button
+                    mat-raised-button
+                    color="primary"
+                    [attr.data-testid]="'select-organization-' + org.id"
+                    [disabled]="isLoading()"
+                    class="select-button"
+                  >
+                    @if (isSelectingOrganization(org.id)) {
+                      <mat-icon>hourglass_empty</mat-icon>
+                    }
+                    <span>{{ 'organization.select.select-button' | translate }}</span>
+                  </button>
+                </mat-card-actions>
+              </mat-card>
+            </mat-grid-tile>
+          }
+        </mat-grid-list>
+      </div>
+    } @else {
+      <div class="no-organizations" data-testid="no-organizations-state">
+        <mat-icon class="no-org-icon">group_off</mat-icon>
+        <h2>{{ 'organization.select.no-organizations.title' | translate }}</h2>
+        <p>{{ 'organization.select.no-organizations.message' | translate }}</p>
+        <div class="actions">
+          <button
+            mat-raised-button
+            color="primary"
+            data-testid="request-organization-access"
+            (click)="requestAccess()"
+          >
+            <mat-icon>mail</mat-icon>
+            {{ 'organization.select.no-organizations.contact-admin' | translate }}
+          </button>
+        </div>
+      </div>
+    }
+  }
+</div>
+
+@if (isRedirecting()) {
+  <div
+    class="redirect-overlay"
+    role="status"
+    aria-live="polite"
+    data-testid="organization-redirect-loading"
+  >
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>{{ 'common.loading' | translate }}</p>
+  </div>
 }

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+
 import {
   Component,
   computed,
@@ -22,15 +22,14 @@ import { TopBarComponent } from '../top-bar/top-bar.component';
   selector: 'app-side-nav',
   standalone: true,
   imports: [
-    CommonModule,
     MatSidenavModule,
     MatListModule,
     MatButtonModule,
     MatIconModule,
     RouterModule,
     TranslateModule,
-    TopBarComponent,
-  ],
+    TopBarComponent
+],
   templateUrl: './side-nav.component.html',
   styleUrl: './side-nav.component.scss',
 })

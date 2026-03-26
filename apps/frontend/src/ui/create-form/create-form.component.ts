@@ -6,7 +6,7 @@ import {
   Signal,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -26,6 +26,7 @@ import { FormsStore } from '../../store/forms.store';
 import { InventoryStore } from '../../store/inventory.store';
 import { UserDisplayComponent } from '../shared/user-display/user-display.component';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { of } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
@@ -41,7 +42,6 @@ interface CreateFormConfig {
   selector: 'app-create-form',
   standalone: true,
   imports: [
-    CommonModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -55,6 +55,7 @@ interface CreateFormConfig {
     MatProgressSpinnerModule,
     UserDisplayComponent,
     MatRadioModule,
+    MatTooltipModule,
   ],
   templateUrl: './create-form.component.html',
   styleUrls: ['./create-form.component.scss'],
