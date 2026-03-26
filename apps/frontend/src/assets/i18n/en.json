@@ -199,6 +199,8 @@
       "addUser": "Add User",
       "showAllUsers": "Show All Users",
       "resetToWarehouse": "Reset to Warehouse",
+      "clearColumnSort": "Clear Column Sort",
+      "sortByProductClick": "Click to sort user columns by this product",
       "product": "Product",
       "upiProduct": "This product has unique identifiers (UPI)",
       "noInventory": "No Inventory Data",
@@ -295,7 +297,9 @@
     "submit-button": {
       "check-in": "Check In",
       "check-out": "Check Out"
-    }
+    },
+    "add-all-items-tooltip": "Add all items from this form",
+    "add-form-aria-label": "Add Form"
   },
   "reports": {
     "title": "Reports",

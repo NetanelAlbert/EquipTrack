@@ -1,6 +1,7 @@
 import {
   Component,
   computed,
+  effect,
   inject,
   OnInit,
   Signal,
@@ -31,6 +32,7 @@ import { InventoryStore } from '../../store/inventory.store';
 import { UserDisplayComponent } from '../shared/user-display/user-display.component';
 import { userMatchesSelectSearch } from '../shared/user-select-search';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { of } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
@@ -58,8 +60,9 @@ interface CreateFormConfig {
     InventoryListComponent,
     MatProgressSpinnerModule,
     UserDisplayComponent,
-    MatRadioModule
-],
+    MatRadioModule,
+    MatTooltipModule,
+  ],
   templateUrl: './create-form.component.html',
   styleUrls: ['./create-form.component.scss'],
 })
@@ -119,6 +122,18 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
     icon: 'check',
     color: 'primary',
   }));
+
+  constructor() {
+    effect(() => {
+      const uid = this.userId();
+      const fType = this.formType();
+      if (fType === FormType.CheckOut) {
+        void this.inventoryStore.ensureUserInventoryLoaded('WAREHOUSE');
+      } else if (uid) {
+        void this.inventoryStore.ensureUserInventoryLoaded(uid);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
