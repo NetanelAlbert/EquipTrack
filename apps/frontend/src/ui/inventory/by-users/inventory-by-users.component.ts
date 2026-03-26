@@ -220,29 +220,19 @@ export class InventoryByUsersComponent implements OnInit {
   );
 
   constructor() {
-    // Fetch user inventory when selected users change
     effect(() => {
       const selectedUsers = this.selectedUserIds();
       selectedUsers.forEach((userId) => {
         if (userId !== 'WAREHOUSE') {
-          // Check if inventory is already loaded to avoid infinite loop
-          const inventory = this.inventoryStore.inventory();
-          if (!inventory[userId] || inventory[userId].length === 0) {
-            // Use setTimeout to avoid effect triggering during signal update
-            setTimeout(() => {
-              this.inventoryStore.fetchUserInventory(userId);
-            });
-          }
+          void this.inventoryStore.ensureUserInventoryLoaded(userId);
         }
       });
     });
   }
 
   ngOnInit() {
-    // Fetch organization users for dropdown
     this.loadUsers();
-    // Fetch warehouse inventory
-    this.inventoryStore.fetchUserInventory('WAREHOUSE');
+    void this.inventoryStore.ensureUserInventoryLoaded('WAREHOUSE');
   }
 
   // Method to load/retry users
