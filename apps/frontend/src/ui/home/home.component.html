@@ -5,6 +5,17 @@
     <p class="subtitle">{{ 'organization.select.subtitle' | translate }}</p>
   </div>
 
+  @if (isLoadingStartData()) {
+    <div
+      class="start-data-loading"
+      role="status"
+      aria-live="polite"
+      data-testid="organizations-loading"
+    >
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>{{ 'organization.select.loading' | translate }}</p>
+    </div>
+  } @else {
   <!-- Organizations Grid -->
   <div
     class="organizations-section"
@@ -76,7 +87,17 @@
       </div>
     </div>
   </ng-template>
-</div> 
-@if (isLoading()) {
-  <mat-spinner></mat-spinner> 
+  }
+</div>
+
+@if (isRedirecting()) {
+  <div
+    class="redirect-overlay"
+    role="status"
+    aria-live="polite"
+    data-testid="organization-redirect-loading"
+  >
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>{{ 'common.loading' | translate }}</p>
+  </div>
 }

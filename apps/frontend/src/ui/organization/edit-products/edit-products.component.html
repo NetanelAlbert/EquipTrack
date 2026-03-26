@@ -1,4 +1,15 @@
 <div class="edit-products-container">
+  @if (isLoadingProducts()) {
+    <div
+      class="edit-products-loading"
+      role="status"
+      aria-live="polite"
+      data-testid="edit-products-loading"
+    >
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>{{ 'common.loading' | translate }}</p>
+    </div>
+  } @else {
   <mat-card>
     <mat-card-header>
       <mat-card-title>{{ 'organization.editProducts.title' | translate }}</mat-card-title>
@@ -96,7 +107,6 @@
                 } @else {
                   <mat-icon>edit</mat-icon>
                 }
-                <mat-spinner diameter="32" *ngIf="isProductSaving(product.id)"></mat-spinner>
               </button>
               <button mat-icon-button color="warn" (click)="removeProduct(product.id)">
                 @if (isProductDeleting(product.id)) {
@@ -110,4 +120,5 @@
       }
     </mat-card-content>
   </mat-card>
+  }
 </div> 

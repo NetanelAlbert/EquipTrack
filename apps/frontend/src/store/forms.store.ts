@@ -89,7 +89,8 @@ export const FormsStore = signalStore(
           state.fetchFormsStatus().isLoading ||
           state.addFormStatus().isLoading ||
           state.approveFormStatus().isLoading ||
-          state.rejectFormStatus().isLoading
+          state.rejectFormStatus().isLoading ||
+          state.getPresignedUrlStatus().isLoading
       ),
     };
   }),
