@@ -376,7 +376,7 @@ test.describe('core regression ui flow', () => {
     await expect(page.getByRole('heading', { name: 'Reports History' })).toBeVisible({
       timeout: 20000,
     });
-    await expect(page.getByTestId('nav-link-reports-history')).toBeVisible();
+    await expect(page.getByTestId('nav-link-reports-history')).toHaveCount(1);
     await expect(page.getByTestId('nav-link-my-items')).toHaveCount(0);
     await expect(page.getByTestId('nav-link-create-form')).toHaveCount(0);
     await expect(page.getByTestId('nav-link-forms')).toHaveCount(0);
