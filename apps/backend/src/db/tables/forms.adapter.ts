@@ -3,7 +3,7 @@
  */
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DbKey, DbItemType } from '../models';
+import { DbItemType } from '../models';
 import {
   DynamoDBDocumentClient,
   QueryCommand,
@@ -11,15 +11,13 @@ import {
   UpdateCommand,
   GetCommand,
 } from '@aws-sdk/lib-dynamodb';
-import {
-  FORMS_TABLE_NAME,
-  USER_PREFIX,
-  ORG_PREFIX,
-  FORM_PREFIX,
-  FORMS_BY_ORGANIZATION_INDEX,
-} from '../constants';
+import { FORMS_TABLE_NAME } from '../constants';
 import { InventoryForm, PredefinedForm } from '@equip-track/shared';
 import { getDynamoDbClientConfig } from '../../services/aws-client-config.service';
+
+/** Sort key for user inventory forms: `<userId>#<formId>` */
+const userFormSortKey = (userId: string, formId: string): string =>
+  `${userId}#${formId}`;
 
 export class FormsAdapter {
   private readonly client = new DynamoDBClient(getDynamoDbClientConfig());
@@ -33,25 +31,11 @@ export class FormsAdapter {
     console.log('[FormsAdapter.getUserForms]', { userId, organizationId });
     const command = new QueryCommand({
       TableName: this.tableName,
-      KeyConditionExpression: 'PK = :pk',
+      KeyConditionExpression:
+        'organizationId = :org AND begins_with(userFormKey, :userPrefix)',
       ExpressionAttributeValues: {
-        ':pk': `${ORG_PREFIX}${organizationId}#${USER_PREFIX}${userId}`,
-      },
-    });
-
-    const result = await this.docClient.send(command);
-    const items = result.Items ?? [];
-    return items.map(this.getInventoryForm);
-  }
-
-  async getOrganizationForms(organizationId: string): Promise<InventoryForm[]> {
-    console.log('[FormsAdapter.getOrganizationForms]', { organizationId });
-    const command = new QueryCommand({
-      TableName: this.tableName,
-      IndexName: FORMS_BY_ORGANIZATION_INDEX,
-      KeyConditionExpression: 'organizationId = :orgId',
-      ExpressionAttributeValues: {
-        ':orgId': `${ORG_PREFIX}${organizationId}`,
+        ':org': organizationId,
+        ':userPrefix': `${userId}#`,
       },
     });
 
@@ -59,7 +43,29 @@ export class FormsAdapter {
     const items = result.Items ?? [];
     return items
       .filter((item) => item.dbItemType === DbItemType.Form)
-      .map(this.getInventoryForm);
+      .map((item) => this.getInventoryForm(item));
+  }
+
+  async getOrganizationForms(organizationId: string): Promise<InventoryForm[]> {
+    console.log('[FormsAdapter.getOrganizationForms]', { organizationId });
+    const command = new QueryCommand({
+      TableName: this.tableName,
+      KeyConditionExpression: 'organizationId = :org',
+      ExpressionAttributeValues: {
+        ':org': organizationId,
+      },
+    });
+
+    const result = await this.docClient.send(command);
+    const items = result.Items ?? [];
+    return items
+      .filter(
+        (item) =>
+          item.dbItemType === DbItemType.Form &&
+          typeof item['userFormKey'] === 'string' &&
+          !(item['userFormKey'] as string).startsWith('PREDEFINED#')
+      )
+      .map((item) => this.getInventoryForm(item));
   }
 
   async getForm(
@@ -74,7 +80,7 @@ export class FormsAdapter {
     });
     const command = new GetCommand({
       TableName: this.tableName,
-      Key: this.getFormKey(userId, organizationId, formId),
+      Key: this.getUserFormKey(userId, organizationId, formId),
     });
 
     const result = await this.docClient.send(command);
@@ -89,9 +95,11 @@ export class FormsAdapter {
     console.log('[FormsAdapter.getPredefinedForms]', { organizationId });
     const command = new QueryCommand({
       TableName: this.tableName,
-      KeyConditionExpression: 'PK = :pk',
+      KeyConditionExpression:
+        'organizationId = :org AND begins_with(userFormKey, :pre)',
       ExpressionAttributeValues: {
-        ':pk': `${ORG_PREFIX}${organizationId}`,
+        ':org': organizationId,
+        ':pre': 'PREDEFINED#',
       },
     });
 
@@ -99,19 +107,18 @@ export class FormsAdapter {
     const items = result.Items ?? [];
     return items
       .filter((item) => item.dbItemType === DbItemType.PredefinedForm)
-      .map(this.getPredefinedForm);
+      .map((item) => this.getPredefinedForm(item));
   }
 
   async createForm(form: InventoryForm): Promise<void> {
     console.log('[FormsAdapter.createForm]', {
       formId: form.formID,
       userId: form.userID,
-      organizationId: form.organizationID,
+      organizationId: form.organizationId,
     });
     const formDb = {
-      ...this.getFormKey(form.userID, form.organizationID, form.formID),
+      ...this.getUserFormKey(form.userID, form.organizationId, form.formID),
       dbItemType: DbItemType.Form,
-      organizationId: `${ORG_PREFIX}${form.organizationID}`,
       ...form,
     };
 
@@ -134,7 +141,7 @@ export class FormsAdapter {
       userId,
       organizationId,
     });
-    const key = this.getFormKey(userId, organizationId, formID);
+    const key = this.getUserFormKey(userId, organizationId, formID);
 
     // Build dynamic update expression
     const updateExpressions: string[] = [];
@@ -174,7 +181,7 @@ export class FormsAdapter {
         ExpressionAttributeNames: expressionAttributeNames,
       }),
       // Ensure the form exists before updating
-      ConditionExpression: 'attribute_exists(PK)',
+      ConditionExpression: 'attribute_exists(organizationId)',
       // Return all attributes after the update
       ReturnValues: 'ALL_NEW',
     });
@@ -198,21 +205,14 @@ export class FormsAdapter {
     }
   }
 
-  private getFormKey(
+  private getUserFormKey(
     userId: string,
     organizationId: string,
     formId: string
-  ): DbKey {
+  ): { organizationId: string; userFormKey: string } {
     return {
-      PK: `${ORG_PREFIX}${organizationId}#${USER_PREFIX}${userId}`,
-      SK: `${FORM_PREFIX}${formId}`,
-    };
-  }
-
-  private getPredefinedFormKey(organizationId: string, formId: string): DbKey {
-    return {
-      PK: `${ORG_PREFIX}${organizationId}`,
-      SK: `${FORM_PREFIX}${formId}`,
+      organizationId,
+      userFormKey: userFormSortKey(userId, formId),
     };
   }
 
@@ -221,7 +221,10 @@ export class FormsAdapter {
       throw new Error(`Item is not a form: ${JSON.stringify(item)}`);
     }
 
-    return item as unknown as InventoryForm;
+    const { dbItemType, userFormKey, ...rest } = item;
+    void dbItemType;
+    void userFormKey;
+    return rest as unknown as InventoryForm;
   }
 
   private getPredefinedForm(item: Record<string, unknown>): PredefinedForm {
@@ -229,6 +232,9 @@ export class FormsAdapter {
       throw new Error(`Item is not a predefined form: ${JSON.stringify(item)}`);
     }
 
-    return item as unknown as PredefinedForm;
+    const { dbItemType, userFormKey, ...rest } = item;
+    void dbItemType;
+    void userFormKey;
+    return rest as unknown as PredefinedForm;
   }
 }

@@ -14,7 +14,6 @@ const ITEMS_BY_HOLDER_INDEX = 'ItemsByHolderIndex';
 const ITEMS_BY_HOLDER_INDEX_HOLDER_PK = 'holderIdQueryKey';
 const PRODUCTS_BY_ORGANIZATION_INDEX = 'ProductsByOrganizationIndex';
 const PRODUCTS_BY_ORGANIZATION_INDEX_PK = 'organizationId';
-const FORMS_BY_ORGANIZATION_INDEX = 'FormsByOrganizationIndex';
 const ITEM_REPORT_HISTORY_INDEX = 'ItemReportHistoryIndex';
 const USERS_BY_EMAIL_INDEX = 'UsersByEmailIndex';
 const ORGANIZATION_TO_USERS_INDEX = 'OrganizationToUsersIndex';
@@ -90,23 +89,12 @@ const tableDefinitions = {
   Forms: {
     tableName: FORMS_TABLE_NAME,
     keySchema: [
-      { AttributeName: 'PK', KeyType: 'HASH' },
-      { AttributeName: 'SK', KeyType: 'RANGE' },
+      { AttributeName: 'organizationId', KeyType: 'HASH' },
+      { AttributeName: 'userFormKey', KeyType: 'RANGE' },
     ],
     attributeDefinitions: [
-      { AttributeName: 'PK', AttributeType: 'S' },
-      { AttributeName: 'SK', AttributeType: 'S' },
       { AttributeName: 'organizationId', AttributeType: 'S' },
-    ],
-    globalSecondaryIndexes: [
-      {
-        IndexName: FORMS_BY_ORGANIZATION_INDEX,
-        KeySchema: [
-          { AttributeName: 'organizationId', KeyType: 'HASH' },
-          { AttributeName: 'SK', KeyType: 'RANGE' },
-        ],
-        Projection: { ProjectionType: 'ALL' },
-      },
+      { AttributeName: 'userFormKey', AttributeType: 'S' },
     ],
     billingMode: 'PAY_PER_REQUEST',
   },

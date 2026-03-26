@@ -55,23 +55,17 @@ This table manages products, inventory items, and their current holders.
 
 ## Table 3: `Forms` (Forms Management Table)
 
-This table manages check-in/check-out forms and predefined forms.
+This table manages check-in/check-out forms and predefined forms. The Forms table is dedicated to form data only, so keys use the natural identifiers without shared-table `PK`/`SK` prefixes.
 
 -   **Table Name**: `Forms`
--   **Primary Key**: `PK` (Partition Key), `SK` (Sort Key)
-
-### Global Secondary Indexes (GSIs)
-
-1.  **`FormsByOrganizationIndex`**: Used for querying all forms within an organization.
-    -   **PK**: `organizationId` (`ORG#<id>`)
-    -   **SK**: `SK` (`FORM#<id>`)
+-   **Primary Key**: `organizationId` (Partition Key), `userFormKey` (Sort Key)
 
 ### Entity Map
 
-| Entity / Purpose       | `PK` (Partition Key)      | `SK` (Sort Key)                   | `organizationId`           |
-| :--------------------- | :------------------------ | :-------------------------------- | :-------------------------- |
-| **User Form**          | `ORG#<orgId>#USER#<userId>` | `FORM#<id>`                     | `ORG#<id>`                  |
-| **Predefined Form**    | `ORG#<id>`                | `FORM#<id>`                       | `ORG#<id>`                  |
+| Entity / Purpose       | `organizationId` | `userFormKey`                         | Notes |
+| :--------------------- | :--------------- | :------------------------------------ | :---- |
+| **User Form**          | `<org id>`       | `<userId>#<formId>`                   | Inventory check-in/out forms tied to a user |
+| **Predefined Form**    | `<org id>`       | `PREDEFINED#<formId>`                 | Template forms for the org (distinct sort-key prefix) |
 
 ---
 

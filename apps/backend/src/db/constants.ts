@@ -34,7 +34,6 @@ export const UPI_PREFIX = 'UPI#';
 export const HOLDER_PREFIX = 'HOLDER#';
 export const WAREHOUSE_SUFFIX = 'WAREHOUSE';
 export const TRANSFER_PREFIX = 'TRANSFER#';
-export const FORM_PREFIX = 'FORM#';
 export const DATE_PREFIX = 'DATE#';
 export const ITEM_KEY_PREFIX = 'ITEM_KEY#';
 export const LOCK_PREFIX = 'LOCK#';
@@ -59,7 +58,6 @@ export const ORGANIZATION_TO_USERS_INDEX_SK = 'PK';
 
 export const TRANSACTIONS_INDEX = 'TransactionsIndex';
 export const ITEM_REPORT_HISTORY_INDEX = 'ItemReportHistoryIndex';
-export const FORMS_BY_ORGANIZATION_INDEX = 'FormsByOrganizationIndex';
 
 // ===================================
 // DynamoDB Limits and Configuration
