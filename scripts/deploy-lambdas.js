@@ -644,4 +644,6 @@ module.exports = {
   getLambdaEnvironmentVariables,
   getLambdaCodeBucketName,
   sharedBundleS3Key,
+  ensureLambdaCodeBucket,
+  uploadSharedLambdaBundle,
 }; 
