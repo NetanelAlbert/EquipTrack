@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, computed, signal, Signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { InventoryListComponent } from '../inventory/list/inventory-list.component';
 import { InventorySearchComponent } from '../inventory/search/inventory-search.component';
 import { UserStore, InventoryStore, OrganizationStore } from '../../store';
@@ -8,7 +8,7 @@ import { InventoryItem } from '@equip-track/shared';
 @Component({
   selector: 'app-my-items',
   standalone: true,
-  imports: [CommonModule, InventoryListComponent, InventorySearchComponent],
+  imports: [InventoryListComponent, InventorySearchComponent],
   templateUrl: './my-items.component.html',
   styleUrl: './my-items.component.scss',
 })

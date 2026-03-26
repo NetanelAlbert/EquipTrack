@@ -1,5 +1,5 @@
 import { Component, Inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import {
   MatDialogModule,
   MAT_DIALOG_DATA,
@@ -16,14 +16,13 @@ import { Product } from '@equip-track/shared';
   selector: 'app-edit-product-name-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
     FormsModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   template: `
     <h2 mat-dialog-title>
       {{ 'organization.editProducts.editDialog.title' | translate }}

@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, inject, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -24,7 +24,6 @@ import { SettingsComponent } from '../settings/settings.component';
   selector: 'top-bar',
   standalone: true,
   imports: [
-    CommonModule,
     MatToolbarModule,
     MatIconModule,
     MatButtonModule,
@@ -32,8 +31,8 @@ import { SettingsComponent } from '../settings/settings.component';
     MatDividerModule,
     MatDialogModule,
     TranslateModule,
-    RouterModule,
-  ],
+    RouterModule
+],
   templateUrl: './top-bar.component.html',
   styleUrl: './top-bar.component.scss',
 })

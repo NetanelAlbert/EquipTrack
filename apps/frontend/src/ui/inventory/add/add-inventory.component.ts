@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,14 +16,13 @@ import { CanComponentDeactivate } from '../../../app/guards/unsaved-changes.guar
   selector: 'app-add-inventory',
   standalone: true,
   imports: [
-    CommonModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
     TranslateModule,
-    EditableInventoryComponent,
-  ],
+    EditableInventoryComponent
+],
   templateUrl: './add-inventory.component.html',
   styleUrl: './add-inventory.component.scss',
 })

@@ -6,7 +6,7 @@ import {
   Signal,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -41,7 +41,6 @@ interface CreateFormConfig {
   selector: 'app-create-form',
   standalone: true,
   imports: [
-    CommonModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -54,8 +53,8 @@ interface CreateFormConfig {
     InventoryListComponent,
     MatProgressSpinnerModule,
     UserDisplayComponent,
-    MatRadioModule,
-  ],
+    MatRadioModule
+],
   templateUrl: './create-form.component.html',
   styleUrls: ['./create-form.component.scss'],
 })

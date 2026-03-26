@@ -62,3 +62,5 @@ cloudfront-config.json
 cloudfront-update-config.json
 
 scratchpads/
+.claude/worktrees
+.claude/settings.local.json

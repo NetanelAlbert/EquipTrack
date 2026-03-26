@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsStore } from '../../store/forms.store';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
@@ -17,11 +17,10 @@ const formTypeToTabIndex: Record<FormType, number> = {
   selector: 'app-forms',
   standalone: true,
   imports: [
-    CommonModule,
     MatTabsModule,
     TranslateModule,
-    FormsTabContentComponent,
-  ],
+    FormsTabContentComponent
+],
   templateUrl: './forms.component.html',
   styleUrl: './forms.component.scss',
 })
