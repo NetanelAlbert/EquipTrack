@@ -126,6 +126,10 @@ Conditions:
           - Fn::Equals:
               - !Ref ApiHostname
               - ''
+  IsProductionStage:
+    Fn::Equals:
+      - !Ref Stage
+      - production
 Resources:
   EquipTrackApi:
     Type: AWS::Serverless::Api
@@ -136,7 +140,7 @@ Resources:
       Cors:
         AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
         AllowHeaders: "'${CORS_HEADERS}'"
-        AllowOrigin: "'*'"
+        AllowOrigin: !If [IsProductionStage, "'*'", "'http://localhost:4200,*'"]
         AllowCredentials: false
         MaxAge: "'86400'"
       DefinitionBody:
