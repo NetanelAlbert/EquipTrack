@@ -12,8 +12,8 @@ function loadEndpointMetas() {
     const { endpointMetas } = require('../libs/shared/src/api/endpoints');
     console.log('✅ Loaded endpoints from built files');
     return endpointMetas;
-  } catch (error) {
-    console.log('⚠️  Could not load from built files, trying source files...', error);
+  } catch (_) {
+    console.log('⚠️  Could not load from built files, trying source files via ts-node...');
   }
 
   // Try to load from source TypeScript files using ts-node
@@ -28,7 +28,7 @@ function loadEndpointMetas() {
     console.log('✅ Loaded endpoints from source files');
     return endpointMetas;
   } catch (error) {
-    console.log('⚠️  Could not load from source files, using fallback definitions.', error);
+    console.log('⚠️  Could not load from source files, using fallback definitions:', error.message);
   }
   
   // Fallback to hardcoded definitions
