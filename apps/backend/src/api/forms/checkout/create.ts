@@ -65,7 +65,7 @@ export const handler = async (
     const form: InventoryForm = {
       userID: req.userId,
       formID,
-      organizationID: organizationId,
+      organizationId,
       items: req.items,
       type: req.formType,
       status: FormStatus.Pending,

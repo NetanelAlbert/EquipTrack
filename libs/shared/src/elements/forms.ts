@@ -13,9 +13,9 @@ export enum FormType {
 
 /** DynamoDB table */
 export interface InventoryForm {
-  userID: string; // partition key
-  formID: string; // sort key
-  organizationID: string; // secondary index key
+  userID: string;
+  formID: string;
+  organizationId: string;
   items: InventoryItem[];
   type: FormType;
   status: FormStatus;
@@ -33,8 +33,8 @@ export interface InventoryForm {
 
 /** DynamoDB table */
 export interface PredefinedForm {
-  organizationID: string; // partition key
-  formID: string; // sort key
+  organizationId: string;
+  formID: string;
   description: string;
   items: InventoryItem[];
 }

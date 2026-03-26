@@ -14,7 +14,7 @@ describe('FormsTabContentComponent', () => {
     {
       formID: 'form1',
       userID: 'user1',
-      organizationID: 'org1',
+      organizationId: 'org1',
       status: FormStatus.Pending,
       type: FormType.CheckOut,
       items: [],
@@ -25,7 +25,7 @@ describe('FormsTabContentComponent', () => {
     {
       formID: 'form2',
       userID: 'user2',
-      organizationID: 'org1',
+      organizationId: 'org1',
       status: FormStatus.Approved,
       type: FormType.CheckOut,
       items: [],

@@ -44,7 +44,7 @@ function buildForm(overrides: Partial<InventoryForm>): InventoryForm {
   return {
     userID: 'user-1',
     formID: 'form-1',
-    organizationID: 'org-1',
+    organizationId: 'org-1',
     items: [],
     type: FormType.CheckOut,
     status: FormStatus.Pending,
