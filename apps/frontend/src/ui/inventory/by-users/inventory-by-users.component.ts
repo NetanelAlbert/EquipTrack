@@ -7,7 +7,7 @@ import {
   effect,
   Signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -55,7 +55,6 @@ interface ProductColumnSort {
   selector: 'inventory-by-users',
   standalone: true,
   imports: [
-    CommonModule,
     MatSelectModule,
     MatFormFieldModule,
     MatIconModule,
@@ -66,8 +65,8 @@ interface ProductColumnSort {
     MatProgressSpinnerModule,
     FormsModule,
     TranslateModule,
-    UserDisplayComponent,
-  ],
+    UserDisplayComponent
+],
   templateUrl: './inventory-by-users.component.html',
   styleUrls: ['./inventory-by-users.component.scss'],
 })

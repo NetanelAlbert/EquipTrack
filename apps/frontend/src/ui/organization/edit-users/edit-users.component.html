@@ -27,9 +27,9 @@
       <form #inviteFormRef [formGroup]="inviteForm" class="invite-form">
         <mat-form-field appearance="outline" class="email-field">
           <mat-label>{{ 'organization.users.invite.email-label' | translate }}</mat-label>
-          <input 
-            matInput 
-            type="email" 
+          <input
+            matInput
+            type="email"
             formControlName="email"
             [placeholder]="'organization.users.invite.email-placeholder' | translate"
             >
@@ -49,7 +49,7 @@
             <mat-option [value]="UserRole.WarehouseManager">{{ 'organization.users.roles.warehouse-manager' | translate }}</mat-option>
             <mat-option [value]="UserRole.Admin">{{ 'organization.users.roles.admin' | translate }}</mat-option>
           </mat-select>
-        </mat-form-field>        
+        </mat-form-field>
 
         <mat-form-field appearance="outline" class="department-field">
           <mat-label>{{ 'organization.users.invite.department-label' | translate }}</mat-label>
@@ -80,10 +80,10 @@
           <input matInput formControlName="roleDescription" [placeholder]="'organization.users.invite.role-description-placeholder' | translate">
         </mat-form-field>
 
-        <button 
+        <button
           #inviteButton
-          mat-raised-button 
-          color="primary" 
+          mat-raised-button
+          color="primary"
           (click)="inviteUser()"
           [disabled]="!inviteForm.valid || isLoading()"
           class="invite-button">
@@ -148,8 +148,8 @@
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef>{{ 'organization.users.table.actions' | translate }}</th>
             <td mat-cell *matCellDef="let user">
-              <button 
-                mat-icon-button 
+              <button
+                mat-icon-button
                 (click)="editUser(user)"
                 [matTooltip]="'organization.users.table.edit-tooltip' | translate"
                 [disabled]="isLoading()">
@@ -163,13 +163,16 @@
         </table>
 
         <!-- Empty State -->
-        <div *ngIf="users().length === 0" class="empty-state">
-          <mat-icon class="empty-icon">group_off</mat-icon>
-          <h3>{{ 'organization.users.empty.title' | translate }}</h3>
-          <p>{{ 'organization.users.empty.message' | translate }}</p>
-        </div>
+        @if (users().length === 0) {
+          <div class="empty-state">
+            <mat-icon class="empty-icon">group_off</mat-icon>
+            <h3>{{ 'organization.users.empty.title' | translate }}</h3>
+            <p>{{ 'organization.users.empty.message' | translate }}</p>
+          </div>
+        }
       </div>
     </mat-card-content>
   </mat-card>
   }
-</div> 
+</div>
+
