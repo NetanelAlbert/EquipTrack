@@ -74,6 +74,13 @@ async function seedE2eData() {
       state: 'active',
       role: 'customer',
     },
+    {
+      id: 'user-e2e-inspector',
+      name: 'E2E Inspector',
+      email: 'e2e.inspector@example.com',
+      state: 'active',
+      role: 'inspector',
+    },
   ];
 
   const organization = {
