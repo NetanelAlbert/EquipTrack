@@ -1,6 +1,7 @@
 import {
   Component,
   computed,
+  effect,
   inject,
   OnInit,
   Signal,
@@ -108,6 +109,18 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
     icon: 'check',
     color: 'primary',
   }));
+
+  constructor() {
+    effect(() => {
+      const uid = this.userId();
+      const fType = this.formType();
+      if (fType === FormType.CheckOut) {
+        void this.inventoryStore.ensureUserInventoryLoaded('WAREHOUSE');
+      } else if (uid) {
+        void this.inventoryStore.ensureUserInventoryLoaded(uid);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {

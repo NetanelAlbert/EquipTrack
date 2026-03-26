@@ -18,12 +18,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import {
-  ReportsStore,
-  UserStore,
-  OrganizationStore,
-  InventoryStore,
-} from '../../../store';
+import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
 import {
   formatJerusalemDBDate,
   InventoryItem,
@@ -53,7 +48,6 @@ export class TodayReportComponent {
   reportsStore = inject(ReportsStore);
   userStore = inject(UserStore);
   organizationStore = inject(OrganizationStore);
-  inventoryStore = inject(InventoryStore);
   translateService = inject(TranslateService);
 
   sortBy: Signal<'location' | 'product'> = signal('product');
@@ -77,10 +71,6 @@ export class TodayReportComponent {
       return acc;
     }, {} as Record<string, string>);
   });
-  userInventory = computed(() =>
-    this.inventoryStore.getUserInventory(this.userStore.user()?.id)()
-  );
-  
   itemsToShow: Signal<Array<[string, ItemReport[]]>> = computed(() =>
     this.inventoryItemsByHolderToItemReports(this.reportsStore.itemsToReport())
   );
