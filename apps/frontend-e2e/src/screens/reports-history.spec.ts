@@ -60,15 +60,13 @@ test.describe('reports-history screen', () => {
     await prevBtn.click();
     await page.waitForTimeout(1000);
 
-    const prevDateValue = await dateInput.inputValue();
-    expect(prevDateValue).not.toBe(initialDate);
+    await expect(dateInput).not.toHaveValue(initialDate);
 
     const nextBtn = page.getByTestId('reports-history-next-day');
     await nextBtn.click();
     await page.waitForTimeout(1000);
 
-    const nextDateValue = await dateInput.inputValue();
-    expect(nextDateValue).toBe(initialDate);
+    await expect(dateInput).toHaveValue(initialDate);
   });
 
   test('empty state for date with no report', async ({ page, request }) => {
