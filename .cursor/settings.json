@@ -1,0 +1,7 @@
+{
+  "plugins": {
+    "aws-serverless": {
+      "enabled": true
+    }
+  }
+}

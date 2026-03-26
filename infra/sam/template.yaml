@@ -20,6 +20,24 @@ Parameters:
     Type: String
     Default: ''
     Description: API hostname (e.g. dev-api.equip-track.com); required with CertificateArn for custom domain in stack
+  LambdaCodeBucketName:
+    Type: String
+    Description: S3 bucket containing the shared Lambda zip (upload before sam deploy)
+  LambdaCodeS3Key:
+    Type: String
+    Description: S3 object key for shared-lambda-bundle.zip (use content hash in key so updates trigger stack changes)
+  E2eAuthEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: When true, sets E2E_AUTH_* on all handler Lambdas (dev E2E login)
+  E2eAuthSecret:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: E2E auth secret when E2eAuthEnabled is true
 
 Conditions:
   HasCustomDomain:
@@ -33,6 +51,451 @@ Conditions:
               - !Ref ApiHostname
               - ''
 Resources:
+  EquipTrackLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: EquipTrackLambdaDataAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:BatchGetItem
+                  - dynamodb:BatchWriteItem
+                Resource:
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:*:table/UsersAndOrganizations*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:*:table/Inventory*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:*:table/Forms*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:*:table/EquipTrackReport*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:*:table/*/index/*'
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Sub 'arn:aws:secretsmanager:${AWS::Region}:*:secret:equip-track/jwt-private-key*'
+                  - !Sub 'arn:aws:secretsmanager:${AWS::Region}:*:secret:equip-track/jwt-public-key*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                Resource:
+                  - arn:aws:s3:::equip-track-forms/*
+                  - !Sub 'arn:aws:s3:::equip-track-forms-${Stage}/*'
+
+  LambdaaddInventory:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'addInventory'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdaapproveForm:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'approveForm'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdacreateForm:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'createForm'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdadeleteProduct:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'deleteProduct'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  Lambdae2eAuth:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'e2eAuth'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdagetAllForms:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'getAllForms'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdagetInventory:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'getInventory'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdagetItemsToReport:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'getItemsToReport'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdagetPresignedUrl:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'getPresignedUrl'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdagetProducts:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'getProducts'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdagetReportsByDates:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'getReportsByDates'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdagetUserForms:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'getUserForms'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdagetUserInventory:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'getUserInventory'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdagetUsers:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'getUsers'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdagoogleAuth:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'googleAuth'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdainviteUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'inviteUser'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdapublishPartialReport:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'publishPartialReport'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdarejectForm:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'rejectForm'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdaremoveInventory:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'removeInventory'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdasetProduct:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'setProduct'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdasetUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'setUser'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  Lambdastart:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'start'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+
   EquipTrackApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -56,7 +519,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-e2eAuth-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt Lambdae2eAuth.Arn
               responses:
                 default:
                   description: Default response
@@ -65,7 +531,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-googleAuth-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagoogleAuth.Arn
               responses:
                 default:
                   description: Default response
@@ -74,7 +543,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getAllForms-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetAllForms.Arn
               responses:
                 default:
                   description: Default response
@@ -83,7 +555,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-approveForm-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdaapproveForm.Arn
               responses:
                 default:
                   description: Default response
@@ -92,7 +567,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-createForm-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdacreateForm.Arn
               responses:
                 default:
                   description: Default response
@@ -101,7 +579,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-rejectForm-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdarejectForm.Arn
               responses:
                 default:
                   description: Default response
@@ -110,7 +591,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getPresignedUrl-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetPresignedUrl.Arn
               responses:
                 default:
                   description: Default response
@@ -119,7 +603,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getInventory-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetInventory.Arn
               responses:
                 default:
                   description: Default response
@@ -128,7 +615,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-addInventory-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdaaddInventory.Arn
               responses:
                 default:
                   description: Default response
@@ -137,7 +627,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-removeInventory-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdaremoveInventory.Arn
               responses:
                 default:
                   description: Default response
@@ -146,7 +639,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getUserInventory-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetUserInventory.Arn
               responses:
                 default:
                   description: Default response
@@ -155,7 +651,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getUserForms-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetUserForms.Arn
               responses:
                 default:
                   description: Default response
@@ -164,7 +663,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-deleteProduct-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdadeleteProduct.Arn
               responses:
                 default:
                   description: Default response
@@ -173,7 +675,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getProducts-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetProducts.Arn
               responses:
                 default:
                   description: Default response
@@ -182,7 +687,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-setProduct-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdasetProduct.Arn
               responses:
                 default:
                   description: Default response
@@ -191,7 +699,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getReportsByDates-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetReportsByDates.Arn
               responses:
                 default:
                   description: Default response
@@ -200,7 +711,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getItemsToReport-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetItemsToReport.Arn
               responses:
                 default:
                   description: Default response
@@ -209,7 +723,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-publishPartialReport-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdapublishPartialReport.Arn
               responses:
                 default:
                   description: Default response
@@ -218,7 +735,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getUsers-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetUsers.Arn
               responses:
                 default:
                   description: Default response
@@ -227,7 +747,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-setUser-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdasetUser.Arn
               responses:
                 default:
                   description: Default response
@@ -236,7 +759,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-inviteUser-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdainviteUser.Arn
               responses:
                 default:
                   description: Default response
@@ -245,161 +771,164 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-start-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt Lambdastart.Arn
               responses:
                 default:
                   description: Default response
   LambdaInvokeaddInventory:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-addInventory-${Stage}'
+      FunctionName: !Ref LambdaaddInventory
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokeapproveForm:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-approveForm-${Stage}'
+      FunctionName: !Ref LambdaapproveForm
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokecreateForm:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-createForm-${Stage}'
+      FunctionName: !Ref LambdacreateForm
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokedeleteProduct:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-deleteProduct-${Stage}'
+      FunctionName: !Ref LambdadeleteProduct
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokee2eAuth:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-e2eAuth-${Stage}'
+      FunctionName: !Ref Lambdae2eAuth
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokegetAllForms:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-getAllForms-${Stage}'
+      FunctionName: !Ref LambdagetAllForms
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokegetInventory:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-getInventory-${Stage}'
+      FunctionName: !Ref LambdagetInventory
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokegetItemsToReport:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-getItemsToReport-${Stage}'
+      FunctionName: !Ref LambdagetItemsToReport
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokegetPresignedUrl:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-getPresignedUrl-${Stage}'
+      FunctionName: !Ref LambdagetPresignedUrl
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokegetProducts:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-getProducts-${Stage}'
+      FunctionName: !Ref LambdagetProducts
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokegetReportsByDates:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-getReportsByDates-${Stage}'
+      FunctionName: !Ref LambdagetReportsByDates
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokegetUserForms:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-getUserForms-${Stage}'
+      FunctionName: !Ref LambdagetUserForms
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokegetUserInventory:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-getUserInventory-${Stage}'
+      FunctionName: !Ref LambdagetUserInventory
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokegetUsers:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-getUsers-${Stage}'
+      FunctionName: !Ref LambdagetUsers
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokegoogleAuth:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-googleAuth-${Stage}'
+      FunctionName: !Ref LambdagoogleAuth
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokeinviteUser:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-inviteUser-${Stage}'
+      FunctionName: !Ref LambdainviteUser
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokepublishPartialReport:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-publishPartialReport-${Stage}'
+      FunctionName: !Ref LambdapublishPartialReport
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokerejectForm:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-rejectForm-${Stage}'
+      FunctionName: !Ref LambdarejectForm
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokeremoveInventory:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-removeInventory-${Stage}'
+      FunctionName: !Ref LambdaremoveInventory
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokesetProduct:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-setProduct-${Stage}'
+      FunctionName: !Ref LambdasetProduct
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokesetUser:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-setUser-${Stage}'
+      FunctionName: !Ref LambdasetUser
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokestart:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Sub 'equip-track-start-${Stage}'
+      FunctionName: !Ref Lambdastart
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'

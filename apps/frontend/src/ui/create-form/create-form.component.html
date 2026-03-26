@@ -62,8 +62,8 @@
                     class="add-form-header-btn"
                     [attr.data-testid]="'add-predefined-form-' + form.formID"
                     (click)="addAllItems(form.items); $event.stopPropagation();"
-                    matTooltip="Add all items from this form"
-                    aria-label="Add Form"
+                    [matTooltip]="'create-form.add-all-items-tooltip' | translate"
+                    [attr.aria-label]="'create-form.add-form-aria-label' | translate"
                     >
                     <mat-icon>add</mat-icon>
                   </button>

@@ -1,45 +1,19 @@
-name: E2E LocalStack Core Regression
+name: E2E LocalStack Full Regression
 
 on:
-  pull_request:
-    branches:
-      - main
-      - develop
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *' # Nightly at 03:00 UTC
 
 concurrency:
-  group: e2e-localstack-${{ github.ref }}
+  group: e2e-localstack-full-${{ github.ref }}
   cancel-in-progress: true
 
-# Nx Cloud org may be disabled; without this, `npx nx` exits before running tasks.
-env:
-  NX_NO_CLOUD: 'true'
-
 jobs:
-  lint-and-unit-test:
-    name: Lint & unit tests
+  e2e-full-regression:
+    name: Full regression (LocalStack + Playwright)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '20'
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run lint and unit tests
-        run: npx nx run-many -t lint,test --all --nxBail
-
-  e2e-core-regression:
-    name: Core regression (LocalStack + Playwright)
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
@@ -60,19 +34,19 @@ jobs:
       - name: Prepare local E2E infrastructure
         run: npm run e2e:local:prepare
 
-      - name: Run core regression E2E
+      - name: Run full regression E2E
         env:
           E2E_AUTH_SECRET: e2e-local-secret
           BACKEND_BASE_URL: http://localhost:3000
           E2E_SKIP_LOCAL_E2E_ENSURE: 'true'
         run: |
-          npx nx run frontend-e2e:e2e-local-core
+          npx nx run frontend-e2e:e2e-local-full
 
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: playwright-report-localstack-core
+          name: playwright-report-localstack-full
           path: playwright-report
           if-no-files-found: ignore
 
@@ -80,13 +54,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: playwright-test-results-localstack-core
+          name: playwright-test-results-localstack-full
           path: test-results
           if-no-files-found: ignore
 
       - name: Summarize Playwright failure contexts
         if: always()
-        run: python3 scripts/summarize-playwright-error-contexts.py --label localstack
+        run: python3 scripts/summarize-playwright-error-contexts.py --label localstack-full
 
       - name: Tear down local stack
         if: always()
