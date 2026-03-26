@@ -64,7 +64,7 @@
   <button
     class="delete-button"
     mat-mini-fab
-    aria-label="Delete"
+    [attr.aria-label]="'common.delete' | translate"
     data-testid="editable-item-delete"
     (click)="remove.emit()"
   >
