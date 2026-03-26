@@ -1,41 +1,14 @@
 #!/usr/bin/env node
 const fs = require('fs');
-const path = require('path');
+const pathMod = require('path');
 const { execSync } = require('child_process');
 
 const BACKEND_DIST_PATH = 'dist/apps/backend';
 const PACKAGES_DIR = 'lambda-packages';
-/** Shared tree with a single npm install; each handler is a hardlink copy + entry index + zip */
-const SHARED_BUNDLE_DIR = path.join(PACKAGES_DIR, '_shared_bundle');
+/** One zip for all handler Lambdas; handler chosen via LAMBDA_HANDLER_KEY env at runtime */
+const SHARED_BUNDLE_ZIP = 'shared-lambda-bundle.zip';
 
-const ZIP_CONCURRENCY = Math.max(
-  1,
-  parseInt(process.env.LAMBDA_ZIP_CONCURRENCY || '8', 10) || 8
-);
-
-/**
- * @template T, R
- * @param {T[]} items
- * @param {number} concurrency
- * @param {(item: T, index: number) => Promise<R>} mapper
- * @returns {Promise<R[]>}
- */
-async function mapWithConcurrency(items, concurrency, mapper) {
-  const results = new Array(items.length);
-  let nextIndex = 0;
-
-  const worker = async () => {
-    for (;;) {
-      const i = nextIndex++;
-      if (i >= items.length) break;
-      results[i] = await mapper(items[i], i);
-    }
-  };
-
-  const n = Math.min(Math.max(1, concurrency), Math.max(1, items.length));
-  await Promise.all(Array.from({ length: n }, () => worker()));
-  return results;
-}
+const SHARED_BUNDLE_DIR = pathMod.join(PACKAGES_DIR, '_shared_bundle');
 
 function getHandlerNames() {
   console.log('📖 Loading handler names from endpoints config...');
@@ -53,17 +26,8 @@ function getHandlerNames() {
   }
 }
 
-function copyTreeWithHardlinksPrefered(src, dest) {
-  try {
-    execSync(`mkdir -p "${dest}" && cp -al "${src}/." "${dest}/"`, { stdio: 'inherit' });
-  } catch {
-    console.log('ℹ️ Hardlink copy failed (e.g. cross-device); falling back to full copy');
-    execSync(`mkdir -p "${dest}" && cp -a "${src}/." "${dest}/"`, { stdio: 'inherit' });
-  }
-}
-
 async function createLambdaPackages() {
-  console.log('Creating Lambda deployment packages...');
+  console.log('Creating Lambda deployment packages (single shared zip for all functions)...');
 
   if (fs.existsSync(PACKAGES_DIR)) {
     execSync(`rm -rf ${PACKAGES_DIR}`, { stdio: 'inherit' });
@@ -74,40 +38,39 @@ async function createLambdaPackages() {
     throw new Error(`❌ Backend build not found at ${BACKEND_DIST_PATH}. Run nx build backend first.`);
   }
 
+  const handlerNames = getHandlerNames();
+  const handlerListJson = JSON.stringify(handlerNames);
+
   fs.mkdirSync(SHARED_BUNDLE_DIR, { recursive: true });
   execSync(`cp -a ${BACKEND_DIST_PATH}/. ${SHARED_BUNDLE_DIR}/`, { stdio: 'inherit' });
-  console.log('📦 Installing production dependencies once for all Lambda bundles...');
+  console.log('📦 Installing production dependencies for the shared Lambda bundle...');
   execSync(`cd ${SHARED_BUNDLE_DIR} && npm install --omit=dev`, { stdio: 'inherit' });
 
-  const handlerNames = getHandlerNames();
-
-  console.log(
-    `📦 Building ${handlerNames.length} handler trees (zip concurrency ${ZIP_CONCURRENCY})...`
-  );
-
-  for (const handlerName of handlerNames) {
-    console.log(`Creating tree for ${handlerName}...`);
-    const packageDir = path.join(PACKAGES_DIR, handlerName);
-    fs.mkdirSync(packageDir, { recursive: true });
-    copyTreeWithHardlinksPrefered(SHARED_BUNDLE_DIR, packageDir);
-
-    const handlerContent = `
+  const handlerContent = `
 const { lambdaHandlers } = require('./main');
-
-exports.handler = lambdaHandlers.${handlerName};
+const key = process.env.LAMBDA_HANDLER_KEY;
+const allowed = new Set(${handlerListJson});
+if (!key || typeof key !== 'string' || !allowed.has(key)) {
+  const err = new Error(
+    'LAMBDA_HANDLER_KEY must be set to a valid handler name (same keys as lambdaHandlers). Got: ' + String(key)
+  );
+  throw err;
+}
+const fn = lambdaHandlers[key];
+if (typeof fn !== 'function') {
+  throw new Error('lambdaHandlers[' + JSON.stringify(key) + '] is not a function');
+}
+exports.handler = fn;
 `;
 
-    fs.writeFileSync(path.join(packageDir, 'index.js'), handlerContent);
-  }
+  fs.writeFileSync(pathMod.join(SHARED_BUNDLE_DIR, 'index.js'), handlerContent);
 
-  await mapWithConcurrency(handlerNames, ZIP_CONCURRENCY, async (handlerName) => {
-    const packageDir = path.join(PACKAGES_DIR, handlerName);
-    execSync(`cd ${packageDir} && zip -qr ../${handlerName}.zip .`, { stdio: 'inherit' });
-    console.log(`✅ Created ${handlerName}.zip`);
-  });
+  const zipOut = pathMod.join(PACKAGES_DIR, SHARED_BUNDLE_ZIP);
+  execSync(`cd "${SHARED_BUNDLE_DIR}" && zip -qr "../${SHARED_BUNDLE_ZIP}" .`, { stdio: 'inherit' });
 
   execSync(`rm -rf ${SHARED_BUNDLE_DIR}`, { stdio: 'inherit' });
 
+  console.log(`✅ Created shared package ${zipOut} (${handlerNames.length} handlers via LAMBDA_HANDLER_KEY)`);
   console.log('All Lambda packages created successfully!');
 }
 
@@ -118,4 +81,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createLambdaPackages, getHandlerNames };
+module.exports = { createLambdaPackages, getHandlerNames, SHARED_BUNDLE_ZIP };

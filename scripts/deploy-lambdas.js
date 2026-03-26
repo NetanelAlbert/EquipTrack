@@ -3,13 +3,47 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('node:url');
-const { getHandlerNames } = require('./create-lambda-packages');
+const { getHandlerNames, SHARED_BUNDLE_ZIP } = require('./create-lambda-packages');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const STAGE = process.env.STAGE || 'dev';
 const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
 const PACKAGES_DIR = 'lambda-packages';
+
+/** Env name selecting which export from lambdaHandlers runs (one shared deployment package). */
+const LAMBDA_HANDLER_KEY_ENV = 'LAMBDA_HANDLER_KEY';
+
+function getLambdaCodeBucketName() {
+  return process.env.LAMBDA_CODE_BUCKET || `equip-track-lambda-code-${STAGE}`;
+}
+
+function sharedBundleS3Key() {
+  return process.env.LAMBDA_CODE_S3_KEY || `lambda-code/${SHARED_BUNDLE_ZIP}`;
+}
+
+function ensureLambdaCodeBucket(bucketName) {
+  try {
+    execSync(`aws s3api head-bucket --bucket ${bucketName}`, { stdio: 'pipe' });
+    console.log(`Using existing Lambda code bucket: ${bucketName}`);
+  } catch {
+    console.log(`Creating Lambda code bucket: ${bucketName}`);
+    if (AWS_REGION === 'us-east-1') {
+      execSync(`aws s3api create-bucket --bucket ${bucketName}`, { stdio: 'inherit' });
+    } else {
+      execSync(
+        `aws s3api create-bucket --bucket ${bucketName} --region ${AWS_REGION} --create-bucket-configuration LocationConstraint=${AWS_REGION}`,
+        { stdio: 'inherit' }
+      );
+    }
+  }
+}
+
+function uploadSharedLambdaBundle(bucketName, s3Key, zipPath) {
+  const dest = `s3://${bucketName}/${s3Key}`;
+  console.log(`Uploading shared Lambda bundle to ${dest}...`);
+  execSync(`aws s3 cp "${zipPath}" "${dest}"`, { stdio: 'inherit' });
+}
 
 /** Default parallel Lambda deploys (CLI + network); override with LAMBDA_DEPLOY_CONCURRENCY */
 const LAMBDA_DEPLOY_CONCURRENCY = Math.max(
@@ -34,8 +68,8 @@ function lambdaEnvFilePath(handlerName) {
  * `/api/auth/e2e-login` (dev/stage); otherwise only STAGE (matches prior behavior).
  * One file per handler so parallel deploys do not clobber each other.
  */
-function getLambdaEnvironmentVariables() {
-  const variables = { STAGE };
+function getLambdaEnvironmentVariables(handlerName) {
+  const variables = { STAGE, [LAMBDA_HANDLER_KEY_ENV]: handlerName };
   if (process.env.E2E_AUTH_ENABLED === 'true' && process.env.E2E_AUTH_SECRET) {
     variables.E2E_AUTH_ENABLED = 'true';
     variables.E2E_AUTH_SECRET = process.env.E2E_AUTH_SECRET;
@@ -48,7 +82,7 @@ function getLambdaEnvironmentVariables() {
 }
 
 function writeLambdaEnvironmentFile(handlerName) {
-  const variables = getLambdaEnvironmentVariables();
+  const variables = getLambdaEnvironmentVariables(handlerName);
   fs.writeFileSync(lambdaEnvFilePath(handlerName), JSON.stringify({ Variables: variables }));
 }
 
@@ -356,15 +390,15 @@ async function waitForLambdaUpdate(functionName, maxAttempts = 24) {
   return true;
 }
 
-async function deployLambdaFunction(handlerName, roleArn) {
+async function deployLambdaFunction(handlerName, roleArn, s3Code) {
   const functionName = `equip-track-${handlerName}-${STAGE}`;
-  const zipPath = path.join(PACKAGES_DIR, `${handlerName}.zip`);
+  const zipPath = path.join(PACKAGES_DIR, SHARED_BUNDLE_ZIP);
 
   if (!fs.existsSync(zipPath)) {
-    throw new Error(`Package not found: ${zipPath}`);
+    throw new Error(`Shared package not found: ${zipPath}. Run create-lambda-packages.js first.`);
   }
 
-  const desiredEnv = getLambdaEnvironmentVariables();
+  const desiredEnv = getLambdaEnvironmentVariables(handlerName);
   writeLambdaEnvironmentFile(handlerName);
   const envFileArg = lambdaEnvironmentCliArg(handlerName);
 
@@ -396,7 +430,7 @@ async function deployLambdaFunction(handlerName, roleArn) {
       console.log(`Updating Lambda function: ${functionName}`);
       try {
         execSync(
-          `aws lambda update-function-code --function-name ${functionName} --zip-file fileb://${zipPath}`,
+          `aws lambda update-function-code --function-name "${functionName}" --s3-bucket "${s3Code.bucket}" --s3-key "${s3Code.key}"`,
           { stdio: 'inherit' }
         );
 
@@ -430,11 +464,11 @@ async function deployLambdaFunction(handlerName, roleArn) {
     } else {
       console.log(`Creating Lambda function: ${functionName}`);
       execSync(
-        `aws lambda create-function --function-name ${functionName} ` +
+        `aws lambda create-function --function-name "${functionName}" ` +
           `--runtime ${LAMBDA_CONFIG.runtime} ` +
-          `--role ${roleArn} ` +
+          `--role "${roleArn}" ` +
           `--handler index.handler ` +
-          `--zip-file fileb://${zipPath} ` +
+          `--code S3Bucket="${s3Code.bucket}",S3Key="${s3Code.key}" ` +
           `--timeout ${LAMBDA_CONFIG.timeout} ` +
           `--memory-size ${LAMBDA_CONFIG.memorySize} ` +
           `--environment "${envFileArg}"`,
@@ -458,10 +492,17 @@ async function deployAllLambdas() {
   
   const roleArn = await ensureRole();
   const handlerNames = getHandlerNames();
+  const bucketName = getLambdaCodeBucketName();
+  ensureLambdaCodeBucket(bucketName);
+  const s3Key = sharedBundleS3Key();
+  const zipPath = path.join(PACKAGES_DIR, SHARED_BUNDLE_ZIP);
+  uploadSharedLambdaBundle(bucketName, s3Key, zipPath);
+  const s3Code = { bucket: bucketName, key: s3Key };
+
   const deployedFunctions = [];
-  
+
   for (const handlerName of handlerNames) {
-    const functionName = await deployLambdaFunction(handlerName, roleArn);
+    const functionName = await deployLambdaFunction(handlerName, roleArn, s3Code);
     deployedFunctions.push({ handlerName, functionName });
   }
   
@@ -487,6 +528,7 @@ async function deployAllLambdas() {
   deploymentInfo.backend.lambdas = {
     functions: deployedFunctions,
     role: roleArn,
+    codePackage: { bucket: bucketName, key: s3Key, artifact: SHARED_BUNDLE_ZIP },
     status: 'deployed'
   };
   
@@ -505,14 +547,20 @@ async function deployAllLambdasParallel() {
   
   const roleArn = await ensureRole();
   const handlerNames = getHandlerNames();
-  
+  const bucketName = getLambdaCodeBucketName();
+  ensureLambdaCodeBucket(bucketName);
+  const s3Key = sharedBundleS3Key();
+  const zipPath = path.join(PACKAGES_DIR, SHARED_BUNDLE_ZIP);
+  uploadSharedLambdaBundle(bucketName, s3Key, zipPath);
+  const s3Code = { bucket: bucketName, key: s3Key };
+
   console.log(
     `Starting parallel deployment of ${handlerNames.length} functions (concurrency ${LAMBDA_DEPLOY_CONCURRENCY})...`
   );
 
   const results = await mapWithConcurrency(handlerNames, LAMBDA_DEPLOY_CONCURRENCY, async (handlerName) => {
     try {
-      const functionName = await deployLambdaFunction(handlerName, roleArn);
+      const functionName = await deployLambdaFunction(handlerName, roleArn, s3Code);
       return { handlerName, functionName, success: true };
     } catch (error) {
       console.error(`❌ Failed to deploy ${handlerName}:`, error.message);
@@ -555,6 +603,7 @@ async function deployAllLambdasParallel() {
   deploymentInfo.backend.lambdas = {
     functions: successful,
     role: roleArn,
+    codePackage: { bucket: bucketName, key: s3Key, artifact: SHARED_BUNDLE_ZIP },
     status: failed.length === 0 ? 'deployed' : 'partial',
     failed: failed.length
   };
@@ -592,4 +641,7 @@ module.exports = {
   environmentVariablesEqual,
   lambdaConfigurationNeedsUpdate,
   mapWithConcurrency,
+  getLambdaEnvironmentVariables,
+  getLambdaCodeBucketName,
+  sharedBundleS3Key,
 }; 
