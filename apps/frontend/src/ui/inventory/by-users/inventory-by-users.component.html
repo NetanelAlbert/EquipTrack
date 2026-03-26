@@ -136,11 +136,6 @@
             <div class="product-info">
               <span class="product-name">{{ row.product.name }}</span>
               <span class="product-id">{{ row.product.id }}</span>
-              @if (row.hasUpi) {
-                <mat-icon class="upi-indicator" matTooltip="{{ 'inventory.table.upiProduct' | translate }}">
-                  key
-                </mat-icon>
-              }
               @if (isProductSortingColumns(row.product.id)) {
                 <span class="sort-indicator">{{ getProductSortIndicator(row.product.id) }}</span>
               }

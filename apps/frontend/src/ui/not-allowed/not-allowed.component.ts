@@ -15,7 +15,7 @@ import { TranslateModule } from '@ngx-translate/core';
     TranslateModule
 ],
   template: `
-    <div class="not-allowed-container">
+    <div class="not-allowed-container" data-testid="not-allowed-page">
       <mat-icon class="error-icon">error_outline</mat-icon>
       <h1>{{ 'errors.not-allowed.title' | translate }}</h1>
       <p>{{ 'errors.not-allowed.message' | translate }}</p>

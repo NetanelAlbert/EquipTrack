@@ -1,10 +1,10 @@
-<div #reportsContainer class="reports-container">
+<div #reportsContainer class="reports-container" data-testid="today-report-page">
   <h1>{{ 'reports.title' | translate }}</h1>
   
   <div class="reports-header">
     <div class="sort-section">
       <mat-label class="sort-label">{{ 'reports.sortBy' | translate }}</mat-label>
-      <mat-radio-group [(ngModel)]="sortBy" class="sort-options">
+      <mat-radio-group [(ngModel)]="sortBy" class="sort-options" data-testid="today-report-sort-group">
         <mat-radio-button value="location">{{ 'reports.sortByLocation' | translate }}</mat-radio-button>
         <mat-radio-button value="product">{{ 'reports.sortByProduct' | translate }}</mat-radio-button>
       </mat-radio-group>
@@ -12,7 +12,7 @@
   </div>
 
   @if (reportsStore.isLoading()) {
-    <div class="loading-spinner">
+    <div class="loading-spinner" data-testid="today-report-loading">
       <mat-spinner></mat-spinner>
     </div>
   }
@@ -29,7 +29,7 @@
       @let itemReports = userItems[1];
       <h2>{{ getUserName(holderId) }} {{ getUserDepartmentAndSubDepartment(holderId) }}</h2>
       @for (item of itemReports; track item.upi; let j = $index) {
-        <mat-card [class.unreported]="!item.location" class="item-card" 
+        <mat-card [class.unreported]="!item.location" class="item-card" [attr.data-testid]="'today-report-item-card-' + item.upi"
                   (focusin)="onCardFocus(item)"
                   (focusout)="onCardBlur()"
                   (click)="onCardFocus(item)" 
@@ -70,7 +70,7 @@
                     <mat-icon>history</mat-icon>
                     <span>{{ 'reports.lastLocation' | translate }}: {{ lastLocation }}</span>
                   </div>
-                  <button mat-stroked-button color="primary" (click)="useLastLocation(item, lastLocation)" class="use-last-btn">
+                  <button mat-stroked-button color="primary" (click)="useLastLocation(item, lastLocation)" class="use-last-btn" [attr.data-testid]="'today-report-use-last-location-' + item.upi">
                     {{ 'reports.useLastLocation' | translate }}
                   </button>
                 </div>
@@ -83,7 +83,8 @@
                   <mat-label>{{ 'reports.enterLocation' | translate }}</mat-label>
                   <input
                   matInput 
-                  [(ngModel)]="item.location" 
+                  [(ngModel)]="item.location"
+                  [attr.data-testid]="'today-report-location-input-' + item.upi"
                   >
                   <button tabindex="-1" mat-icon-button matSuffix (click)="clearLocation(item)" type="button">
                     <mat-icon>close</mat-icon>
@@ -94,7 +95,7 @@
                   mat-icon-button 
                   matSuffix 
                   [disabled]="!item.location"
-                  (click)="updateItemReport(item)" type="button">
+                  (click)="updateItemReport(item)" type="button" [attr.data-testid]="'today-report-submit-btn-' + item.upi">
                   <mat-icon>send</mat-icon>
                 </button>
               } @else {
