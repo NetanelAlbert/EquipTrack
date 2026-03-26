@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
@@ -34,7 +34,6 @@ import {
   selector: 'app-today-report',
   standalone: true,
   imports: [
-    CommonModule,
     MatCardModule,
     MatListModule,
     MatIconModule,
@@ -45,8 +44,8 @@ import {
     MatProgressSpinnerModule,
     MatRadioModule,
     FormsModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   templateUrl: './today-report.component.html',
   styleUrls: ['./today-report.component.scss'],
 })

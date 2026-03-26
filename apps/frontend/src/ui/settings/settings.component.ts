@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -11,13 +11,12 @@ import { LanguageService } from '../../services/language.service';
   selector: 'app-settings',
   standalone: true,
   imports: [
-    CommonModule,
     MatDialogModule,
     MatFormFieldModule,
     MatSelectModule,
     MatButtonModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss',
 })

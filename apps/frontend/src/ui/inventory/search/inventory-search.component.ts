@@ -8,7 +8,7 @@ import {
   ChangeDetectionStrategy,
   inject,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
@@ -41,7 +41,6 @@ export interface InventorySearchFilters {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
@@ -49,8 +48,8 @@ export interface InventorySearchFilters {
     MatSelectModule,
     MatChipsModule,
     FormsModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   animations: [
     trigger('slideIn', [
       transition(':enter', [

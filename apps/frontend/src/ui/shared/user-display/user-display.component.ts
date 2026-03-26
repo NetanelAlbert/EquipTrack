@@ -5,14 +5,14 @@ import {
   inject,
   input,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { UserAndUserInOrganization } from '@equip-track/shared';
 import { UserStore } from '../../../store/user.store';
 
 @Component({
   selector: 'app-user-display',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="user-display">
       <span class="user-name">{{ user().user.name }}</span>

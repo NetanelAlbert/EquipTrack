@@ -12,7 +12,7 @@ import {
   Signal,
   WritableSignal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import {
   FormArray,
   FormBuilder,
@@ -51,7 +51,6 @@ import { toObservable } from '@angular/core/rxjs-interop';
   selector: 'editable-item',
   standalone: true,
   imports: [
-    CommonModule,
     MatSelectModule,
     MatFormFieldModule,
     MatInputModule,
@@ -59,8 +58,8 @@ import { toObservable } from '@angular/core/rxjs-interop';
     ReactiveFormsModule,
     MatIconModule,
     MatButtonModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   templateUrl: './editable-item.component.html',
   styleUrl: './editable-item.component.scss',
 })
