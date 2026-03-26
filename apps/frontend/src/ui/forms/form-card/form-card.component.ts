@@ -1,4 +1,4 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, Input, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
@@ -14,6 +14,8 @@ import { OrganizationStore } from '../../../store/organization.store';
 import { UI_DATE_TIME_FORMAT } from '@equip-track/shared';
 import { Clipboard } from '@angular/cdk/clipboard';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatButtonModule } from '@angular/material/button';
 import { NotificationService } from '../../../services/notification.service';
 import { Router } from '@angular/router';
 
@@ -23,6 +25,8 @@ import { Router } from '@angular/router';
   imports: [
     CommonModule,
     MatIconModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
     TranslateModule,
     InventoryListComponent,
     MatTooltipModule,
@@ -32,6 +36,8 @@ import { Router } from '@angular/router';
 })
 export class FormCardComponent {
   @Input({ required: true }) form!: InventoryForm;
+
+  readonly isPrintPdfLoading = signal(false);
 
   dateTimeFormat = UI_DATE_TIME_FORMAT;
   organizationStore = inject(OrganizationStore);
@@ -130,18 +136,20 @@ export class FormCardComponent {
     return this.form.pdfUri;
   }
 
-  onPrintForm() {
-    this.formsStore
-      .getPresignedUrl(
+  async onPrintForm(): Promise<void> {
+    this.isPrintPdfLoading.set(true);
+    try {
+      const url = await this.formsStore.getPresignedUrl(
         this.form.formID,
         this.form.userID,
         this.userStore.selectedOrganizationId()
-      )
-      .then((url) => {
-        if (url) {
-          window.open(url, '_blank');
-        }
-      });
+      );
+      if (url) {
+        window.open(url, '_blank');
+      }
+    } finally {
+      this.isPrintPdfLoading.set(false);
+    }
   }
 
   onCopyFormId() {

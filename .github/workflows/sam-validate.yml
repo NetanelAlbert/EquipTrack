@@ -1,0 +1,46 @@
+name: SAM API template
+
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+
+env:
+  SAM_CLI_TELEMETRY: '0'
+
+jobs:
+  validate:
+    name: Generate and validate SAM template
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests (SAM generator helpers)
+        run: node --test scripts/generate-sam-template.test.cjs
+
+      - name: Regenerate SAM template from shared endpoints
+        run: node scripts/generate-sam-template.js
+
+      - name: Ensure generated template is committed
+        run: |
+          git diff --exit-code infra/sam/template.yaml || {
+            echo "::error::infra/sam/template.yaml is out of date. Run: npm run generate:sam"
+            exit 1
+          }
+
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+
+      - name: Validate SAM template
+        run: sam validate --lint --template infra/sam/template.yaml

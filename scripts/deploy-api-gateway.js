@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+/**
+ * @deprecated EquipTrack deploys the REST API with AWS SAM (`scripts/deploy-sam-api.js`, `infra/sam/template.yaml`).
+ * Kept only for emergency manual recovery. Do not use from CI.
+ */
 const { execSync } = require('child_process');
 const fs = require('fs');
 const { setupAPICustomDomain } = require('./setup-api-custom-domain');

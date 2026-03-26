@@ -1,4 +1,5 @@
 import { IncomingMessage, ServerResponse, createServer } from 'http';
+import { buffer as readStreamToBuffer } from 'node:stream/consumers';
 import {
   APIGatewayProxyEvent,
   APIGatewayProxyHandler,
@@ -74,16 +75,11 @@ function findRoute(method: string, pathname: string): {
 }
 
 async function readRequestBody(req: IncomingMessage): Promise<string | null> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of req) {
-    chunks.push(Buffer.from(chunk));
-  }
-
-  if (chunks.length === 0) {
+  const body = await readStreamToBuffer(req);
+  if (body.length === 0) {
     return null;
   }
-
-  return Buffer.concat(chunks).toString('utf-8');
+  return body.toString('utf-8');
 }
 
 function normalizeHeaders(

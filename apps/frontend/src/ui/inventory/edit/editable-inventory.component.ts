@@ -8,7 +8,7 @@ import {
   output,
   Signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatListModule } from '@angular/material/list';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
@@ -78,7 +78,6 @@ const formDuplicateValidator =
   selector: 'editable-inventory',
   standalone: true,
   imports: [
-    CommonModule,
     MatListModule,
     MatFormFieldModule,
     MatSelectModule,
@@ -87,8 +86,8 @@ const formDuplicateValidator =
     MatButtonModule,
     MatIconModule,
     MatDialogModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   templateUrl: './editable-inventory.component.html',
   styleUrl: './editable-inventory.component.scss',
 })

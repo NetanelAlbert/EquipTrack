@@ -1,13 +1,25 @@
 <div class="my-items-container" data-testid="my-items-page">
-  <inventory-search
-    data-testid="my-items-search"
-    [items]="currentUserInventory()"
-    [productsMap]="organizationStore.productsMap()"
-    (filteredItems)="onFilteredItemsChange($event)"
-  ></inventory-search>
-  
-  <inventory-list
-    data-testid="my-items-list"
-    [inventoryItems]="filteredItems()"
-  ></inventory-list>
+  @if (isLoadingInventory()) {
+    <div
+      class="my-items-loading"
+      role="status"
+      aria-live="polite"
+      data-testid="my-items-loading"
+    >
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>{{ 'inventory.loading' | translate }}</p>
+    </div>
+  } @else {
+    <inventory-search
+      data-testid="my-items-search"
+      [items]="currentUserInventory()"
+      [productsMap]="organizationStore.productsMap()"
+      (filteredItems)="onFilteredItemsChange($event)"
+    ></inventory-search>
+
+    <inventory-list
+      data-testid="my-items-list"
+      [inventoryItems]="filteredItems()"
+    ></inventory-list>
+  }
 </div>

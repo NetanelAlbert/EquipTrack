@@ -1,3 +1,14 @@
+@if (formsStore.fetchFormsStatus().isLoading) {
+  <div
+    class="forms-loading"
+    role="status"
+    aria-live="polite"
+    data-testid="forms-loading"
+  >
+    <mat-spinner diameter="48"></mat-spinner>
+    <p>{{ 'common.loading' | translate }}</p>
+  </div>
+} @else {
 <mat-tab-group [(selectedIndex)]="selectedTabIndex" data-testid="forms-tab-group">
   <mat-tab data-testid="forms-checkout-tab">
     <ng-template mat-tab-label>
@@ -27,3 +38,4 @@
     </app-forms-tab-content>
   </mat-tab>
 </mat-tab-group>
+}

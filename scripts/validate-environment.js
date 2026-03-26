@@ -145,7 +145,7 @@ function validateEnvironment() {
     console.log('2. node scripts/prepare-deployment.js');
     console.log('3. node scripts/create-lambda-packages.js'); 
     console.log('4. node scripts/deploy-lambdas.js');
-    console.log('5. node scripts/deploy-api-gateway.js');
+    console.log('5. node scripts/deploy-sam-api.js');
     console.log('6. node scripts/deploy-frontend.js');
     console.log('7. node scripts/setup-cloudfront.js');
   } else {

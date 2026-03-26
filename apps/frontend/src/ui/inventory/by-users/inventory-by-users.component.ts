@@ -14,6 +14,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { InventoryStore } from '../../../store/inventory.store';
@@ -61,10 +62,11 @@ interface ProductColumnSort {
     MatTableModule,
     MatChipsModule,
     MatTooltipModule,
+    MatProgressSpinnerModule,
     FormsModule,
     TranslateModule,
-    UserDisplayComponent,
-  ],
+    UserDisplayComponent
+],
   templateUrl: './inventory-by-users.component.html',
   styleUrls: ['./inventory-by-users.component.scss'],
 })
@@ -211,6 +213,12 @@ export class InventoryByUsersComponent implements OnInit {
   isLoadingUsers = computed(
     () => this.organizationStore.getUsersStatus().isLoading
   );
+  /** Full table area loader until warehouse inventory has been fetched at least once. */
+  isLoadingInitialWarehouseInventory = computed(() => {
+    const loading = this.inventoryStore.fetchUserInventoryStatus().isLoading;
+    const warehouseItems = this.inventoryStore.getUserInventory('WAREHOUSE')();
+    return loading && warehouseItems.length === 0;
+  });
   usersError = computed(() => this.organizationStore.getUsersStatus().error);
   hasUsers = computed(() => this.organizationStore.users().length > 0);
   availableUsersForSelection: Signal<UserAndUserInOrganization[]> = computed(

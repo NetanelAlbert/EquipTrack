@@ -1,4 +1,17 @@
+.forms-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 240px;
+  padding: 48px 24px;
 
+  p {
+    margin: 0;
+    color: var(--color-text-secondary);
+  }
+}
 
 .tab-label {
   font-weight: 600;

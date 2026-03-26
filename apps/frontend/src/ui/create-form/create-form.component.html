@@ -1,14 +1,15 @@
-<div
-  *ngIf="formsStore.addFormStatus.isLoading()"
-  class="checkout-spinner-overlay"
-  data-testid="create-form-loading-overlay"
->
-  <mat-progress-spinner mode="indeterminate" color="primary"></mat-progress-spinner>
-</div>
+@if (formsStore.addFormStatus.isLoading()) {
+  <div
+    class="checkout-spinner-overlay"
+    data-testid="create-form-loading-overlay"
+    >
+    <mat-progress-spinner mode="indeterminate" color="primary"></mat-progress-spinner>
+  </div>
+}
 
 <div class="container" data-testid="create-form-page">
   <h1>{{ 'create-form.title' | translate }}</h1>
-  
+
   <form [formGroup]="form" data-testid="create-form-form">
 
     <div class="form-type">
@@ -60,37 +61,40 @@
         formControlName="formDescription"
         name="formDescription"
         data-testid="create-form-description-input"
-      >
+        >
     </mat-form-field>
 
-    <div class="predefined-forms" *ngIf="showPredefinedForms()" data-testid="predefined-forms-section">
-      <h2>{{ 'create-form.predefined-forms' | translate }}</h2>
-      <mat-accordion>
-        <mat-expansion-panel *ngFor="let form of predefinedForms()">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              {{ form.description }}
-            </mat-panel-title>
-            <mat-panel-description class="panel-description-flex">
-              <span class="item-count">{{ form.items.length }} {{ 'create-form.items' | translate }}</span>
-              <button
-                mat-icon-button
-                color="primary"
-                class="add-form-header-btn"
-                [attr.data-testid]="'add-predefined-form-' + form.formID"
-                (click)="addAllItems(form.items); $event.stopPropagation();"
-                matTooltip="Add all items from this form"
-                aria-label="Add Form"
-              >
-                <mat-icon>add</mat-icon>
-              </button>
-            </mat-panel-description>
-          </mat-expansion-panel-header>
-
-          <inventory-list [inventoryItems]="form.items"></inventory-list>
-        </mat-expansion-panel>
-      </mat-accordion>
-    </div>
+    @if (showPredefinedForms()) {
+      <div class="predefined-forms" data-testid="predefined-forms-section">
+        <h2>{{ 'create-form.predefined-forms' | translate }}</h2>
+        <mat-accordion>
+          @for (form of predefinedForms(); track form) {
+            <mat-expansion-panel>
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  {{ form.description }}
+                </mat-panel-title>
+                <mat-panel-description class="panel-description-flex">
+                  <span class="item-count">{{ form.items.length }} {{ 'create-form.items' | translate }}</span>
+                  <button
+                    mat-icon-button
+                    color="primary"
+                    class="add-form-header-btn"
+                    [attr.data-testid]="'add-predefined-form-' + form.formID"
+                    (click)="addAllItems(form.items); $event.stopPropagation();"
+                    matTooltip="Add all items from this form"
+                    aria-label="Add Form"
+                    >
+                    <mat-icon>add</mat-icon>
+                  </button>
+                </mat-panel-description>
+              </mat-expansion-panel-header>
+              <inventory-list [inventoryItems]="form.items"></inventory-list>
+            </mat-expansion-panel>
+          }
+        </mat-accordion>
+      </div>
+    }
 
     <h2>{{ 'create-form.items' | translate }}</h2>
     <editable-inventory
@@ -102,4 +106,4 @@
       [submitButton]="submitButton()"
     ></editable-inventory>
   </form>
-</div> 
+</div>

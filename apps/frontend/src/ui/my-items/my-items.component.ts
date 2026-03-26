@@ -1,5 +1,7 @@
 import { Component, inject, OnInit, computed, signal, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { TranslateModule } from '@ngx-translate/core';
 import { InventoryListComponent } from '../inventory/list/inventory-list.component';
 import { InventorySearchComponent } from '../inventory/search/inventory-search.component';
 import { UserStore, InventoryStore, OrganizationStore } from '../../store';
@@ -8,7 +10,13 @@ import { InventoryItem } from '@equip-track/shared';
 @Component({
   selector: 'app-my-items',
   standalone: true,
-  imports: [CommonModule, InventoryListComponent, InventorySearchComponent],
+  imports: [
+    CommonModule,
+    MatProgressSpinnerModule,
+    TranslateModule,
+    InventoryListComponent,
+    InventorySearchComponent,
+  ],
   templateUrl: './my-items.component.html',
   styleUrl: './my-items.component.scss',
 })
@@ -19,6 +27,10 @@ export class MyItemsComponent implements OnInit {
 
   // Signal for filtered items from search component
   filteredItems = signal<InventoryItem[]>([]);
+
+  isLoadingInventory = computed(
+    () => this.inventoryStore.fetchUserInventoryStatus().isLoading
+  );
 
   // Computed property for current user's inventory items
   currentUserInventory: Signal<InventoryItem[]> = computed(() => {
