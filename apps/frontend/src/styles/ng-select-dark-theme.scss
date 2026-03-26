@@ -1,0 +1,150 @@
+/**
+ * Dark-theme overrides for @ng-select/ng-select (material.theme.css is light-only).
+ * Aligns with app background (#121212), Material-like surfaces, and --color-accent.
+ */
+
+$ng-dark-surface: #1e1e1e;
+$ng-dark-elevated: #2d2d2d;
+$ng-dark-border: rgba(255, 255, 255, 0.23);
+$ng-dark-text-primary: rgba(255, 255, 255, 0.87);
+$ng-dark-text-secondary: rgba(255, 255, 255, 0.6);
+$ng-dark-text-disabled: rgba(255, 255, 255, 0.38);
+
+.ng-select {
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+
+  .ng-select-container {
+    color: $ng-dark-text-primary;
+
+    &:after {
+      border-color: $ng-dark-border;
+    }
+
+    &.ng-appearance-outline:after {
+      border-color: $ng-dark-border;
+    }
+
+    &.ng-appearance-outline:hover:after {
+      border-color: $ng-dark-text-primary;
+    }
+
+    .ng-placeholder {
+      color: $ng-dark-text-secondary;
+      background-color: $ng-dark-surface !important;
+    }
+
+    .ng-value-container .ng-value,
+    .ng-value-container .ng-input > input {
+      color: $ng-dark-text-primary;
+    }
+  }
+
+  &.ng-select-focused:not(.ng-select-disabled) .ng-select-container {
+    &:after,
+    &.ng-appearance-outline:after {
+      border-color: var(--color-accent, #bb86fc);
+      border-width: 2px;
+    }
+
+    .ng-placeholder {
+      color: var(--color-accent, #bb86fc);
+    }
+
+    .ng-arrow-wrapper .ng-arrow {
+      color: var(--color-accent, #bb86fc);
+    }
+  }
+
+  &.ng-select-disabled .ng-select-container {
+    .ng-value,
+    .ng-placeholder {
+      color: $ng-dark-text-disabled;
+    }
+  }
+
+  .ng-arrow-wrapper .ng-arrow {
+    border-top-color: $ng-dark-text-secondary;
+  }
+
+  .ng-clear-wrapper {
+    color: $ng-dark-text-secondary;
+
+    &:hover {
+      color: $ng-dark-text-primary;
+    }
+  }
+}
+
+.ng-dropdown-panel {
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+  background: $ng-dark-elevated !important;
+  border: 1px solid var(--color-border-light, rgba(150, 150, 150, 0.2));
+  border-radius: 4px;
+  box-shadow:
+    0 5px 5px -3px rgba(0, 0, 0, 0.4),
+    0 8px 10px 1px rgba(0, 0, 0, 0.28),
+    0 3px 14px 2px rgba(0, 0, 0, 0.22) !important;
+
+  .ng-dropdown-panel-items {
+    .ng-option {
+      color: $ng-dark-text-primary !important;
+      font-family: inherit !important;
+      font-style: normal;
+
+      &.ng-option-marked {
+        background: rgba(255, 255, 255, 0.08) !important;
+        color: $ng-dark-text-primary !important;
+      }
+
+      &.ng-option-selected {
+        background: rgba(187, 134, 252, 0.16) !important;
+        color: var(--color-accent, #bb86fc) !important;
+      }
+
+      &.ng-option-disabled {
+        color: $ng-dark-text-disabled !important;
+      }
+    }
+  }
+
+  .ng-dropdown-header {
+    border-bottom-color: $ng-dark-border;
+    color: $ng-dark-text-secondary;
+  }
+
+  /* Filter input at top of panel */
+  .ng-input {
+    padding: 8px 12px;
+
+    > input {
+      font-family: inherit !important;
+      font-size: 14px !important;
+      color: $ng-dark-text-primary !important;
+      background: $ng-dark-surface !important;
+      border: 1px solid $ng-dark-border !important;
+      border-radius: 4px;
+
+      &::placeholder {
+        color: $ng-dark-text-secondary;
+      }
+    }
+  }
+}
+
+/* User display inside options: match panel (Material vars are for mat-option light theme) */
+.ng-dropdown-panel .user-display {
+  .user-name {
+    color: $ng-dark-text-primary !important;
+  }
+
+  .department-info,
+  .main-department,
+  .sub-department,
+  .role-description {
+    color: $ng-dark-text-secondary !important;
+    font-family: inherit !important;
+    font-style: italic;
+  }
+}
