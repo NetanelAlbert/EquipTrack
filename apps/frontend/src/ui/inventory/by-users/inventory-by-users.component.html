@@ -84,7 +84,7 @@
             data-testid="inventory-by-users-clear-column-sort"
             (click)="clearProductColumnSort()"
           >
-            Clear Column Sort
+            {{ 'inventory.table.clearColumnSort' | translate }}
           </button>
         }
       </div>
@@ -131,7 +131,7 @@
               [class.upi-row]="shouldHighlightUpiRow(row)"
               [class.sorting-columns]="isProductSortingColumns(row.product.id)"
               (click)="onProductClick(row.product.id)"
-              [matTooltip]="'Click to sort user columns by this product'"
+              [matTooltip]="'inventory.table.sortByProductClick' | translate"
               [matTooltipPosition]="'above'">
             <div class="product-info">
               <span class="product-name">{{ row.product.name }}</span>
