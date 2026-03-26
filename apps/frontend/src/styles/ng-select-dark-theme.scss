@@ -27,6 +27,8 @@ $ng-dark-text-disabled: rgba(255, 255, 255, 0.38);
 
     &.ng-appearance-outline {
       min-height: 48px;
+      /* Material theme uses 0.5em sides — too tight vs outline label + typed text */
+      padding-inline: 16px !important;
     }
 
     .ng-value-container {
@@ -40,6 +42,8 @@ $ng-dark-text-disabled: rgba(255, 255, 255, 0.38);
       bottom: auto !important;
       top: 50% !important;
       transform: translateY(-50%) !important;
+      /* Absolute filter input ignores value-container padding; inset matches outline label */
+      padding-inline-start: 16px !important;
     }
 
     .ng-arrow-wrapper {
