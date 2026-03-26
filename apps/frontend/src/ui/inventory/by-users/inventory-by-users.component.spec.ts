@@ -5,6 +5,11 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TranslateModule } from '@ngx-translate/core';
 import { InventoryByUsersComponent } from './inventory-by-users.component';
 import { OrganizationService } from '../../../services/organization.service';
+import {
+  UserAndUserInOrganization,
+  UserRole,
+  UserState,
+} from '@equip-track/shared';
 
 describe('InventoryByUsersComponent', () => {
   let component: InventoryByUsersComponent;
@@ -99,5 +104,40 @@ describe('InventoryByUsersComponent', () => {
     const spy = jest.spyOn(organizationService, 'getUsers');
     component.loadUsers();
     expect(spy).toHaveBeenCalled();
+  });
+
+  describe('onAddUserSelected', () => {
+    const mockUser: UserAndUserInOrganization = {
+      user: {
+        id: 'user-42',
+        name: 'Jane Doe',
+        email: 'jane@example.com',
+        state: UserState.Active,
+      },
+      userInOrganization: {
+        organizationId: 'org-1',
+        userId: 'user-42',
+        role: UserRole.Customer,
+      },
+    };
+
+    it('should extract the user id when ng-select emits the full item object', () => {
+      const addSpy = jest.spyOn(component, 'addUser');
+      // ng-select (change) emits the full item, not the bindValue string
+      component.onAddUserSelected(mockUser);
+      expect(addSpy).toHaveBeenCalledWith('user-42');
+    });
+
+    it('should still work when called with a plain string id', () => {
+      const addSpy = jest.spyOn(component, 'addUser');
+      component.onAddUserSelected('user-42');
+      expect(addSpy).toHaveBeenCalledWith('user-42');
+    });
+
+    it('should not call addUser when called with null', () => {
+      const addSpy = jest.spyOn(component, 'addUser');
+      component.onAddUserSelected(null);
+      expect(addSpy).not.toHaveBeenCalled();
+    });
   });
 });

@@ -287,7 +287,14 @@ export class InventoryByUsersComponent implements OnInit {
     return t('user-select.type-to-search');
   }
 
-  onAddUserSelected(userId: string | null): void {
+  onAddUserSelected(
+    event: UserAndUserInOrganization | string | null
+  ): void {
+    if (!event) {
+      return;
+    }
+    const userId =
+      typeof event === 'string' ? event : event.user?.id;
     if (!userId) {
       return;
     }
