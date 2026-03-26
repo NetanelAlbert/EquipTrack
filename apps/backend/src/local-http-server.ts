@@ -1,4 +1,9 @@
-import { IncomingMessage, ServerResponse, createServer } from 'http';
+import {
+  IncomingMessage,
+  OutgoingHttpHeaders,
+  ServerResponse,
+  createServer,
+} from 'http';
 import {
   APIGatewayProxyEvent,
   APIGatewayProxyHandler,
@@ -6,7 +11,7 @@ import {
 } from 'aws-lambda';
 import { endpointMetas } from '@equip-track/shared';
 import { lambdaHandlers } from './api/handler-factory';
-import { CORS_HEADERS } from './api/responses';
+import { buildCorsHeaders, getRequestOrigin } from './api/cors';
 
 interface CompiledRoute {
   endpointKey: keyof typeof endpointMetas;
@@ -153,14 +158,19 @@ function createApiGatewayEvent(
   };
 }
 
+function corsHeadersForRequest(req: IncomingMessage): Record<string, string> {
+  return buildCorsHeaders(getRequestOrigin(normalizeHeaders(req.headers)));
+}
+
 function sendJsonResponse(
   res: ServerResponse,
+  req: IncomingMessage,
   statusCode: number,
   body: unknown,
   headers: Record<string, string> = {}
 ): void {
   res.writeHead(statusCode, {
-    ...CORS_HEADERS,
+    ...corsHeadersForRequest(req),
     ...headers,
   });
   res.end(typeof body === 'string' ? body : JSON.stringify(body));
@@ -207,18 +217,18 @@ export async function startLocalHttpServer(): Promise<void> {
     const pathname = url.pathname;
 
     if (method === 'OPTIONS') {
-      sendJsonResponse(res, 200, '');
+      sendJsonResponse(res, req, 200, '');
       return;
     }
 
     if (method === 'GET' && pathname === '/health') {
-      sendJsonResponse(res, 200, { status: 'ok' });
+      sendJsonResponse(res, req, 200, { status: 'ok' });
       return;
     }
 
     const match = findRoute(method, pathname);
     if (!match) {
-      sendJsonResponse(res, 404, {
+      sendJsonResponse(res, req, 404, {
         status: false,
         error: 'Not Found',
         path: pathname,
@@ -233,14 +243,15 @@ export async function startLocalHttpServer(): Promise<void> {
       const event = createApiGatewayEvent(req, pathname, body, match.pathParameters);
       const result = await invokeLambdaHandler(handler, event);
 
-      res.writeHead(result.statusCode, {
-        ...CORS_HEADERS,
+      const mergedHeaders = {
         ...(result.headers || {}),
-      });
+        ...corsHeadersForRequest(req),
+      } as OutgoingHttpHeaders;
+      res.writeHead(result.statusCode, mergedHeaders);
       res.end(result.body || '');
     } catch (error) {
       console.error('[local-http-server] request failed:', error);
-      sendJsonResponse(res, 500, {
+      sendJsonResponse(res, req, 500, {
         status: false,
         error: 'Internal server error',
       });

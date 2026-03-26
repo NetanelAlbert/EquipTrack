@@ -10,11 +10,11 @@ import {
   OptionalObject,
 } from '@equip-track/shared';
 import { HandlerFunction, handlers } from './handlers';
+import { buildCorsHeaders, getRequestOrigin } from './cors';
 import {
   ErrorResponse,
   unauthorized,
   internalServerError,
-  CORS_HEADERS,
 } from './responses';
 import { authenticateAndGetJwt } from './auth';
 
@@ -35,6 +35,7 @@ export function createLambdaHandler<
   handler: HandlerFunction<Req, Res>
 ): APIGatewayProxyHandler {
   return async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const corsHeaders = buildCorsHeaders(getRequestOrigin(event.headers));
     try {
       console.log(`[${meta.path}] Processing request`, {
         method: meta.method,
@@ -72,7 +73,7 @@ export function createLambdaHandler<
 
       return {
         statusCode: 200,
-        headers: CORS_HEADERS,
+        headers: corsHeaders,
         body: JSON.stringify(result),
       };
     } catch (error) {
@@ -85,15 +86,19 @@ export function createLambdaHandler<
         return {
           statusCode: errorResponse.statusCode,
           headers: {
-            ...CORS_HEADERS,
             ...errorResponse.headers,
+            ...corsHeaders,
           },
           body: errorResponse.body,
         };
       }
 
       console.log(`[${meta.path}] Creating generic error response for:`, error);
-      return internalServerError(error?.message || 'Internal server error');
+      const err = internalServerError(error?.message || 'Internal server error');
+      return {
+        ...err,
+        headers: { ...err.headers, ...corsHeaders },
+      };
     }
   };
 }
