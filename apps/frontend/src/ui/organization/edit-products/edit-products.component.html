@@ -1,4 +1,4 @@
-<div class="edit-products-container">
+<div class="edit-products-container" data-testid="edit-products-page">
   @if (isLoadingProducts()) {
     <div
       class="edit-products-loading"
@@ -19,7 +19,7 @@
         <div class="product-item">
           <mat-form-field appearance="outline">
             <mat-label>{{ 'organization.editProducts.id' | translate }}</mat-label>
-            <input matInput formControlName="id" required>
+            <input matInput formControlName="id" required data-testid="edit-products-id-input">
             @if (newProductForm.get('id')?.hasError('required')) {
               <mat-error>
                 {{ 'organization.editProducts.idRequired' | translate }}
@@ -39,7 +39,7 @@
 
           <mat-form-field appearance="outline">
             <mat-label>{{ 'organization.editProducts.name' | translate }}</mat-label>
-            <input matInput formControlName="name" required>
+            <input matInput formControlName="name" required data-testid="edit-products-name-input">
             @if (newProductForm.get('name')?.hasError('required')) {
               <mat-error>
                 {{ 'organization.editProducts.nameRequired' | translate }}
@@ -52,7 +52,7 @@
             }
           </mat-form-field>
 
-          <mat-checkbox formControlName="upi">
+          <mat-checkbox formControlName="upi" data-testid="edit-products-upi-checkbox">
             {{ 'organization.editProducts.upi' | translate }}
           </mat-checkbox>
 
@@ -62,7 +62,8 @@
               color="accent"
               (click)="saveNewProduct()"
               type="button"
-              [disabled]="!newProductForm.valid">
+              [disabled]="!newProductForm.valid"
+              data-testid="edit-products-save-btn">
               @if (isProductSaving(newProductId)) {
                 <mat-spinner diameter="16"></mat-spinner>
               }
@@ -107,28 +108,29 @@
           [ngModel]="searchTerm()"
           (ngModelChange)="searchTerm.set($event)"
           name="searchTerm"
+          data-testid="edit-products-search"
           >
       </mat-form-field>
-      <mat-radio-group [ngModel]="upiFilter()" (ngModelChange)="upiFilter.set($event)" name="upiFilter">
+      <mat-radio-group [ngModel]="upiFilter()" (ngModelChange)="upiFilter.set($event)" name="upiFilter" data-testid="edit-products-filter">
         <mat-radio-button value="upi">{{ 'organization.editProducts.filter.upi' | translate }}</mat-radio-button>
         <mat-radio-button value="no-upi">{{ 'organization.editProducts.filter.noUpi' | translate }}</mat-radio-button>
         <mat-radio-button value="all">{{ 'organization.editProducts.filter.all' | translate }}</mat-radio-button>
       </mat-radio-group>
       @for (product of filteredProducts(); track product.id; let i = $index) {
-        <mat-card [ngClass]="{'existing-product-item': true, 'upi': product.hasUpi}">
+        <mat-card [ngClass]="{'existing-product-item': true, 'upi': product.hasUpi}" [attr.data-testid]="'edit-products-card-' + product.id">
           <span class="existing-product-details">
             <span class="product-name">{{ product.name }}</span>
             <span class="product-id">({{ product.id }})</span>
           </span>
           <span class="row-actions">
-            <button mat-icon-button (click)="editProductName(product)" type="button">
+            <button mat-icon-button (click)="editProductName(product)" type="button" [attr.data-testid]="'edit-products-edit-' + product.id">
               @if (isProductSaving(product.id)) {
                 <mat-spinner diameter="32"></mat-spinner>
               } @else {
                 <mat-icon>edit</mat-icon>
               }
             </button>
-            <button mat-icon-button color="warn" (click)="removeProduct(product.id)">
+            <button mat-icon-button color="warn" (click)="removeProduct(product.id)" [attr.data-testid]="'edit-products-delete-' + product.id">
               @if (isProductDeleting(product.id)) {
                 <mat-spinner diameter="32"></mat-spinner>
               } @else {
