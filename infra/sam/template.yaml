@@ -102,7 +102,6 @@ Resources:
   LambdaaddInventory:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-addInventory-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -121,7 +120,6 @@ Resources:
   LambdaapproveForm:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-approveForm-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -140,7 +138,6 @@ Resources:
   LambdacreateForm:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-createForm-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -159,7 +156,6 @@ Resources:
   LambdadeleteProduct:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-deleteProduct-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -178,7 +174,6 @@ Resources:
   Lambdae2eAuth:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-e2eAuth-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -197,7 +192,6 @@ Resources:
   LambdagetAllForms:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-getAllForms-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -216,7 +210,6 @@ Resources:
   LambdagetInventory:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-getInventory-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -235,7 +228,6 @@ Resources:
   LambdagetItemsToReport:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-getItemsToReport-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -254,7 +246,6 @@ Resources:
   LambdagetPresignedUrl:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-getPresignedUrl-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -273,7 +264,6 @@ Resources:
   LambdagetProducts:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-getProducts-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -292,7 +282,6 @@ Resources:
   LambdagetReportsByDates:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-getReportsByDates-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -311,7 +300,6 @@ Resources:
   LambdagetUserForms:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-getUserForms-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -330,7 +318,6 @@ Resources:
   LambdagetUserInventory:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-getUserInventory-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -349,7 +336,6 @@ Resources:
   LambdagetUsers:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-getUsers-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -368,7 +354,6 @@ Resources:
   LambdagoogleAuth:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-googleAuth-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -387,7 +372,6 @@ Resources:
   LambdainviteUser:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-inviteUser-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -406,7 +390,6 @@ Resources:
   LambdapublishPartialReport:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-publishPartialReport-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -425,7 +408,6 @@ Resources:
   LambdarejectForm:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-rejectForm-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -444,7 +426,6 @@ Resources:
   LambdaremoveInventory:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-removeInventory-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -463,7 +444,6 @@ Resources:
   LambdasetProduct:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-setProduct-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -482,7 +462,6 @@ Resources:
   LambdasetUser:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-setUser-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -501,7 +480,6 @@ Resources:
   Lambdastart:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub 'equip-track-start-${Stage}'
       Handler: index.handler
       Runtime: nodejs20.x
       Timeout: 30
@@ -541,7 +519,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-e2eAuth-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt Lambdae2eAuth.Arn
               responses:
                 default:
                   description: Default response
@@ -550,7 +531,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-googleAuth-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagoogleAuth.Arn
               responses:
                 default:
                   description: Default response
@@ -559,7 +543,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getAllForms-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetAllForms.Arn
               responses:
                 default:
                   description: Default response
@@ -568,7 +555,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-approveForm-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdaapproveForm.Arn
               responses:
                 default:
                   description: Default response
@@ -577,7 +567,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-createForm-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdacreateForm.Arn
               responses:
                 default:
                   description: Default response
@@ -586,7 +579,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-rejectForm-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdarejectForm.Arn
               responses:
                 default:
                   description: Default response
@@ -595,7 +591,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getPresignedUrl-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetPresignedUrl.Arn
               responses:
                 default:
                   description: Default response
@@ -604,7 +603,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getInventory-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetInventory.Arn
               responses:
                 default:
                   description: Default response
@@ -613,7 +615,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-addInventory-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdaaddInventory.Arn
               responses:
                 default:
                   description: Default response
@@ -622,7 +627,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-removeInventory-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdaremoveInventory.Arn
               responses:
                 default:
                   description: Default response
@@ -631,7 +639,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getUserInventory-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetUserInventory.Arn
               responses:
                 default:
                   description: Default response
@@ -640,7 +651,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getUserForms-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetUserForms.Arn
               responses:
                 default:
                   description: Default response
@@ -649,7 +663,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-deleteProduct-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdadeleteProduct.Arn
               responses:
                 default:
                   description: Default response
@@ -658,7 +675,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getProducts-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetProducts.Arn
               responses:
                 default:
                   description: Default response
@@ -667,7 +687,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-setProduct-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdasetProduct.Arn
               responses:
                 default:
                   description: Default response
@@ -676,7 +699,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getReportsByDates-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetReportsByDates.Arn
               responses:
                 default:
                   description: Default response
@@ -685,7 +711,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getItemsToReport-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetItemsToReport.Arn
               responses:
                 default:
                   description: Default response
@@ -694,7 +723,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-publishPartialReport-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdapublishPartialReport.Arn
               responses:
                 default:
                   description: Default response
@@ -703,7 +735,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-getUsers-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetUsers.Arn
               responses:
                 default:
                   description: Default response
@@ -712,7 +747,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-setUser-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdasetUser.Arn
               responses:
                 default:
                   description: Default response
@@ -721,7 +759,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-inviteUser-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdainviteUser.Arn
               responses:
                 default:
                   description: Default response
@@ -730,7 +771,10 @@ Resources:
               x-amazon-apigateway-integration:
                 type: aws_proxy
                 httpMethod: POST
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:equip-track-start-${Stage}/invocations'
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt Lambdastart.Arn
               responses:
                 default:
                   description: Default response
