@@ -1,4 +1,15 @@
 <div class="edit-users-container">
+  @if (isLoadingUsers()) {
+    <div
+      class="edit-users-loading"
+      role="status"
+      aria-live="polite"
+      data-testid="edit-users-loading"
+    >
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>{{ 'inventory.users.loading' | translate }}</p>
+    </div>
+  } @else {
   <!-- Header -->
   <div class="header">
     <h1>{{ 'navigation.edit-users' | translate }}</h1>
@@ -162,4 +173,6 @@
       </div>
     </mat-card-content>
   </mat-card>
+  }
 </div>
+

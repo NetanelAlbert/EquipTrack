@@ -104,7 +104,17 @@
 
   <!-- Inventory Table -->
   <div class="table-container" data-testid="inventory-by-users-table-container">
-    @if (tableData().length > 0) {
+    @if (isLoadingInitialWarehouseInventory()) {
+      <div
+        class="inventory-table-loading"
+        role="status"
+        aria-live="polite"
+        data-testid="inventory-by-users-table-loading"
+      >
+        <mat-spinner diameter="48"></mat-spinner>
+        <p>{{ 'inventory.loading' | translate }}</p>
+      </div>
+    } @else if (tableData().length > 0) {
       <table mat-table [dataSource]="tableData()" class="inventory-table" data-testid="inventory-by-users-table">
         
         <!-- Product Column -->

@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule } from '@ngx-translate/core';
 import { GoogleSignInComponent } from '../auth/google-sign-in.component';
 import { AuthService } from '../../services/auth.service';
@@ -14,6 +15,7 @@ import { GoogleAuthResponse } from '@equip-track/shared';
   imports: [
     MatCardModule,
     MatIconModule,
+    MatProgressSpinnerModule,
     TranslateModule,
     GoogleSignInComponent,
   ],

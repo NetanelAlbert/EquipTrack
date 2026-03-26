@@ -12,9 +12,7 @@
       "!{projectRoot}/src/test-setup.[jt]s",
       "!{projectRoot}/test-setup.[jt]s"
     ],
-    "sharedGlobals": [
-      "{workspaceRoot}/.github/workflows/deploy-fullstack.yml"
-    ]
+    "sharedGlobals": ["{workspaceRoot}/.github/workflows/deploy-fullstack.yml"]
   },
   "targetDefaults": {
     "@angular-devkit/build-angular:application": {
@@ -134,5 +132,6 @@
       "typeSeparator": "."
     }
   },
-  "nxCloudId": "69bfdf5ed96c7f3e33736ea0"
+  "nxCloudId": "69bfdf5ed96c7f3e33736ea0",
+  "analytics": false
 }

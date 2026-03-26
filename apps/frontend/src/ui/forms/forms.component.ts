@@ -2,6 +2,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 
 import { FormsStore } from '../../store/forms.store';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule } from '@ngx-translate/core';
 import { FormsTabContentComponent } from './forms-tab-content/forms-tab-content.component';
 import { FormQueryParams } from '../../utils/forms.medels';
@@ -18,6 +19,7 @@ const formTypeToTabIndex: Record<FormType, number> = {
   standalone: true,
   imports: [
     MatTabsModule,
+    MatProgressSpinnerModule,
     TranslateModule,
     FormsTabContentComponent
 ],
