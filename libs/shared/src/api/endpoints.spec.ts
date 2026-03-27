@@ -7,6 +7,9 @@ describe('endpointMetas inspector access', () => {
     expect(endpointMetas.getReportsByDates.allowedRoles).toContain(
       UserRole.Inspector
     );
+    expect(endpointMetas.getItemsToReport.allowedRoles).toContain(
+      UserRole.Inspector
+    );
   });
 
   it('should not allow inspector for restricted inventory endpoints', () => {

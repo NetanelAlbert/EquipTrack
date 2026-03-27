@@ -214,6 +214,24 @@ export class InventoryAdapter {
    * @param organizationId The organization to get UPI items for
    * @returns Map of user IDs to all UPI items for the organization
    */
+  /**
+   * Map productId+upi to holder id for all unique (UPI) items in the organization.
+   */
+  async getHolderIdByProductUpi(
+    organizationId: string
+  ): Promise<Map<string, string>> {
+    const upiItems = await this.getOrganizationUpiItems(organizationId);
+    const byKey = new Map<string, string>();
+    upiItems.forEach((items, holderId) => {
+      for (const inv of items) {
+        for (const upi of inv.upis ?? []) {
+          byKey.set(`${inv.productId}_${upi}`, holderId);
+        }
+      }
+    });
+    return byKey;
+  }
+
   async getOrganizationUpiItems(organizationId: string): Promise<Map<string, InventoryItem[]>> {
     console.log('[InventoryAdapter.getOrganizationUpiItems]', { organizationId });
     const command = new QueryCommand({

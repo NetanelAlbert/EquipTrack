@@ -7,6 +7,9 @@ import {
   formatJerusalemDBDate,
 } from '@equip-track/shared';
 import { ReportsAdapter } from '../../../db/tables/reports.adapter';
+import { InventoryAdapter } from '../../../db/tables/inventory.adapter';
+import { UsersAndOrganizationsAdapter } from '../../../db/tables/users-and-organizations.adapter';
+import { buildOwnerAndDepartmentFields } from './report-item-metadata';
 
 export async function handler(
   req: PublishPartialReportRequest,
@@ -38,11 +41,29 @@ export async function handler(
   const userId = jwtPayload.sub;
   const date = formatJerusalemDBDate(new Date());
 
-  const items: ItemReport[] = req.items.map((item) => ({
-    ...item,
-    reportedBy: userId,
-    reportDate: date,
-  }));
+  const inventoryAdapter = new InventoryAdapter();
+  const usersAdapter = new UsersAndOrganizationsAdapter();
+  const holderByKey = await inventoryAdapter.getHolderIdByProductUpi(
+    organizationId
+  );
+
+  const items: ItemReport[] = await Promise.all(
+    req.items.map(async (item) => {
+      const holderId = holderByKey.get(`${item.productId}_${item.upi}`);
+      const meta = await buildOwnerAndDepartmentFields(
+        holderId,
+        organizationId,
+        (uid, oid) => usersAdapter.getUserInOrganization(uid, oid)
+      );
+
+      return {
+        ...item,
+        reportedBy: userId,
+        reportDate: date,
+        ...meta,
+      };
+    })
+  );
 
   const reportsAdapter = new ReportsAdapter();
 

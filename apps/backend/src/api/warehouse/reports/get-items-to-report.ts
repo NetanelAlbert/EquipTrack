@@ -33,11 +33,15 @@ export async function handler(
       throw new Error(`User role is required, got payload: ${JSON.stringify(jwtPayload)}`);
     }
 
-    if (userRole === UserRole.WarehouseManager || userRole === UserRole.Admin) {
-        return {
-            status: true,
-            itemsByHolder: Object.fromEntries(upiItems),
-        };
+    if (
+      userRole === UserRole.WarehouseManager ||
+      userRole === UserRole.Admin ||
+      userRole === UserRole.Inspector
+    ) {
+      return {
+        status: true,
+        itemsByHolder: Object.fromEntries(upiItems),
+      };
     }
 
     const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();    
