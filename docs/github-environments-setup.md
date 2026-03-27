@@ -25,12 +25,21 @@ GitHub Environments provide:
   - `AWS_REGION`: `il-central-1`
   - `STAGE`: `dev`
 
+#### Create Release Environment
+- **Name**: `release`
+- **Protection Rules**:
+  - Optional required reviewer (recommended for release-candidate promotions)
+  - Deployment branches: only `release/*` and tags matching `v*-beta.*`
+- **Environment Variables**:
+  - `AWS_REGION`: `il-central-1`
+  - `STAGE`: `release`
+
 #### Create Production Environment
 - **Name**: `production`
 - **Protection Rules**:
   - ✅ **Required reviewers**: Add yourself and team members
   - ✅ **Wait timer**: 5 minutes (optional)
-  - ✅ **Deployment branches**: Only `main` branch and tags starting with `v`
+  - ✅ **Deployment branches**: Only `master` branch and stable tags starting with `v` (without `-alpha`/`-beta`)
 - **Environment Variables**:
   - `AWS_REGION`: `il-central-1`
   - `STAGE`: `production`
@@ -44,6 +53,15 @@ Navigate to **Settings** → **Environments** → **development** → **Environm
 - `AWS_SECRET_ACCESS_KEY`: Your dev AWS secret key
 - `API_GATEWAY_REGIONAL_CERTIFICATE_ARN`: ACM cert in the API region for `dev-api.*` (optional; see `infra/sam/README.md`)
 - `BASE_DOMAIN`: `dev.equip-track.com` (if using custom domains)
+
+#### Release Environment Secrets
+Navigate to **Settings** → **Environments** → **release** → **Environment secrets**:
+
+- `AWS_ACCESS_KEY_ID`: Your release AWS access key
+- `AWS_SECRET_ACCESS_KEY`: Your release AWS secret key
+- `API_GATEWAY_REGIONAL_CERTIFICATE_ARN`: ACM cert for `release-api.*` (optional; see `infra/sam/README.md`)
+- `BASE_DOMAIN`: `release.equip-track.com` (if using custom domains)
+- `E2E_AUTH_SECRET`: Secret used by deployed Playwright for release-stage APIs
 
 #### Production Environment Secrets  
 Navigate to **Settings** → **Environments** → **production** → **Environment secrets**:
@@ -103,7 +121,8 @@ Create separate IAM users/roles with limited permissions:
 
 ### 1. Enable Branch Protection
 - **Development**: Allow `develop` branch deployments
-- **Production**: Only allow `main` branch and version tags (`v*`)
+- **Release**: Only allow `release/*` branch deployments
+- **Production**: Only allow `master` branch and stable version tags (`v*` without prerelease suffix)
 
 ### 2. Required Reviewers for Production
 - Minimum 1 reviewer for production deployments
@@ -118,11 +137,11 @@ For enhanced security, migrate from access keys to OIDC:
 
 ## 📝 Environment Variables Reference
 
-| Variable | Development | Production |
-|----------|-------------|------------|
-| `AWS_REGION` | `il-central-1` | `il-central-1` |
-| `STAGE` | `dev` | `production` |
-| `BASE_DOMAIN` | `dev.equip-track.com` | `equip-track.com` |
+| Variable | Development | Release | Production |
+|----------|-------------|---------|------------|
+| `AWS_REGION` | `il-central-1` | `il-central-1` | `il-central-1` |
+| `STAGE` | `dev` | `release` | `production` |
+| `BASE_DOMAIN` | `dev.equip-track.com` | `release.equip-track.com` | `equip-track.com` |
 
 ## 🧪 E2E Workflow Environment Secrets
 
@@ -133,6 +152,7 @@ Deployed Playwright regression (manual and automatic) uses the reusable workflow
 Add this secret to each environment:
 
 - **development** → `E2E_AUTH_SECRET` for your dev API
+- **release** → `E2E_AUTH_SECRET` for your release API
 - **production** → `E2E_AUTH_SECRET` for your production API
 
 ### Repository variables (optional — auto E2E after develop deploy)
@@ -143,8 +163,10 @@ Workflow **E2E Deployed Core After Develop Deploy** (`.github/workflows/e2e-depl
 |----------|---------|---------|
 | `E2E_DEV_FRONTEND_URL` | `https://app.dev.equip-track.com` | Deployed frontend base URL |
 | `E2E_DEV_BACKEND_URL` | `https://api.dev.equip-track.com` | Deployed API base URL |
+| `E2E_RELEASE_FRONTEND_URL` | `https://app.release.equip-track.com` | Deployed release frontend base URL |
+| `E2E_RELEASE_BACKEND_URL` | `https://api.release.equip-track.com` | Deployed release API base URL |
 
-If either is unset, the workflow is skipped (no failure). The job uses the **development** environment for `E2E_AUTH_SECRET`.
+If a URL pair is unset, the matching workflow is skipped (no failure). Jobs use the matching environment (`development` or `release`) for `E2E_AUTH_SECRET`.
 
 ### Manual deployed E2E
 
