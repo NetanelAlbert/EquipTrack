@@ -2,6 +2,7 @@ import {
   InventoryItem,
   ItemReport,
   itemReportCompositeKey,
+  parseItemReportCompositeKey,
 } from '@equip-track/shared';
 
 export interface HistoryDisplayRow extends ItemReport {
@@ -52,9 +53,9 @@ export function mergeReportedAndNotReported(
     if (reportedKeys.has(key)) {
       continue;
     }
-    const sep = key.indexOf('_');
-    const productId = sep === -1 ? key : key.slice(0, sep);
-    const upi = sep === -1 ? '' : key.slice(sep + 1);
+    const parsed = parseItemReportCompositeKey(key);
+    const productId = parsed?.productId ?? key;
+    const upi = parsed?.upi ?? '';
     const holderId = holderByKey.get(key);
     rows.push({
       productId,

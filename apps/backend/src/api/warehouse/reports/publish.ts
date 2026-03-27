@@ -5,6 +5,7 @@ import {
   PublishPartialReportRequest,
   PublishPartialReportResponse,
   formatJerusalemDBDate,
+  itemReportCompositeKey,
 } from '@equip-track/shared';
 import { ReportsAdapter } from '../../../db/tables/reports.adapter';
 import { InventoryAdapter } from '../../../db/tables/inventory.adapter';
@@ -49,7 +50,9 @@ export async function handler(
 
   const items: ItemReport[] = await Promise.all(
     req.items.map(async (item) => {
-      const holderId = holderByKey.get(`${item.productId}_${item.upi}`);
+      const holderId = holderByKey.get(
+        itemReportCompositeKey(item.productId, item.upi)
+      );
       const meta = await buildOwnerAndDepartmentFields(
         holderId,
         organizationId,

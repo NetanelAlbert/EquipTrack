@@ -36,6 +36,7 @@ import {
 } from '../constants';
 import {
   InventoryItem,
+  itemReportCompositeKey,
   mergeInventoryItem,
   Product,
 } from '@equip-track/shared';
@@ -210,12 +211,8 @@ export class InventoryAdapter {
   }
 
   /**
-   * Get All UPI items for an organization
-   * @param organizationId The organization to get UPI items for
-   * @returns Map of user IDs to all UPI items for the organization
-   */
-  /**
    * Map productId+upi to holder id for all unique (UPI) items in the organization.
+   * Keys use {@link itemReportCompositeKey} (same as publish and frontend).
    */
   async getHolderIdByProductUpi(
     organizationId: string
@@ -225,7 +222,7 @@ export class InventoryAdapter {
     upiItems.forEach((items, holderId) => {
       for (const inv of items) {
         for (const upi of inv.upis ?? []) {
-          byKey.set(`${inv.productId}_${upi}`, holderId);
+          byKey.set(itemReportCompositeKey(inv.productId, upi), holderId);
         }
       }
     });

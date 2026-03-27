@@ -202,7 +202,10 @@ export class TodayReportComponent {
   }
 
   rowKey(row: TodayReportRow): string {
-    return `${row.holderId}_${row.item.productId}_${row.item.upi}`;
+    return `${row.holderId}\u001f${itemReportCompositeKey(
+      row.item.productId,
+      row.item.upi
+    )}`;
   }
 
   isRowSelected(row: TodayReportRow): boolean {

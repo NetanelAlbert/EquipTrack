@@ -18,7 +18,11 @@ describe('reports-history.utils', () => {
 
   it('flattenExpectedInventoryKeys collects keys', () => {
     const keys = flattenExpectedInventoryKeys(inv);
-    expect(keys.has('550e8400-e29b-41d4-a716-446655440000_u_x')).toBe(true);
+    expect(
+      keys.has(
+        `550e8400-e29b-41d4-a716-446655440000\u001fu_x`
+      )
+    ).toBe(true);
   });
 
   it('mergeReportedAndNotReported adds missing rows with holder', () => {
