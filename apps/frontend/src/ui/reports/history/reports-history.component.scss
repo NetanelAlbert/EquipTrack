@@ -36,6 +36,24 @@
     }
   }
 
+  .sort-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    max-width: 420px;
+    font-size: 13px;
+    color: #b0b0b0;
+    line-height: 1.4;
+
+    .hint-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: var(--color-accent);
+      flex-shrink: 0;
+    }
+  }
+
   .report-info {
     display: flex;
     flex-wrap: wrap;
@@ -109,6 +127,10 @@
 
   .report-table {
     width: 100%;
+
+    th[mat-multi-sort-header] {
+      white-space: nowrap;
+    }
 
     .cell-primary {
       display: block;

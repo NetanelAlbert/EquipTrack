@@ -35,7 +35,10 @@ test.describe('today-report screen', () => {
     ).toBeVisible({ timeout: 20000 });
   });
 
-  test('sort toggle reorders cards', async ({ page, request }) => {
+  test('column header sort is available (multi-sort)', async ({
+    page,
+    request,
+  }) => {
     const token = await mintE2eJwt(request, {
       backendBaseUrl,
       e2eSecret,
@@ -52,13 +55,9 @@ test.describe('today-report screen', () => {
       page.locator('[data-testid^="today-report-item-row-"]').first()
     ).toBeVisible({ timeout: 20000 });
 
-    const sortGroup = page.getByTestId('today-report-sort-group');
-    await expect(sortGroup).toBeVisible();
-
-    await sortGroup.locator('mat-radio-button[value="product"]').click();
-    await expect(page.getByTestId('today-report-page')).toBeVisible();
-
-    await sortGroup.locator('mat-radio-button[value="location"]').click();
+    const productHeader = page.locator('th[mat-multi-sort-header="product"]');
+    await expect(productHeader).toBeVisible();
+    await productHeader.click();
     await expect(page.getByTestId('today-report-page')).toBeVisible();
   });
 

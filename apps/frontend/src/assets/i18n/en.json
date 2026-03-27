@@ -317,6 +317,7 @@
     "reportedTotalCount": "{{reported}} reported · {{total}} total",
     "exportCsv": "Export CSV",
     "exportPdf": "Export PDF",
+    "multiSortHint": "Click column headers to sort. Click again for more columns (order shown by number).",
     "batchPublish": "Publish selected",
     "filterByHolder": "Filter by holder",
     "filterByDepartment": "Filter by department",

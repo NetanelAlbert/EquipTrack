@@ -95,7 +95,10 @@ test.describe('reports-history screen', () => {
     await expect(page.getByTestId('reports-history-counts')).toBeVisible();
   });
 
-  test('sort toggle reorders items', async ({ page, request }) => {
+  test('column header sort is available (multi-sort)', async ({
+    page,
+    request,
+  }) => {
     const token = await mintE2eJwt(request, {
       backendBaseUrl,
       e2eSecret,
@@ -112,13 +115,9 @@ test.describe('reports-history screen', () => {
       page.locator('[data-testid^="reports-history-item-row-"]').first()
     ).toBeVisible({ timeout: 20000 });
 
-    const sortGroup = page.getByTestId('reports-history-sort-group');
-    await expect(sortGroup).toBeVisible();
-
-    await sortGroup.locator('mat-radio-button[value="product"]').click();
-    await expect(page.getByTestId('reports-history-page')).toBeVisible();
-
-    await sortGroup.locator('mat-radio-button[value="location"]').click();
+    const productHeader = page.locator('th[mat-multi-sort-header="product"]');
+    await expect(productHeader).toBeVisible();
+    await productHeader.click();
     await expect(page.getByTestId('reports-history-page')).toBeVisible();
   });
 });

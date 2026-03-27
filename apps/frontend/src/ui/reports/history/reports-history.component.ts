@@ -1,10 +1,12 @@
 import {
+  AfterViewInit,
   Component,
   computed,
+  effect,
   inject,
   signal,
   Signal,
-  WritableSignal,
+  viewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
@@ -14,13 +16,17 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatRadioModule } from '@angular/material/radio';
+import { MatSortModule } from '@angular/material/sort';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import {
+  MatMultiSort,
+  MatMultiSortHeaderComponent,
+} from 'ngx-mat-multi-sort';
 import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
 import { NotificationService } from '../../../services/notification.service';
 import {
@@ -40,6 +46,7 @@ import {
   registerReportsPdfUnicodeFont,
   REPORTS_PDF_FONT_FAMILY,
 } from './reports-pdf-font';
+import { ReportsMultiSortDataSource } from '../reports-multi-sort-datasource';
 
 @Component({
   selector: 'app-reports-history',
@@ -53,16 +60,18 @@ import {
     MatInputModule,
     MatSelectModule,
     MatProgressSpinnerModule,
-    MatRadioModule,
+    MatSortModule,
     MatDatepickerModule,
     MatNativeDateModule,
+    MatMultiSort,
+    MatMultiSortHeaderComponent,
     FormsModule,
     TranslateModule,
   ],
   templateUrl: './reports-history.component.html',
   styleUrls: ['./reports-history.component.scss'],
 })
-export class ReportsHistoryComponent {
+export class ReportsHistoryComponent implements AfterViewInit {
   reportsStore = inject(ReportsStore);
   userStore = inject(UserStore);
   organizationStore = inject(OrganizationStore);
@@ -73,8 +82,6 @@ export class ReportsHistoryComponent {
   readonly UserRole = UserRole;
 
   dateFormat = UI_DATE_FORMAT;
-  sortBy: WritableSignal<'location' | 'product' | 'user' | 'department'> =
-    signal('product');
   selectedDate = signal(new Date());
   selectedDateString = computed(() => formatJerusalemDBDate(this.selectedDate()));
   selectedReport = computed(() =>
@@ -83,6 +90,9 @@ export class ReportsHistoryComponent {
 
   filterUserId = signal<string | 'all'>('all');
   filterDepartmentId = signal<string | 'all'>('all');
+
+  multiSort = viewChild(MatMultiSort);
+  historyDataSource?: ReportsMultiSortDataSource<HistoryDisplayRow>;
 
   canFilterByUserOrDept = computed(() => {
     const r = this.userStore.currentRole();
@@ -145,39 +155,6 @@ export class ReportsHistoryComponent {
     return rows;
   });
 
-  sortedRows = computed(() => {
-    const rows = [...this.filteredRows()];
-    const sort = this.sortBy();
-    rows.sort((a, b) => {
-      if (sort === 'location') {
-        return (
-          (a.location || '').localeCompare(b.location || '') ||
-          this.compareUserDeptProduct(a, b)
-        );
-      }
-      if (sort === 'user') {
-        return (
-          this.getSortUserLabel(a).localeCompare(this.getSortUserLabel(b)) ||
-          this.getProductName(a.productId).localeCompare(
-            this.getProductName(b.productId)
-          )
-        );
-      }
-      if (sort === 'department') {
-        return (
-          this.getSortDeptLabel(a).localeCompare(this.getSortDeptLabel(b)) ||
-          this.getSortUserLabel(a).localeCompare(this.getSortUserLabel(b))
-        );
-      }
-      return (
-        this.getProductName(a.productId).localeCompare(
-          this.getProductName(b.productId)
-        ) || (a.upi || '').localeCompare(b.upi || '')
-      );
-    });
-    return rows;
-  });
-
   reportedCount = computed(
     () =>
       this.filteredRows().filter((r: HistoryDisplayRow) => !r.isNotReported)
@@ -200,6 +177,92 @@ export class ReportsHistoryComponent {
 
   constructor() {
     void this.reportsStore.fetchItemsToReport();
+    effect(() => {
+      this.filteredRows();
+      queueMicrotask(() => this.syncHistoryDataSource());
+    });
+  }
+
+  ngAfterViewInit(): void {
+    const ms = this.multiSort();
+    if (!ms) {
+      return;
+    }
+    this.historyDataSource = new ReportsMultiSortDataSource<HistoryDisplayRow>(
+      ms,
+      (a, b, columnId, dir) => {
+        const inv = dir === 'asc' ? 1 : -1;
+        let cmp = 0;
+        switch (columnId) {
+          case 'product':
+            cmp = this.getProductName(a.productId).localeCompare(
+              this.getProductName(b.productId)
+            );
+            break;
+          case 'upi':
+            cmp = (a.upi || '').localeCompare(b.upi || '');
+            break;
+          case 'status':
+            cmp =
+              (a.isNotReported ? 1 : 0) - (b.isNotReported ? 1 : 0);
+            break;
+          case 'location':
+            cmp = (a.location || '').localeCompare(b.location || '');
+            break;
+          case 'holder':
+            cmp = this.getSortUserLabel(a).localeCompare(
+              this.getSortUserLabel(b)
+            );
+            break;
+          case 'department':
+            cmp = this.getDepartmentLabel(a).localeCompare(
+              this.getDepartmentLabel(b)
+            );
+            break;
+          case 'reporter':
+            cmp = (
+              a.isNotReported
+                ? ''
+                : this.organizationStore.getUserName(a.reportedBy)
+            ).localeCompare(
+              b.isNotReported
+                ? ''
+                : this.organizationStore.getUserName(b.reportedBy)
+            );
+            break;
+          default:
+            cmp = 0;
+        }
+        if (cmp !== 0) {
+          return cmp * inv;
+        }
+        return `${a.productId}\u001f${a.upi}`.localeCompare(
+          `${b.productId}\u001f${b.upi}`
+        );
+      }
+    );
+    this.syncHistoryDataSource();
+  }
+
+  onMultiSortChange(): void {
+    this.syncHistoryDataSource();
+  }
+
+  private syncHistoryDataSource(): void {
+    if (!this.historyDataSource) {
+      return;
+    }
+    this.historyDataSource.data = [...this.filteredRows()];
+    this.historyDataSource.orderData();
+  }
+
+  /** Rows as shown in the table (multi-sorted when datasource is ready). */
+  displayedTableRows(): HistoryDisplayRow[] {
+    return this.historyDataSource?.data ?? this.filteredRows();
+  }
+
+  historyTableDataSource(): HistoryDisplayRow[] | ReportsMultiSortDataSource<HistoryDisplayRow> {
+    return this.historyDataSource ?? this.filteredRows();
   }
 
   private resetFilters(): void {
@@ -288,22 +351,8 @@ export class ReportsHistoryComponent {
     return this.getUserName(h);
   }
 
-  getSortDeptLabel(row: HistoryDisplayRow): string {
-    return this.getDepartmentLabel(row);
-  }
-
-  private compareUserDeptProduct(a: HistoryDisplayRow, b: HistoryDisplayRow) {
-    return (
-      this.getSortUserLabel(a).localeCompare(this.getSortUserLabel(b)) ||
-      this.getSortDeptLabel(a).localeCompare(this.getSortDeptLabel(b)) ||
-      this.getProductName(a.productId).localeCompare(
-        this.getProductName(b.productId)
-      )
-    );
-  }
-
   exportCsv(): void {
-    const rows = this.sortedRows();
+    const rows = this.displayedTableRows();
     const headers = [
       this.translate.instant('reports.columnProduct'),
       this.translate.instant('reports.upiLabel'),
@@ -387,7 +436,7 @@ export class ReportsHistoryComponent {
         this.translate.instant('reports.columnReporter'),
       ],
     ];
-    const body = this.sortedRows().map((r) => [
+    const body = this.displayedTableRows().map((r) => [
       this.getProductName(r.productId),
       r.upi,
       r.isNotReported
