@@ -61,6 +61,51 @@ test.describe('today-report screen', () => {
     await expect(page.getByTestId('today-report-page')).toBeVisible();
   });
 
+  test('sorting by UPI reorders table rows (multi-sort state updates data)', async ({
+    page,
+    request,
+  }) => {
+    const token = await mintE2eJwt(request, {
+      backendBaseUrl,
+      e2eSecret,
+      userId: 'user-e2e-admin',
+      orgIdToRole: { [E2E_ORG_ID]: UserRole.Admin },
+    });
+
+    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+    await clickSideNavRoute(page, 'today-report');
+    await waitForTestId(page, 'today-report-page');
+
+    const rowLocator = page.locator('[data-testid^="today-report-item-row-"]');
+    await expect(rowLocator.first()).toBeVisible({ timeout: 20000 });
+
+    const readUpiOrder = () =>
+      rowLocator.evaluateAll((els) =>
+        els.map((el) => {
+          const id = el.getAttribute('data-testid') ?? '';
+          return id.replace(/^today-report-item-row-/, '');
+        })
+      );
+
+    const initial = await readUpiOrder();
+    if (initial.length < 2) {
+      test.skip();
+      return;
+    }
+
+    const upiHeader = page.locator('th[mat-multi-sort-header="upi"]');
+    await upiHeader.click();
+    await expect
+      .poll(async () => await readUpiOrder())
+      .toEqual([...initial].sort((a, b) => a.localeCompare(b)));
+
+    await upiHeader.click();
+    await expect
+      .poll(async () => await readUpiOrder())
+      .toEqual([...initial].sort((a, b) => b.localeCompare(a)));
+  });
+
   test('submit a location report for an item', async ({
     page,
     request,

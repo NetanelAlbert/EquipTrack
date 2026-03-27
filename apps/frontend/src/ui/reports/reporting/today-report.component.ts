@@ -3,8 +3,10 @@ import {
   Signal,
   WritableSignal,
   computed,
+  effect,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 
 import { MatTableModule } from '@angular/material/table';
@@ -65,6 +67,8 @@ export class TodayReportComponent {
   userStore = inject(UserStore);
   organizationStore = inject(OrganizationStore);
   translateService = inject(TranslateService);
+
+  private multiSort = viewChild(MatMultiSort);
 
   readonly UserRole = UserRole;
 
@@ -240,9 +244,25 @@ export class TodayReportComponent {
     const { today, yesterday } = getTodayAndYesterday();
     this.today = today;
     this.yesterday = yesterday;
+
+    effect((onCleanup) => {
+      const ms = this.multiSort();
+      if (!ms) {
+        return;
+      }
+      const sub = ms.sortChange.subscribe(() => {
+        queueMicrotask(() => this.syncMultiSortSnapshot(ms));
+      });
+      onCleanup(() => sub.unsubscribe());
+    });
   }
 
-  onMultiSortChange(ms: MatMultiSort): void {
+  /**
+   * MatMultiSort mutates `actives` / `directions` for the header UI; we mirror that into
+   * signals for `applyMultiColumnSort`. Subscribing to `sortChange` is more reliable than
+   * `(matSortChange)` on the table for keeping row order in sync with the header state.
+   */
+  private syncMultiSortSnapshot(ms: MatMultiSort): void {
     this.multiSortActives.set([...ms.actives]);
     this.multiSortDirections.set([...ms.directions]);
   }

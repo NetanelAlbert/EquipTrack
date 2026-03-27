@@ -1,9 +1,11 @@
 import {
   Component,
   computed,
+  effect,
   inject,
   signal,
   Signal,
+  viewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
@@ -75,6 +77,8 @@ export class ReportsHistoryComponent {
   translate = inject(TranslateService);
   languageService = inject(LanguageService);
   private notificationService = inject(NotificationService);
+
+  private multiSort = viewChild(MatMultiSort);
 
   readonly UserRole = UserRole;
 
@@ -185,9 +189,20 @@ export class ReportsHistoryComponent {
 
   constructor() {
     void this.reportsStore.fetchItemsToReport();
+
+    effect((onCleanup) => {
+      const ms = this.multiSort();
+      if (!ms) {
+        return;
+      }
+      const sub = ms.sortChange.subscribe(() => {
+        queueMicrotask(() => this.syncMultiSortSnapshot(ms));
+      });
+      onCleanup(() => sub.unsubscribe());
+    });
   }
 
-  onMultiSortChange(ms: MatMultiSort): void {
+  private syncMultiSortSnapshot(ms: MatMultiSort): void {
     this.multiSortActives.set([...ms.actives]);
     this.multiSortDirections.set([...ms.directions]);
   }

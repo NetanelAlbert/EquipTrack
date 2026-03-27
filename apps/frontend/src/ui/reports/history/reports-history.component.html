@@ -98,8 +98,6 @@
         mat-table
         [dataSource]="sortedDisplayRows()"
         matMultiSort
-        #historySort="matMultiSort"
-        (matSortChange)="onMultiSortChange(historySort)"
         class="report-table"
       >
         <ng-container matColumnDef="product">
