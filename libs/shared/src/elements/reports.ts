@@ -1,6 +1,6 @@
-/** Stable composite key for productId + upi (productId may contain underscores). */
+/** Composite map key for productId + upi (productId is a UUID without `_`). */
 export function itemReportCompositeKey(productId: string, upi: string): string {
-  return `${productId}\u001f${upi}`;
+  return `${productId}_${upi}`;
 }
 
 export interface ItemReport {

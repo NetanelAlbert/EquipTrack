@@ -52,7 +52,7 @@ export function mergeReportedAndNotReported(
     if (reportedKeys.has(key)) {
       continue;
     }
-    const sep = key.indexOf('\u001f');
+    const sep = key.indexOf('_');
     const productId = sep === -1 ? key : key.slice(0, sep);
     const upi = sep === -1 ? '' : key.slice(sep + 1);
     const holderId = holderByKey.get(key);

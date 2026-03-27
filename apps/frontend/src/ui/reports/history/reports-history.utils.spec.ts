@@ -9,7 +9,7 @@ describe('reports-history.utils', () => {
   const inv: Record<string, InventoryItem[]> = {
     u1: [
       {
-        productId: 'p_a',
+        productId: '550e8400-e29b-41d4-a716-446655440000',
         quantity: 1,
         upis: ['u_x'],
       },
@@ -18,13 +18,13 @@ describe('reports-history.utils', () => {
 
   it('flattenExpectedInventoryKeys collects keys', () => {
     const keys = flattenExpectedInventoryKeys(inv);
-    expect(keys.has('p_a\u001fu_x')).toBe(true);
+    expect(keys.has('550e8400-e29b-41d4-a716-446655440000_u_x')).toBe(true);
   });
 
   it('mergeReportedAndNotReported adds missing rows with holder', () => {
     const reported: ItemReport[] = [
       {
-        productId: 'p_a',
+        productId: '550e8400-e29b-41d4-a716-446655440001',
         upi: 'u_x',
         location: 'A',
         reportedBy: 'rep',
@@ -33,7 +33,7 @@ describe('reports-history.utils', () => {
     const invMulti: Record<string, InventoryItem[]> = {
       u1: [
         {
-          productId: 'p_a',
+          productId: '550e8400-e29b-41d4-a716-446655440001',
           quantity: 2,
           upis: ['u_x', 'u_y'],
         },
@@ -48,7 +48,7 @@ describe('reports-history.utils', () => {
     );
     expect(merged).toHaveLength(2);
     const notReported = merged.find((r) => r.isNotReported);
-    expect(notReported?.productId).toBe('p_a');
+    expect(notReported?.productId).toBe('550e8400-e29b-41d4-a716-446655440001');
     expect(notReported?.upi).toBe('u_y');
     expect(notReported?.ownerUserId).toBe('u1');
   });
