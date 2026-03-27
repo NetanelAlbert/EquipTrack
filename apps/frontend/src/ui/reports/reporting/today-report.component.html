@@ -64,9 +64,10 @@
   <div class="table-wrap">
     <table
       mat-table
-      [dataSource]="tableDataSource()"
+      [dataSource]="sortedTableRows()"
       matMultiSort
-      (matSortChange)="onMultiSortChange()"
+      #todayReportSort="matMultiSort"
+      (matSortChange)="onMultiSortChange(todayReportSort)"
       class="report-table"
     >
       <ng-container matColumnDef="select">

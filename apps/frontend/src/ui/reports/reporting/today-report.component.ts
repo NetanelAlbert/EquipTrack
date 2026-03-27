@@ -1,13 +1,10 @@
 import {
-  AfterViewInit,
   Component,
   Signal,
   WritableSignal,
   computed,
-  effect,
   inject,
   signal,
-  viewChild,
 } from '@angular/core';
 
 import { MatTableModule } from '@angular/material/table';
@@ -34,7 +31,7 @@ import {
   itemReportCompositeKey,
   UserRole,
 } from '@equip-track/shared';
-import { ReportsMultiSortDataSource } from '../reports-multi-sort-datasource';
+import { applyMultiColumnSort } from '../reports-multi-sort';
 
 export interface TodayReportRow {
   holderId: string;
@@ -63,7 +60,7 @@ export interface TodayReportRow {
   templateUrl: './today-report.component.html',
   styleUrls: ['./today-report.component.scss'],
 })
-export class TodayReportComponent implements AfterViewInit {
+export class TodayReportComponent {
   reportsStore = inject(ReportsStore);
   userStore = inject(UserStore);
   organizationStore = inject(OrganizationStore);
@@ -78,13 +75,12 @@ export class TodayReportComponent implements AfterViewInit {
   private focusedCardUpi: WritableSignal<string | null> = signal(null);
   private selectedUpis: WritableSignal<Set<string>> = signal(new Set());
 
-  multiSort = viewChild(MatMultiSort);
-  /** Set in ngAfterViewInit; before that the template falls back to {@link prioritizedRows}. */
-  reportDataSource?: ReportsMultiSortDataSource<TodayReportRow>;
-
-  tableDataSource(): TodayReportRow[] | ReportsMultiSortDataSource<TodayReportRow> {
-    return this.reportDataSource ?? this.prioritizedRows();
-  }
+  /**
+   * Snapshot of MatMultiSort state so computed sorting re-runs when user adds
+   * secondary columns (MatMultiSort mutates arrays; they are not signals).
+   */
+  private multiSortActives = signal<string[]>([]);
+  private multiSortDirections = signal<string[]>([]);
 
   today: string;
   yesterday: string;
@@ -160,7 +156,6 @@ export class TodayReportComponent implements AfterViewInit {
     return sections;
   });
 
-  /** Flat rows in section order; table multi-sort applies on top. */
   tableRows: Signal<TodayReportRow[]> = computed(() => {
     const rows: TodayReportRow[] = [];
     for (const [holderId, items] of this.filteredItemsToShow()) {
@@ -184,8 +179,21 @@ export class TodayReportComponent implements AfterViewInit {
     return rows;
   });
 
+  /** Table rows after multi-column header sort (depends on multiSortActives signals). */
+  sortedTableRows = computed(() => {
+    this.multiSortActives();
+    this.multiSortDirections();
+    const base = this.prioritizedRows();
+    return applyMultiColumnSort(
+      base,
+      this.multiSortActives(),
+      this.multiSortDirections(),
+      (a, b, columnId, dir) => this.compareTodayRow(a, b, columnId, dir)
+    );
+  });
+
   rowsWithLocation = computed(() =>
-    this.prioritizedRows().filter((r) => !!r.item.location?.trim())
+    this.sortedTableRows().filter((r) => !!r.item.location?.trim())
   );
 
   allLocationRowsSelected = computed(() => {
@@ -232,77 +240,60 @@ export class TodayReportComponent implements AfterViewInit {
     const { today, yesterday } = getTodayAndYesterday();
     this.today = today;
     this.yesterday = yesterday;
-
-    effect(() => {
-      this.prioritizedRows();
-      queueMicrotask(() => this.syncReportDataSource());
-    });
   }
 
-  ngAfterViewInit(): void {
-    const ms = this.multiSort();
-    if (!ms) {
-      return;
+  onMultiSortChange(ms: MatMultiSort): void {
+    this.multiSortActives.set([...ms.actives]);
+    this.multiSortDirections.set([...ms.directions]);
+  }
+
+  private compareTodayRow(
+    a: TodayReportRow,
+    b: TodayReportRow,
+    columnId: string,
+    dir: 'asc' | 'desc'
+  ): number {
+    const inv = dir === 'asc' ? 1 : -1;
+    let cmp = 0;
+    switch (columnId) {
+      case 'holder':
+        cmp = this.getUserName(a.holderId).localeCompare(
+          this.getUserName(b.holderId)
+        );
+        break;
+      case 'department':
+        cmp = this.getDepartmentLabelForRow(a).localeCompare(
+          this.getDepartmentLabelForRow(b)
+        );
+        break;
+      case 'product':
+        cmp = this.getProductName(a.item.productId).localeCompare(
+          this.getProductName(b.item.productId)
+        );
+        break;
+      case 'upi':
+        cmp = (a.item.upi || '').localeCompare(b.item.upi || '');
+        break;
+      case 'status':
+        cmp =
+          (this.isReportedItem(a.item) ? 1 : 0) -
+          (this.isReportedItem(b.item) ? 1 : 0);
+        break;
+      case 'lastLocation':
+        cmp = (this.getLastLocation(a.item) || '').localeCompare(
+          this.getLastLocation(b.item) || ''
+        );
+        break;
+      case 'location':
+        cmp = (a.item.location || '').localeCompare(b.item.location || '');
+        break;
+      default:
+        cmp = 0;
     }
-    this.reportDataSource = new ReportsMultiSortDataSource<TodayReportRow>(
-      ms,
-      (a, b, columnId, dir) => {
-        const inv = dir === 'asc' ? 1 : -1;
-        let cmp = 0;
-        switch (columnId) {
-          case 'holder':
-            cmp = this.getUserName(a.holderId).localeCompare(
-              this.getUserName(b.holderId)
-            );
-            break;
-          case 'department':
-            cmp = this.getDepartmentLabelForRow(a).localeCompare(
-              this.getDepartmentLabelForRow(b)
-            );
-            break;
-          case 'product':
-            cmp = this.getProductName(a.item.productId).localeCompare(
-              this.getProductName(b.item.productId)
-            );
-            break;
-          case 'upi':
-            cmp = (a.item.upi || '').localeCompare(b.item.upi || '');
-            break;
-          case 'status':
-            cmp =
-              (this.isReportedItem(a.item) ? 1 : 0) -
-              (this.isReportedItem(b.item) ? 1 : 0);
-            break;
-          case 'lastLocation':
-            cmp = (this.getLastLocation(a.item) || '').localeCompare(
-              this.getLastLocation(b.item) || ''
-            );
-            break;
-          case 'location':
-            cmp = (a.item.location || '').localeCompare(b.item.location || '');
-            break;
-          default:
-            cmp = 0;
-        }
-        if (cmp !== 0) {
-          return cmp * inv;
-        }
-        return this.rowKey(a).localeCompare(this.rowKey(b));
-      }
-    );
-    this.syncReportDataSource();
-  }
-
-  onMultiSortChange(): void {
-    this.syncReportDataSource();
-  }
-
-  private syncReportDataSource(): void {
-    if (!this.reportDataSource) {
-      return;
+    if (cmp !== 0) {
+      return cmp * inv;
     }
-    this.reportDataSource.data = this.prioritizedRows();
-    this.reportDataSource.orderData();
+    return this.rowKey(a).localeCompare(this.rowKey(b));
   }
 
   rowKey(row: TodayReportRow): string {
@@ -333,7 +324,7 @@ export class TodayReportComponent implements AfterViewInit {
       return;
     }
     const next = new Set<string>();
-    for (const row of this.prioritizedRows()) {
+    for (const row of this.sortedTableRows()) {
       if (row.item.location?.trim()) {
         next.add(this.rowKey(row));
       }
@@ -342,7 +333,7 @@ export class TodayReportComponent implements AfterViewInit {
   }
 
   async publishSelected(): Promise<void> {
-    const rows = this.prioritizedRows().filter((r) => this.isRowSelected(r));
+    const rows = this.sortedTableRows().filter((r) => this.isRowSelected(r));
     const items = rows
       .map((r) => r.item)
       .filter((i) => i.location?.trim());
