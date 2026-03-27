@@ -2,6 +2,17 @@
 
 Guidance for autonomous coding agents working in this repository.
 
+## Cursor Cloud specific instructions
+
+This repository defines a [Cloud Agent environment](https://cursor.com/docs/cloud-agent/setup) in `.cursor/environment.json`: the VM image includes Docker (fuse-overlayfs storage driver) and on each session start runs LocalStack from `docker-compose.e2e.yml` (port **4566**).
+
+- **AWS emulated endpoint**: `http://localhost:4566` (same as local E2E; see `docs/local-e2e.md`).
+- **Bring up / reprovision LocalStack** (idempotent): `npm run e2e:local:stack:up` or `docker compose -f docker-compose.e2e.yml up -d --wait localstack`.
+- **Seed DynamoDB, S3, Secrets Manager** after LocalStack is healthy: `npm run e2e:local:setup` (uses `AWS_ENDPOINT_URL` / test credentials like local E2E).
+- **Full local E2E stack** (LocalStack + seed + browsers + tests): see `docs/local-e2e.md` and scripts under `npm run e2e:local:*`.
+
+If Docker or LocalStack fails inside a nested container, follow Cursor’s [Running Docker](https://cursor.com/docs/cloud-agent/setup#running-docker) troubleshooting (storage driver / iptables).
+
 ## Github context
 - When asked about Github issue, pr, job etc., you can use gh cli to get more context
 
