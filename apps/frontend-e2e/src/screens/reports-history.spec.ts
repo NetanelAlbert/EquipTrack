@@ -31,7 +31,7 @@ test.describe('reports-history screen', () => {
 
     await waitForTestId(page, 'reports-history-page');
     await expect(
-      page.locator('[data-testid^="reports-history-item-card-"]').first()
+      page.locator('[data-testid^="reports-history-item-row-"]').first()
     ).toBeVisible({ timeout: 20000 });
   });
 
@@ -69,7 +69,10 @@ test.describe('reports-history screen', () => {
     await expect(dateInput).toHaveValue(initialDate);
   });
 
-  test('empty state for date with no report', async ({ page, request }) => {
+  test('past date without saved report still shows expected items (not-reported rows)', async ({
+    page,
+    request,
+  }) => {
     const token = await mintE2eJwt(request, {
       backendBaseUrl,
       e2eSecret,
@@ -82,14 +85,14 @@ test.describe('reports-history screen', () => {
     await clickSideNavRoute(page, 'reports-history');
     await waitForTestId(page, 'reports-history-page');
 
-    // Go back several days to find a date without a report
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 8; i++) {
       await page.getByTestId('reports-history-prev-day').click();
     }
 
-    await expect(
-      page.getByTestId('reports-history-empty-state')
-    ).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('table.report-table')).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.getByTestId('reports-history-counts')).toBeVisible();
   });
 
   test('sort toggle reorders items', async ({ page, request }) => {
@@ -106,7 +109,7 @@ test.describe('reports-history screen', () => {
     await waitForTestId(page, 'reports-history-page');
 
     await expect(
-      page.locator('[data-testid^="reports-history-item-card-"]').first()
+      page.locator('[data-testid^="reports-history-item-row-"]').first()
     ).toBeVisible({ timeout: 20000 });
 
     const sortGroup = page.getByTestId('reports-history-sort-group');

@@ -11,6 +11,7 @@ import {
   ORGANIZATION_ID_PATH_PARAM,
   ItemReportRequest,
   InventoryItem,
+  itemReportCompositeKey,
 } from '@equip-track/shared';
 import { ApiService } from '../services/api.service';
 import { NotificationService } from '../services/notification.service';
@@ -302,7 +303,9 @@ function addReports(reports: ItemReport[], reportsToAdd: ItemReport[]) {
   const newReports = [...reports];
   reportsToAdd.forEach((report) => {
     const index = newReports.findIndex(
-      (r) => r.productId === report.productId && r.upi === report.upi
+      (r) =>
+        itemReportCompositeKey(r.productId, r.upi) ===
+        itemReportCompositeKey(report.productId, report.upi)
     );
     if (index !== -1) {
       newReports[index] = report;

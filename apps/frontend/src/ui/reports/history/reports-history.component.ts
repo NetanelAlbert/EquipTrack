@@ -1,7 +1,13 @@
-import { Component, computed, inject, Signal, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  signal,
+  Signal,
+  WritableSignal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatListModule } from '@angular/material/list';
+import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -12,21 +18,30 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
 import {
   formatJerusalemDBDate,
-  ItemReport,
+  itemReportCompositeKey,
   UI_DATE_FORMAT,
+  UserRole,
 } from '@equip-track/shared';
+import { LanguageService } from '../../../services/language.service';
+import {
+  HistoryDisplayRow,
+  buildHolderByInventoryKey,
+  flattenExpectedInventoryKeys,
+  mergeReportedAndNotReported,
+} from './reports-history.utils';
 
 @Component({
   selector: 'app-reports-history',
   standalone: true,
   imports: [
     CommonModule,
-    MatCardModule,
-    MatListModule,
+    MatTableModule,
     MatIconModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -46,31 +61,149 @@ export class ReportsHistoryComponent {
   reportsStore = inject(ReportsStore);
   userStore = inject(UserStore);
   organizationStore = inject(OrganizationStore);
+  translate = inject(TranslateService);
+  languageService = inject(LanguageService);
+
+  readonly UserRole = UserRole;
 
   dateFormat = UI_DATE_FORMAT;
-  sortBy: Signal<'location' | 'product'> = signal('product');
+  sortBy: WritableSignal<'location' | 'product' | 'user' | 'department'> =
+    signal('product');
   selectedDate = signal(new Date());
   selectedDateString = computed(() => formatJerusalemDBDate(this.selectedDate()));
   selectedReport = computed(() =>
     this.reportsStore.getReport(this.selectedDateString())()
   );
-  sortedItems: Signal<ItemReport[]> = computed(() =>
-    this.selectedReport().sort((a, b) => {
-      if (this.sortBy() === 'location') {
-        return a.location.localeCompare(b.location) || 0;
+
+  filterUserId = signal<string | 'all'>('all');
+  filterDepartmentId = signal<string | 'all'>('all');
+
+  canFilterByUserOrDept = computed(() => {
+    const r = this.userStore.currentRole();
+    return (
+      r === UserRole.Admin ||
+      r === UserRole.WarehouseManager ||
+      r === UserRole.Inspector
+    );
+  });
+
+  holderOptions = computed(() => {
+    const holders = new Set<string>();
+    for (const k of Object.keys(this.reportsStore.itemsToReport())) {
+      holders.add(k);
+    }
+    return Array.from(holders).sort((a, b) =>
+      this.getUserName(a).localeCompare(this.getUserName(b))
+    );
+  });
+
+  departmentFilterOptions = computed(
+    () => this.userStore.currentOrganization()?.departments ?? []
+  );
+
+  expectedKeys = computed(() =>
+    flattenExpectedInventoryKeys(this.reportsStore.itemsToReport())
+  );
+
+  holderByKey = computed(() =>
+    buildHolderByInventoryKey(this.reportsStore.itemsToReport())
+  );
+
+  mergedRows: Signal<HistoryDisplayRow[]> = computed(() =>
+    mergeReportedAndNotReported(
+      this.selectedReport(),
+      this.expectedKeys(),
+      this.holderByKey()
+    )
+  );
+
+  filteredRows = computed(() => {
+    let rows = this.mergedRows();
+    const uid = this.filterUserId();
+    const did = this.filterDepartmentId();
+
+    if (uid !== 'all') {
+      rows = rows.filter(
+        (r: HistoryDisplayRow) => this.resolveHolderForRowKey(r) === uid
+      );
+    }
+
+    if (did !== 'all') {
+      rows = rows.filter((r: HistoryDisplayRow) => {
+        const deptId = this.resolveDepartmentIdForRow(r);
+        const subId = this.resolveSubDepartmentIdForRow(r);
+        return deptId === did || subId === did;
+      });
+    }
+
+    return rows;
+  });
+
+  sortedRows = computed(() => {
+    const rows = [...this.filteredRows()];
+    const sort = this.sortBy();
+    rows.sort((a, b) => {
+      if (sort === 'location') {
+        return (
+          (a.location || '').localeCompare(b.location || '') ||
+          this.compareUserDeptProduct(a, b)
+        );
+      }
+      if (sort === 'user') {
+        return (
+          this.getSortUserLabel(a).localeCompare(this.getSortUserLabel(b)) ||
+          this.getProductName(a.productId).localeCompare(
+            this.getProductName(b.productId)
+          )
+        );
+      }
+      if (sort === 'department') {
+        return (
+          this.getSortDeptLabel(a).localeCompare(this.getSortDeptLabel(b)) ||
+          this.getSortUserLabel(a).localeCompare(this.getSortUserLabel(b))
+        );
       }
       return (
         this.getProductName(a.productId).localeCompare(
           this.getProductName(b.productId)
-        ) || 0
+        ) || (a.upi || '').localeCompare(b.upi || '')
       );
-    })
+    });
+    return rows;
+  });
+
+  reportedCount = computed(
+    () =>
+      this.filteredRows().filter((r: HistoryDisplayRow) => !r.isNotReported)
+        .length
   );
-  itemCount = computed(() => this.sortedItems().length);
-  hasReportForDate = computed(() => !!this.selectedReport().length);
+
+  totalCount = computed(() => this.filteredRows().length);
+
+  hasReportForDate = computed(() => this.mergedRows().length > 0);
+
+  displayedColumns = [
+    'product',
+    'upi',
+    'status',
+    'location',
+    'holder',
+    'department',
+    'reporter',
+  ];
+
+  constructor() {
+    void this.reportsStore.fetchItemsToReport();
+  }
+
+  private resetFilters(): void {
+    this.filterUserId.set('all');
+    this.filterDepartmentId.set('all');
+  }
 
   goToDate(date: Date) {
     this.selectedDate.set(date);
+    this.resetFilters();
   }
 
   goToPreviousDay() {
@@ -87,5 +220,186 @@ export class ReportsHistoryComponent {
 
   getProductName(productId: string): string {
     return this.organizationStore.getProductName(productId);
+  }
+
+  getUserName(holderId: string): string {
+    if (holderId === 'WAREHOUSE') {
+      return this.translate.instant('reports.warehouse-items');
+    }
+    return this.organizationStore.getUserName(holderId) || holderId;
+  }
+
+  resolveHolderForRowKey(row: HistoryDisplayRow): string {
+    const fromMap = this.holderByKey().get(
+      itemReportCompositeKey(row.productId, row.upi)
+    );
+    if (fromMap) {
+      return fromMap;
+    }
+    return row.ownerUserId ?? '';
+  }
+
+  resolveDepartmentIdForRow(row: HistoryDisplayRow): string | undefined {
+    if (row.departmentId) {
+      return row.departmentId;
+    }
+    const holder = this.resolveHolderForRowKey(row);
+    if (!holder || holder === 'WAREHOUSE') {
+      return undefined;
+    }
+    return this.organizationStore.getUser(holder)?.userInOrganization.department
+      ?.id;
+  }
+
+  resolveSubDepartmentIdForRow(row: HistoryDisplayRow): string | undefined {
+    if (row.subDepartmentId) {
+      return row.subDepartmentId;
+    }
+    const holder = this.resolveHolderForRowKey(row);
+    if (!holder || holder === 'WAREHOUSE') {
+      return undefined;
+    }
+    return this.organizationStore.getUser(holder)?.userInOrganization.department
+      ?.subDepartmentId;
+  }
+
+  getDepartmentLabel(row: HistoryDisplayRow): string {
+    const mainId = this.resolveDepartmentIdForRow(row);
+    const subId = this.resolveSubDepartmentIdForRow(row);
+    if (!mainId) {
+      return '';
+    }
+    const main = this.userStore.getDepartmentName(mainId) ?? '';
+    if (!subId) {
+      return main;
+    }
+    const sub = this.userStore.getDepartmentName(subId) ?? '';
+    return `${main} / ${sub}`;
+  }
+
+  getSortUserLabel(row: HistoryDisplayRow): string {
+    const h = this.resolveHolderForRowKey(row);
+    return this.getUserName(h);
+  }
+
+  getSortDeptLabel(row: HistoryDisplayRow): string {
+    return this.getDepartmentLabel(row);
+  }
+
+  private compareUserDeptProduct(a: HistoryDisplayRow, b: HistoryDisplayRow) {
+    return (
+      this.getSortUserLabel(a).localeCompare(this.getSortUserLabel(b)) ||
+      this.getSortDeptLabel(a).localeCompare(this.getSortDeptLabel(b)) ||
+      this.getProductName(a.productId).localeCompare(
+        this.getProductName(b.productId)
+      )
+    );
+  }
+
+  exportCsv(): void {
+    const rows = this.sortedRows();
+    const headers = [
+      this.translate.instant('reports.columnProduct'),
+      this.translate.instant('reports.upiLabel'),
+      this.translate.instant('reports.columnStatus'),
+      this.translate.instant('reports.enterLocation'),
+      this.translate.instant('reports.columnHolder'),
+      this.translate.instant('reports.columnDepartment'),
+      this.translate.instant('reports.columnReporter'),
+    ];
+    const lines = [headers.join(',')];
+    for (const r of rows) {
+      const cols = [
+        this.escapeCsv(this.getProductName(r.productId)),
+        this.escapeCsv(r.upi),
+        this.escapeCsv(
+          r.isNotReported
+            ? this.translate.instant('reports.notReportedStatus')
+            : this.translate.instant('reports.reported')
+        ),
+        this.escapeCsv(r.location || ''),
+        this.escapeCsv(this.getSortUserLabel(r)),
+        this.escapeCsv(this.getDepartmentLabel(r)),
+        this.escapeCsv(
+          r.isNotReported
+            ? ''
+            : this.organizationStore.getUserName(r.reportedBy)
+        ),
+      ];
+      lines.push(cols.join(','));
+    }
+    const blob = new Blob([lines.join('\n')], {
+      type: 'text/csv;charset=utf-8;',
+    });
+    this.downloadBlob(
+      blob,
+      `report-${this.selectedDateString()}.csv`
+    );
+  }
+
+  private escapeCsv(s: string): string {
+    if (/[",\n]/.test(s)) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+  }
+
+  exportPdf(): void {
+    const isRtl = this.languageService.isRtl();
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'pt',
+      format: 'a4',
+    });
+    const title = `${this.translate.instant('reports.historyTitle')} — ${this.selectedDateString()}`;
+    doc.setFontSize(12);
+    const pageW = doc.internal.pageSize.getWidth();
+    doc.text(title, isRtl ? pageW - 40 : 40, 36, {
+      align: isRtl ? 'right' : 'left',
+    });
+
+    const head = [
+      [
+        this.translate.instant('reports.columnProduct'),
+        this.translate.instant('reports.upiLabel'),
+        this.translate.instant('reports.columnStatus'),
+        this.translate.instant('reports.enterLocation'),
+        this.translate.instant('reports.columnHolder'),
+        this.translate.instant('reports.columnDepartment'),
+        this.translate.instant('reports.columnReporter'),
+      ],
+    ];
+    const body = this.sortedRows().map((r) => [
+      this.getProductName(r.productId),
+      r.upi,
+      r.isNotReported
+        ? this.translate.instant('reports.notReportedStatus')
+        : this.translate.instant('reports.reported'),
+      r.location || '',
+      this.getSortUserLabel(r),
+      this.getDepartmentLabel(r),
+      r.isNotReported
+        ? ''
+        : this.organizationStore.getUserName(r.reportedBy),
+    ]);
+
+    autoTable(doc, {
+      head,
+      body,
+      startY: 48,
+      styles: { font: isRtl ? 'helvetica' : 'helvetica', halign: isRtl ? 'right' : 'left' },
+      headStyles: { fillColor: [80, 80, 100] },
+    });
+
+    doc.save(`report-${this.selectedDateString()}.pdf`);
+  }
+
+  private downloadBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }

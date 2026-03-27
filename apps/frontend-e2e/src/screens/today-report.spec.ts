@@ -31,7 +31,7 @@ test.describe('today-report screen', () => {
 
     await waitForTestId(page, 'today-report-page');
     await expect(
-      page.locator('[data-testid^="today-report-item-card-"]').first()
+      page.locator('[data-testid^="today-report-item-row-"]').first()
     ).toBeVisible({ timeout: 20000 });
   });
 
@@ -49,7 +49,7 @@ test.describe('today-report screen', () => {
     await waitForTestId(page, 'today-report-page');
 
     await expect(
-      page.locator('[data-testid^="today-report-item-card-"]').first()
+      page.locator('[data-testid^="today-report-item-row-"]').first()
     ).toBeVisible({ timeout: 20000 });
 
     const sortGroup = page.getByTestId('today-report-sort-group');
@@ -79,27 +79,25 @@ test.describe('today-report screen', () => {
     await clickSideNavRoute(page, 'today-report');
     await waitForTestId(page, 'today-report-page');
 
-    const cards = page.locator('[data-testid^="today-report-item-card-"]');
-    await expect(cards.first()).toBeVisible({ timeout: 20000 });
+    const rows = page.locator('[data-testid^="today-report-item-row-"]');
+    await expect(rows.first()).toBeVisible({ timeout: 20000 });
 
-    const firstCard = cards.first();
-    await firstCard.click();
+    const firstRow = rows.first();
+    await firstRow.click();
 
-    const locationInput = firstCard.locator(
+    const locationInput = firstRow.locator(
       '[data-testid^="today-report-location-input-"]'
     );
     try {
       await locationInput.waitFor({ state: 'visible', timeout: 5000 });
     } catch {
-      // Card may already be reported (seeded). Find an unreported one.
-      const allCards = await cards.all();
+      // Row may already be reported (seeded). Find an unreported one.
+      const allRows = await rows.all();
       let found = false;
-      for (const card of allCards) {
-        const hasUnreported = await card
-          .locator('.status.unreported')
-          .count();
+      for (const row of allRows) {
+        const hasUnreported = await row.locator('.status-pill.unreported').count();
         if (hasUnreported > 0) {
-          await card.click();
+          await row.click();
           found = true;
           break;
         }
@@ -122,7 +120,7 @@ test.describe('today-report screen', () => {
     await submitBtn.click();
 
     await expect(
-      page.locator('.status.reported').first()
+      page.locator('.status-pill.reported').first()
     ).toBeVisible({ timeout: 15000 });
   });
 
@@ -152,7 +150,7 @@ test.describe('today-report screen', () => {
     await useLastBtn.first().click();
 
     await expect(
-      page.locator('.status.reported').first()
+      page.locator('.status-pill.reported').first()
     ).toBeVisible({ timeout: 15000 });
   });
 });

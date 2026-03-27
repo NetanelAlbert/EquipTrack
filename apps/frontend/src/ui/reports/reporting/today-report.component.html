@@ -1,13 +1,54 @@
-<div #reportsContainer class="reports-container" data-testid="today-report-page">
+<div class="reports-container" data-testid="today-report-page">
   <h1>{{ 'reports.title' | translate }}</h1>
-  
+
   <div class="reports-header">
-    <div class="sort-section">
-      <mat-label class="sort-label">{{ 'reports.sortBy' | translate }}</mat-label>
-      <mat-radio-group [(ngModel)]="sortBy" class="sort-options" data-testid="today-report-sort-group">
-        <mat-radio-button value="location">{{ 'reports.sortByLocation' | translate }}</mat-radio-button>
-        <mat-radio-button value="product">{{ 'reports.sortByProduct' | translate }}</mat-radio-button>
-      </mat-radio-group>
+    <div class="header-row">
+      <div class="sort-section">
+        <mat-label class="sort-label">{{ 'reports.sortBy' | translate }}</mat-label>
+        <mat-radio-group [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)" class="sort-options" data-testid="today-report-sort-group">
+          <mat-radio-button value="location">{{ 'reports.sortByLocation' | translate }}</mat-radio-button>
+          <mat-radio-button value="product">{{ 'reports.sortByProduct' | translate }}</mat-radio-button>
+        </mat-radio-group>
+      </div>
+      <div class="sort-priority">
+        <mat-label class="sort-label">{{ 'reports.sortPriority' | translate }}</mat-label>
+        <mat-radio-group [ngModel]="prioritizeUnpublished()" (ngModelChange)="prioritizeUnpublished.set($event)" class="sort-options" data-testid="today-report-sort-priority-group">
+          <mat-radio-button [value]="false">{{ 'reports.sortDefaultOrder' | translate }}</mat-radio-button>
+          <mat-radio-button [value]="true">{{ 'reports.sortUnpublishedFirst' | translate }}</mat-radio-button>
+        </mat-radio-group>
+      </div>
+    </div>
+
+    @if (canUsePrivilegedFilters()) {
+      <div class="filters-row" data-testid="today-report-filters">
+        <mat-form-field appearance="outline" class="filter-field">
+          <mat-label>{{ 'reports.filterByHolder' | translate }}</mat-label>
+          <mat-select [ngModel]="filterHolderId()" (ngModelChange)="filterHolderId.set($event)">
+            <mat-option value="all">{{ 'reports.filterAllHolders' | translate }}</mat-option>
+            @for (hid of holderOptions(); track hid) {
+              <mat-option [value]="hid">{{ getUserName(hid) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="filter-field">
+          <mat-label>{{ 'reports.filterByDepartment' | translate }}</mat-label>
+          <mat-select [ngModel]="filterDepartmentId()" (ngModelChange)="filterDepartmentId.set($event)">
+            <mat-option value="all">{{ 'reports.filterAllDepartments' | translate }}</mat-option>
+            @for (d of departmentFilterOptions(); track d.id) {
+              <mat-option [value]="d.id">{{ d.name }}</mat-option>
+              @for (sd of d.subDepartments ?? []; track sd.id) {
+                <mat-option [value]="sd.id">{{ d.name }} — {{ sd.name }}</mat-option>
+              }
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    }
+
+    <div class="batch-actions">
+      <button mat-raised-button color="primary" type="button" (click)="publishSelected()" [disabled]="reportsStore.isLoading()" data-testid="today-report-batch-publish">
+        {{ 'reports.batchPublish' | translate }}
+      </button>
     </div>
   </div>
 
@@ -23,94 +64,134 @@
     </div>
   }
 
-  <div class="cards-grid">
-    @for (userItems of itemsToShow(); track userItems[0]) {
-      @let holderId = userItems[0];
-      @let itemReports = userItems[1];
-      <h2>{{ getUserName(holderId) }} {{ getUserDepartmentAndSubDepartment(holderId) }}</h2>
-      @for (item of itemReports; track item.upi; let j = $index) {
-        <mat-card [class.unreported]="!item.location" class="item-card" [attr.data-testid]="'today-report-item-card-' + item.upi"
-                  (focusin)="onCardFocus(item)"
-                  (focusout)="onCardBlur()"
-                  (click)="onCardFocus(item)" 
-                  (keydown.enter)="onCardFocus(item)"
-                  (keydown.space)="onCardFocus(item)"
-                  >
-          <div class="card-main-content">
-            <div class="card-left-section">
-              <div class="product-info">
-                <span class="product-name">{{ getProductName(item.productId) }}</span>
-                <span class="product-id">{{ item.productId }}</span>
-              </div>
-              <div class="upi-info">
-                <span class="upi-label">{{ 'reports.upiLabel' | translate }}:</span>
-                <span class="upi">{{ item.upi }}</span>
-              </div>
-            </div>
+  <div class="table-wrap">
+    <table mat-table [dataSource]="tableRows()" class="report-table">
+      <ng-container matColumnDef="select">
+        <th mat-header-cell *matHeaderCellDef>
+          <mat-checkbox
+            (change)="toggleSelectAll($event.checked)"
+            [checked]="allLocationRowsSelected()"
+            [indeterminate]="someLocationRowsSelected()"
+          ></mat-checkbox>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          <mat-checkbox
+            [checked]="isRowSelected(row)"
+            (change)="toggleRowSelection(row, $event.checked)"
+            [disabled]="!row.item.location?.trim()"
+          ></mat-checkbox>
+        </td>
+      </ng-container>
 
-            <div class="card-center-section">
-              <div class="status-section">
-                @if (isReported(item)()) {
-                  <div class="status reported">
-                    <mat-icon>check_circle</mat-icon>
-                    <span class="status-text">{{ 'reports.reported' | translate }}</span>
-                  </div>
-                } @else {
-                  <div class="status unreported">
-                    <mat-icon>error</mat-icon>
-                    <span class="status-text">{{ 'reports.notReported' | translate }}</span>
-                  </div>
-                }
-              </div>
-              @let lastLocation = getLastLocation(item);
+      <ng-container matColumnDef="holder">
+        <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnHolder' | translate }}</th>
+        <td mat-cell *matCellDef="let row">{{ getUserName(row.holderId) }}</td>
+      </ng-container>
 
-              @if (!item.location && lastLocation) {
-                <div class="last-location">
-                  <div class="last-location-info">
-                    <mat-icon>history</mat-icon>
-                    <span>{{ 'reports.lastLocation' | translate }}: {{ lastLocation }}</span>
-                  </div>
-                  <button mat-stroked-button color="primary" (click)="useLastLocation(item, lastLocation)" class="use-last-btn" [attr.data-testid]="'today-report-use-last-location-' + item.upi">
-                    {{ 'reports.useLastLocation' | translate }}
-                  </button>
-                </div>
-              }
-            </div>
+      <ng-container matColumnDef="department">
+        <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnDepartment' | translate }}</th>
+        <td mat-cell *matCellDef="let row">{{ getDepartmentLabelForRow(row) }}</td>
+      </ng-container>
 
-            <div class="card-right-section">
-              @if (shouldShowInput(item)()) {
-                <mat-form-field class="location-input" appearance="outline">
-                  <mat-label>{{ 'reports.enterLocation' | translate }}</mat-label>
-                  <input
-                  matInput 
-                  [(ngModel)]="item.location"
-                  [attr.data-testid]="'today-report-location-input-' + item.upi"
-                  >
-                  <button tabindex="-1" mat-icon-button matSuffix (click)="clearLocation(item)" type="button">
-                    <mat-icon>close</mat-icon>
-                  </button>
-                </mat-form-field>
-                <button 
-                  tabindex="-1"
-                  mat-icon-button 
-                  matSuffix 
-                  [disabled]="!item.location"
-                  (click)="updateItemReport(item)" type="button" [attr.data-testid]="'today-report-submit-btn-' + item.upi">
-                  <mat-icon>send</mat-icon>
-                </button>
-              } @else {
-                <div class="current-location">
-                  <mat-icon>location_on</mat-icon>
-                  <span>{{ item.location }}</span>
-                  <mat-icon class="edit-location-icon">
-                    edit
-                  </mat-icon>
-                </div>
-              }
+      <ng-container matColumnDef="product">
+        <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnProduct' | translate }}</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="cell-primary">{{ getProductName(row.item.productId) }}</span>
+          <span class="cell-muted">{{ row.item.productId }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="upi">
+        <th mat-header-cell *matHeaderCellDef>{{ 'reports.upiLabel' | translate }}</th>
+        <td mat-cell *matCellDef="let row">{{ row.item.upi }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnStatus' | translate }}</th>
+        <td mat-cell *matCellDef="let row">
+          @if (isReportedItem(row.item)) {
+            <span class="status-pill reported">{{ 'reports.reported' | translate }}</span>
+          } @else {
+            <span class="status-pill unreported">{{ 'reports.notReported' | translate }}</span>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="lastLocation">
+        <th mat-header-cell *matHeaderCellDef>{{ 'reports.lastLocation' | translate }}</th>
+        <td mat-cell *matCellDef="let row">
+          @let lastLoc = getLastLocation(row.item);
+          @if (!row.item.location && lastLoc) {
+            <div class="last-loc-cell">
+              <span>{{ lastLoc }}</span>
+              <button mat-stroked-button color="primary" type="button" (click)="useLastLocation(row.item, lastLoc!)" [attr.data-testid]="'today-report-use-last-location-' + row.item.upi">
+                {{ 'reports.useLastLocation' | translate }}
+              </button>
             </div>
-          </div>
-        </mat-card>
-      }
-    }
+          } @else {
+            <span class="cell-muted">—</span>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="location">
+        <th mat-header-cell *matHeaderCellDef>{{ 'reports.enterLocation' | translate }}</th>
+        <td
+          mat-cell
+          *matCellDef="let row"
+          (focusin)="onRowFocus(row.item)"
+          (focusout)="onLocationCellBlur($event, row.item)"
+        >
+          @if (shouldShowInput(row.item)) {
+            <mat-form-field appearance="outline" class="location-field" subscriptSizing="dynamic">
+              <input
+                matInput
+                [(ngModel)]="row.item.location"
+                [attr.data-testid]="'today-report-location-input-' + row.item.upi"
+              />
+              <button tabindex="-1" mat-icon-button matSuffix (click)="clearLocation(row.item)" type="button">
+                <mat-icon>close</mat-icon>
+              </button>
+            </mat-form-field>
+          } @else {
+            <div
+              class="location-readonly"
+              tabindex="0"
+              (focus)="onRowFocus(row.item)"
+              (click)="onRowFocus(row.item)"
+              (keydown.enter)="onRowFocus(row.item)"
+              (keydown.space)="$event.preventDefault(); onRowFocus(row.item)"
+            >
+              <mat-icon class="inline-icon">location_on</mat-icon>
+              <span>{{ row.item.location }}</span>
+              <mat-icon class="inline-icon hint-edit">edit</mat-icon>
+            </div>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let row">
+          <button
+            mat-icon-button
+            type="button"
+            [disabled]="!row.item.location?.trim()"
+            (click)="updateItemReport(row.item)"
+            [attr.data-testid]="'today-report-submit-btn-' + row.item.upi"
+          >
+            <mat-icon>send</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns()"
+        [class.row-unreported]="!isReportedItem(row.item)"
+        [attr.data-testid]="'today-report-item-row-' + row.item.upi"
+      ></tr>
+    </table>
   </div>
-</div> 
+</div>
