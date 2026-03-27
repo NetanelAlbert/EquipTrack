@@ -50,6 +50,7 @@ export const endpointMetas = {
     allowedRoles: [
       UserRole.Admin,
       UserRole.WarehouseManager,
+      UserRole.Customer,
       UserRole.Inspector,
     ],
     responseType: {} as Admin.GetUsersResponse,
@@ -91,6 +92,7 @@ export const endpointMetas = {
       UserRole.WarehouseManager,
       UserRole.Admin,
       UserRole.Customer,
+      UserRole.Inspector,
     ],
     responseType: {} as Wharehouse.GetProductsResponse,
   } as EndpointMeta<undefined, Wharehouse.GetProductsResponse>,

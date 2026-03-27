@@ -30,13 +30,9 @@ export class AppInitService {
 
   private async listenToOrganizationSelection(): Promise<void> {
     effect(async () => {
-      const organizationId = this.userStore.selectedOrganizationId();
-      const role = this.userStore.currentRole();
-      if (organizationId && this.authStore.isAuthenticated() && role) {
+      if (this.userStore.currentOrganization() && this.authStore.isAuthenticated()) {
         setTimeout(async () => {
-          if (role !== UserRole.Inspector) {
-            this.organizationService.fetchProducts();
-          }
+          this.organizationService.fetchProducts();
           this.organizationService.getUsers();
         });
       }
