@@ -35,33 +35,7 @@ test.describe('today-report screen', () => {
     ).toBeVisible({ timeout: 20000 });
   });
 
-  test('column header sort is available (multi-sort)', async ({
-    page,
-    request,
-  }) => {
-    const token = await mintE2eJwt(request, {
-      backendBaseUrl,
-      e2eSecret,
-      userId: 'user-e2e-admin',
-      orgIdToRole: { [E2E_ORG_ID]: UserRole.Admin },
-    });
-
-    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
-    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
-    await clickSideNavRoute(page, 'today-report');
-    await waitForTestId(page, 'today-report-page');
-
-    await expect(
-      page.locator('[data-testid^="today-report-item-row-"]').first()
-    ).toBeVisible({ timeout: 20000 });
-
-    const productHeader = page.locator('th[mat-multi-sort-header="product"]');
-    await expect(productHeader).toBeVisible();
-    await productHeader.click();
-    await expect(page.getByTestId('today-report-page')).toBeVisible();
-  });
-
-  test('sorting by UPI reorders table rows (multi-sort state updates data)', async ({
+  test('multi-sort: UPI column reorders rows; second sort column shows priority 2', async ({
     page,
     request,
   }) => {
@@ -94,7 +68,15 @@ test.describe('today-report screen', () => {
       return;
     }
 
+    const productHeader = page.locator('th[mat-multi-sort-header="product"]');
     const upiHeader = page.locator('th[mat-multi-sort-header="upi"]');
+
+    await productHeader.click();
+    await expect(productHeader.getByText(/^1$/, { exact: true })).toBeVisible();
+
+    await upiHeader.click();
+    await expect(upiHeader.getByText(/^2$/, { exact: true })).toBeVisible();
+
     await upiHeader.click();
     await expect
       .poll(async () => await readUpiOrder())

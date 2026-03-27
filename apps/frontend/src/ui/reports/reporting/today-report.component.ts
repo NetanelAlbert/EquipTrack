@@ -25,6 +25,7 @@ import {
   MatMultiSort,
   MatMultiSortHeaderComponent,
 } from 'ngx-mat-multi-sort';
+import { ReportsMatMultiSortTableDataSource } from '../reports-mat-multi-sort-datasource';
 import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
 import {
   formatJerusalemDBDate,
@@ -70,6 +71,11 @@ export class TodayReportComponent {
 
   private multiSort = viewChild(MatMultiSort);
 
+  /** Bumps when MatMultiSortTableDataSource reorders rows (see ngx-mat-multi-sort README). */
+  private sortVersion = signal(0);
+  private tableDataSource: ReportsMatMultiSortTableDataSource<TodayReportRow> | null =
+    null;
+
   readonly UserRole = UserRole;
 
   prioritizeUnpublished: WritableSignal<boolean> = signal(false);
@@ -78,13 +84,6 @@ export class TodayReportComponent {
 
   private focusedCardUpi: WritableSignal<string | null> = signal(null);
   private selectedUpis: WritableSignal<Set<string>> = signal(new Set());
-
-  /**
-   * Snapshot of MatMultiSort state so computed sorting re-runs when user adds
-   * secondary columns (MatMultiSort mutates arrays; they are not signals).
-   */
-  private multiSortActives = signal<string[]>([]);
-  private multiSortDirections = signal<string[]>([]);
 
   today: string;
   yesterday: string;
@@ -183,17 +182,16 @@ export class TodayReportComponent {
     return rows;
   });
 
-  /** Table rows after multi-column header sort (depends on multiSortActives signals). */
+  /**
+   * Rows from {@link MatMultiSortTableDataSource} after `orderData()` (ngx-mat-multi-sort
+   * client-side pattern). Falls back to {@link prioritizedRows} until the sort directive exists.
+   */
   sortedTableRows = computed(() => {
-    this.multiSortActives();
-    this.multiSortDirections();
-    const base = this.prioritizedRows();
-    return applyMultiColumnSort(
-      base,
-      this.multiSortActives(),
-      this.multiSortDirections(),
-      (a, b, columnId, dir) => this.compareTodayRow(a, b, columnId, dir)
-    );
+    this.sortVersion();
+    if (this.tableDataSource) {
+      return this.tableDataSource.data;
+    }
+    return this.prioritizedRows();
   });
 
   rowsWithLocation = computed(() =>
@@ -245,26 +243,42 @@ export class TodayReportComponent {
     this.today = today;
     this.yesterday = yesterday;
 
-    effect((onCleanup) => {
-      const ms = this.multiSort();
-      if (!ms) {
+    effect(() => {
+      const sort = this.multiSort();
+      const rows = this.prioritizedRows();
+      if (!sort) {
+        this.tableDataSource = null;
         return;
       }
-      const sub = ms.sortChange.subscribe(() => {
-        queueMicrotask(() => this.syncMultiSortSnapshot(ms));
-      });
-      onCleanup(() => sub.unsubscribe());
+      if (!this.tableDataSource || this.tableDataSource.sort !== sort) {
+        this.tableDataSource = new ReportsMatMultiSortTableDataSource<TodayReportRow>(
+          sort,
+          (data, actives, directions) =>
+            applyMultiColumnSort(
+              data,
+              actives,
+              directions,
+              (a, b, columnId, dir) =>
+                this.compareTodayRow(a, b, columnId, dir)
+            )
+        );
+      }
+      this.tableDataSource.data = [...rows];
+      this.tableDataSource.orderData();
+      this.sortVersion.update((v) => v + 1);
     });
   }
 
   /**
-   * MatMultiSort mutates `actives` / `directions` for the header UI; we mirror that into
-   * signals for `applyMultiColumnSort`. Subscribing to `sortChange` is more reliable than
-   * `(matSortChange)` on the table for keeping row order in sync with the header state.
+   * Required by ngx-mat-multi-sort client-side sorting: call `orderData()` after each
+   * `matSortChange` so the datasource reapplies all active sort columns.
    */
-  private syncMultiSortSnapshot(ms: MatMultiSort): void {
-    this.multiSortActives.set([...ms.actives]);
-    this.multiSortDirections.set([...ms.directions]);
+  onMatSortChange(): void {
+    if (!this.tableDataSource) {
+      return;
+    }
+    this.tableDataSource.orderData();
+    this.sortVersion.update((v) => v + 1);
   }
 
   private compareTodayRow(

@@ -66,6 +66,7 @@
       mat-table
       [dataSource]="sortedTableRows()"
       matMultiSort
+      (matSortChange)="onMatSortChange()"
       class="report-table"
     >
       <ng-container matColumnDef="select">

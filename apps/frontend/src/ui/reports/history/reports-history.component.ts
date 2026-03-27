@@ -26,6 +26,7 @@ import {
   MatMultiSort,
   MatMultiSortHeaderComponent,
 } from 'ngx-mat-multi-sort';
+import { ReportsMatMultiSortTableDataSource } from '../reports-mat-multi-sort-datasource';
 import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
 import { NotificationService } from '../../../services/notification.service';
 import {
@@ -80,6 +81,10 @@ export class ReportsHistoryComponent {
 
   private multiSort = viewChild(MatMultiSort);
 
+  private sortVersion = signal(0);
+  private tableDataSource: ReportsMatMultiSortTableDataSource<HistoryDisplayRow> | null =
+    null;
+
   readonly UserRole = UserRole;
 
   dateFormat = UI_DATE_FORMAT;
@@ -91,9 +96,6 @@ export class ReportsHistoryComponent {
 
   filterUserId = signal<string | 'all'>('all');
   filterDepartmentId = signal<string | 'all'>('all');
-
-  private multiSortActives = signal<string[]>([]);
-  private multiSortDirections = signal<string[]>([]);
 
   canFilterByUserOrDept = computed(() => {
     const r = this.userStore.currentRole();
@@ -157,14 +159,11 @@ export class ReportsHistoryComponent {
   });
 
   sortedDisplayRows = computed(() => {
-    this.multiSortActives();
-    this.multiSortDirections();
-    return applyMultiColumnSort(
-      this.filteredRows(),
-      this.multiSortActives(),
-      this.multiSortDirections(),
-      (a, b, columnId, dir) => this.compareHistoryRow(a, b, columnId, dir)
-    );
+    this.sortVersion();
+    if (this.tableDataSource) {
+      return this.tableDataSource.data;
+    }
+    return this.filteredRows();
   });
 
   reportedCount = computed(
@@ -190,21 +189,39 @@ export class ReportsHistoryComponent {
   constructor() {
     void this.reportsStore.fetchItemsToReport();
 
-    effect((onCleanup) => {
-      const ms = this.multiSort();
-      if (!ms) {
+    effect(() => {
+      const sort = this.multiSort();
+      const rows = this.filteredRows();
+      if (!sort) {
+        this.tableDataSource = null;
         return;
       }
-      const sub = ms.sortChange.subscribe(() => {
-        queueMicrotask(() => this.syncMultiSortSnapshot(ms));
-      });
-      onCleanup(() => sub.unsubscribe());
+      if (!this.tableDataSource || this.tableDataSource.sort !== sort) {
+        this.tableDataSource =
+          new ReportsMatMultiSortTableDataSource<HistoryDisplayRow>(
+            sort,
+            (data, actives, directions) =>
+              applyMultiColumnSort(
+                data,
+                actives,
+                directions,
+                (a, b, columnId, dir) =>
+                  this.compareHistoryRow(a, b, columnId, dir)
+              )
+          );
+      }
+      this.tableDataSource.data = [...rows];
+      this.tableDataSource.orderData();
+      this.sortVersion.update((v) => v + 1);
     });
   }
 
-  private syncMultiSortSnapshot(ms: MatMultiSort): void {
-    this.multiSortActives.set([...ms.actives]);
-    this.multiSortDirections.set([...ms.directions]);
+  onMatSortChange(): void {
+    if (!this.tableDataSource) {
+      return;
+    }
+    this.tableDataSource.orderData();
+    this.sortVersion.update((v) => v + 1);
   }
 
   private compareHistoryRow(
