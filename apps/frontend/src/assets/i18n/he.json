@@ -388,7 +388,9 @@
     "reports": {
       "fetch-failed": "טעינת הדוחות נכשלה. נסה שוב.",
       "generate-failed": "יצירת הדוח נכשלה. נסה שוב.",
-      "publish-failed": "פרסום הדוח נכשל. נסה שוב."
+      "publish-failed": "פרסום הדוח נכשל. נסה שוב.",
+      "fetch-items-to-report-failed": "טעינת פריטים לדיווח נכשלה. נסה שוב.",
+      "pdf-font-load-failed": "טעינת גופנים לייצוא PDF נכשלה. נסה שוב."
     },
     "users": {
       "fetch-failed": "טעינת המשתמשים נכשלה. נסה שוב.",

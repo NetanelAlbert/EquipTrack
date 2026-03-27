@@ -22,6 +22,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
+import { NotificationService } from '../../../services/notification.service';
 import {
   formatJerusalemDBDate,
   itemReportCompositeKey,
@@ -35,6 +36,10 @@ import {
   flattenExpectedInventoryKeys,
   mergeReportedAndNotReported,
 } from './reports-history.utils';
+import {
+  registerReportsPdfUnicodeFont,
+  REPORTS_PDF_FONT_FAMILY,
+} from './reports-pdf-font';
 
 @Component({
   selector: 'app-reports-history',
@@ -63,6 +68,7 @@ export class ReportsHistoryComponent {
   organizationStore = inject(OrganizationStore);
   translate = inject(TranslateService);
   languageService = inject(LanguageService);
+  private notificationService = inject(NotificationService);
 
   readonly UserRole = UserRole;
 
@@ -344,14 +350,26 @@ export class ReportsHistoryComponent {
     return s;
   }
 
-  exportPdf(): void {
+  async exportPdf(): Promise<void> {
     const isRtl = this.languageService.isRtl();
     const doc = new jsPDF({
       orientation: 'landscape',
       unit: 'pt',
       format: 'a4',
     });
+    const fontOk = await registerReportsPdfUnicodeFont(doc);
+    if (!fontOk) {
+      this.notificationService.showError(
+        'errors.reports.pdf-font-load-failed',
+        'Could not load PDF font'
+      );
+      return;
+    }
+    if (isRtl) {
+      doc.setR2L(true);
+    }
     const title = `${this.translate.instant('reports.historyTitle')} — ${this.selectedDateString()}`;
+    doc.setFont(REPORTS_PDF_FONT_FAMILY, 'normal');
     doc.setFontSize(12);
     const pageW = doc.internal.pageSize.getWidth();
     doc.text(title, isRtl ? pageW - 40 : 40, 36, {
@@ -387,8 +405,16 @@ export class ReportsHistoryComponent {
       head,
       body,
       startY: 48,
-      styles: { font: isRtl ? 'helvetica' : 'helvetica', halign: isRtl ? 'right' : 'left' },
-      headStyles: { fillColor: [80, 80, 100] },
+      styles: {
+        font: REPORTS_PDF_FONT_FAMILY,
+        fontStyle: 'normal',
+        halign: isRtl ? 'right' : 'left',
+      },
+      headStyles: {
+        fillColor: [80, 80, 100],
+        font: REPORTS_PDF_FONT_FAMILY,
+        fontStyle: 'normal',
+      },
     });
 
     doc.save(`report-${this.selectedDateString()}.pdf`);

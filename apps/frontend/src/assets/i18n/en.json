@@ -390,7 +390,8 @@
       "fetch-failed": "Failed to load reports. Please try again.",
       "generate-failed": "Failed to generate report. Please try again.",
       "publish-failed": "Failed to publish report. Please try again.",
-      "fetch-items-to-report-failed": "Failed to fetch items to report. Please try again."
+      "fetch-items-to-report-failed": "Failed to fetch items to report. Please try again.",
+      "pdf-font-load-failed": "Could not load fonts for PDF export. Please try again."
     },
     "users": {
       "fetch-failed": "Failed to load users. Please try again.",
