@@ -34,7 +34,12 @@ export const navItems: NavItem[] = [
     icon: 'history',
     labelKey: 'navigation.reports-history',
     route: 'reports-history',
-    roles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    roles: [
+      UserRole.WarehouseManager,
+      UserRole.Admin,
+      UserRole.Customer,
+      UserRole.Inspector,
+    ],
     loadComponent: () =>
       import('../reports/history/reports-history.component').then(
         (m) => m.ReportsHistoryComponent

@@ -236,3 +236,47 @@ test.describe('core regression inventory transfer flow', () => {
     expect(finalCustomerUpi.upis || []).not.toContain(transferredUpi);
   });
 });
+
+test.describe('inspector role api access', () => {
+  test('can read reports history endpoint and is blocked from inventory management endpoint', async ({
+    request,
+  }) => {
+    const inspectorToken = await mintE2eJwt(request, {
+      backendBaseUrl,
+      e2eSecret,
+      userId: 'user-e2e-inspector',
+      orgIdToRole: {
+        [organizationId]: UserRole.Inspector,
+      },
+    });
+
+    const reportHistoryResponse = await request.post(
+      `${backendBaseUrl}/api/organizations/${organizationId}/reports/by-dates`,
+      {
+        headers: {
+          Authorization: `Bearer ${inspectorToken}`,
+        },
+        data: {
+          dates: ['2025-01-01'],
+        },
+      }
+    );
+    expect(reportHistoryResponse.ok()).toBeTruthy();
+    const reportHistoryPayload = (await reportHistoryResponse.json()) as {
+      status: boolean;
+      reportsByDate: Record<string, unknown[]>;
+    };
+    expect(reportHistoryPayload.status).toBeTruthy();
+    expect(reportHistoryPayload.reportsByDate).toBeDefined();
+
+    const inventoryResponse = await request.get(
+      `${backendBaseUrl}/api/organizations/${organizationId}/inventory`,
+      {
+        headers: {
+          Authorization: `Bearer ${inspectorToken}`,
+        },
+      }
+    );
+    expect(inventoryResponse.status()).toBe(403);
+  });
+});
