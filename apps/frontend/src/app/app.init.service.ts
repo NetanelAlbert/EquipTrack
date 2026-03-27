@@ -34,10 +34,9 @@ export class AppInitService {
       const role = this.userStore.currentRole();
       if (organizationId && this.authStore.isAuthenticated() && role) {
         setTimeout(async () => {
-          if (role === UserRole.Inspector) {
-            return;
+          if (role !== UserRole.Inspector) {
+            this.organizationService.fetchProducts();
           }
-          this.organizationService.fetchProducts();
           this.organizationService.getUsers();
         });
       }
