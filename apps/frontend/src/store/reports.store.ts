@@ -72,7 +72,6 @@ export const ReportsStore = signalStore(
 
     return {
       getReport(date: string): Signal<ItemReport[]> {
-        console.log('getReport', date);
         if (!store.reportsByDate()[date]) {
           // Risky workaround. make sure to not update on empty response, to avoid infinite loop
           setTimeout(() => {
@@ -133,11 +132,6 @@ export const ReportsStore = signalStore(
 
           patchState(store, {
             fetchReportsStatus: { isLoading: false, error: undefined },
-          });
-
-          console.log('Reports fetched by dates successfully:', {
-            requestedDates: dates.length,
-            returnedDates: Object.keys(reportsResponse.reportsByDate).length,
           });
         } catch (error) {
           console.error('Failed to fetch reports by dates:', error);
