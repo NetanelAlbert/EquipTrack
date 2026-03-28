@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import 'jspdf-autotable-rtl';
 import { InventoryForm, User, FormType } from '@equip-track/shared';
 
 declare module 'jspdf' {
