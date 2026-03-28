@@ -72,6 +72,7 @@ export class TodayReportComponent {
   filterDepartmentId: WritableSignal<string | 'all'> = signal('all');
 
   private focusedCardUpi: WritableSignal<string | null> = signal(null);
+  private editTransitionPending = false;
   private selectedUpis: WritableSignal<Set<string>> = signal(new Set());
 
   multiSort = viewChild(MatMultiSort);
@@ -371,7 +372,11 @@ export class TodayReportComponent {
   }
 
   onRowFocus(item: ItemReport) {
+    this.editTransitionPending = true;
     this.focusedCardUpi.set(this.itemFocusKey(item));
+    setTimeout(() => {
+      this.editTransitionPending = false;
+    });
   }
 
   onCardBlur() {
@@ -379,6 +384,9 @@ export class TodayReportComponent {
   }
 
   onLocationCellBlur(event: FocusEvent, item: ItemReport): void {
+    if (this.editTransitionPending) {
+      return;
+    }
     const next = event.relatedTarget as Node | null;
     const cell = event.currentTarget as HTMLElement | null;
     if (cell && next && cell.contains(next)) {
