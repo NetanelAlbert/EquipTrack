@@ -7,13 +7,6 @@
         <mat-icon class="hint-icon">sort</mat-icon>
         <span>{{ 'reports.multiSortHint' | translate }}</span>
       </div>
-      <div class="sort-priority">
-        <mat-label class="sort-label">{{ 'reports.sortPriority' | translate }}</mat-label>
-        <mat-radio-group [ngModel]="prioritizeUnpublished()" (ngModelChange)="prioritizeUnpublished.set($event)" class="sort-options" data-testid="today-report-sort-priority-group">
-          <mat-radio-button [value]="false">{{ 'reports.sortDefaultOrder' | translate }}</mat-radio-button>
-          <mat-radio-button [value]="true">{{ 'reports.sortUnpublishedFirst' | translate }}</mat-radio-button>
-        </mat-radio-group>
-      </div>
     </div>
 
     @if (canUsePrivilegedFilters()) {

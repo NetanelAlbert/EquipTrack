@@ -17,7 +17,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatRadioModule } from '@angular/material/radio';
 import { MatSortModule } from '@angular/material/sort';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -52,7 +51,6 @@ export interface TodayReportRow {
     MatInputModule,
     MatSelectModule,
     MatProgressSpinnerModule,
-    MatRadioModule,
     MatSortModule,
     MatMultiSort,
     MatMultiSortHeaderComponent,
@@ -70,7 +68,6 @@ export class TodayReportComponent {
 
   readonly UserRole = UserRole;
 
-  prioritizeUnpublished: WritableSignal<boolean> = signal(false);
   filterHolderId: WritableSignal<string | 'all'> = signal('all');
   filterDepartmentId: WritableSignal<string | 'all'> = signal('all');
 
@@ -78,11 +75,10 @@ export class TodayReportComponent {
   private selectedUpis: WritableSignal<Set<string>> = signal(new Set());
 
   multiSort = viewChild(MatMultiSort);
-  /** Set in ngAfterViewInit; before that the template falls back to {@link prioritizedRows}. */
   reportDataSource?: ReportsMultiSortDataSource<TodayReportRow>;
 
   tableDataSource(): TodayReportRow[] | ReportsMultiSortDataSource<TodayReportRow> {
-    return this.reportDataSource ?? this.prioritizedRows();
+    return this.reportDataSource ?? this.tableRows();
   }
 
   today: string;
@@ -170,21 +166,8 @@ export class TodayReportComponent {
     return rows;
   });
 
-  prioritizedRows = computed(() => {
-    const rows = [...this.tableRows()];
-    if (!this.prioritizeUnpublished()) {
-      return rows;
-    }
-    rows.sort((a, b) => {
-      const ar = this.isReportedItem(a.item) ? 1 : 0;
-      const br = this.isReportedItem(b.item) ? 1 : 0;
-      return ar - br;
-    });
-    return rows;
-  });
-
   rowsWithLocation = computed(() =>
-    this.prioritizedRows().filter((r) => !!r.item.location?.trim())
+    this.tableRows().filter((r) => !!r.item.location?.trim())
   );
 
   allLocationRowsSelected = computed(() => {
@@ -234,7 +217,7 @@ export class TodayReportComponent {
 
     effect(() => {
       this.multiSort();
-      this.prioritizedRows();
+      this.tableRows();
       queueMicrotask(() => this.syncReportDataSource());
     });
   }
@@ -302,7 +285,7 @@ export class TodayReportComponent {
     if (!this.reportDataSource) {
       return;
     }
-    this.reportDataSource.data = this.prioritizedRows();
+    this.reportDataSource.data = this.tableRows();
     this.reportDataSource.orderData();
   }
 
@@ -334,7 +317,7 @@ export class TodayReportComponent {
       return;
     }
     const next = new Set<string>();
-    for (const row of this.prioritizedRows()) {
+    for (const row of this.tableRows()) {
       if (row.item.location?.trim()) {
         next.add(this.rowKey(row));
       }
@@ -343,7 +326,7 @@ export class TodayReportComponent {
   }
 
   async publishSelected(): Promise<void> {
-    const rows = this.prioritizedRows().filter((r) => this.isRowSelected(r));
+    const rows = this.tableRows().filter((r) => this.isRowSelected(r));
     const items = rows
       .map((r) => r.item)
       .filter((i) => i.location?.trim());
