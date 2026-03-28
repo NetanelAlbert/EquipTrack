@@ -183,8 +183,9 @@ export class TodayReportComponent {
   });
 
   /**
-   * Rows from {@link MatMultiSortTableDataSource} after `orderData()` (ngx-mat-multi-sort
-   * client-side pattern). Falls back to {@link prioritizedRows} until the sort directive exists.
+   * Same row order the table shows: {@link MatMultiSortTableDataSource#data} when the sort
+   * directive is ready, else {@link prioritizedRows}. (Template binds the datasource instance
+   * to `mat-table`, not this array — see {@link reportMatDataSource}.)
    */
   sortedTableRows = computed(() => {
     this.sortVersion();
@@ -192,6 +193,16 @@ export class TodayReportComponent {
       return this.tableDataSource.data;
     }
     return this.prioritizedRows();
+  });
+
+  /**
+   * Pass this to `[dataSource]` so `MatTable` subscribes to `DataSource.connect()` like the
+   * ngx-mat-multi-sort demo (`table.dataSource`). Passing only `.data` (a plain array) skips
+   * that stream, so `orderData()` did not refresh the rendered rows.
+   */
+  reportMatDataSource = computed(() => {
+    this.sortVersion();
+    return this.tableDataSource;
   });
 
   rowsWithLocation = computed(() =>

@@ -166,6 +166,12 @@ export class ReportsHistoryComponent {
     return this.filteredRows();
   });
 
+  /** See today-report: `mat-table` must receive the DataSource instance, not `.data`. */
+  reportMatDataSource = computed(() => {
+    this.sortVersion();
+    return this.tableDataSource;
+  });
+
   reportedCount = computed(
     () =>
       this.filteredRows().filter((r: HistoryDisplayRow) => !r.isNotReported)

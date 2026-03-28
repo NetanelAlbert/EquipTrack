@@ -47,4 +47,34 @@ describe('ReportsMatMultiSortTableDataSource', () => {
 
     expect(ds.data.map((r) => r.upi)).toEqual(['a', 'z', 'm']);
   });
+
+  it('exposes row updates via connect() (what mat-table must subscribe to)', () => {
+    const sort = new MatMultiSort();
+    sort.actives = ['upi'];
+    sort.directions = ['asc'];
+
+    const ds = new ReportsMatMultiSortTableDataSource<DemoRow>(
+      sort,
+      (data, actives, directions) =>
+        applyMultiColumnSort(data, actives, directions, (a, b, col, dir) => {
+          const inv = dir === 'asc' ? 1 : -1;
+          if (col !== 'upi') {
+            return 0;
+          }
+          const cmp = a.upi.localeCompare(b.upi);
+          return cmp === 0 ? 0 : cmp * inv;
+        })
+    );
+
+    const seen: DemoRow[][] = [];
+    ds.connect().subscribe((rows) => seen.push([...rows]));
+
+    ds.data = [
+      { product: 'x', upi: 'b' },
+      { product: 'x', upi: 'a' },
+    ];
+    ds.orderData();
+
+    expect(seen.at(-1)?.map((r) => r.upi)).toEqual(['a', 'b']);
+  });
 });

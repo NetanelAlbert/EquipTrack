@@ -96,7 +96,7 @@
     <div class="table-wrap">
       <table
         mat-table
-        [dataSource]="sortedDisplayRows()"
+        [dataSource]="reportMatDataSource() ?? filteredRows()"
         matMultiSort
         (matSortChange)="onMatSortChange()"
         class="report-table"
