@@ -1,5 +1,4 @@
 import {
-  AfterViewInit,
   Component,
   Signal,
   WritableSignal,
@@ -63,7 +62,7 @@ export interface TodayReportRow {
   templateUrl: './today-report.component.html',
   styleUrls: ['./today-report.component.scss'],
 })
-export class TodayReportComponent implements AfterViewInit {
+export class TodayReportComponent {
   reportsStore = inject(ReportsStore);
   userStore = inject(UserStore);
   organizationStore = inject(OrganizationStore);
@@ -234,12 +233,16 @@ export class TodayReportComponent implements AfterViewInit {
     this.yesterday = yesterday;
 
     effect(() => {
+      this.multiSort();
       this.prioritizedRows();
       queueMicrotask(() => this.syncReportDataSource());
     });
   }
 
-  ngAfterViewInit(): void {
+  private initDataSourceIfNeeded(): void {
+    if (this.reportDataSource) {
+      return;
+    }
     const ms = this.multiSort();
     if (!ms) {
       return;
@@ -284,13 +287,10 @@ export class TodayReportComponent implements AfterViewInit {
           default:
             cmp = 0;
         }
-        if (cmp !== 0) {
-          return cmp * inv;
-        }
-        return this.rowKey(a).localeCompare(this.rowKey(b));
-      }
+        return cmp * inv;
+      },
+      (a, b) => this.rowKey(a).localeCompare(this.rowKey(b))
     );
-    this.syncReportDataSource();
   }
 
   onMultiSortChange(): void {
@@ -298,6 +298,7 @@ export class TodayReportComponent implements AfterViewInit {
   }
 
   private syncReportDataSource(): void {
+    this.initDataSourceIfNeeded();
     if (!this.reportDataSource) {
       return;
     }

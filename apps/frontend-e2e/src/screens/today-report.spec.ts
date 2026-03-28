@@ -35,7 +35,7 @@ test.describe('today-report screen', () => {
     ).toBeVisible({ timeout: 20000 });
   });
 
-  test('column header sort is available (multi-sort)', async ({
+  test('multi-sort: second column sort affects row order', async ({
     page,
     request,
   }) => {
@@ -51,14 +51,43 @@ test.describe('today-report screen', () => {
     await clickSideNavRoute(page, 'today-report');
     await waitForTestId(page, 'today-report-page');
 
-    await expect(
-      page.locator('[data-testid^="today-report-item-row-"]').first()
-    ).toBeVisible({ timeout: 20000 });
+    const rows = page.locator('[data-testid^="today-report-item-row-"]');
+    await expect(rows.first()).toBeVisible({ timeout: 20000 });
+
+    const rowCount = await rows.count();
+    if (rowCount < 2) {
+      return;
+    }
+
+    const holderHeader = page.locator('th[mat-multi-sort-header="holder"]');
+    await expect(holderHeader).toBeVisible();
+    await holderHeader.click();
+    await page.waitForTimeout(500);
 
     const productHeader = page.locator('th[mat-multi-sort-header="product"]');
     await expect(productHeader).toBeVisible();
     await productHeader.click();
-    await expect(page.getByTestId('today-report-page')).toBeVisible();
+    await page.waitForTimeout(500);
+
+    const holderCells = page.locator('table.report-table td:nth-child(2)');
+    const productCells = page.locator('table.report-table td:nth-child(4)');
+    const cellCount = await holderCells.count();
+
+    const holders: string[] = [];
+    const products: string[] = [];
+    for (let i = 0; i < cellCount; i++) {
+      holders.push((await holderCells.nth(i).innerText()).trim());
+      products.push((await productCells.nth(i).innerText()).trim());
+    }
+
+    for (let i = 1; i < holders.length; i++) {
+      const holderCmp = holders[i - 1].localeCompare(holders[i]);
+      expect(holderCmp).toBeLessThanOrEqual(0);
+
+      if (holderCmp === 0) {
+        expect(products[i - 1].localeCompare(products[i])).toBeLessThanOrEqual(0);
+      }
+    }
   });
 
   test('submit a location report for an item', async ({

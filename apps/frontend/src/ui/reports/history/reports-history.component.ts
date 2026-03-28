@@ -1,5 +1,4 @@
 import {
-  AfterViewInit,
   Component,
   computed,
   effect,
@@ -71,7 +70,7 @@ import { ReportsMultiSortDataSource } from '../reports-multi-sort-datasource';
   templateUrl: './reports-history.component.html',
   styleUrls: ['./reports-history.component.scss'],
 })
-export class ReportsHistoryComponent implements AfterViewInit {
+export class ReportsHistoryComponent {
   reportsStore = inject(ReportsStore);
   userStore = inject(UserStore);
   organizationStore = inject(OrganizationStore);
@@ -178,12 +177,16 @@ export class ReportsHistoryComponent implements AfterViewInit {
   constructor() {
     void this.reportsStore.fetchItemsToReport();
     effect(() => {
+      this.multiSort();
       this.filteredRows();
       queueMicrotask(() => this.syncHistoryDataSource());
     });
   }
 
-  ngAfterViewInit(): void {
+  private initDataSourceIfNeeded(): void {
+    if (this.historyDataSource) {
+      return;
+    }
     const ms = this.multiSort();
     if (!ms) {
       return;
@@ -233,15 +236,13 @@ export class ReportsHistoryComponent implements AfterViewInit {
           default:
             cmp = 0;
         }
-        if (cmp !== 0) {
-          return cmp * inv;
-        }
-        return `${a.productId}\u001f${a.upi}`.localeCompare(
+        return cmp * inv;
+      },
+      (a, b) =>
+        `${a.productId}\u001f${a.upi}`.localeCompare(
           `${b.productId}\u001f${b.upi}`
-        );
-      }
+        )
     );
-    this.syncHistoryDataSource();
   }
 
   onMultiSortChange(): void {
@@ -249,6 +250,7 @@ export class ReportsHistoryComponent implements AfterViewInit {
   }
 
   private syncHistoryDataSource(): void {
+    this.initDataSourceIfNeeded();
     if (!this.historyDataSource) {
       return;
     }

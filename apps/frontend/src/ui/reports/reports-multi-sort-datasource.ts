@@ -17,7 +17,8 @@ export class ReportsMultiSortDataSource<T> extends MatMultiSortTableDataSource<T
       b: T,
       columnId: string,
       direction: SortDir
-    ) => number
+    ) => number,
+    private readonly tiebreaker?: (a: T, b: T) => number
   ) {
     super(sort, true);
   }
@@ -33,7 +34,7 @@ export class ReportsMultiSortDataSource<T> extends MatMultiSortTableDataSource<T
           return c;
         }
       }
-      return 0;
+      return this.tiebreaker ? this.tiebreaker(a, b) : 0;
     });
     return copy;
   }

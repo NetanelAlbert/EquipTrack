@@ -95,7 +95,7 @@ test.describe('reports-history screen', () => {
     await expect(page.getByTestId('reports-history-counts')).toBeVisible();
   });
 
-  test('column header sort is available (multi-sort)', async ({
+  test('multi-sort: second column sort affects row order', async ({
     page,
     request,
   }) => {
@@ -111,13 +111,54 @@ test.describe('reports-history screen', () => {
     await clickSideNavRoute(page, 'reports-history');
     await waitForTestId(page, 'reports-history-page');
 
+    const rows = page.locator('[data-testid^="reports-history-item-row-"]');
+    await expect(rows.first()).toBeVisible({ timeout: 20000 });
+
+    const rowCount = await rows.count();
+    if (rowCount < 2) {
+      return;
+    }
+
+    const holderHeader = page.locator('th[mat-multi-sort-header="holder"]');
+    await expect(holderHeader).toBeVisible();
+    await holderHeader.click();
     await expect(
-      page.locator('[data-testid^="reports-history-item-row-"]').first()
-    ).toBeVisible({ timeout: 20000 });
+      holderHeader.locator('.mat-sort-header-sorted')
+    ).toBeVisible({ timeout: 5000 });
 
     const productHeader = page.locator('th[mat-multi-sort-header="product"]');
     await expect(productHeader).toBeVisible();
     await productHeader.click();
-    await expect(page.getByTestId('reports-history-page')).toBeVisible();
+    await expect(
+      productHeader.locator('.mat-sort-header-sorted')
+    ).toBeVisible({ timeout: 5000 });
+
+    await page.waitForTimeout(500);
+
+    const dataRows = page.locator('table.report-table tbody tr');
+    const cellCount = await dataRows.count();
+
+    const holders: string[] = [];
+    const products: string[] = [];
+    for (let i = 0; i < cellCount; i++) {
+      const tds = dataRows.nth(i).locator('td');
+      holders.push((await tds.nth(4).innerText()).trim());
+      products.push((await tds.nth(0).innerText()).trim());
+    }
+
+    for (let i = 1; i < holders.length; i++) {
+      const holderCmp = holders[i - 1].localeCompare(holders[i]);
+      expect(
+        holderCmp,
+        `Holder sort broken at index ${i}: "${holders[i - 1]}" vs "${holders[i]}"`
+      ).toBeLessThanOrEqual(0);
+
+      if (holderCmp === 0) {
+        expect(
+          products[i - 1].localeCompare(products[i]),
+          `Product sort broken at index ${i} within holder "${holders[i]}": "${products[i - 1]}" vs "${products[i]}"`
+        ).toBeLessThanOrEqual(0);
+      }
+    }
   });
 });
