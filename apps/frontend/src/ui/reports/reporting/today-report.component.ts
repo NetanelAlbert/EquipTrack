@@ -353,7 +353,7 @@ export class TodayReportComponent {
   useLastLocation(item: ItemReport, lastLocation: string) {
     if (lastLocation) {
       item.location = lastLocation;
-      void this.updateItemReport(item);
+      this.onRowFocus(item);
     }
   }
 
@@ -405,6 +405,13 @@ export class TodayReportComponent {
 
   shouldShowInput(item: ItemReport): boolean {
     return !this.isReportedItem(item) || this.isFocusedItem(item);
+  }
+
+  autoSelectRow(row: TodayReportRow): void {
+    const shouldSelect = !!row.item.location?.trim();
+    if (shouldSelect !== this.isRowSelected(row)) {
+      this.toggleRowSelection(row, shouldSelect);
+    }
   }
 
   clearLocation(item: ItemReport) {

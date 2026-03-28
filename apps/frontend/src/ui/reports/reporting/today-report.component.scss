@@ -133,11 +133,31 @@
       }
     }
 
-    .last-loc-cell {
-      display: flex;
-      flex-direction: column;
+    .last-loc-btn {
+      display: inline-flex;
+      align-items: center;
       gap: 4px;
-      align-items: flex-start;
+      font-size: 13px;
+      color: var(--color-text-muted);
+      background: var(--color-bg-subtle);
+      padding: 4px 10px;
+      border-radius: 4px;
+      letter-spacing: 0.01em;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+
+      &:hover {
+        border-color: var(--color-accent-border);
+        background: var(--color-accent-bg);
+      }
+
+      .last-loc-icon {
+        font-size: 15px;
+        width: 15px;
+        height: 15px;
+        opacity: 0.7;
+      }
     }
 
     .location-field {
