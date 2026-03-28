@@ -1,12 +1,13 @@
 import { jsPDF } from 'jspdf';
 
 /** VFS filename; must match the second argument to addFont. */
-export const REPORTS_PDF_FONT_FILE = 'NotoSans-Regular.ttf';
-export const REPORTS_PDF_FONT_FAMILY = 'NotoSans';
+export const REPORTS_PDF_FONT_FILE = 'NotoSansHebrew-Regular.ttf';
+export const REPORTS_PDF_FONT_FAMILY = 'NotoSansHebrew';
 
 /**
- * Loads Noto Sans from app assets and registers it for Unicode (Identity-H).
- * Built-in Helvetica cannot render Hebrew or other non-Latin scripts.
+ * Loads Noto Sans Hebrew from app assets and registers it for Unicode
+ * (Identity-H). Built-in Helvetica cannot render Hebrew or other
+ * non-Latin scripts.
  */
 export async function registerReportsPdfUnicodeFont(
   doc: jsPDF

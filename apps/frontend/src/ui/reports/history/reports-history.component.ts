@@ -20,7 +20,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import autoTable from 'jspdf-autotable-rtl';
 import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
 import { NotificationService } from '../../../services/notification.service';
 import {
@@ -375,6 +375,10 @@ export class ReportsHistoryComponent {
     doc.text(title, isRtl ? pageW - 40 : 40, 36, {
       align: isRtl ? 'right' : 'left',
     });
+
+    if (isRtl) {
+      doc.setR2L(false);
+    }
 
     const head = [
       [
