@@ -13,6 +13,23 @@ This repository defines a [Cloud Agent environment](https://cursor.com/docs/clou
 
 If Docker or LocalStack fails inside a nested container, follow Cursor’s [Running Docker](https://cursor.com/docs/cloud-agent/setup#running-docker) troubleshooting (storage driver / iptables).
 
+### Running the full-stack locally
+
+- **Backend** (port 3000): `npm run backend:serve:e2e-local` — builds then starts the local HTTP server with E2E auth enabled and all AWS SDK env vars pointing at LocalStack.
+- **Frontend** (port 4200): `npm run frontend:serve:e2e-local` — writes runtime config and starts Angular dev server pointing at `localhost:3000`.
+- **Both together**: Start in separate terminals; the backend must be running before the frontend makes API calls.
+- **Lint**: `npx nx run-many --target=lint --all`
+- **Unit tests**: `npx nx run-many --target=test --all --exclude=frontend-e2e,backend-e2e`
+- **E2E tests**: `npm run e2e:local:test` (provisions LocalStack, installs Chromium, runs Playwright core regression).
+- **Pre-commit hook** runs `npm run precommit` (lint + test affected + validate translations).
+
+### Gotchas
+
+- The Docker socket may need `sudo chmod 666 /var/run/docker.sock` if the current user is not in the `docker` group.
+- Nx Cloud warnings about the FREE plan being exceeded are harmless — they just mean remote caching is disabled.
+- The `e2e-login` endpoint requires the secret via the `x-e2e-secret` **header** (not in the request body). Playwright E2E helpers handle this automatically; see `apps/frontend-e2e/src/helpers/e2e-auth.ts`.
+- The frontend defaults to Hebrew (RTL) localization. E2E tests force English via the `E2E_LANGUAGE_STORAGE_KEY` localStorage key.
+
 ## Github context
 - When asked about Github issue, pr, job etc., you can use gh cli to get more context
 
