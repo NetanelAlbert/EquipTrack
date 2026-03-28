@@ -83,8 +83,9 @@ export class ReportsHistoryComponent {
   dateFormat = UI_DATE_FORMAT;
   selectedDate = signal(new Date());
   selectedDateString = computed(() => formatJerusalemDBDate(this.selectedDate()));
-  selectedReport = computed(() =>
-    this.reportsStore.getReport(this.selectedDateString())()
+  selectedReport = computed(
+    () =>
+      this.reportsStore.reportsByDate()[this.selectedDateString()] || []
   );
 
   filterUserId = signal<string | 'all'>('all');
@@ -176,6 +177,9 @@ export class ReportsHistoryComponent {
 
   constructor() {
     void this.reportsStore.fetchItemsToReport();
+    effect(() => {
+      this.reportsStore.ensureReportsForDates([this.selectedDateString()]);
+    });
     effect(() => {
       this.multiSort();
       this.filteredRows();

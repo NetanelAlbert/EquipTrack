@@ -84,14 +84,18 @@ export class TodayReportComponent {
 
   today: string;
   yesterday: string;
-  todayReport = computed(() => this.reportsStore.getReport(this.today)());
+  todayReport = computed(
+    () => this.reportsStore.reportsByDate()[this.today] || []
+  );
   todayReportMap = computed(() => {
     return this.todayReport().reduce((acc, item) => {
       acc[itemReportCompositeKey(item.productId, item.upi)] = item;
       return acc;
     }, {} as Record<string, ItemReport>);
   });
-  lastReport = computed(() => this.reportsStore.getReport(this.yesterday)());
+  lastReport = computed(
+    () => this.reportsStore.reportsByDate()[this.yesterday] || []
+  );
 
   lastLocationMap: Signal<Record<string, string>> = computed(() => {
     return this.lastReport().reduce((acc, item) => {
@@ -215,6 +219,7 @@ export class TodayReportComponent {
     const { today, yesterday } = getTodayAndYesterday();
     this.today = today;
     this.yesterday = yesterday;
+    this.reportsStore.ensureReportsForDates([today, yesterday]);
 
     effect(() => {
       this.multiSort();
