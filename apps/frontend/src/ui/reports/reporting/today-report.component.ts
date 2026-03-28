@@ -200,7 +200,6 @@ export class TodayReportComponent {
         'status',
         'lastLocation',
         'location',
-        'actions',
       ];
     }
     return [
@@ -210,7 +209,6 @@ export class TodayReportComponent {
       'status',
       'lastLocation',
       'location',
-      'actions',
     ];
   });
 
@@ -360,12 +358,6 @@ export class TodayReportComponent {
       item.location = lastLocation;
       this.onRowFocus(item);
     }
-  }
-
-  async updateItemReport(item: ItemReport) {
-    item.location = item.location.trim();
-    await this.reportsStore.updateItemReport(item);
-    this.onCardBlur();
   }
 
   itemFocusKey(item: ItemReport): string {

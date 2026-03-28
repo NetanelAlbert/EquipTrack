@@ -170,21 +170,6 @@
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef></th>
-        <td mat-cell *matCellDef="let row">
-          <button
-            mat-icon-button
-            type="button"
-            [disabled]="!row.item.location?.trim()"
-            (click)="updateItemReport(row.item)"
-            [attr.data-testid]="'today-report-submit-btn-' + row.item.upi"
-          >
-            <mat-icon>send</mat-icon>
-          </button>
-        </td>
-      </ng-container>
-
       <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
       <tr
         mat-row

@@ -141,11 +141,9 @@ test.describe('today-report screen', () => {
       .first();
     await input.fill(`E2E Location ${Date.now()}`);
 
-    const submitBtn = page
-      .locator('[data-testid^="today-report-submit-btn-"]')
-      .first();
-    await expect(submitBtn).toBeEnabled({ timeout: 5000 });
-    await submitBtn.click();
+    const batchPublish = page.locator('[data-testid="today-report-batch-publish"]');
+    await expect(batchPublish).toBeEnabled({ timeout: 5000 });
+    await batchPublish.click();
 
     await expect(
       page.locator('.status-pill.reported').first()
@@ -176,6 +174,10 @@ test.describe('today-report screen', () => {
     }
 
     await useLastBtn.first().click();
+
+    const batchPublish = page.locator('[data-testid="today-report-batch-publish"]');
+    await expect(batchPublish).toBeEnabled({ timeout: 5000 });
+    await batchPublish.click();
 
     await expect(
       page.locator('.status-pill.reported').first()
