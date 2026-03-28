@@ -5,12 +5,13 @@ import {
   withMethods,
   withState,
 } from '@ngrx/signals';
-import { computed, inject, Signal } from '@angular/core';
+import { computed, inject } from '@angular/core';
 import {
   ItemReport,
   ORGANIZATION_ID_PATH_PARAM,
   ItemReportRequest,
   InventoryItem,
+  itemReportCompositeKey,
 } from '@equip-track/shared';
 import { ApiService } from '../services/api.service';
 import { NotificationService } from '../services/notification.service';
@@ -70,15 +71,18 @@ export const ReportsStore = signalStore(
     const userStore = inject(UserStore);
 
     return {
-      getReport(date: string): Signal<ItemReport[]> {
-        console.log('getReport', date);
-        if (!store.reportsByDate()[date]) {
-          // Risky workaround. make sure to not update on empty response, to avoid infinite loop
-          setTimeout(() => {
-            this.fetchReport(date);
-          });
+      /**
+       * Fetches reports for dates that are not yet present in state.
+       * Call from components/effects — do not nest `computed(() => store.getReport(d)())`
+       * (a new inner computed each run breaks signal tracking, e.g. after HMR).
+       */
+      ensureReportsForDates(dates: string[]): void {
+        const byDate = store.reportsByDate();
+        const missing = dates.filter((d) => byDate[d] === undefined);
+        if (missing.length === 0) {
+          return;
         }
-        return computed(() => store.reportsByDate()[date] || []);
+        void this.fetchReports(missing);
       },
 
       async fetchReport(date: string) {
@@ -132,11 +136,6 @@ export const ReportsStore = signalStore(
 
           patchState(store, {
             fetchReportsStatus: { isLoading: false, error: undefined },
-          });
-
-          console.log('Reports fetched by dates successfully:', {
-            requestedDates: dates.length,
-            returnedDates: Object.keys(reportsResponse.reportsByDate).length,
           });
         } catch (error) {
           console.error('Failed to fetch reports by dates:', error);
@@ -302,7 +301,9 @@ function addReports(reports: ItemReport[], reportsToAdd: ItemReport[]) {
   const newReports = [...reports];
   reportsToAdd.forEach((report) => {
     const index = newReports.findIndex(
-      (r) => r.productId === report.productId && r.upi === report.upi
+      (r) =>
+        itemReportCompositeKey(r.productId, r.upi) ===
+        itemReportCompositeKey(report.productId, report.upi)
     );
     if (index !== -1) {
       newReports[index] = report;

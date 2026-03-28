@@ -1,19 +1,19 @@
 <div class="reports-container" data-testid="reports-history-page">
   <h1>{{ 'reports.historyTitle' | translate }}</h1>
-  
+
   <div class="reports-header">
     <div class="date-selector-section">
       <button mat-icon-button (click)="goToPreviousDay()" class="nav-button" data-testid="reports-history-prev-day">
         <mat-icon>chevron_left</mat-icon>
       </button>
-      
+
       <mat-form-field appearance="outline" class="date-picker" data-testid="reports-history-date-picker">
         <mat-label>{{ 'reports.selectDate' | translate }}</mat-label>
-        <input matInput [matDatepicker]="picker" [(ngModel)]="selectedDate">
+        <input matInput [matDatepicker]="picker" [(ngModel)]="selectedDate" (ngModelChange)="goToDate($event)">
         <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
       </mat-form-field>
-      
+
       <button mat-icon-button (click)="goToNextDay()" class="nav-button" data-testid="reports-history-next-day">
         <mat-icon>chevron_right</mat-icon>
       </button>
@@ -25,16 +25,51 @@
           <mat-icon>event</mat-icon>
           <span class="report-date">{{ selectedDate() | date : dateFormat }}</span>
           <mat-icon>inventory</mat-icon>
-          <span class="item-count">{{ itemCount() }} {{ 'reports.items' | translate }}</span>
+          <span class="item-count" data-testid="reports-history-counts">
+            {{ 'reports.reportedTotalCount' | translate : { reported: reportedCount(), total: totalCount() } }}
+          </span>
+        </div>
+        <div class="export-actions">
+          <button mat-stroked-button type="button" (click)="exportCsv()" data-testid="reports-history-export-csv">
+            <mat-icon>download</mat-icon>
+            {{ 'reports.exportCsv' | translate }}
+          </button>
+          <button mat-stroked-button type="button" (click)="exportPdf()" data-testid="reports-history-export-pdf">
+            <mat-icon>picture_as_pdf</mat-icon>
+            {{ 'reports.exportPdf' | translate }}
+          </button>
         </div>
       </div>
 
-      <div class="sort-section">
-        <mat-label class="sort-label">{{ 'reports.sortBy' | translate }}</mat-label>
-        <mat-radio-group [(ngModel)]="sortBy" class="sort-options" data-testid="reports-history-sort-group">
-          <mat-radio-button value="location">{{ 'reports.sortByLocation' | translate }}</mat-radio-button>
-          <mat-radio-button value="product">{{ 'reports.sortByProduct' | translate }}</mat-radio-button>
-        </mat-radio-group>
+      @if (canFilterByUserOrDept()) {
+        <div class="filters-row" data-testid="reports-history-filters">
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>{{ 'reports.filterByHolder' | translate }}</mat-label>
+            <mat-select [ngModel]="filterUserId()" (ngModelChange)="filterUserId.set($event)">
+              <mat-option value="all">{{ 'reports.filterAllHolders' | translate }}</mat-option>
+              @for (hid of holderOptions(); track hid) {
+                <mat-option [value]="hid">{{ getUserName(hid) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>{{ 'reports.filterByDepartment' | translate }}</mat-label>
+            <mat-select [ngModel]="filterDepartmentId()" (ngModelChange)="filterDepartmentId.set($event)">
+              <mat-option value="all">{{ 'reports.filterAllDepartments' | translate }}</mat-option>
+              @for (d of departmentFilterOptions(); track d.id) {
+                <mat-option [value]="d.id">{{ d.name }}</mat-option>
+                @for (sd of d.subDepartments ?? []; track sd.id) {
+                  <mat-option [value]="sd.id">{{ d.name }} — {{ sd.name }}</mat-option>
+                }
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      }
+
+      <div class="sort-hint">
+        <mat-icon class="hint-icon">sort</mat-icon>
+        <span>{{ 'reports.multiSortHint' | translate }}</span>
       </div>
     }
   </div>
@@ -58,44 +93,74 @@
       <p>{{ 'reports.noReportForDateDescription' | translate }}</p>
     </div>
   } @else {
-    <div class="cards-grid">
-      @for (item of sortedItems(); track item.upi; let i = $index) {
-        <mat-card class="item-card history-card" [attr.data-testid]="'reports-history-item-card-' + item.upi">
-          <div class="card-main-content">
-            <div class="card-left-section">
-              <div class="product-info">
-                <span class="product-name">{{ getProductName(item.productId) }}</span>
-                <span class="product-id">{{ item.productId }}</span>
-              </div>
-              <div class="upi-info">
-                <span class="upi-label">{{ 'reports.upiLabel' | translate }}:</span>
-                <span class="upi">{{ item.upi }}</span>
-              </div>
-            </div>
+    <div class="table-wrap">
+      <table
+        mat-table
+        [dataSource]="historyTableDataSource()"
+        matMultiSort
+        (matSortChange)="onMultiSortChange()"
+        class="report-table"
+      >
+        <ng-container matColumnDef="product">
+          <th mat-header-cell *matHeaderCellDef mat-multi-sort-header="product">{{ 'reports.columnProduct' | translate }}</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="cell-primary">{{ getProductName(row.productId) }}</span>
+            <span class="cell-muted">{{ row.productId }}</span>
+          </td>
+        </ng-container>
 
-            <div class="card-center-section">
-              <div class="status-section">
-                <div class="status reported">
-                  <mat-icon>check_circle</mat-icon>
-                  <span class="status-text">{{ 'reports.reported' | translate }}</span>
-                </div>
-              </div>
-            </div>
+        <ng-container matColumnDef="upi">
+          <th mat-header-cell *matHeaderCellDef mat-multi-sort-header="upi">{{ 'reports.upiLabel' | translate }}</th>
+          <td mat-cell *matCellDef="let row">{{ row.upi }}</td>
+        </ng-container>
 
-            <div class="card-right-section">
-              <div class="location-display">
-                <mat-icon>location_on</mat-icon>
-                <span class="location-text">{{ item.location }}</span>
-              </div>
-              
-              <div class="reported-by">
-                <mat-icon>person</mat-icon>
-                <span class="reporter-name">{{ organizationStore.getUserName(item.reportedBy) }}</span>
-              </div>
-            </div>
-          </div>
-        </mat-card>
-      }
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef mat-multi-sort-header="status">{{ 'reports.columnStatus' | translate }}</th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.isNotReported) {
+              <span class="status-pill not-reported">{{ 'reports.notReportedStatus' | translate }}</span>
+            } @else {
+              <span class="status-pill reported">{{ 'reports.reported' | translate }}</span>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="location">
+          <th mat-header-cell *matHeaderCellDef mat-multi-sort-header="location">{{ 'reports.enterLocation' | translate }}</th>
+          <td mat-cell *matCellDef="let row">
+            {{ row.location || (row.isNotReported ? '—' : '') }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="holder">
+          <th mat-header-cell *matHeaderCellDef mat-multi-sort-header="holder">{{ 'reports.columnHolder' | translate }}</th>
+          <td mat-cell *matCellDef="let row">{{ getSortUserLabel(row) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="department">
+          <th mat-header-cell *matHeaderCellDef mat-multi-sort-header="department">{{ 'reports.columnDepartment' | translate }}</th>
+          <td mat-cell *matCellDef="let row">{{ getDepartmentLabel(row) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="reporter">
+          <th mat-header-cell *matHeaderCellDef mat-multi-sort-header="reporter">{{ 'reports.columnReporter' | translate }}</th>
+          <td mat-cell *matCellDef="let row">
+            @if (!row.isNotReported) {
+              {{ organizationStore.getUserName(row.reportedBy) }}
+            } @else {
+              —
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          [class.row-not-reported]="row.isNotReported"
+          [attr.data-testid]="'reports-history-item-row-' + row.upi"
+        ></tr>
+      </table>
     </div>
   }
-</div> 
+</div>

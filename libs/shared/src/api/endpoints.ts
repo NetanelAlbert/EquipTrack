@@ -235,7 +235,12 @@ export const endpointMetas = {
   getItemsToReport: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports/items-to-report`,
     method: 'GET',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    allowedRoles: [
+      UserRole.WarehouseManager,
+      UserRole.Admin,
+      UserRole.Customer,
+      UserRole.Inspector,
+    ],
     responseType: {} as Reports.GetItemsToReportRequestResponse,
   } as EndpointMeta<undefined, Reports.GetItemsToReportRequestResponse>,
 };
