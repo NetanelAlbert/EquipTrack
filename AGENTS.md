@@ -13,6 +13,17 @@ This repository defines a [Cloud Agent environment](https://cursor.com/docs/clou
 
 If Docker or LocalStack fails inside a nested container, follow Cursor’s [Running Docker](https://cursor.com/docs/cloud-agent/setup#running-docker) troubleshooting (storage driver / iptables).
 
+### Visual review (screenshots for the agent to “see” the UI)
+
+Playwright runs headless, but it can **save full-page PNGs** you attach to a **vision-capable** chat so the model can comment on layout, copy, and obvious issues—without Google login (E2E auth is used).
+
+1. Ensure LocalStack + seed: `npm run e2e:local:prepare` (or rely on the cloud `start` + `e2e:local:setup`).
+2. Generate screenshots: `npm run e2e:local:visual`  
+   - Optional: `VISUAL_REVIEW_ROUTES="/my-items,/forms,/create-form" npm run e2e:local:visual` (comma-separated paths; default is `/my-items`).
+3. Open **`test-results/visual-review/*.png`** and **attach them** to the agent (or paste into the Cursor chat). Ask for a concise UI/design review.
+
+The spec lives at `apps/frontend-e2e/src/visual-review.spec.ts`.
+
 ## Github context
 - When asked about Github issue, pr, job etc., you can use gh cli to get more context
 

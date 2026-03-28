@@ -64,3 +64,7 @@ cloudfront-update-config.json
 scratchpads/
 .claude/worktrees
 .claude/settings.local.json
+
+# Playwright
+/test-results
+/playwright-report
