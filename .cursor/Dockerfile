@@ -5,7 +5,7 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl gnupg git openssh-server \
+    ca-certificates curl gnupg git openssh-server sudo \
     python3 make g++ \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
@@ -41,7 +41,7 @@ RUN echo 'PasswordAuthentication no\nChallengeResponseAuthentication no\nUsePAM 
 RUN id -u ubuntu &>/dev/null || useradd -m -s /bin/bash ubuntu
 RUN groupadd -f docker && usermod -aG docker ubuntu
 RUN usermod -aG sudo ubuntu
-RUN echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu
+RUN mkdir -p /etc/sudoers.d && echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu
 RUN echo "ubuntu:ubuntu" | chpasswd
 
 USER ubuntu
