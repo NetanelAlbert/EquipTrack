@@ -20,7 +20,7 @@ If Docker or LocalStack fails inside a nested container, follow Cursor’s [Runn
 - **Both together**: Start in separate terminals; the backend must be running before the frontend makes API calls.
 - **Lint**: `npx nx run-many --target=lint --all`
 - **Unit tests**: `npx nx run-many --target=test --all --exclude=frontend-e2e,backend-e2e`
-- **E2E tests**: `npm run e2e:local:test` (provisions LocalStack, installs Chromium, runs Playwright core regression).
+- **E2E tests**: `npm run e2e:local:test` (provisions LocalStack, installs Chromium, runs Playwright core regression). Chromium + system deps are pre-installed by the update script; to run the core regression alone: `E2E_SKIP_LOCAL_E2E_ENSURE=true PLAYWRIGHT_HTML_OPEN=never npx nx run frontend-e2e:e2e-local-core`.
 - **Pre-commit hook** runs `npm run precommit` (lint + test affected + validate translations).
 
 ### Gotchas
