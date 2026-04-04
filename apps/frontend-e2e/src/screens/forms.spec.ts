@@ -54,6 +54,9 @@ test.describe('forms screen', () => {
     await clickSideNavRoute(page, 'forms');
     await waitForTestId(page, 'forms-tab-group');
 
+    // Seed data includes approved check-out forms; default tab is check-in.
+    await page.getByRole('tab', { name: /Check Out/i }).click();
+
     const statusFilter = page.getByTestId('forms-status-filter');
     await statusFilter.click();
     await page.locator('mat-option[value="all"]').click();
@@ -63,9 +66,11 @@ test.describe('forms screen', () => {
     ).toBeVisible({ timeout: 15000 });
 
     await statusFilter.click();
-    await page.locator('mat-option[value="approved"]').click();
+    const approvedOpt = page.locator('mat-option[value="approved"]');
+    await approvedOpt.waitFor({ state: 'visible', timeout: 10000 });
+    await approvedOpt.evaluate((el: HTMLElement) => el.click());
 
-    const content = page.getByTestId('forms-tab-content').first();
+    const content = page.getByTestId('forms-checkout-content');
     const cards = content.locator('[data-testid^="forms-card-"]');
     const cardCount = await cards.count();
     expect(cardCount).toBeGreaterThan(0);
