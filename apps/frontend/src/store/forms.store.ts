@@ -244,10 +244,18 @@ export const FormsStore = signalStore(
             forms: [response.form, ...state.forms()],
           });
 
-          // Ask user before navigating to forms page
-          const shouldNavigate = confirm(
-            translateService.instant('forms.view-submitted-form')
-          );
+          // Native `confirm` blocks E2E; Playwright sets this flag in bootstrap.
+          const isE2E =
+            typeof window !== 'undefined' &&
+            Boolean(
+              (window as Window & { __EQUIP_TRACK_E2E__?: boolean })
+                .__EQUIP_TRACK_E2E__
+            );
+          const shouldNavigate = isE2E
+            ? false
+            : confirm(
+                translateService.instant('forms.view-submitted-form')
+              );
           if (shouldNavigate) {
             const queryParams: FormQueryParams = {
               formType: formType,
@@ -420,6 +428,12 @@ export const FormsStore = signalStore(
             ...state.addFormStatus(),
             error: undefined,
           },
+        });
+      },
+
+      resetAddFormStatus() {
+        updateState({
+          addFormStatus: { isLoading: false, error: undefined },
         });
       },
 
