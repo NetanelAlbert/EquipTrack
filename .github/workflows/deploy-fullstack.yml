@@ -78,7 +78,19 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      - name: Lockfile dependency fingerprint
+        id: lockfile-deps
+        run: echo "fingerprint=$(node scripts/lockfile-deps-fingerprint.js)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: cache-node-modules
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-node-modules-${{ steps.lockfile-deps.outputs.fingerprint }}
+
       - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Determine deployment scope
@@ -178,6 +190,7 @@ jobs:
             echo "- **Skip one app build** when only frontend or only backend is affected (not both)."
             echo "- **Shared library:** almost any change under \`libs/shared\` marks **both** apps affected (both import it), so many real commits still build and deploy both."
             echo "- **Nx Cloud:** set \`NX_CLOUD_ACCESS_TOKEN\` (repo secret) for remote cache; this workflow sets \`NX_BRANCH\` to the default branch on tag deploys so cache matches merge CI."
+            echo "- **node_modules cache:** keyed by \`scripts/lockfile-deps-fingerprint.js\` (dependency graph only), so **auto-version bumps** that only change workspace semver in \`package-lock.json\` still reuse the cache; real lockfile changes still bust it."
             echo "- **Lambda packaging** builds one shared zip (\`shared-lambda-bundle.zip\`); **SAM** deploys all Lambdas + API Gateway from \`infra/sam/template.yaml\` (content-addressed S3 key per build)."
           } >> "$GITHUB_STEP_SUMMARY"
 
