@@ -7,7 +7,7 @@ import {
   clickSideNavRoute,
   waitForTestId,
 } from '../helpers/e2e-navigation';
-import { E2E_ORG_ID } from '../helpers/e2e-api';
+import { E2E_ORG_ID, E2E_ADMIN_USER_ID } from '../helpers/e2e-api';
 
 const backendBaseUrl =
   process.env['BACKEND_BASE_URL'] || 'http://localhost:3000';
@@ -160,5 +160,32 @@ test.describe('reports-history screen', () => {
         ).toBeLessThanOrEqual(0);
       }
     }
+  });
+
+  test('inspector sees reporter display name instead of reporter user id', async ({
+    page,
+    request,
+  }) => {
+    const token = await mintE2eJwt(request, {
+      backendBaseUrl,
+      e2eSecret,
+      userId: 'user-e2e-inspector',
+      orgIdToRole: { [E2E_ORG_ID]: UserRole.Inspector },
+    });
+
+    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+    await clickSideNavRoute(page, 'reports-history');
+
+    await waitForTestId(page, 'reports-history-page');
+
+    const firstCard = page
+      .locator('[data-testid^="reports-history-item-card-"]')
+      .first();
+    await expect(firstCard).toBeVisible({ timeout: 20000 });
+
+    const reporterName = firstCard.locator('.reporter-name');
+    await expect(reporterName).toContainText('E2E Admin');
+    await expect(reporterName).not.toContainText(E2E_ADMIN_USER_ID);
   });
 });

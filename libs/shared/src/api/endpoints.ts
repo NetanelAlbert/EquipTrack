@@ -47,7 +47,12 @@ export const endpointMetas = {
   getUsers: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/users`,
     method: 'GET',
-    allowedRoles: [],
+    allowedRoles: [
+      UserRole.Admin,
+      UserRole.WarehouseManager,
+      UserRole.Customer,
+      UserRole.Inspector,
+    ],
     responseType: {} as Admin.GetUsersResponse,
   } as EndpointMeta<undefined, Admin.GetUsersResponse>,
   setUser: {
@@ -87,6 +92,7 @@ export const endpointMetas = {
       UserRole.WarehouseManager,
       UserRole.Admin,
       UserRole.Customer,
+      UserRole.Inspector,
     ],
     responseType: {} as Wharehouse.GetProductsResponse,
   } as EndpointMeta<undefined, Wharehouse.GetProductsResponse>,
