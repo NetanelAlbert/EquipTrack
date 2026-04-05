@@ -6,7 +6,7 @@
     "context": ".."
   },
   "install": "npm ci",
-  "start": "sudo service docker start && docker compose -f docker-compose.e2e.yml up -d --wait localstack",
+  "start": "sudo service docker start && docker compose -f docker-compose.e2e.yml up -d --wait localstack && npm run e2e:local:setup",
   "ports": [
     {
       "name": "LocalStack (AWS emulator)",
