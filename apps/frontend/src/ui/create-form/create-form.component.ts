@@ -22,6 +22,7 @@ import {
   UserAndUserInOrganization,
 } from '@equip-track/shared';
 import { OrganizationStore } from '../../store/organization.store';
+import { OrganizationService } from '../../services/organization.service';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { InventoryListComponent } from '../inventory/list/inventory-list.component';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -69,6 +70,7 @@ interface CreateFormConfig {
 export class CreateFormComponent implements OnInit, CanComponentDeactivate {
   private fb = inject(FormBuilder);
   private organizationStore = inject(OrganizationStore);
+  private organizationService = inject(OrganizationService);
   private notificationService = inject(NotificationService);
   protected formsStore = inject(FormsStore);
   private userStore = inject(UserStore);
@@ -136,6 +138,8 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
   }
 
   ngOnInit(): void {
+    this.formsStore.resetAddFormStatus();
+    void this.organizationService.getUsers();
     this.route.queryParams.subscribe((params) => {
       if (params['formType'] && params['items']) {
         this.form.patchValue({

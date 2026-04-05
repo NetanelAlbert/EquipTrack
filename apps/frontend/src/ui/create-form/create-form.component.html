@@ -1,4 +1,4 @@
-@if (formsStore.addFormStatus.isLoading()) {
+@if (formsStore.addFormStatus().isLoading) {
   <div
     class="checkout-spinner-overlay"
     data-testid="create-form-loading-overlay"
@@ -47,7 +47,10 @@
           <app-user-display [user]="item" />
         </ng-template>
         <ng-template ng-option-tmp let-item="item">
-          <div [attr.data-testid]="'create-form-user-option-' + item.user.id">
+          <div
+            [attr.data-testid]="'create-form-user-option-' + item.user.id"
+            class="create-form-user-option-row"
+          >
             <app-user-display [user]="item" />
           </div>
         </ng-template>

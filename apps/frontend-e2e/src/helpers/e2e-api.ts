@@ -114,8 +114,9 @@ export async function createForm(
   return body.form;
 }
 
+/** Valid 1×1 PNG so jsPDF/fast-png can decode signatures in PDF generation. */
 const STUB_SIGNATURE =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAnUBq4qzM7cAAAAASUVORK5CYII=';
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
 export async function approveForm(
   request: APIRequestContext,

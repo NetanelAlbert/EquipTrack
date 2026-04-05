@@ -52,7 +52,13 @@
             <app-user-display [user]="item" />
           </ng-template>
           <ng-template ng-option-tmp let-item="item">
-            <app-user-display [user]="item" />
+            <div
+              [attr.data-testid]="
+                'inventory-by-users-add-user-option-' + item.user.id
+              "
+            >
+              <app-user-display [user]="item" />
+            </div>
           </ng-template>
         </ng-select>
       </div>
