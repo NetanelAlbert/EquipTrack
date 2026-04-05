@@ -323,7 +323,8 @@ export const InventoryStore = signalStore(
           });
           notificationService.showSuccess(
             'inventory.add.success',
-            'Inventory items added successfully'
+            'Inventory items added successfully',
+            { count: items.length }
           );
 
           // Refresh inventory after successful add
@@ -384,7 +385,8 @@ export const InventoryStore = signalStore(
           });
           notificationService.showSuccess(
             'inventory.remove.success',
-            'Inventory items removed successfully'
+            'Inventory items removed successfully',
+            { count: items.length }
           );
 
           // Refresh inventory after successful remove
