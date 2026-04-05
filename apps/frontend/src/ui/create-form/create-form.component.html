@@ -47,12 +47,14 @@
           <app-user-display [user]="item" />
         </ng-template>
         <ng-template ng-option-tmp let-item="item">
-          <div
-            [attr.data-testid]="'create-form-user-option-' + item.user.id"
-            class="create-form-user-option-row"
-          >
-            <app-user-display [user]="item" />
-          </div>
+          @if (item?.user) {
+            <div
+              [attr.data-testid]="'create-form-user-option-' + item.user.id"
+              class="create-form-user-option-row"
+            >
+              <app-user-display [user]="item" />
+            </div>
+          }
         </ng-template>
       </ng-select>
     </div>

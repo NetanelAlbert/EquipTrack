@@ -77,7 +77,7 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
   private inventoryStore = inject(InventoryStore);
   private route = inject(ActivatedRoute);
   form = this.fb.group({
-    userID: ['', Validators.required],
+    userID: [null as string | null, Validators.required],
     formDescription: ['', Validators.required],
     formType: [FormType.CheckOut, Validators.required],
   });
