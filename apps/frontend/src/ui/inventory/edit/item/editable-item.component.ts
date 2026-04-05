@@ -322,7 +322,7 @@ export class EditableItemComponent implements OnInit {
         return null;
       }
       const upisArray = parent as FormArray<FormControl<string | null>>;
-      const index = upisArray.controls.indexOf(control);
+      const index = upisArray.controls.findIndex((c) => c === control);
       if (index === -1) {
         return null;
       }
