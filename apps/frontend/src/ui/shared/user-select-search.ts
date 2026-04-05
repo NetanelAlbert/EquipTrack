@@ -19,7 +19,7 @@ export function userMatchesSelectSearch(
     return true;
   }
 
-  const department = item.userInOrganization.department;
+  const department = item.userInOrganization?.department;
   if (!department) {
     return false;
   }

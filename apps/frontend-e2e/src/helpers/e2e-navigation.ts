@@ -31,6 +31,8 @@ export async function bootstrapAuthenticatedSession(
         selectedOrganizationId
       );
       window.localStorage.setItem(languageKey, languageValue);
+      (window as Window & { __EQUIP_TRACK_E2E__?: boolean }).__EQUIP_TRACK_E2E__ =
+        true;
     },
     {
       jwt: token,
@@ -105,6 +107,11 @@ export async function fillInventoryRow(
   productId: string,
   quantity: number
 ): Promise<void> {
+  const createFormOverlay = page.getByTestId('create-form-loading-overlay');
+  if ((await createFormOverlay.count()) > 0) {
+    await expect(createFormOverlay).toBeHidden({ timeout: 120_000 });
+  }
+
   const row = page.getByTestId('editable-item-row').nth(rowIndex);
   await row.getByTestId('editable-item-product-input').click();
   await row.getByTestId('editable-item-product-input').fill(productId);
