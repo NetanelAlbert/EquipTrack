@@ -149,6 +149,7 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
         const items = JSON.parse(params['items']) as InventoryItem[];
         this.addAllItems(items);
       }
+      void this.refreshCurrentInventory(true);
     });
   }
 
@@ -190,6 +191,25 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
 
   hasUnsavedChanges(): boolean {
     return this.itemEdited();
+  }
+
+  private refreshCurrentInventory(forceRefresh: boolean): Promise<void> {
+    const formType = this.form.get('formType')?.value;
+    const selectedUserId = this.form.get('userID')?.value;
+
+    if (formType === FormType.CheckOut) {
+      return this.inventoryStore.ensureUserInventoryLoaded('WAREHOUSE', {
+        forceRefresh,
+      });
+    }
+
+    if (selectedUserId) {
+      return this.inventoryStore.ensureUserInventoryLoaded(selectedUserId, {
+        forceRefresh,
+      });
+    }
+
+    return Promise.resolve();
   }
 
   private resetForm() {

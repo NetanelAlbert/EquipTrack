@@ -97,6 +97,30 @@ describe('InventoryStore', () => {
     expect(executeSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('ensureUserInventoryLoaded forceRefresh bypasses cache', async () => {
+    await store.ensureUserInventoryLoaded('user-refresh');
+    await store.ensureUserInventoryLoaded('user-refresh', {
+      forceRefresh: true,
+    });
+
+    expect(executeSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('ensureUserInventoryLoaded dedupes concurrent forceRefresh calls for same user', async () => {
+    await store.ensureUserInventoryLoaded('user-refresh-dedupe');
+
+    await Promise.all([
+      store.ensureUserInventoryLoaded('user-refresh-dedupe', {
+        forceRefresh: true,
+      }),
+      store.ensureUserInventoryLoaded('user-refresh-dedupe', {
+        forceRefresh: true,
+      }),
+    ]);
+
+    expect(executeSpy).toHaveBeenCalledTimes(2);
+  });
+
   it('addInventory passes item count to success notification for i18n interpolation', async () => {
     const items: InventoryItem[] = [
       { productId: 'a', quantity: 1 },
