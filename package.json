@@ -4,6 +4,7 @@
   "license": "MIT",
   "scripts": {
     "fullstack": "nx run-many --parallel --target=serve --projects=backend,frontend",
+    "frontend:serve:dev": "node scripts/write-runtime-config.js https://dev-api.equip-track.com && nx s frontend",
     "validate:translations": "node scripts/validate-translation-keys.js",
     "generate:sam": "node scripts/generate-sam-template.js",
     "deploy:sam": "node scripts/deploy-sam-api.js",

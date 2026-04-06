@@ -64,3 +64,6 @@ cloudfront-update-config.json
 scratchpads/
 .claude/worktrees
 .claude/settings.local.json
+
+# Runtime config (script-managed)
+apps/frontend/src/assets/runtime-config.json
