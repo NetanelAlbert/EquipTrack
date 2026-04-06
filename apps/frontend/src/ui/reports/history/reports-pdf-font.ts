@@ -59,7 +59,7 @@ export function toVisualOrder(text: string): string {
   const chars = Array.from(text);
   let hasRtl = false;
   for (const ch of chars) {
-    if (isRtlChar(ch.codePointAt(0)!)) {
+    if (isRtlChar(ch.codePointAt(0) ?? 0)) {
       hasRtl = true;
       break;
     }
@@ -68,7 +68,7 @@ export function toVisualOrder(text: string): string {
 
   type Dir = 'R' | 'L' | 'N';
   const types: Dir[] = chars.map((ch) => {
-    const c = ch.codePointAt(0)!;
+    const c = ch.codePointAt(0) ?? 0;
     if (isRtlChar(c)) return 'R';
     if (isLtrChar(c)) return 'L';
     return 'N';
