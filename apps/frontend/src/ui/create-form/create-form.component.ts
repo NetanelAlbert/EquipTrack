@@ -22,6 +22,7 @@ import {
   UserAndUserInOrganization,
 } from '@equip-track/shared';
 import { OrganizationStore } from '../../store/organization.store';
+import { OrganizationService } from '../../services/organization.service';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { InventoryListComponent } from '../inventory/list/inventory-list.component';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -69,13 +70,14 @@ interface CreateFormConfig {
 export class CreateFormComponent implements OnInit, CanComponentDeactivate {
   private fb = inject(FormBuilder);
   private organizationStore = inject(OrganizationStore);
+  private organizationService = inject(OrganizationService);
   private notificationService = inject(NotificationService);
   protected formsStore = inject(FormsStore);
   private userStore = inject(UserStore);
   private inventoryStore = inject(InventoryStore);
   private route = inject(ActivatedRoute);
   form = this.fb.group({
-    userID: ['', Validators.required],
+    userID: [null as string | null, Validators.required],
     formDescription: ['', Validators.required],
     formType: [FormType.CheckOut, Validators.required],
   });
@@ -130,12 +132,16 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
       if (fType === FormType.CheckOut) {
         void this.inventoryStore.ensureUserInventoryLoaded('WAREHOUSE');
       } else if (uid) {
-        void this.inventoryStore.ensureUserInventoryLoaded(uid);
+        void this.inventoryStore.ensureUserInventoryLoaded(uid, {
+          forceRefresh: true,
+        });
       }
     });
   }
 
   ngOnInit(): void {
+    this.formsStore.resetAddFormStatus();
+    void this.organizationService.getUsers();
     this.route.queryParams.subscribe((params) => {
       if (params['formType'] && params['items']) {
         this.form.patchValue({
@@ -145,6 +151,7 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
         const items = JSON.parse(params['items']) as InventoryItem[];
         this.addAllItems(items);
       }
+      void this.refreshCurrentInventory(true);
     });
   }
 
@@ -186,6 +193,25 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
 
   hasUnsavedChanges(): boolean {
     return this.itemEdited();
+  }
+
+  private refreshCurrentInventory(forceRefresh: boolean): Promise<void> {
+    const formType = this.form.get('formType')?.value;
+    const selectedUserId = this.form.get('userID')?.value;
+
+    if (formType === FormType.CheckOut) {
+      return this.inventoryStore.ensureUserInventoryLoaded('WAREHOUSE', {
+        forceRefresh,
+      });
+    }
+
+    if (selectedUserId) {
+      return this.inventoryStore.ensureUserInventoryLoaded(selectedUserId, {
+        forceRefresh,
+      });
+    }
+
+    return Promise.resolve();
   }
 
   private resetForm() {

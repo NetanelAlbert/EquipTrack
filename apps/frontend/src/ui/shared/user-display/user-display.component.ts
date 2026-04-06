@@ -24,7 +24,7 @@ export class UserDisplayComponent {
 
   departmentInfo = computed(() => {
     const userData = this.user();
-    const department = userData.userInOrganization.department;
+    const department = userData?.userInOrganization?.department;
 
     if (!department) {
       return null;

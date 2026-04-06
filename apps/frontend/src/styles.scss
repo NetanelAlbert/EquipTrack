@@ -1,9 +1,9 @@
 /* You can add global styles to this file, and also import other style files */
 
+@use 'styles/ng-select-dark-theme';
+@use 'styles/mixins';
 @import '@angular/material/prebuilt-themes/purple-green.css';
 @import '@ng-select/ng-select/themes/material.theme.css';
-@import 'styles/ng-select-dark-theme.scss';
-@import 'styles/mixins.scss';
 
 /* Global CSS Variables */
 :root {
@@ -16,8 +16,14 @@
   
   /* Theme Colors - Default to Purple Theme */
   --color-accent: #bb86fc;
+  --color-accent-border: rgba(187, 134, 252, 0.45);
+  --color-accent-bg: rgba(187, 134, 252, 0.4);
   --color-gradient-light: rgba(187, 134, 252, 0.15);
   --color-gradient-ultra-light: rgba(187, 134, 252, 0.05);
+
+  /* Neutral / Surface */
+  --color-text-muted: #b0b0b0;
+  --color-bg-subtle: rgba(255, 255, 255, 0.06);
   
   /* Error Colors */
   --color-error: #f44336;

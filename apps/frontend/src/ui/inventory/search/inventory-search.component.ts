@@ -386,14 +386,11 @@ export class InventorySearchComponent {
 
   constructor() {
     // Effect to emit filtered items when they change
-    effect(
-      () => {
-        const filtered = this.filteredAndSortedItems();
-        this.resultCount.set(filtered.length);
-        this.filteredItems.emit(filtered);
-      },
-      { allowSignalWrites: true }
-    );
+    effect(() => {
+      const filtered = this.filteredAndSortedItems();
+      this.resultCount.set(filtered.length);
+      this.filteredItems.emit(filtered);
+    });
 
     // Effect to emit filter changes
     effect(() => {

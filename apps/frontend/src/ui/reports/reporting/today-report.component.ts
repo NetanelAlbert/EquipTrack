@@ -3,8 +3,10 @@ import {
   Signal,
   WritableSignal,
   computed,
+  effect,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 
 import { MatTableModule } from '@angular/material/table';
@@ -15,9 +17,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatRadioModule } from '@angular/material/radio';
+import { MatSortModule } from '@angular/material/sort';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import {
+  MatMultiSort,
+  MatMultiSortHeaderComponent,
+} from 'ngx-mat-multi-sort';
 import { ReportsStore, UserStore, OrganizationStore } from '../../../store';
 import {
   formatJerusalemDBDate,
@@ -26,6 +32,7 @@ import {
   itemReportCompositeKey,
   UserRole,
 } from '@equip-track/shared';
+import { ReportsMultiSortDataSource } from '../reports-multi-sort-datasource';
 
 export interface TodayReportRow {
   holderId: string;
@@ -44,7 +51,9 @@ export interface TodayReportRow {
     MatInputModule,
     MatSelectModule,
     MatProgressSpinnerModule,
-    MatRadioModule,
+    MatSortModule,
+    MatMultiSort,
+    MatMultiSortHeaderComponent,
     FormsModule,
     TranslateModule,
   ],
@@ -59,24 +68,34 @@ export class TodayReportComponent {
 
   readonly UserRole = UserRole;
 
-  sortBy: WritableSignal<'location' | 'product'> = signal('product');
-  prioritizeUnpublished: WritableSignal<boolean> = signal(false);
   filterHolderId: WritableSignal<string | 'all'> = signal('all');
   filterDepartmentId: WritableSignal<string | 'all'> = signal('all');
 
   private focusedCardUpi: WritableSignal<string | null> = signal(null);
+  private editTransitionPending = false;
   private selectedUpis: WritableSignal<Set<string>> = signal(new Set());
+
+  multiSort = viewChild(MatMultiSort);
+  reportDataSource?: ReportsMultiSortDataSource<TodayReportRow>;
+
+  tableDataSource(): TodayReportRow[] | ReportsMultiSortDataSource<TodayReportRow> {
+    return this.reportDataSource ?? this.tableRows();
+  }
 
   today: string;
   yesterday: string;
-  todayReport = computed(() => this.reportsStore.getReport(this.today)());
+  todayReport = computed(
+    () => this.reportsStore.reportsByDate()[this.today] || []
+  );
   todayReportMap = computed(() => {
     return this.todayReport().reduce((acc, item) => {
       acc[itemReportCompositeKey(item.productId, item.upi)] = item;
       return acc;
     }, {} as Record<string, ItemReport>);
   });
-  lastReport = computed(() => this.reportsStore.getReport(this.yesterday)());
+  lastReport = computed(
+    () => this.reportsStore.reportsByDate()[this.yesterday] || []
+  );
 
   lastLocationMap: Signal<Record<string, string>> = computed(() => {
     return this.lastReport().reduce((acc, item) => {
@@ -141,6 +160,7 @@ export class TodayReportComponent {
     return sections;
   });
 
+  /** Flat rows in section order; table multi-sort applies on top. */
   tableRows: Signal<TodayReportRow[]> = computed(() => {
     const rows: TodayReportRow[] = [];
     for (const [holderId, items] of this.filteredItemsToShow()) {
@@ -180,7 +200,6 @@ export class TodayReportComponent {
         'status',
         'lastLocation',
         'location',
-        'actions',
       ];
     }
     return [
@@ -190,7 +209,6 @@ export class TodayReportComponent {
       'status',
       'lastLocation',
       'location',
-      'actions',
     ];
   });
 
@@ -199,6 +217,80 @@ export class TodayReportComponent {
     const { today, yesterday } = getTodayAndYesterday();
     this.today = today;
     this.yesterday = yesterday;
+    this.reportsStore.ensureReportsForDates([today, yesterday]);
+
+    effect(() => {
+      this.multiSort();
+      this.tableRows();
+      queueMicrotask(() => this.syncReportDataSource());
+    });
+  }
+
+  private initDataSourceIfNeeded(): void {
+    if (this.reportDataSource) {
+      return;
+    }
+    const ms = this.multiSort();
+    if (!ms) {
+      return;
+    }
+    this.reportDataSource = new ReportsMultiSortDataSource<TodayReportRow>(
+      ms,
+      (a, b, columnId, dir) => {
+        const inv = dir === 'asc' ? 1 : -1;
+        let cmp = 0;
+        switch (columnId) {
+          case 'holder':
+            cmp = this.getUserName(a.holderId).localeCompare(
+              this.getUserName(b.holderId)
+            );
+            break;
+          case 'department':
+            cmp = this.getDepartmentLabelForRow(a).localeCompare(
+              this.getDepartmentLabelForRow(b)
+            );
+            break;
+          case 'product':
+            cmp = this.getProductName(a.item.productId).localeCompare(
+              this.getProductName(b.item.productId)
+            );
+            break;
+          case 'upi':
+            cmp = (a.item.upi || '').localeCompare(b.item.upi || '');
+            break;
+          case 'status':
+            cmp =
+              (this.isReportedItem(a.item) ? 1 : 0) -
+              (this.isReportedItem(b.item) ? 1 : 0);
+            break;
+          case 'lastLocation':
+            cmp = (this.getLastLocation(a.item) || '').localeCompare(
+              this.getLastLocation(b.item) || ''
+            );
+            break;
+          case 'location':
+            cmp = (a.item.location || '').localeCompare(b.item.location || '');
+            break;
+          default:
+            cmp = 0;
+        }
+        return cmp * inv;
+      },
+      (a, b) => this.rowKey(a).localeCompare(this.rowKey(b))
+    );
+  }
+
+  onMultiSortChange(): void {
+    this.syncReportDataSource();
+  }
+
+  private syncReportDataSource(): void {
+    this.initDataSourceIfNeeded();
+    if (!this.reportDataSource) {
+      return;
+    }
+    this.reportDataSource.data = this.tableRows();
+    this.reportDataSource.orderData();
   }
 
   rowKey(row: TodayReportRow): string {
@@ -264,14 +356,8 @@ export class TodayReportComponent {
   useLastLocation(item: ItemReport, lastLocation: string) {
     if (lastLocation) {
       item.location = lastLocation;
-      void this.updateItemReport(item);
+      this.onRowFocus(item);
     }
-  }
-
-  async updateItemReport(item: ItemReport) {
-    item.location = item.location.trim();
-    await this.reportsStore.updateItemReport(item);
-    this.onCardBlur();
   }
 
   itemFocusKey(item: ItemReport): string {
@@ -283,7 +369,11 @@ export class TodayReportComponent {
   }
 
   onRowFocus(item: ItemReport) {
+    this.editTransitionPending = true;
     this.focusedCardUpi.set(this.itemFocusKey(item));
+    setTimeout(() => {
+      this.editTransitionPending = false;
+    });
   }
 
   onCardBlur() {
@@ -291,6 +381,9 @@ export class TodayReportComponent {
   }
 
   onLocationCellBlur(event: FocusEvent, item: ItemReport): void {
+    if (this.editTransitionPending) {
+      return;
+    }
     const next = event.relatedTarget as Node | null;
     const cell = event.currentTarget as HTMLElement | null;
     if (cell && next && cell.contains(next)) {
@@ -311,40 +404,15 @@ export class TodayReportComponent {
     return !this.isReportedItem(item) || this.isFocusedItem(item);
   }
 
-  private getItemLocationForSort(item: ItemReport): string {
-    if (item.location) {
-      return item.location;
+  autoSelectRow(row: TodayReportRow): void {
+    const shouldSelect = !!row.item.location?.trim();
+    if (shouldSelect !== this.isRowSelected(row)) {
+      this.toggleRowSelection(row, shouldSelect);
     }
-    return (
-      this.lastLocationMap()[itemReportCompositeKey(item.productId, item.upi)] ||
-      ''
-    );
   }
 
   clearLocation(item: ItemReport) {
     item.location = '';
-  }
-
-  private sortItems(itemReports: ItemReport[]) {
-    itemReports.sort((a, b) => {
-      if (this.prioritizeUnpublished()) {
-        if (!a.location && b.location) {
-          return -1;
-        }
-        if (a.location && !b.location) {
-          return 1;
-        }
-      }
-
-      if (this.sortBy() === 'location') {
-        return this.getItemLocationForSort(a).localeCompare(
-          this.getItemLocationForSort(b)
-        );
-      }
-      return this.getProductName(a.productId).localeCompare(
-        this.getProductName(b.productId)
-      );
-    });
   }
 
   private inventoryItemsByHolderToItemReports(
@@ -380,11 +448,7 @@ export class TodayReportComponent {
   private inventoryItemsToItemReports(
     inventoryItems: InventoryItem[]
   ): ItemReport[] {
-    const itemReports = inventoryItems.flatMap((item) =>
-      this.inventoryItemToItemReports(item)
-    );
-    this.sortItems(itemReports);
-    return itemReports;
+    return inventoryItems.flatMap((item) => this.inventoryItemToItemReports(item));
   }
 
   private inventoryItemToItemReports(item: InventoryItem): ItemReport[] {

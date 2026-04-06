@@ -102,7 +102,7 @@
           mat-icon-button
           matSuffix
           [attr.data-testid]="'editable-item-upi-delete-' + upiIndex"
-          (click)="upisControl().removeAt(upiIndex)"
+          (click)="removeUpiAt(upiIndex)"
         >
           <mat-icon>delete</mat-icon>
         </button>

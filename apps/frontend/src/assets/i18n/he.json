@@ -316,6 +316,7 @@
     "reportedTotalCount": "{{reported}} דווחו · {{total}} סה״כ",
     "exportCsv": "ייצוא CSV",
     "exportPdf": "ייצוא PDF",
+    "multiSortHint": "לחץ על כותרות העמודות למיון. לחיצה נוספת מוסיפה עמודות מיון (הסדר מסומן במספר).",
     "batchPublish": "פרסם נבחרים",
     "filterByHolder": "סנן לפי מחזיק",
     "filterByDepartment": "סנן לפי מחלקה",

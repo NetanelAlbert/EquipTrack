@@ -7,7 +7,7 @@ import {
   clickSideNavRoute,
   waitForTestId,
 } from '../helpers/e2e-navigation';
-import { E2E_ORG_ID } from '../helpers/e2e-api';
+import { E2E_ORG_ID, E2E_ADMIN_USER_ID } from '../helpers/e2e-api';
 
 const backendBaseUrl =
   process.env['BACKEND_BASE_URL'] || 'http://localhost:3000';
@@ -95,7 +95,10 @@ test.describe('reports-history screen', () => {
     await expect(page.getByTestId('reports-history-counts')).toBeVisible();
   });
 
-  test('sort toggle reorders items', async ({ page, request }) => {
+  test('multi-sort: second column sort affects row order', async ({
+    page,
+    request,
+  }) => {
     const token = await mintE2eJwt(request, {
       backendBaseUrl,
       e2eSecret,
@@ -108,17 +111,81 @@ test.describe('reports-history screen', () => {
     await clickSideNavRoute(page, 'reports-history');
     await waitForTestId(page, 'reports-history-page');
 
+    const rows = page.locator('[data-testid^="reports-history-item-row-"]');
+    await expect(rows.first()).toBeVisible({ timeout: 20000 });
+
+    const rowCount = await rows.count();
+    if (rowCount < 2) {
+      return;
+    }
+
+    const holderHeader = page.locator('th[mat-multi-sort-header="holder"]');
+    await expect(holderHeader).toBeVisible();
+    await holderHeader.click();
     await expect(
-      page.locator('[data-testid^="reports-history-item-row-"]').first()
-    ).toBeVisible({ timeout: 20000 });
+      holderHeader.locator('.mat-sort-header-sorted')
+    ).toBeVisible({ timeout: 5000 });
 
-    const sortGroup = page.getByTestId('reports-history-sort-group');
-    await expect(sortGroup).toBeVisible();
+    const productHeader = page.locator('th[mat-multi-sort-header="product"]');
+    await expect(productHeader).toBeVisible();
+    await productHeader.click();
+    await expect(
+      productHeader.locator('.mat-sort-header-sorted')
+    ).toBeVisible({ timeout: 5000 });
 
-    await sortGroup.locator('mat-radio-button[value="product"]').click();
-    await expect(page.getByTestId('reports-history-page')).toBeVisible();
+    await page.waitForTimeout(500);
 
-    await sortGroup.locator('mat-radio-button[value="location"]').click();
-    await expect(page.getByTestId('reports-history-page')).toBeVisible();
+    const dataRows = page.locator('table.report-table tbody tr');
+    const cellCount = await dataRows.count();
+
+    const holders: string[] = [];
+    const products: string[] = [];
+    for (let i = 0; i < cellCount; i++) {
+      const tds = dataRows.nth(i).locator('td');
+      holders.push((await tds.nth(4).innerText()).trim());
+      products.push((await tds.nth(0).innerText()).trim());
+    }
+
+    for (let i = 1; i < holders.length; i++) {
+      const holderCmp = holders[i - 1].localeCompare(holders[i]);
+      expect(
+        holderCmp,
+        `Holder sort broken at index ${i}: "${holders[i - 1]}" vs "${holders[i]}"`
+      ).toBeLessThanOrEqual(0);
+
+      if (holderCmp === 0) {
+        expect(
+          products[i - 1].localeCompare(products[i]),
+          `Product sort broken at index ${i} within holder "${holders[i]}": "${products[i - 1]}" vs "${products[i]}"`
+        ).toBeLessThanOrEqual(0);
+      }
+    }
+  });
+
+  test('inspector sees reporter display name instead of reporter user id', async ({
+    page,
+    request,
+  }) => {
+    const token = await mintE2eJwt(request, {
+      backendBaseUrl,
+      e2eSecret,
+      userId: 'user-e2e-inspector',
+      orgIdToRole: { [E2E_ORG_ID]: UserRole.Inspector },
+    });
+
+    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+    await clickSideNavRoute(page, 'reports-history');
+
+    await waitForTestId(page, 'reports-history-page');
+
+    const firstRow = page
+      .locator('[data-testid^="reports-history-item-row-"]:has(.reporter-name)')
+      .first();
+    await expect(firstRow).toBeVisible({ timeout: 20000 });
+
+    const reporterName = firstRow.locator('.reporter-name');
+    await expect(reporterName).toContainText('E2E Admin');
+    await expect(reporterName).not.toContainText(E2E_ADMIN_USER_ID);
   });
 });

@@ -35,7 +35,10 @@ test.describe('today-report screen', () => {
     ).toBeVisible({ timeout: 20000 });
   });
 
-  test('sort toggle reorders cards', async ({ page, request }) => {
+  test('multi-sort: second column sort affects row order', async ({
+    page,
+    request,
+  }) => {
     const token = await mintE2eJwt(request, {
       backendBaseUrl,
       e2eSecret,
@@ -48,18 +51,43 @@ test.describe('today-report screen', () => {
     await clickSideNavRoute(page, 'today-report');
     await waitForTestId(page, 'today-report-page');
 
-    await expect(
-      page.locator('[data-testid^="today-report-item-row-"]').first()
-    ).toBeVisible({ timeout: 20000 });
+    const rows = page.locator('[data-testid^="today-report-item-row-"]');
+    await expect(rows.first()).toBeVisible({ timeout: 20000 });
 
-    const sortGroup = page.getByTestId('today-report-sort-group');
-    await expect(sortGroup).toBeVisible();
+    const rowCount = await rows.count();
+    if (rowCount < 2) {
+      return;
+    }
 
-    await sortGroup.locator('mat-radio-button[value="product"]').click();
-    await expect(page.getByTestId('today-report-page')).toBeVisible();
+    const holderHeader = page.locator('th[mat-multi-sort-header="holder"]');
+    await expect(holderHeader).toBeVisible();
+    await holderHeader.click();
+    await page.waitForTimeout(500);
 
-    await sortGroup.locator('mat-radio-button[value="location"]').click();
-    await expect(page.getByTestId('today-report-page')).toBeVisible();
+    const productHeader = page.locator('th[mat-multi-sort-header="product"]');
+    await expect(productHeader).toBeVisible();
+    await productHeader.click();
+    await page.waitForTimeout(500);
+
+    const holderCells = page.locator('table.report-table td:nth-child(2)');
+    const productCells = page.locator('table.report-table td:nth-child(4)');
+    const cellCount = await holderCells.count();
+
+    const holders: string[] = [];
+    const products: string[] = [];
+    for (let i = 0; i < cellCount; i++) {
+      holders.push((await holderCells.nth(i).innerText()).trim());
+      products.push((await productCells.nth(i).innerText()).trim());
+    }
+
+    for (let i = 1; i < holders.length; i++) {
+      const holderCmp = holders[i - 1].localeCompare(holders[i]);
+      expect(holderCmp).toBeLessThanOrEqual(0);
+
+      if (holderCmp === 0) {
+        expect(products[i - 1].localeCompare(products[i])).toBeLessThanOrEqual(0);
+      }
+    }
   });
 
   test('submit a location report for an item', async ({
@@ -113,11 +141,9 @@ test.describe('today-report screen', () => {
       .first();
     await input.fill(`E2E Location ${Date.now()}`);
 
-    const submitBtn = page
-      .locator('[data-testid^="today-report-submit-btn-"]')
-      .first();
-    await expect(submitBtn).toBeEnabled({ timeout: 5000 });
-    await submitBtn.click();
+    const batchPublish = page.locator('[data-testid="today-report-batch-publish"]');
+    await expect(batchPublish).toBeEnabled({ timeout: 5000 });
+    await batchPublish.click();
 
     await expect(
       page.locator('.status-pill.reported').first()
@@ -148,6 +174,10 @@ test.describe('today-report screen', () => {
     }
 
     await useLastBtn.first().click();
+
+    const batchPublish = page.locator('[data-testid="today-report-batch-publish"]');
+    await expect(batchPublish).toBeEnabled({ timeout: 5000 });
+    await batchPublish.click();
 
     await expect(
       page.locator('.status-pill.reported').first()

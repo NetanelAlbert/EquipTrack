@@ -68,3 +68,6 @@ scratchpads/
 # test-pdf-hebrew.js output
 report-he.pdf
 report-en.pdf
+
+# Runtime config (script-managed)
+apps/frontend/src/assets/runtime-config.json

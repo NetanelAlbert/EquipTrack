@@ -2,8 +2,9 @@ import { UserRole } from '../elements/users';
 import { endpointMetas } from './endpoints';
 
 describe('endpointMetas inspector access', () => {
-  it('should allow inspector for start and report history endpoints', () => {
+  it('should allow inspector for start, users, and report history endpoints', () => {
     expect(endpointMetas.start.allowedRoles).toContain(UserRole.Inspector);
+    expect(endpointMetas.getUsers.allowedRoles).toContain(UserRole.Inspector);
     expect(endpointMetas.getReportsByDates.allowedRoles).toContain(
       UserRole.Inspector
     );

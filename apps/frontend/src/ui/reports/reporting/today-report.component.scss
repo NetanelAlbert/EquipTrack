@@ -22,6 +22,24 @@
     align-items: flex-start;
   }
 
+  .sort-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    max-width: 420px;
+    font-size: 13px;
+    color: #b0b0b0;
+    line-height: 1.4;
+
+    .hint-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: var(--color-accent);
+      flex-shrink: 0;
+    }
+  }
+
   .sort-section,
   .sort-priority {
     display: flex;
@@ -75,12 +93,78 @@
   .table-wrap {
     overflow-x: auto;
     margin-top: 8px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .report-table {
+    // Default (desktop): room for product name + id subline
+    --today-report-sticky-product-col-width: 10.5rem;
+    // UPI column: min width only — content can grow (fixed max was truncating IDs)
+    --today-report-sticky-upi-min-width: 4.5rem;
+    // Must be opaque: --color-bg-primary / inherit lets Status bleed through when scrolling.
+    // Tuned lighter than 50% primary + #121212 so it sits closer to neighboring mat-cells.
+    --today-report-sticky-opaque: color-mix(in srgb, rgb(60, 60, 70) 50%, rgb(48, 48, 56) 50%);
+    --today-report-sticky-opaque-unreported: color-mix(
+      in srgb,
+      rgb(244, 67, 54) 6%,
+      var(--today-report-sticky-opaque) 94%
+    );
+
     width: 100%;
     background: var(--color-bg-primary);
     border-radius: 8px;
+
+    // Product + UPI stay visible when scrolling horizontally (narrow viewports; RTL/LTR).
+    .mat-column-product,
+    .mat-column-upi {
+      position: sticky;
+      flex-shrink: 0;
+      background-color: var(--today-report-sticky-opaque);
+    }
+
+    .mat-column-product {
+      inset-inline-start: 0;
+      z-index: 3;
+      width: var(--today-report-sticky-product-col-width);
+      min-width: var(--today-report-sticky-product-col-width);
+      max-width: var(--today-report-sticky-product-col-width);
+      overflow-wrap: break-word;
+      word-break: break-word;
+      border-inline-end: 1px solid var(--color-border-light);
+    }
+
+    .mat-column-upi {
+      inset-inline-start: var(--today-report-sticky-product-col-width);
+      z-index: 4;
+      min-width: var(--today-report-sticky-upi-min-width);
+      width: max-content;
+      max-width: none;
+      padding-inline: 10px;
+      text-align: center;
+      box-sizing: border-box;
+      border-inline-end: 1px solid var(--color-border-light);
+      box-shadow: 4px 0 8px -2px rgba(0, 0, 0, 0.35);
+      white-space: nowrap;
+      overflow: visible;
+      text-overflow: clip;
+    }
+
+    .mat-mdc-header-cell.mat-column-product {
+      z-index: 6;
+    }
+
+    .mat-mdc-header-cell.mat-column-upi {
+      z-index: 7;
+    }
+
+    tr.row-unreported .mat-column-product,
+    tr.row-unreported .mat-column-upi {
+      background-color: var(--today-report-sticky-opaque-unreported);
+    }
+
+    th[mat-multi-sort-header] {
+      white-space: nowrap;
+    }
 
     .cell-primary {
       display: block;
@@ -111,11 +195,31 @@
       }
     }
 
-    .last-loc-cell {
-      display: flex;
-      flex-direction: column;
+    .last-loc-btn {
+      display: inline-flex;
+      align-items: center;
       gap: 4px;
-      align-items: flex-start;
+      font-size: 13px;
+      color: var(--color-text-muted);
+      background: var(--color-bg-subtle);
+      padding: 4px 10px;
+      border-radius: 4px;
+      letter-spacing: 0.01em;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+
+      &:hover {
+        border-color: var(--color-accent-border);
+        background: var(--color-accent-bg);
+      }
+
+      .last-loc-icon {
+        font-size: 15px;
+        width: 15px;
+        height: 15px;
+        opacity: 0.7;
+      }
     }
 
     .location-field {
@@ -146,11 +250,27 @@
     tr.row-unreported {
       background: rgba(244, 67, 54, 0.06);
     }
+
+    @media (max-width: shared.$tablet-breakpoint) {
+      --today-report-sticky-product-col-width: 7.25rem;
+      --today-report-sticky-upi-min-width: 4rem;
+    }
+
+    @media (max-width: shared.$small-mobile-breakpoint) {
+      --today-report-sticky-product-col-width: 6.25rem;
+      --today-report-sticky-upi-min-width: 3.75rem;
+    }
   }
 
   @media (max-width: shared.$mobile-breakpoint) {
     .reports-container {
       padding: 8px;
     }
+  }
+}
+
+:host-context([dir='rtl']) {
+  .report-table .mat-column-upi {
+    box-shadow: -4px 0 8px -2px rgba(0, 0, 0, 0.35);
   }
 }
