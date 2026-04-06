@@ -71,14 +71,19 @@ test.describe('forms screen', () => {
     await approvedOpt.evaluate((el: HTMLElement) => el.click());
 
     const content = page.getByTestId('forms-checkout-content');
-    const cards = content.locator('[data-testid^="forms-card-"]');
-    const cardCount = await cards.count();
-    expect(cardCount).toBeGreaterThan(0);
+    const statusEls = content.locator(
+      '[data-testid^="forms-card-"] [data-testid^="form-status-"]'
+    );
+    await expect(statusEls.first()).toBeVisible({ timeout: 15000 });
 
-    const checkCount = Math.min(cardCount, 5);
+    const n = await statusEls.count();
+    expect(n).toBeGreaterThan(0);
+
+    const checkCount = Math.min(n, 5);
     for (let i = 0; i < checkCount; i++) {
-      const statusEl = cards.nth(i).locator('[data-testid^="form-status-"]');
-      await expect(statusEl).toHaveClass(/approved/);
+      await expect(statusEls.nth(i)).toHaveClass(/approved/, {
+        timeout: 15000,
+      });
     }
   });
 

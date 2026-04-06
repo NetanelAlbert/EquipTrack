@@ -146,7 +146,7 @@
           <th mat-header-cell *matHeaderCellDef mat-multi-sort-header="reporter">{{ 'reports.columnReporter' | translate }}</th>
           <td mat-cell *matCellDef="let row">
             @if (!row.isNotReported) {
-              {{ organizationStore.getUserName(row.reportedBy) }}
+              <span class="reporter-name">{{ organizationStore.getUserName(row.reportedBy) }}</span>
             } @else {
               —
             }
