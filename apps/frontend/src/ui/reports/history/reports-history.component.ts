@@ -39,6 +39,7 @@ import {
 import {
   registerReportsPdfUnicodeFont,
   REPORTS_PDF_FONT_FAMILY,
+  toVisualOrder,
 } from './reports-pdf-font';
 
 @Component({
@@ -380,6 +381,7 @@ export class ReportsHistoryComponent {
       doc.setR2L(false);
     }
 
+    const fix = isRtl ? toVisualOrder : (s: string) => s;
     const head = [
       [
         this.translate.instant('reports.columnProduct'),
@@ -389,21 +391,23 @@ export class ReportsHistoryComponent {
         this.translate.instant('reports.columnHolder'),
         this.translate.instant('reports.columnDepartment'),
         this.translate.instant('reports.columnReporter'),
-      ],
+      ].map(fix),
     ];
-    const body = this.sortedRows().map((r) => [
-      this.getProductName(r.productId),
-      r.upi,
-      r.isNotReported
-        ? this.translate.instant('reports.notReportedStatus')
-        : this.translate.instant('reports.reported'),
-      r.location || '',
-      this.getSortUserLabel(r),
-      this.getDepartmentLabel(r),
-      r.isNotReported
-        ? ''
-        : this.organizationStore.getUserName(r.reportedBy),
-    ]);
+    const body = this.sortedRows().map((r) =>
+      [
+        this.getProductName(r.productId),
+        r.upi,
+        r.isNotReported
+          ? this.translate.instant('reports.notReportedStatus')
+          : this.translate.instant('reports.reported'),
+        r.location || '',
+        this.getSortUserLabel(r),
+        this.getDepartmentLabel(r),
+        r.isNotReported
+          ? ''
+          : this.organizationStore.getUserName(r.reportedBy),
+      ].map(fix)
+    );
 
     autoTable(doc, {
       head,
