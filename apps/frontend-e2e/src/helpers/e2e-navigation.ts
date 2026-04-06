@@ -43,9 +43,13 @@ export async function bootstrapAuthenticatedSession(
   );
 }
 
+/** URL patterns that mean auth + org are ready (role-specific default after `/`). */
+const ORG_SELECTED_APP_URL = /\/(my-items|reports-history)/;
+
 /**
- * Navigate to `/` and wait until the app either auto-redirects to `/my-items`
- * (persisted org) or shows the org picker — in which case click the org button.
+ * Navigate to `/` and wait until the app either auto-redirects into the main app
+ * (persisted org: `/my-items` for most roles, `/reports-history` for inspectors)
+ * or shows the org picker — in which case click the org button.
  */
 export async function ensureOrganizationIsSelected(
   page: Page,
@@ -54,7 +58,7 @@ export async function ensureOrganizationIsSelected(
   await page.goto('/');
 
   try {
-    await expect(page).toHaveURL(/\/my-items/, { timeout: 20000 });
+    await expect(page).toHaveURL(ORG_SELECTED_APP_URL, { timeout: 20000 });
     return;
   } catch {
     // Staying on / — org picker is visible, click the org button.
@@ -63,7 +67,7 @@ export async function ensureOrganizationIsSelected(
   const orgSelect = page.getByTestId(`select-organization-${orgId}`);
   await expect(orgSelect).toBeVisible({ timeout: 15000 });
   await orgSelect.click({ timeout: 30000 });
-  await expect(page).toHaveURL(/\/my-items/, { timeout: 20000 });
+  await expect(page).toHaveURL(ORG_SELECTED_APP_URL, { timeout: 20000 });
 }
 
 /**
