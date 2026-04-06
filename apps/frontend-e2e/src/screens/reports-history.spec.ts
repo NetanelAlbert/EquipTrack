@@ -179,12 +179,12 @@ test.describe('reports-history screen', () => {
 
     await waitForTestId(page, 'reports-history-page');
 
-    const firstCard = page
-      .locator('[data-testid^="reports-history-item-card-"]')
+    const firstRow = page
+      .locator('[data-testid^="reports-history-item-row-"]:has(.reporter-name)')
       .first();
-    await expect(firstCard).toBeVisible({ timeout: 20000 });
+    await expect(firstRow).toBeVisible({ timeout: 20000 });
 
-    const reporterName = firstCard.locator('.reporter-name');
+    const reporterName = firstRow.locator('.reporter-name');
     await expect(reporterName).toContainText('E2E Admin');
     await expect(reporterName).not.toContainText(E2E_ADMIN_USER_ID);
   });
