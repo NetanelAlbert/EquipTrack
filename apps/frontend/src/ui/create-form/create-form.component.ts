@@ -132,7 +132,9 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
       if (fType === FormType.CheckOut) {
         void this.inventoryStore.ensureUserInventoryLoaded('WAREHOUSE');
       } else if (uid) {
-        void this.inventoryStore.ensureUserInventoryLoaded(uid);
+        void this.inventoryStore.ensureUserInventoryLoaded(uid, {
+          forceRefresh: true,
+        });
       }
     });
   }
