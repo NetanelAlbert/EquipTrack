@@ -48,7 +48,7 @@
     "google-auth-library": "^10.1.0",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^4.2.0",
-    "jspdf-autotable": "^5.0.7",
+    "jspdf-autotable-rtl": "^1.0.2",
     "ngx-mat-multi-sort": "^21.0.1",
     "ngxtension": "^5.0.0",
     "rxjs": "~7.8.0",

@@ -65,5 +65,9 @@ scratchpads/
 .claude/worktrees
 .claude/settings.local.json
 
+# test-pdf-hebrew.js output
+report-he.pdf
+report-en.pdf
+
 # Runtime config (script-managed)
 apps/frontend/src/assets/runtime-config.json
