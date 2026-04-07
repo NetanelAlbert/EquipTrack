@@ -47,7 +47,7 @@
     "axios": "^1.6.0",
     "google-auth-library": "^10.1.0",
     "jsonwebtoken": "^9.0.2",
-    "jspdf": "^4.2.0",
+    "jspdf": "^3.0.0",
     "jspdf-autotable-rtl": "^1.0.2",
     "ngx-mat-multi-sort": "^21.0.1",
     "ngxtension": "^5.0.0",
