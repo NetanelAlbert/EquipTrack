@@ -21,7 +21,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import autoTable from 'jspdf-autotable-rtl';
 import {
   MatMultiSort,
   MatMultiSortHeaderComponent,
@@ -45,6 +45,7 @@ import {
 import {
   registerReportsPdfUnicodeFont,
   REPORTS_PDF_FONT_FAMILY,
+  toVisualOrder,
 } from './reports-pdf-font';
 import { ReportsMultiSortDataSource } from '../reports-multi-sort-datasource';
 
@@ -443,6 +444,11 @@ export class ReportsHistoryComponent {
       align: isRtl ? 'right' : 'left',
     });
 
+    if (isRtl) {
+      doc.setR2L(false);
+    }
+
+    const fix = isRtl ? toVisualOrder : (s: string) => s;
     const head = [
       [
         this.translate.instant('reports.columnProduct'),
@@ -453,22 +459,24 @@ export class ReportsHistoryComponent {
         this.translate.instant('reports.columnDepartment'),
         this.translate.instant('reports.columnReporter'),
         this.translate.instant('reports.columnReportTime'),
-      ],
+      ].map(fix),
     ];
-    const body = this.displayedTableRows().map((r) => [
-      this.getProductName(r.productId),
-      r.upi,
-      r.isNotReported
-        ? this.translate.instant('reports.notReportedStatus')
-        : this.translate.instant('reports.reported'),
-      r.location || '',
-      this.getSortUserLabel(r),
-      this.getDepartmentLabel(r),
-      r.isNotReported
-        ? ''
-        : this.organizationStore.getUserName(r.reportedBy),
-      r.isNotReported ? '' : this.formatReportTimestampForExport(r),
-    ]);
+    const body = this.displayedTableRows().map((r) =>
+      [
+        this.getProductName(r.productId),
+        r.upi,
+        r.isNotReported
+          ? this.translate.instant('reports.notReportedStatus')
+          : this.translate.instant('reports.reported'),
+        r.location || '',
+        this.getSortUserLabel(r),
+        this.getDepartmentLabel(r),
+        r.isNotReported
+          ? ''
+          : this.organizationStore.getUserName(r.reportedBy),
+        r.isNotReported ? '' : this.formatReportTimestampForExport(r),
+      ].map(fix)
+    );
 
     autoTable(doc, {
       head,
