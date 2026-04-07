@@ -335,6 +335,7 @@
     "lastLocation": "מיקום אחרון",
     "useLastLocation": "השתמש במיקום האחרון",
     "enterLocation": "הזן מיקום",
+    "columnLocation": "מיקום",
     "noReportForDate": "אין דוח זמין",
     "noReportForDateDescription": "לא הופק דוח עבור התאריך שנבחר.",
     "item-published": "דוח הפריט עודכן בהצלחה",
