@@ -328,6 +328,7 @@
     "columnHolder": "Holder",
     "columnDepartment": "Department",
     "columnReporter": "Reported by",
+    "columnReportTime": "Reported at",
     "notReportedStatus": "Not reported",
     "upiLabel": "UPI",
     "reported": "Reported",

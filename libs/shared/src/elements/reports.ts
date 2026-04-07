@@ -24,6 +24,8 @@ export interface ItemReport {
   location: string;
   reportedBy: string;
   reportDate?: string;
+  /** ISO-8601 timestamp for the specific report submission time. */
+  reportTimestamp?: string;
   /** Current inventory holder (user id or WAREHOUSE); set by backend on publish. */
   ownerUserId?: string;
   /** Department id from holder's org membership; set by backend on publish. */

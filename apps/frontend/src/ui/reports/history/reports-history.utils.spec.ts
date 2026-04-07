@@ -32,6 +32,7 @@ describe('reports-history.utils', () => {
         upi: 'u_x',
         location: 'A',
         reportedBy: 'rep',
+        reportTimestamp: '2026-04-07T08:15:30.000Z',
       },
     ];
     const invMulti: Record<string, InventoryItem[]> = {
@@ -55,5 +56,7 @@ describe('reports-history.utils', () => {
     expect(notReported?.productId).toBe('550e8400-e29b-41d4-a716-446655440001');
     expect(notReported?.upi).toBe('u_y');
     expect(notReported?.ownerUserId).toBe('u1');
+    const reportedRow = merged.find((r) => !r.isNotReported);
+    expect(reportedRow?.reportTimestamp).toBe('2026-04-07T08:15:30.000Z');
   });
 });

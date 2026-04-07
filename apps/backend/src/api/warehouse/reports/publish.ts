@@ -41,6 +41,7 @@ export async function handler(
 
   const userId = jwtPayload.sub;
   const date = formatJerusalemDBDate(new Date());
+  const reportTimestamp = new Date().toISOString();
 
   const inventoryAdapter = new InventoryAdapter();
   const usersAdapter = new UsersAndOrganizationsAdapter();
@@ -63,6 +64,7 @@ export async function handler(
         ...item,
         reportedBy: userId,
         reportDate: date,
+        reportTimestamp,
         ...meta,
       };
     })
