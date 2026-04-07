@@ -32,6 +32,7 @@ import {
   formatJerusalemDBDate,
   itemReportCompositeKey,
   UI_DATE_FORMAT,
+  UI_DATE_TIME_FORMAT,
   UserRole,
 } from '@equip-track/shared';
 import { LanguageService } from '../../../services/language.service';
@@ -82,6 +83,7 @@ export class ReportsHistoryComponent {
   readonly UserRole = UserRole;
 
   dateFormat = UI_DATE_FORMAT;
+  dateTimeFormat = UI_DATE_TIME_FORMAT;
   selectedDate = signal(new Date());
   selectedDateString = computed(() => formatJerusalemDBDate(this.selectedDate()));
   selectedReport = computed(
@@ -174,6 +176,7 @@ export class ReportsHistoryComponent {
     'holder',
     'department',
     'reporter',
+    'reportTime',
   ];
 
   constructor() {
@@ -236,6 +239,11 @@ export class ReportsHistoryComponent {
               b.isNotReported
                 ? ''
                 : this.organizationStore.getUserName(b.reportedBy)
+            );
+            break;
+          case 'reportTime':
+            cmp = (a.reportTimestamp || '').localeCompare(
+              b.reportTimestamp || ''
             );
             break;
           default:
@@ -368,6 +376,7 @@ export class ReportsHistoryComponent {
       this.translate.instant('reports.columnHolder'),
       this.translate.instant('reports.columnDepartment'),
       this.translate.instant('reports.columnReporter'),
+      this.translate.instant('reports.columnReportTime'),
     ];
     const lines = [headers.join(',')];
     for (const r of rows) {
@@ -386,6 +395,9 @@ export class ReportsHistoryComponent {
           r.isNotReported
             ? ''
             : this.organizationStore.getUserName(r.reportedBy)
+        ),
+        this.escapeCsv(
+          r.isNotReported ? '' : this.formatReportTimestampForExport(r)
         ),
       ];
       lines.push(cols.join(','));
@@ -446,6 +458,7 @@ export class ReportsHistoryComponent {
         this.translate.instant('reports.columnHolder'),
         this.translate.instant('reports.columnDepartment'),
         this.translate.instant('reports.columnReporter'),
+        this.translate.instant('reports.columnReportTime'),
       ].map(fix),
     ];
     const body = this.displayedTableRows().map((r) =>
@@ -461,6 +474,7 @@ export class ReportsHistoryComponent {
         r.isNotReported
           ? ''
           : this.organizationStore.getUserName(r.reportedBy),
+        r.isNotReported ? '' : this.formatReportTimestampForExport(r),
       ].map(fix)
     );
 
@@ -490,5 +504,16 @@ export class ReportsHistoryComponent {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  private formatReportTimestampForExport(row: HistoryDisplayRow): string {
+    if (!row.reportTimestamp) {
+      return '';
+    }
+    const parsed = new Date(row.reportTimestamp);
+    if (isNaN(parsed.getTime())) {
+      return row.reportTimestamp;
+    }
+    return parsed.toLocaleString();
   }
 }

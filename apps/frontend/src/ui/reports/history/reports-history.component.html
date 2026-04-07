@@ -153,6 +153,17 @@
           </td>
         </ng-container>
 
+        <ng-container matColumnDef="reportTime">
+          <th mat-header-cell *matHeaderCellDef mat-multi-sort-header="reportTime">{{ 'reports.columnReportTime' | translate }}</th>
+          <td mat-cell *matCellDef="let row">
+            @if (!row.isNotReported && row.reportTimestamp) {
+              <span class="report-time">{{ row.reportTimestamp | date : dateTimeFormat }}</span>
+            } @else {
+              —
+            }
+          </td>
+        </ng-container>
+
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr
           mat-row
