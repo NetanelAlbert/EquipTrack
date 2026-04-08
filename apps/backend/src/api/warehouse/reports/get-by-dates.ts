@@ -3,6 +3,8 @@ import {
   GetReportsByDatesRequest,
   GetReportsByDatesResponse,
   isValidDate,
+  JwtPayload,
+  UserRole,
 } from '@equip-track/shared';
 import { ReportItem, ReportsAdapter } from '../../../db/tables/reports.adapter';
 import {
@@ -11,10 +13,12 @@ import {
   isErrorResponse,
   organizationIdRequired,
 } from '../../responses';
+import { getCustomerDepartmentScope } from './customer-department-scope';
 
 export async function handler(
   req: GetReportsByDatesRequest,
-  pathParams?: APIGatewayProxyEventPathParameters
+  pathParams?: APIGatewayProxyEventPathParameters,
+  jwtPayload?: JwtPayload
 ): Promise<GetReportsByDatesResponse> {
   const organizationId = pathParams?.organizationId;
   if (!organizationId) {
@@ -35,6 +39,19 @@ export async function handler(
   try {
     const reportsByDate: Record<string, ReportItem[]> =
       await reportsAdapter.getReportsByDates(organizationId, req.dates);
+
+    const userRole = jwtPayload?.orgIdToRole[organizationId];
+    if (userRole === UserRole.Customer && jwtPayload?.sub) {
+      const allowedOwners = await getCustomerDepartmentScope(
+        jwtPayload.sub,
+        organizationId
+      );
+      for (const date of Object.keys(reportsByDate)) {
+        reportsByDate[date] = reportsByDate[date].filter(
+          (r) => !r.ownerUserId || allowedOwners.has(r.ownerUserId)
+        );
+      }
+    }
 
     return {
       status: true,

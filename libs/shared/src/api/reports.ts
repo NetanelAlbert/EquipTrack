@@ -27,3 +27,12 @@ export interface PublishPartialReportRequest {
 export interface PublishPartialReportResponse extends BasicResponse {
   items: ItemReport[];
 }
+
+export interface GetItemReportHistoryRequest {
+  productId: string;
+  upi: string;
+}
+
+export interface GetItemReportHistoryResponse extends BasicResponse {
+  reports: ItemReport[];
+}

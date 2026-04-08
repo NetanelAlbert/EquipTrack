@@ -148,6 +148,33 @@ describe('InventoryStore', () => {
     );
   });
 
+  it('addInventory extracts errorMessage from HttpErrorResponse body on duplicate UPI', async () => {
+    const httpError = {
+      status: 400,
+      message: 'Http failure response for http://localhost:3000/api/…: 400 Bad Request',
+      error: {
+        status: false,
+        error: 'Duplicate UPI',
+        errorMessage: 'UPI already exists for product prod-1: UPI-001',
+        errorKey: 'errors.inventory.duplicate-upi',
+      },
+    };
+    addInventoryExecute.mockReturnValue(throwError(() => httpError));
+
+    const result = await store.addInventory([
+      { productId: 'prod-1', quantity: 1, upis: ['UPI-001'] },
+    ]);
+
+    expect(result).toBe(false);
+    expect(store.addInventoryStatus().error).toBe(
+      'UPI already exists for product prod-1: UPI-001'
+    );
+    expect(notificationService.handleApiError).toHaveBeenCalledWith(
+      httpError,
+      'errors.inventory.add-failed'
+    );
+  });
+
   it('ensureUserInventoryLoaded retries after a failed fetch', async () => {
     executeSpy
       .mockReturnValueOnce(

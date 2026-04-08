@@ -1,12 +1,10 @@
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import {
   GetItemsToReportRequestResponse,
-  getUserIDsOfSameSubDepartment,
   InventoryItem,
   JwtPayload,
   UserRole,
 } from '@equip-track/shared';
-import { UsersAndOrganizationsAdapter } from '../../../db';
 import { InventoryAdapter } from '../../../db/tables/inventory.adapter';
 import {
   badRequest,
@@ -15,6 +13,7 @@ import {
   jwtPayloadRequired,
   organizationIdRequired,
 } from '../../responses';
+import { getCustomerDepartmentScope } from './customer-department-scope';
 
 export async function handler(
   _req: unknown,
@@ -51,24 +50,18 @@ export async function handler(
       };
     }
 
-    const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();    
-    const users = await usersAndOrganizationsAdapter.getUsersByOrganization(organizationId);
-    
-    const user = users.find((u) => u.user.id === userId);
-    if (!user) {
-      throw badRequest('User not found in organization');
-    }
+    const allowedUserIds = await getCustomerDepartmentScope(userId, organizationId);
 
-    const userIdsWithSameDepartment = getUserIDsOfSameSubDepartment(users, user);
-    
     const filteredItemsByHolder: Record<string, InventoryItem[]> = {};
-    userIdsWithSameDepartment.forEach((uid) => {
+    for (const uid of allowedUserIds) {
       const items = upiItems.get(uid);
       if (items) {
         filteredItemsByHolder[uid] = items;
       }
-    });
-    filteredItemsByHolder[userId] = upiItems.get(userId) ?? [];
+    }
+    if (!filteredItemsByHolder[userId]) {
+      filteredItemsByHolder[userId] = upiItems.get(userId) ?? [];
+    }
 
     return {
       status: true,

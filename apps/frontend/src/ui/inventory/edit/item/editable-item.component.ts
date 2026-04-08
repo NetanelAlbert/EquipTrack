@@ -1,15 +1,19 @@
 import {
+  AfterViewInit,
   Component,
   computed,
   effect,
+  ElementRef,
   EventEmitter,
   HostBinding,
   inject,
   input,
   OnInit,
   Output,
+  QueryList,
   signal,
   Signal,
+  ViewChildren,
   WritableSignal,
 } from '@angular/core';
 
@@ -63,13 +67,15 @@ import { toObservable } from '@angular/core/rxjs-interop';
   templateUrl: './editable-item.component.html',
   styleUrl: './editable-item.component.scss',
 })
-export class EditableItemComponent implements OnInit {
+export class EditableItemComponent implements OnInit, AfterViewInit {
   /** Max UPI fields per line item — avoids freezing the UI on huge quantities. */
   static readonly MAX_UPI_QUANTITY = 100;
 
   private readonly maxUpiQuantityValidator = Validators.max(
     EditableItemComponent.MAX_UPI_QUANTITY
   );
+
+  @ViewChildren('upiInput') upiInputs!: QueryList<ElementRef<HTMLInputElement>>;
 
   fb = inject(FormBuilder);
   organizationStore = inject(OrganizationStore);
@@ -111,8 +117,22 @@ export class EditableItemComponent implements OnInit {
     return product?.id ? `${product.name} (${product.id})` : '';
   }
 
+  private pendingFocusIndex: number | null = null;
+
   ngOnInit(): void {
     this.productId.set(this.productIdControl().value);
+  }
+
+  ngAfterViewInit(): void {
+    this.upiInputs.changes.pipe(untilDestroyed(this)).subscribe(() => {
+      if (this.pendingFocusIndex !== null) {
+        const input = this.upiInputs.get(this.pendingFocusIndex);
+        if (input) {
+          input.nativeElement.focus();
+        }
+        this.pendingFocusIndex = null;
+      }
+    });
   }
 
   productIdControl: Signal<FormControl<string | null>> = computed(
@@ -348,6 +368,16 @@ export class EditableItemComponent implements OnInit {
     control.updateValueAndValidity();
   }
 
+  /** Moves focus to the next UPI field on Enter, adding a new one if on the last field. */
+  onUpiEnter(upiIndex: number): void {
+    const nextInput = this.upiInputs.get(upiIndex + 1);
+    if (nextInput) {
+      nextInput.nativeElement.focus();
+    } else {
+      this.addUpi();
+    }
+  }
+
   /** Removes a UPI row and reapplies duplicate validators with correct indices. */
   removeUpiAt(upiIndex: number): void {
     const upis = this.upisControl();
@@ -368,7 +398,11 @@ export class EditableItemComponent implements OnInit {
     const control = new FormControl('');
     this.upisControl().push(control, { emitEvent });
     this.setUPIValidations(control);
-    return this.upisControl().length - 1;
+    const newIndex = this.upisControl().length - 1;
+    if (emitEvent) {
+      this.pendingFocusIndex = newIndex;
+    }
+    return newIndex;
   }
 
   private initInputProduct() {

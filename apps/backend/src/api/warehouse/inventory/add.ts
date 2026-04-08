@@ -1,8 +1,8 @@
-import { AddInventory, ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
+import { AddInventory, ErrorKeys, ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
 import { InventoryAdapter } from '../../../db';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import {
-  badRequest,
+  customError,
   internalServerError,
   isErrorResponse,
   organizationIdRequired,
@@ -46,12 +46,19 @@ export const handler = async (
 
       for (const item of req.items) {
         if (item.upis && item.upis.length > 0) {
+          const duplicateUpis: string[] = [];
           for (const upi of item.upis) {
             if (alreadyExistsUpis.has(`${item.productId}:${upi}`)) {
-              throw badRequest(
-                `UPI ${upi} already exists for product ${item.productId}`
-              );
+              duplicateUpis.push(upi);
             }
+          }
+          if (duplicateUpis.length > 0) {
+            throw customError(
+              ErrorKeys.INVENTORY_DUPLICATE_UPI,
+              400,
+              'Duplicate UPI',
+              `UPI already exists for product ${item.productId}: ${duplicateUpis.join(', ')}`
+            );
           }
         }
       }
