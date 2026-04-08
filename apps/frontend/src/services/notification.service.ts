@@ -187,14 +187,12 @@ export class NotificationService {
   private extractErrorBody(
     error: object
   ): { errorKey?: string; errorMessage?: string; error?: string } | null {
-    if (
-      'error' in error &&
-      error.error &&
-      typeof error.error === 'object' &&
-      'status' in (error.error as Record<string, unknown>) &&
-      (error.error as Record<string, unknown>).status === false
-    ) {
-      return error.error as {
+    if (!('error' in error) || !error.error || typeof error.error !== 'object') {
+      return null;
+    }
+    const body = error.error as Record<string, unknown>;
+    if ('status' in body && body['status'] === false) {
+      return body as unknown as {
         errorKey?: string;
         errorMessage?: string;
         error?: string;

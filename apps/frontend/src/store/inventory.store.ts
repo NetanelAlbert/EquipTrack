@@ -348,11 +348,11 @@ export const InventoryStore = signalStore(
           if (error instanceof Error) {
             errorMessage = error.message;
           }
-          const body = error && typeof error === 'object' && 'error' in error
-            ? (error as Record<string, unknown>).error
-            : null;
-          if (body && typeof body === 'object' && 'errorMessage' in (body as Record<string, unknown>)) {
-            errorMessage = String((body as Record<string, unknown>).errorMessage);
+          if (error && typeof error === 'object' && 'error' in error) {
+            const body = (error as { error: unknown }).error;
+            if (body && typeof body === 'object' && 'errorMessage' in body) {
+              errorMessage = String((body as { errorMessage: unknown }).errorMessage);
+            }
           }
           updateState({
             addInventoryStatus: { isLoading: false, error: errorMessage },
