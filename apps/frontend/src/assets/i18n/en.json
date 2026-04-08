@@ -386,6 +386,7 @@
     "inventory": {
       "fetch-failed": "Failed to load inventory. Please try again.",
       "add-failed": "Failed to add inventory items. Please try again.",
+      "duplicate-upi": "Cannot add inventory: one or more UPI codes already exist in the warehouse.",
       "remove-failed": "Failed to remove inventory items. Please try again.",
       "update-failed": "Failed to update inventory. Please try again."
     },
