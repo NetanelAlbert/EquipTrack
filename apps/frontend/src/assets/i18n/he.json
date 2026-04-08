@@ -351,6 +351,18 @@
     "my-items": "הפריטים שלי",
     "warehouse-items": "פריטי מחסן"
   },
+  "trace": {
+    "title": "מעקב מוצר",
+    "selectProduct": "בחר מוצר",
+    "selectUpi": "בחר צ׳",
+    "search": "חיפוש",
+    "noReports": "לא נמצאו דוחות",
+    "noReportsDescription": "לא נמצאה היסטוריית דוחות עבור הפריט שנבחר.",
+    "reportHistory": "היסטוריית דוחות",
+    "reportsFound": "דוחות נמצאו",
+    "columnDate": "תאריך",
+    "columnTime": "זמן דיווח"
+  },
   "errors": {
     "not-allowed": {
       "title": "הגישה נדחתה",

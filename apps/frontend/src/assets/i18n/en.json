@@ -352,6 +352,18 @@
     "my-items": "My Items",
     "warehouse-items": "Warehouse Items"
   },
+  "trace": {
+    "title": "Trace Product",
+    "selectProduct": "Select Product",
+    "selectUpi": "Select UPI",
+    "search": "Search",
+    "noReports": "No Reports Found",
+    "noReportsDescription": "No report history was found for the selected item.",
+    "reportHistory": "Report History",
+    "reportsFound": "reports found",
+    "columnDate": "Date",
+    "columnTime": "Report Time"
+  },
   "errors": {
     "not-allowed": {
       "title": "Access Denied",
