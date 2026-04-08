@@ -138,18 +138,28 @@ export class NotificationService {
     let fallbackMessage = 'An error occurred. Please try again.';
 
     if (error && typeof error === 'object') {
-      // Handle API response errors with status false
-      if ('status' in error && error.status === false) {
+      // Handle HttpErrorResponse — the parsed body is in `.error`
+      const body = this.extractErrorBody(error);
+      if (body) {
+        if (typeof body.errorMessage === 'string') {
+          fallbackMessage = body.errorMessage;
+        }
+        if (typeof body.errorKey === 'string') {
+          messageKey = body.errorKey;
+        } else if (typeof body.error === 'string') {
+          messageKey =
+            this.mapErrorToTranslationKey(body.error) || fallbackMessageKey;
+        }
+      }
+      // Handle API response errors with status false (non-HTTP error objects)
+      else if ('status' in error && error.status === false) {
         if ('errorMessage' in error && typeof error.errorMessage === 'string') {
           fallbackMessage = error.errorMessage;
         }
 
-        // Check if the backend provided an errorKey (new approach)
         if ('errorKey' in error && typeof error.errorKey === 'string') {
           messageKey = error.errorKey;
-        }
-        // Fallback to legacy error mapping for older API responses
-        else if ('error' in error && typeof error.error === 'string') {
+        } else if ('error' in error && typeof error.error === 'string') {
           messageKey =
             this.mapErrorToTranslationKey(error.error as string) ||
             fallbackMessageKey;
@@ -168,6 +178,29 @@ export class NotificationService {
     }
 
     this.showError(messageKey, fallbackMessage);
+  }
+
+  /**
+   * Extract the parsed error body from an HttpErrorResponse.
+   * Returns the body object if it contains API error fields, otherwise null.
+   */
+  private extractErrorBody(
+    error: object
+  ): { errorKey?: string; errorMessage?: string; error?: string } | null {
+    if (
+      'error' in error &&
+      error.error &&
+      typeof error.error === 'object' &&
+      'status' in (error.error as Record<string, unknown>) &&
+      (error.error as Record<string, unknown>).status === false
+    ) {
+      return error.error as {
+        errorKey?: string;
+        errorMessage?: string;
+        error?: string;
+      };
+    }
+    return null;
   }
 
   /**

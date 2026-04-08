@@ -344,8 +344,16 @@ export const InventoryStore = signalStore(
             error,
             'errors.inventory.add-failed'
           );
-          const errorMessage =
-            error instanceof Error ? error.message : 'Failed to add inventory';
+          let errorMessage = 'Failed to add inventory';
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          }
+          const body = error && typeof error === 'object' && 'error' in error
+            ? (error as Record<string, unknown>).error
+            : null;
+          if (body && typeof body === 'object' && 'errorMessage' in (body as Record<string, unknown>)) {
+            errorMessage = String((body as Record<string, unknown>).errorMessage);
+          }
           updateState({
             addInventoryStatus: { isLoading: false, error: errorMessage },
           });
