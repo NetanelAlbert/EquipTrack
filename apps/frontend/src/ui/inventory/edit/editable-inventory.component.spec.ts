@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { DestroyRef } from '@angular/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TranslateModule } from '@ngx-translate/core';
 import { EditableInventoryComponent } from './editable-inventory.component';
@@ -23,5 +24,10 @@ describe('EditableInventoryComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should inject DestroyRef for subscription cleanup', () => {
+    expect(component['destroyRef']).toBeDefined();
+    expect(component['destroyRef']).toBeInstanceOf(DestroyRef);
   });
 });
