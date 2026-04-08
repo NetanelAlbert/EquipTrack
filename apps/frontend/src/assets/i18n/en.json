@@ -137,7 +137,11 @@
     },
     "filter": {
       "status": "Filter by Status",
-      "all": "All Statuses"
+      "all": "All Statuses",
+      "department": "Filter by Department",
+      "allDepartments": "All Departments",
+      "user": "Filter by User",
+      "allUsers": "All Users"
     },
     "sort": {
       "label": "Sort by Date",
