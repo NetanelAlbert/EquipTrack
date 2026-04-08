@@ -10,12 +10,12 @@
 .user-name {
   font-weight: 500;
   flex-shrink: 0;
-  color: var(--mat-option-label-text-color);
+  color: inherit;
 }
 
 .department-info {
   font-size: 0.875em;
-  color: var(--mat-option-supporting-text-color);
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
   display: inline-flex;
   flex-wrap: wrap;
   gap: 0.25rem;
@@ -25,10 +25,10 @@
 
 .main-department,
 .sub-department {
-  color: var(--mat-option-supporting-text-color);
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
 }
 
 .role-description {
-  color: var(--mat-option-supporting-text-color);
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
   font-style: italic;
 }

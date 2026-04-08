@@ -9,21 +9,34 @@
 :root {
   /* Color Variables */
   --color-bg-primary: rgba(60, 60, 70, 0.5);
+  --color-bg-secondary: #1e1e1e;
   --color-bg-hover: rgba(70, 70, 80, 0.6);
+  --color-bg-subtle: rgba(255, 255, 255, 0.06);
   --color-shadow-light: rgba(0, 0, 0, 0.3);
   --color-shadow-medium: rgba(0, 0, 0, 0.4);
   --color-border-light: rgba(150, 150, 150, 0.2);
-  
+  --color-border-medium: rgba(150, 150, 150, 0.35);
+
+  /* Text Colors */
+  --color-text-primary: rgba(255, 255, 255, 0.87);
+  --color-text-secondary: rgba(255, 255, 255, 0.6);
+  --color-text-disabled: rgba(255, 255, 255, 0.38);
+  --color-text-muted: #b0b0b0;
+
   /* Theme Colors - Default to Purple Theme */
+  --color-primary: #7b1fa2;
+  --color-primary-light: rgba(123, 31, 162, 0.15);
   --color-accent: #bb86fc;
   --color-accent-border: rgba(187, 134, 252, 0.45);
   --color-accent-bg: rgba(187, 134, 252, 0.4);
+  --color-accent-light: rgba(187, 134, 252, 0.15);
   --color-gradient-light: rgba(187, 134, 252, 0.15);
+  --color-gradient-medium: rgba(187, 134, 252, 0.25);
   --color-gradient-ultra-light: rgba(187, 134, 252, 0.05);
 
-  /* Neutral / Surface */
-  --color-text-muted: #b0b0b0;
-  --color-bg-subtle: rgba(255, 255, 255, 0.06);
+  /* Surface Variants */
+  --color-surface-variant: #2d2d2d;
+  --color-on-surface-variant: rgba(255, 255, 255, 0.7);
   
   /* Error Colors */
   --color-error: #f44336;
