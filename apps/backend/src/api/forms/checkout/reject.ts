@@ -45,6 +45,12 @@ export const handler = async (
       );
     }
 
+    if (form.status !== FormStatus.Pending) {
+      throw badRequest(
+        `Form ${req.formID} is not in pending status (current: ${form.status})`
+      );
+    }
+
     // Update form status to rejected with reason and timestamp
     const updatedForm = await formsAdapter.updateForm(req.formID, req.userId, organizationId, {
       status: FormStatus.Rejected,
