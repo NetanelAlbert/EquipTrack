@@ -26,7 +26,6 @@ interface ReportsState {
   // API status for operations using ApiStatus
   fetchReportsStatus: ApiStatus;
   updateItemReportStatus: ApiStatus;
-  publishMultipleItemsStatus: ApiStatus;
   fetchItemsToReportStatus: ApiStatus;
 }
 
@@ -38,10 +37,6 @@ const initialState: ReportsState = {
     error: undefined,
   },
   updateItemReportStatus: {
-    isLoading: false,
-    error: undefined,
-  },
-  publishMultipleItemsStatus: {
     isLoading: false,
     error: undefined,
   },
@@ -60,7 +55,6 @@ export const ReportsStore = signalStore(
         () =>
           state.fetchReportsStatus().isLoading ||
           state.updateItemReportStatus().isLoading ||
-          state.publishMultipleItemsStatus().isLoading ||
           state.fetchItemsToReportStatus().isLoading
       ),
     };
@@ -86,7 +80,7 @@ export const ReportsStore = signalStore(
       },
 
       async fetchReport(date: string) {
-        this.fetchReports([date]);
+        await this.fetchReports([date]);
       },
 
       async fetchReports(dates: string[]) {
@@ -285,14 +279,6 @@ export const ReportsStore = signalStore(
         });
       },
 
-      clearPublishMultipleItemsError() {
-        patchState(store, {
-          publishMultipleItemsStatus: {
-            ...store.publishMultipleItemsStatus(),
-            error: undefined,
-          },
-        });
-      },
     };
   })
 );
