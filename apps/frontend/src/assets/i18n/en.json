@@ -336,6 +336,7 @@
     "lastLocation": "Last Location",
     "useLastLocation": "Use Last Location",
     "enterLocation": "Enter Location",
+    "columnLocation": "Location",
     "noReportForDate": "No Report Available",
     "noReportForDateDescription": "No report has been generated for the selected date.",
     "item-published": "Item report updated successfully",
