@@ -162,6 +162,57 @@ test.describe('reports-history screen', () => {
     }
   });
 
+  test('reporter filter narrows rows to selected reporter', async ({
+    page,
+    request,
+  }) => {
+    const token = await mintE2eJwt(request, {
+      backendBaseUrl,
+      e2eSecret,
+      userId: 'user-e2e-admin',
+      orgIdToRole: { [E2E_ORG_ID]: UserRole.Admin },
+    });
+
+    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+    await clickSideNavRoute(page, 'reports-history');
+    await waitForTestId(page, 'reports-history-page');
+
+    const rows = page.locator('[data-testid^="reports-history-item-row-"]');
+    await expect(rows.first()).toBeVisible({ timeout: 20000 });
+
+    const filtersRow = page.getByTestId('reports-history-filters');
+    await expect(filtersRow).toBeVisible();
+
+    const reporterFilter = page.getByTestId('reports-history-reporter-filter');
+    await expect(reporterFilter).toBeVisible();
+
+    const totalBefore = await rows.count();
+    if (totalBefore < 1) {
+      return;
+    }
+
+    await reporterFilter.locator('.mat-mdc-select-trigger').click();
+    const options = page.locator('mat-option');
+    await expect(options.first()).toBeVisible({ timeout: 5000 });
+    const optionCount = await options.count();
+    if (optionCount <= 1) {
+      return;
+    }
+    await options.nth(1).click();
+
+    await page.waitForTimeout(500);
+
+    const reporterCells = page.locator('table.report-table tbody tr td:nth-child(7) .reporter-name');
+    const visibleCount = await reporterCells.count();
+    if (visibleCount > 0) {
+      const firstName = await reporterCells.first().innerText();
+      for (let i = 1; i < visibleCount; i++) {
+        await expect(reporterCells.nth(i)).toHaveText(firstName.trim());
+      }
+    }
+  });
+
   test('inspector sees reporter display name instead of reporter user id', async ({
     page,
     request,
