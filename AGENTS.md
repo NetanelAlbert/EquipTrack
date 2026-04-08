@@ -112,6 +112,16 @@ See `apps/frontend-e2e/src/helpers/e2e-auth.ts` for the canonical Playwright imp
 - Cover **unit tests** for logic, services, and components where the project already uses them.
 - Cover **end-to-end (e2e) tests** when the change touches integration across apps, APIs, or critical user journeys and e2e coverage exists or is clearly warranted.
 
+## UI changes — screenshots required
+
+When a fix or feature touches the **UI** (templates, styles, components, layouts, or anything visually observable), the agent **must** include **before/after screenshots** (or a demo video) of the affected screens in the **pull request description** and in the **final response walkthrough**.
+
+- Capture screenshots by running the full-stack locally (backend + frontend) and using the `computerUse` subagent to navigate to the relevant page.
+- For bug fixes: show the broken state **before** the fix (if reproducible) and the corrected state **after**.
+- For new features: show the feature in its final working state, covering both the happy path and any important edge cases (empty states, error states, RTL layout, etc.).
+- Include the artifacts using HTML `<img>` / `<video>` tags in both the PR body and the final message so reviewers can visually verify the change without running the app.
+- If the UI cannot be rendered in the agent environment (e.g., missing external service), explain why and describe what the expected visual result should be.
+
 ## Pull requests and CI
 
 - When work maps to a **GitHub issue**, **link it in the pull request** so the issue **closes automatically on merge**. Use a closing keyword in the PR description (for example `Fixes #123`, `Closes #123`, or `Resolves #123`), or otherwise ensure the PR is associated with the issue per repository conventions.
