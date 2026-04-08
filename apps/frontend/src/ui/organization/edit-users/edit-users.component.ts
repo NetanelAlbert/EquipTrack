@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   ElementRef,
   inject,
   OnInit,
@@ -7,6 +8,7 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
@@ -63,6 +65,7 @@ import { CanComponentDeactivate } from '../../../app/guards/unsaved-changes.guar
 })
 export class EditUsersComponent implements OnInit, CanComponentDeactivate {
   private route = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
   private organizationStore = inject(OrganizationStore);
   private organizationService = inject(OrganizationService);
   private notificationService = inject(NotificationService);
@@ -102,14 +105,14 @@ export class EditUsersComponent implements OnInit, CanComponentDeactivate {
     // Load users from API
     void this.organizationService.getUsers();
     // Check for email parameter from invite flow
-    this.route.queryParams.subscribe((params) => {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       if (params['email']) {
         this.inviteForm.patchValue({ email: params['email'] });
         console.log('Pre-filled email from invite flow:', params['email']);
       }
     });
 
-    this.inviteForm.controls['departmentId'].valueChanges.subscribe((value) => {
+    this.inviteForm.controls['departmentId'].valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => {
       const department = this.userStore
         .currentOrganization()
         ?.departments.find((d) => d.id === value);
