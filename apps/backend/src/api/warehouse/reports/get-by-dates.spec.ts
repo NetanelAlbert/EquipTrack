@@ -2,7 +2,7 @@ import { handler } from './get-by-dates';
 import { UserRole } from '@equip-track/shared';
 
 const mockGetReportsByDates = jest.fn();
-const mockGetUsersByOrganization = jest.fn();
+const mockGetCustomerDepartmentScope = jest.fn();
 
 jest.mock('../../../db/tables/reports.adapter', () => ({
   ReportsAdapter: jest.fn().mockImplementation(() => ({
@@ -10,10 +10,9 @@ jest.mock('../../../db/tables/reports.adapter', () => ({
   })),
 }));
 
-jest.mock('../../../db', () => ({
-  UsersAndOrganizationsAdapter: jest.fn().mockImplementation(() => ({
-    getUsersByOrganization: mockGetUsersByOrganization,
-  })),
+jest.mock('./customer-department-scope', () => ({
+  getCustomerDepartmentScope: (...args: unknown[]) =>
+    mockGetCustomerDepartmentScope(...args),
 }));
 
 const ORG_ID = 'org-1';
@@ -33,40 +32,12 @@ const makeReport = (ownerUserId: string, productId = 'prod-1', upi = 'upi-1') =>
   ownerUserId,
 });
 
-const orgUsers = [
-  {
-    user: { id: CUSTOMER_USER_ID, name: 'Customer' },
-    userInOrganization: {
-      organizationId: ORG_ID,
-      userId: CUSTOMER_USER_ID,
-      role: UserRole.Customer,
-      department: { id: 'dep-1', roleDescription: '', subDepartmentId: 'sub-1' },
-    },
-  },
-  {
-    user: { id: SAME_DEPT_USER_ID, name: 'Same Dept' },
-    userInOrganization: {
-      organizationId: ORG_ID,
-      userId: SAME_DEPT_USER_ID,
-      role: UserRole.Customer,
-      department: { id: 'dep-1', roleDescription: '', subDepartmentId: 'sub-1' },
-    },
-  },
-  {
-    user: { id: OTHER_DEPT_USER_ID, name: 'Other Dept' },
-    userInOrganization: {
-      organizationId: ORG_ID,
-      userId: OTHER_DEPT_USER_ID,
-      role: UserRole.Customer,
-      department: { id: 'dep-2', roleDescription: '', subDepartmentId: 'sub-2' },
-    },
-  },
-];
-
 describe('getReportsByDates handler', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetUsersByOrganization.mockResolvedValue(orgUsers);
+    mockGetCustomerDepartmentScope.mockResolvedValue(
+      new Set([CUSTOMER_USER_ID, SAME_DEPT_USER_ID])
+    );
   });
 
   it('returns all reports for admin users', async () => {
@@ -86,7 +57,7 @@ describe('getReportsByDates handler', () => {
 
     expect(result.status).toBe(true);
     expect(result.reportsByDate['2025-01-15']).toHaveLength(2);
-    expect(mockGetUsersByOrganization).not.toHaveBeenCalled();
+    expect(mockGetCustomerDepartmentScope).not.toHaveBeenCalled();
   });
 
   it('returns all reports for warehouse-manager users', async () => {
@@ -106,7 +77,7 @@ describe('getReportsByDates handler', () => {
 
     expect(result.status).toBe(true);
     expect(result.reportsByDate['2025-01-15']).toHaveLength(2);
-    expect(mockGetUsersByOrganization).not.toHaveBeenCalled();
+    expect(mockGetCustomerDepartmentScope).not.toHaveBeenCalled();
   });
 
   it('filters reports for customer to only same sub-department items', async () => {
@@ -132,7 +103,7 @@ describe('getReportsByDates handler', () => {
       expect.arrayContaining([CUSTOMER_USER_ID, SAME_DEPT_USER_ID])
     );
     expect(filteredReports.map((r) => r.ownerUserId)).not.toContain(OTHER_DEPT_USER_ID);
-    expect(mockGetUsersByOrganization).toHaveBeenCalledWith(ORG_ID);
+    expect(mockGetCustomerDepartmentScope).toHaveBeenCalledWith(CUSTOMER_USER_ID, ORG_ID);
   });
 
   it('keeps reports with no ownerUserId for customer users', async () => {
