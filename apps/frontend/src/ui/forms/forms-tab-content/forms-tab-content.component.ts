@@ -77,9 +77,8 @@ export class FormsTabContentComponent {
       });
     }
 
-    // Apply sorting
     const sortBy = this.sortBy();
-    return filteredForms.sort((a, b) => {
+    return [...filteredForms].sort((a, b) => {
       if (sortBy === 'newest') {
         return b.createdAtTimestamp - a.createdAtTimestamp;
       } else {

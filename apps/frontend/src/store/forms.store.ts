@@ -470,11 +470,12 @@ export const FormsStore = signalStore(
           return presignedUrls[form.formID].url;
         }
         console.log('presignedUrls', presignedUrls);
-        delete presignedUrls[form.formID];
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [form.formID]: _expired, ...remainingUrls } = presignedUrls;
 
         updateState({
           getPresignedUrlStatus: { isLoading: true, error: undefined },
-          presignedUrls,
+          presignedUrls: remainingUrls,
         });
 
         try {
@@ -500,7 +501,7 @@ export const FormsStore = signalStore(
                     : form
                 ),
               presignedUrls: {
-                ...presignedUrls,
+                ...remainingUrls,
                 [formId]: {
                   url: result.presignedUrl,
                   ttl: Date.now() + expiresSeconds * 1000,

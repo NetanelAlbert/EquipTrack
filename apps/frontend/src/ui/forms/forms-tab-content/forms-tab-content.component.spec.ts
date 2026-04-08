@@ -84,6 +84,28 @@ describe('FormsTabContentComponent', () => {
     expect(filtered[0].formID).toBe('form2'); // older form first
   });
 
+  it('should not mutate the original forms array when sorting', () => {
+    const formsSnapshot = [...mockForms];
+    const originalOrder = mockForms.map((f) => f.formID);
+
+    component.statusFilter.set('all');
+    component.sortBy.set('oldest');
+    component.filteredForms();
+
+    component.sortBy.set('newest');
+    component.filteredForms();
+
+    expect(mockForms.map((f) => f.formID)).toEqual(originalOrder);
+    expect(mockForms).toEqual(formsSnapshot);
+  });
+
+  it('should return a new array reference from filteredForms, not the input', () => {
+    component.statusFilter.set('all');
+    component.searchTerm.set('');
+    const result = component.filteredForms();
+    expect(result).not.toBe(mockForms);
+  });
+
   it('should clear all filters', () => {
     component.searchTerm.set('test');
     component.statusFilter.set('approved');

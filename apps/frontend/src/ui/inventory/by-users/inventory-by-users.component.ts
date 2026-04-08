@@ -343,13 +343,12 @@ export class InventoryByUsersComponent implements OnInit {
     tableRows: TableData[],
     sortState: SortState
   ): TableData[] {
-    return tableRows.sort((a, b) => {
+    return [...tableRows].sort((a, b) => {
       let comparison = 0;
 
       if (sortState.column === 'product') {
         comparison = a.product.name.localeCompare(b.product.name);
       } else {
-        // Sorting by user column
         const aQuantity = a.userColumns[sortState.column]?.quantity || 0;
         const bQuantity = b.userColumns[sortState.column]?.quantity || 0;
         comparison = aQuantity - bQuantity;
