@@ -57,12 +57,10 @@ export class ReportsAdapter {
         })
       );
 
-      if (result.Items) {
-        return {
-          date,
-          reports: result.Items as ReportItem[],
-        };
-      }
+      return {
+        date,
+        reports: (result.Items ?? []) as ReportItem[],
+      };
     });
 
     const results = await Promise.all(promises);
