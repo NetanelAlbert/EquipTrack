@@ -100,6 +100,7 @@ export const InventoryStore = signalStore(
       patchState(store, {
         inventory: {},
         inventoryOrgId: newOrgId,
+        totalInventory: [],
       });
     };
 

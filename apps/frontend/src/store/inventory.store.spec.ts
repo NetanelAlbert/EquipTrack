@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { WritableSignal, signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import type { InventoryItem } from '@equip-track/shared';
 import { InventoryStore } from './inventory.store';
@@ -14,6 +14,7 @@ describe('InventoryStore', () => {
   let addInventoryExecute: jest.Mock;
   let removeInventoryExecute: jest.Mock;
   let getInventoryExecute: jest.Mock;
+  let selectedOrgSignal: WritableSignal<string>;
   let notificationService: {
     showSuccess: jest.Mock;
     showError: jest.Mock;
@@ -40,6 +41,8 @@ describe('InventoryStore', () => {
       showSuccess: jest.fn(),
     };
 
+    selectedOrgSignal = signal('org-1');
+
     TestBed.configureTestingModule({
       providers: [
         {
@@ -60,7 +63,7 @@ describe('InventoryStore', () => {
         {
           provide: UserStore,
           useValue: {
-            selectedOrganizationId: signal('org-1'),
+            selectedOrganizationId: selectedOrgSignal,
           },
         },
         {
@@ -162,6 +165,31 @@ describe('InventoryStore', () => {
     ).rejects.toThrow();
 
     await store.ensureUserInventoryLoaded('user-retry');
+
+    expect(executeSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('clears totalInventory when organization changes and user inventory is fetched', async () => {
+    const fakeItems: InventoryItem[] = [{ productId: 'p1', quantity: 5 }];
+    getInventoryExecute.mockReturnValue(
+      of({ status: true, totalItems: fakeItems })
+    );
+
+    await store.fetchTotalInventory();
+    expect(store.totalInventory()).toEqual(fakeItems);
+
+    selectedOrgSignal.set('org-2');
+    await store.ensureUserInventoryLoaded('some-user');
+
+    expect(store.totalInventory()).toEqual([]);
+  });
+
+  it('clears per-user inventory cache when organization changes', async () => {
+    await store.ensureUserInventoryLoaded('user-x');
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+
+    selectedOrgSignal.set('org-2');
+    await store.ensureUserInventoryLoaded('user-x');
 
     expect(executeSpy).toHaveBeenCalledTimes(2);
   });
