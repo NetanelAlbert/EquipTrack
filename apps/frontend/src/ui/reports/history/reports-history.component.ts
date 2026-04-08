@@ -449,33 +449,38 @@ export class ReportsHistoryComponent {
     }
 
     const fix = isRtl ? toVisualOrder : (s: string) => s;
+    const maybeReverse = (arr: string[]) => (isRtl ? [...arr].reverse() : arr);
     const head = [
-      [
-        this.translate.instant('reports.columnProduct'),
-        this.translate.instant('reports.upiLabel'),
-        this.translate.instant('reports.columnStatus'),
-        this.translate.instant('reports.columnLocation'),
-        this.translate.instant('reports.columnHolder'),
-        this.translate.instant('reports.columnDepartment'),
-        this.translate.instant('reports.columnReporter'),
-        this.translate.instant('reports.columnReportTime'),
-      ].map(fix),
+      maybeReverse(
+        [
+          this.translate.instant('reports.columnProduct'),
+          this.translate.instant('reports.upiLabel'),
+          this.translate.instant('reports.columnStatus'),
+          this.translate.instant('reports.columnLocation'),
+          this.translate.instant('reports.columnHolder'),
+          this.translate.instant('reports.columnDepartment'),
+          this.translate.instant('reports.columnReporter'),
+          this.translate.instant('reports.columnReportTime'),
+        ].map(fix)
+      ),
     ];
     const body = this.displayedTableRows().map((r) =>
-      [
-        this.getProductName(r.productId),
-        r.upi,
-        r.isNotReported
-          ? this.translate.instant('reports.notReportedStatus')
-          : this.translate.instant('reports.reported'),
-        r.location || '',
-        this.getSortUserLabel(r),
-        this.getDepartmentLabel(r),
-        r.isNotReported
-          ? ''
-          : this.organizationStore.getUserName(r.reportedBy),
-        r.isNotReported ? '' : this.formatReportTimestampForExport(r),
-      ].map(fix)
+      maybeReverse(
+        [
+          this.getProductName(r.productId),
+          r.upi,
+          r.isNotReported
+            ? this.translate.instant('reports.notReportedStatus')
+            : this.translate.instant('reports.reported'),
+          r.location || '',
+          this.getSortUserLabel(r),
+          this.getDepartmentLabel(r),
+          r.isNotReported
+            ? ''
+            : this.organizationStore.getUserName(r.reportedBy),
+          r.isNotReported ? '' : this.formatReportTimestampForExport(r),
+        ].map(fix)
+      )
     );
 
     autoTable(doc, {
