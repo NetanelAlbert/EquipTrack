@@ -202,6 +202,8 @@
       "sortByProductClick": "לחץ למיון עמודות המשתמשים לפי מוצר זה",
       "product": "מוצר",
       "upiProduct": "למוצר זה יש מזהים ייחודיים (צ׳)",
+      "filterByDepartment": "סינון לפי מחלקה",
+      "allDepartments": "כל המחלקות",
       "noInventory": "אין נתוני מלאי",
       "noInventoryDescription": "אין נתוני מלאי זמינים עבור המשתמשים שנבחרו."
     },

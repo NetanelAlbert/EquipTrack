@@ -203,6 +203,8 @@
       "sortByProductClick": "Click to sort user columns by this product",
       "product": "Product",
       "upiProduct": "This product has unique identifiers (UPI)",
+      "filterByDepartment": "Filter by Department",
+      "allDepartments": "All Departments",
       "noInventory": "No Inventory Data",
       "noInventoryDescription": "There is no inventory data available for the selected users."
     },
