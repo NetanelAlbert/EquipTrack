@@ -27,7 +27,10 @@ env:
 
 jobs:
   deploy-preview:
-    if: github.event.pull_request.draft == false
+    # Skip until maintainers add PR_PREVIEW_SEED_PASSWORD (required for hashed preview logins).
+    if: >
+      github.event.pull_request.draft == false &&
+      secrets.PR_PREVIEW_SEED_PASSWORD != ''
     name: Deploy PR preview stack
     runs-on: ubuntu-latest
     environment: development
@@ -53,13 +56,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Validate preview password secret
-        run: |
-          if [ -z "${PR_PREVIEW_SEED_PASSWORD}" ]; then
-            echo "::error::PR_PREVIEW_SEED_PASSWORD secret is not set (required for preview DB seeding)"
-            exit 1
-          fi
 
       - name: Prepare deployment
         run: |
