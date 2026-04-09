@@ -1,0 +1,70 @@
+# Local full-stack preview: LocalStack (DynamoDB, S3, Secrets Manager) + backend + nginx (Angular SPA).
+# Usage:
+#   npm run docker:preview:up
+# Open http://localhost:4280 — API is proxied at /api (same-origin; see runtime-config.json).
+#
+# Default E2E login secret: e2e-docker-preview-secret (override E2E_AUTH_SECRET in compose if needed).
+
+services:
+  localstack:
+    image: public.ecr.aws/localstack/localstack:3.8
+    container_name: equiptrack-preview-localstack
+    ports:
+      - '4566:4566'
+    environment:
+      - SERVICES=dynamodb,s3,secretsmanager
+      - AWS_DEFAULT_REGION=us-east-1
+      - DEBUG=0
+      - PERSISTENCE=1
+    volumes:
+      - equiptrack-preview-localstack:/var/lib/localstack
+    healthcheck:
+      test: ['CMD', 'bash', '-c', 'curl -fsS http://localhost:4566/_localstack/health > /dev/null']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/preview/Dockerfile
+      target: preview-backend
+    container_name: equiptrack-preview-backend
+    depends_on:
+      localstack:
+        condition: service_healthy
+    environment:
+      STAGE: docker
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_ENDPOINT_URL_DYNAMODB: http://localstack:4566
+      AWS_ENDPOINT_URL_S3: http://localstack:4566
+      AWS_ENDPOINT_URL_SECRETSMANAGER: http://localstack:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      E2E_AUTH_ENABLED: 'true'
+      E2E_AUTH_SECRET: e2e-docker-preview-secret
+    expose:
+      - '3000'
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3000/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/preview/Dockerfile
+      target: preview-frontend
+    container_name: equiptrack-preview-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '4280:80'
+
+volumes:
+  equiptrack-preview-localstack:

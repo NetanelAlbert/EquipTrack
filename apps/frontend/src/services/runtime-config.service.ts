@@ -3,10 +3,20 @@ import { environment } from '../environments/environment';
 
 interface RuntimeConfig {
   apiUrl?: string;
+  /** When true, API calls use the SPA origin (e.g. nginx proxies /api → backend). */
+  useSameOriginForApi?: boolean;
 }
 
 function isRuntimeConfig(value: unknown): value is RuntimeConfig {
-  return typeof value === 'object' && value !== null;
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const o = value as Record<string, unknown>;
+  const sameOrigin = o['useSameOriginForApi'];
+  if (sameOrigin !== undefined && typeof sameOrigin !== 'boolean') {
+    return false;
+  }
+  return true;
 }
 
 /** True when apiUrl targets loopback or RFC1918 — unsafe from a public HTTPS origin (Chrome PNA, mixed behavior). */
@@ -52,7 +62,12 @@ export class RuntimeConfigService {
     apiUrl: environment.apiUrl,
   };
 
+  private sameOriginApi = false;
+
   get apiUrl(): string {
+    if (this.sameOriginApi) {
+      return '';
+    }
     return this.config.apiUrl || environment.apiUrl;
   }
 
@@ -82,6 +97,13 @@ export class RuntimeConfigService {
             apiUrl: fileApiUrl,
           };
         }
+      }
+      if (configFromFile['useSameOriginForApi'] === true) {
+        this.sameOriginApi = true;
+        this.config = {
+          ...this.config,
+          apiUrl: '',
+        };
       }
     } catch {
       // No-op fallback to environment config when runtime file is unavailable.
