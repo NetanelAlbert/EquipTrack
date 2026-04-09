@@ -1,6 +1,12 @@
 import { FormStatus, FormType, JwtPayload, InventoryForm } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { badRequest, internalServerError } from '../../responses';
+import {
+  badRequest,
+  internalServerError,
+  jwtPayloadRequired,
+  organizationIdRequired,
+  userIdRequired,
+} from '../../responses';
 
 const mockGetForm = jest.fn();
 const mockUpdateForm = jest.fn();
@@ -104,14 +110,14 @@ describe('reject form handler', () => {
     expect(mockUpdateForm).not.toHaveBeenCalled();
   });
 
-  it('should throw badRequest when organizationId is missing', async () => {
+  it('should throw organizationIdRequired when organizationId is missing', async () => {
     await expect(
       handler(
         { userId: 'user-1', formID: 'form-1', reason: 'reason' },
         {},
         validJwt
       )
-    ).rejects.toEqual(badRequest('Organization ID is required'));
+    ).rejects.toEqual(organizationIdRequired);
   });
 
   it('should throw badRequest when formID is missing', async () => {
@@ -138,24 +144,24 @@ describe('reject form handler', () => {
     );
   });
 
-  it('should throw badRequest when jwtPayload is missing', async () => {
+  it('should throw jwtPayloadRequired when jwtPayload is missing', async () => {
     await expect(
       handler(
         { userId: 'user-1', formID: 'form-1', reason: 'reason' },
         pathParams,
         undefined
       )
-    ).rejects.toEqual(badRequest('User authentication required'));
+    ).rejects.toEqual(jwtPayloadRequired);
   });
 
-  it('should throw badRequest when userId is missing', async () => {
+  it('should throw userIdRequired when userId is missing', async () => {
     await expect(
       handler(
         { userId: '', formID: 'form-1', reason: 'reason' },
         pathParams,
         validJwt
       )
-    ).rejects.toEqual(badRequest('User ID is required'));
+    ).rejects.toEqual(userIdRequired);
   });
 
   it('should throw badRequest when form is not found', async () => {
