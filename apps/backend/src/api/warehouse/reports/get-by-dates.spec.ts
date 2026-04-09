@@ -20,6 +20,13 @@ const CUSTOMER_USER_ID = 'customer-1';
 const SAME_DEPT_USER_ID = 'same-dept-user';
 const OTHER_DEPT_USER_ID = 'other-dept-user';
 
+const adminJwt = {
+  sub: 'admin-user',
+  orgIdToRole: { [ORG_ID]: UserRole.Admin },
+  iat: 1,
+  exp: 2,
+};
+
 const makeReport = (ownerUserId: string, productId = 'prod-1', upi = 'upi-1') => ({
   orgDailyReportId: `ORG#${ORG_ID}#DATE#2025-01-15`,
   itemKey: `PRODUCT#${productId}#UPI#${upi}`,
@@ -52,12 +59,33 @@ describe('getReportsByDates handler', () => {
     const result = await handler(
       { dates: ['2025-01-15'] },
       { organizationId: ORG_ID },
-      { sub: 'admin-user', orgIdToRole: { [ORG_ID]: UserRole.Admin }, iat: 1, exp: 2 }
+      adminJwt
     );
 
     expect(result.status).toBe(true);
     expect(result.reportsByDate['2025-01-15']).toHaveLength(2);
     expect(mockGetCustomerDepartmentScope).not.toHaveBeenCalled();
+  });
+
+  it('returns empty arrays for dates with no reports', async () => {
+    mockGetReportsByDates.mockResolvedValue({
+      '2026-04-07': [],
+      '2026-04-08': [],
+    });
+
+    const result = await handler(
+      { dates: ['2026-04-07', '2026-04-08'] },
+      { organizationId: ORG_ID },
+      adminJwt
+    );
+
+    expect(result.status).toBe(true);
+    expect(result.reportsByDate['2026-04-07']).toEqual([]);
+    expect(result.reportsByDate['2026-04-08']).toEqual([]);
+    expect(mockGetReportsByDates).toHaveBeenCalledWith(ORG_ID, [
+      '2026-04-07',
+      '2026-04-08',
+    ]);
   });
 
   it('returns all reports for warehouse-manager users', async () => {
@@ -177,7 +205,7 @@ describe('getReportsByDates handler', () => {
       handler(
         { dates: ['2025-01-15'] },
         { organizationId: ORG_ID },
-        { sub: 'admin-user', orgIdToRole: { [ORG_ID]: UserRole.Admin }, iat: 1, exp: 2 }
+        adminJwt
       )
     ).rejects.toMatchObject({ statusCode: 500 });
   });
