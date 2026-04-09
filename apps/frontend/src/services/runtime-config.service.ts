@@ -11,10 +11,8 @@ function isRuntimeConfig(value: unknown): value is RuntimeConfig {
     return false;
   }
   const o = value as Record<string, unknown>;
-  if (
-    o.featurePreviewLoginEnabled !== undefined &&
-    typeof o.featurePreviewLoginEnabled !== 'boolean'
-  ) {
+  const previewFlag = o['featurePreviewLoginEnabled'];
+  if (previewFlag !== undefined && typeof previewFlag !== 'boolean') {
     return false;
   }
   return true;
