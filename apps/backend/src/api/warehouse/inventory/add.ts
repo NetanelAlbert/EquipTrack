@@ -1,7 +1,12 @@
-import { AddInventory, ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
+import { AddInventory, ErrorKeys, ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
 import { InventoryAdapter } from '../../../db';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { badRequest } from '../../responses';
+import {
+  customError,
+  internalServerError,
+  isErrorResponse,
+  organizationIdRequired,
+} from '../../responses';
 import { WAREHOUSE_SUFFIX } from '../../../db/constants';
 import { validateInventoryItems } from '../../validate';
 
@@ -13,7 +18,7 @@ export const handler = async (
 ) => {
   const organizationId = pathParams[ORGANIZATION_ID_PATH_PARAM];
   if (!organizationId) {
-    throw badRequest('Organization ID is required');
+    throw organizationIdRequired;
   }
 
   // Validate items
@@ -41,12 +46,19 @@ export const handler = async (
 
       for (const item of req.items) {
         if (item.upis && item.upis.length > 0) {
+          const duplicateUpis: string[] = [];
           for (const upi of item.upis) {
             if (alreadyExistsUpis.has(`${item.productId}:${upi}`)) {
-              throw badRequest(
-                `UPI ${upi} already exists for product ${item.productId}`
-              );
+              duplicateUpis.push(upi);
             }
+          }
+          if (duplicateUpis.length > 0) {
+            throw customError(
+              ErrorKeys.INVENTORY_DUPLICATE_UPI,
+              400,
+              'Duplicate UPI',
+              `UPI already exists for product ${item.productId}: ${duplicateUpis.join(', ')}`
+            );
           }
         }
       }
@@ -93,7 +105,10 @@ export const handler = async (
     return { status: true };
   } catch (error) {
     console.error('Error adding inventory:', error);
-    throw badRequest(
+    if (isErrorResponse(error)) {
+      throw error;
+    }
+    throw internalServerError(
       `Failed to add inventory: ${
         error instanceof Error ? error.message : 'Unknown error'
       }`

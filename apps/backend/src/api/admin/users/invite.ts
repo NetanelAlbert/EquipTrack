@@ -7,7 +7,12 @@ import {
   UserInOrganization,
 } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { badRequest } from '../../responses';
+import {
+  badRequest,
+  internalServerError,
+  isErrorResponse,
+  organizationIdRequired,
+} from '../../responses';
 import { UsersAndOrganizationsAdapter } from '../../../db';
 import { ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
 import { v4 as uuidv4 } from 'uuid';
@@ -21,7 +26,7 @@ export const handler = async (
   const organizationId = pathParams[ORGANIZATION_ID_PATH_PARAM];
 
   if (!organizationId) {
-    throw badRequest('Organization ID is required');
+    throw organizationIdRequired;
   }
 
   if (!req.email || !req.role) {
@@ -99,18 +104,9 @@ export const handler = async (
     };
   } catch (error) {
     console.error('Error inviting user:', error);
-
-    // Re-throw known errors
-    if (
-      error.message &&
-      (error.message.includes('required') ||
-        error.message.includes('Invalid') ||
-        error.message.includes('already'))
-    ) {
+    if (isErrorResponse(error)) {
       throw error;
     }
-
-    // Generic error for unexpected issues
-    throw new Error('Failed to invite user');
+    throw internalServerError('Failed to invite user');
   }
 };

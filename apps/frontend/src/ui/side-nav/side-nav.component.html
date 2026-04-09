@@ -1,9 +1,14 @@
+<top-bar
+  data-testid="top-bar"
+  [menuOpen]="isExpanded()"
+  (menuClicked)="toggleExpanded()"
+></top-bar>
+
 <mat-sidenav-container class="sidenav-container" data-testid="app-shell">
   <mat-sidenav #sidenav
                [mode]="getSidenavMode()"
                [opened]="isExpanded()"
                (openedChange)="onOpenedChange($event)"
-               [fixedInViewport]="true"
                class="sidenav"
                [class.expanded]="isExpanded()"
                [class.collapsed]="!isExpanded()">
@@ -18,7 +23,6 @@
           (click)="onNavItemClick()"
         >
           <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-          <!-- consider removing the if this as the bad dissapear -->
           @if (isExpanded()) {
             <span matListItemTitle>{{ item.labelKey | translate }}</span>
           }
@@ -28,12 +32,6 @@
   </mat-sidenav>
 
   <mat-sidenav-content>
-    <top-bar
-      data-testid="top-bar"
-      [menuOpen]="isExpanded()"
-      (menuClicked)="toggleExpanded()"
-    ></top-bar>
-
     <div class="content" data-testid="app-content">
       <router-outlet></router-outlet>
     </div>
