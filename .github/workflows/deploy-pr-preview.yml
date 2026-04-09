@@ -1,6 +1,7 @@
 # Isolated full-stack preview per PR: STAGE=pr-<number>, unique hostname under BASE_DOMAIN.
 # Required repo secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, API_GATEWAY_REGIONAL_CERTIFICATE_ARN,
 #   PR_PREVIEW_SEED_PASSWORD (shared password for all seeded preview users — not committed).
+#   Until this secret exists, the deploy job is skipped so PR checks stay green.
 # Optional: NX_CLOUD_ACCESS_TOKEN
 name: Deploy PR preview
 
