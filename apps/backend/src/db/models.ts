@@ -44,6 +44,8 @@ export interface ProductDb extends DbItem {
 export interface UserDb extends User, DbItem {
   // Optional Google sub ID for users who authenticated with Google
   googleSub?: string;
+  /** Argon2id hash for feature-preview email login (preview DynamoDB stages only) */
+  featurePreviewPasswordHash?: string;
 }
 
 /**

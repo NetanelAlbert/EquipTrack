@@ -126,7 +126,8 @@ export class UsersAndOrganizationsAdapter {
   private getUser(userDB: UserDb): User {
     // Destructure to exclude database-specific fields and keep only User fields
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { PK, SK, dbItemType, googleSub, ...user } = userDB;
+    const { PK, SK, dbItemType, googleSub, featurePreviewPasswordHash, ...user } =
+      userDB;
     return user;
   }
 
@@ -385,6 +386,21 @@ export class UsersAndOrganizationsAdapter {
       return undefined;
     }
     return this.getUser(result.Item as UserDb);
+  }
+
+  /**
+   * Load raw user row (includes DB-only fields such as feature preview password hash).
+   */
+  async getUserDbRecord(userId: string): Promise<UserDb | undefined> {
+    const command = new GetCommand({
+      TableName: this.tableName,
+      Key: this.getUserKey(userId),
+    });
+    const result = await this.docClient.send(command);
+    if (!result.Item) {
+      return undefined;
+    }
+    return result.Item as UserDb;
   }
 
   async getUserInOrganization(

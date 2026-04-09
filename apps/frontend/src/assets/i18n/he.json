@@ -28,7 +28,12 @@
     "try-again": "נסה שוב",
     "try-again-detailed": "נסה להתחבר שוב",
     "error": "שגיאת אימות",
-    "success": "האימות הצליח"
+    "success": "האימות הצליח",
+    "feature-preview-section": "התחברות לסביבת תצוגה מקדימה",
+    "feature-preview-hint": "בסביבת התצוגה המקדימה נעשה שימוש באימייל וסיסמה. השתמשו בסיסמה המשותפת מהצוות (סוד ב-GitHub Actions), לא בחשבון Google של הייצור.",
+    "feature-preview-email-label": "אימייל",
+    "feature-preview-password-label": "סיסמה",
+    "feature-preview-submit": "התחברות עם אימייל"
   },
   "common": {
     "close": "סגור",

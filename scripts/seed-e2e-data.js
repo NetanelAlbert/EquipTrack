@@ -5,6 +5,7 @@ const {
   BatchWriteCommand,
   QueryCommand,
 } = require('@aws-sdk/lib-dynamodb');
+const { hashFeaturePreviewPassword } = require('./feature-preview-password');
 
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 const STAGE = process.env.STAGE || 'local';
@@ -149,6 +150,17 @@ const E2E_SEED_USERS = [
 
 async function putStandardE2eOrganizationUsers(docClient) {
   const organizationId = E2E_ORGANIZATION_ID;
+  const isPreviewStage = /^pr-\d+$/i.test(STAGE);
+  let featurePreviewPasswordHash = null;
+  if (isPreviewStage) {
+    const sharedPassword = (process.env.PR_PREVIEW_SEED_PASSWORD || '').trim();
+    if (!sharedPassword) {
+      throw new Error(
+        '[seed-e2e-data] PR_PREVIEW_SEED_PASSWORD is required when STAGE matches pr-<number> (shared preview login password; store in GitHub Actions secret, not in the repo)'
+      );
+    }
+    featurePreviewPasswordHash = await hashFeaturePreviewPassword(sharedPassword);
+  }
 
   const organization = {
     id: organizationId,
@@ -170,7 +182,7 @@ async function putStandardE2eOrganizationUsers(docClient) {
   });
 
   for (const user of E2E_SEED_USERS) {
-    await putItem(docClient, USERS_AND_ORGANIZATIONS_TABLE_NAME, {
+    const userRow = {
       id: user.id,
       name: user.name,
       email: user.email,
@@ -178,7 +190,11 @@ async function putStandardE2eOrganizationUsers(docClient) {
       PK: `${USER_PREFIX}${user.id}`,
       SK: METADATA_SK,
       dbItemType: 'USER',
-    });
+    };
+    if (featurePreviewPasswordHash) {
+      userRow.featurePreviewPasswordHash = featurePreviewPasswordHash;
+    }
+    await putItem(docClient, USERS_AND_ORGANIZATIONS_TABLE_NAME, userRow);
 
     await putItem(docClient, USERS_AND_ORGANIZATIONS_TABLE_NAME, {
       organizationId,

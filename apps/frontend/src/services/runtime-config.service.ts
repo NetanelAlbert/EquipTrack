@@ -3,10 +3,21 @@ import { environment } from '../environments/environment';
 
 interface RuntimeConfig {
   apiUrl?: string;
+  featurePreviewLoginEnabled?: boolean;
 }
 
 function isRuntimeConfig(value: unknown): value is RuntimeConfig {
-  return typeof value === 'object' && value !== null;
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const o = value as Record<string, unknown>;
+  if (
+    o.featurePreviewLoginEnabled !== undefined &&
+    typeof o.featurePreviewLoginEnabled !== 'boolean'
+  ) {
+    return false;
+  }
+  return true;
 }
 
 /** True when apiUrl targets loopback or RFC1918 — unsafe from a public HTTPS origin (Chrome PNA, mixed behavior). */
@@ -56,6 +67,10 @@ export class RuntimeConfigService {
     return this.config.apiUrl || environment.apiUrl;
   }
 
+  get featurePreviewLoginEnabled(): boolean {
+    return this.config.featurePreviewLoginEnabled === true;
+  }
+
   async load(): Promise<void> {
     try {
       const response = await fetch('/assets/runtime-config.json', {
@@ -82,6 +97,12 @@ export class RuntimeConfigService {
             apiUrl: fileApiUrl,
           };
         }
+      }
+      if (configFromFile.featurePreviewLoginEnabled === true) {
+        this.config = {
+          ...this.config,
+          featurePreviewLoginEnabled: true,
+        };
       }
     } catch {
       // No-op fallback to environment config when runtime file is unavailable.
