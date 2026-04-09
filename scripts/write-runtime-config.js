@@ -12,13 +12,22 @@ const runtimeConfigPath = path.join(
   'runtime-config.json'
 );
 
-const content = JSON.stringify(
-  {
-    apiUrl,
-  },
-  null,
-  2
-);
+function useSameOriginForApi() {
+  return (
+    String(process.env.RUNTIME_USE_SAME_ORIGIN_FOR_API || '').toLowerCase() ===
+    'true'
+  );
+}
+
+const payload = useSameOriginForApi()
+  ? { useSameOriginForApi: true }
+  : { apiUrl };
+
+const content = JSON.stringify(payload, null, 2);
 
 fs.writeFileSync(runtimeConfigPath, `${content}\n`, 'utf-8');
-console.log(`[write-runtime-config] runtime apiUrl set to ${apiUrl}`);
+if (useSameOriginForApi()) {
+  console.log('[write-runtime-config] useSameOriginForApi=true (API via /api on current host)');
+} else {
+  console.log(`[write-runtime-config] runtime apiUrl set to ${apiUrl}`);
+}
