@@ -152,21 +152,33 @@ describe('getReportsByDates handler', () => {
     expect(result.reportsByDate['2025-01-16'][0].ownerUserId).toBe(SAME_DEPT_USER_ID);
   });
 
-  it('throws on missing organization ID', async () => {
+  it('returns 400 when organizationId is missing', async () => {
     await expect(
       handler({ dates: ['2025-01-15'] }, {})
-    ).rejects.toThrow('Organization ID is required');
+    ).rejects.toMatchObject({ statusCode: 400 });
   });
 
-  it('throws on empty dates array', async () => {
+  it('returns 400 when dates array is empty', async () => {
     await expect(
       handler({ dates: [] }, { organizationId: ORG_ID })
-    ).rejects.toThrow('Dates array is required and must not be empty');
+    ).rejects.toMatchObject({ statusCode: 400 });
   });
 
-  it('throws on invalid dates', async () => {
+  it('returns 400 when dates are invalid', async () => {
     await expect(
       handler({ dates: ['not-a-date'] }, { organizationId: ORG_ID })
-    ).rejects.toThrow('Invalid dates: not-a-date');
+    ).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('returns 500 when database fails', async () => {
+    mockGetReportsByDates.mockRejectedValue(new Error('DB error'));
+
+    await expect(
+      handler(
+        { dates: ['2025-01-15'] },
+        { organizationId: ORG_ID },
+        { sub: 'admin-user', orgIdToRole: { [ORG_ID]: UserRole.Admin }, iat: 1, exp: 2 }
+      )
+    ).rejects.toMatchObject({ statusCode: 500 });
   });
 });

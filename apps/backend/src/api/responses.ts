@@ -132,3 +132,7 @@ export const jwtPayloadRequired = customError(
   400,
   'JWT payload is required'
 )
+
+export function isErrorResponse(error: unknown): error is ErrorResponse {
+  return error != null && typeof error === 'object' && 'statusCode' in error;
+}

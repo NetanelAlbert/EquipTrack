@@ -14,6 +14,8 @@ import {
   ErrorResponse,
   unauthorized,
   internalServerError,
+  badRequest,
+  isErrorResponse,
   CORS_HEADERS,
 } from './responses';
 import { authenticateAndGetJwt } from './auth';
@@ -22,9 +24,14 @@ function parseBody<T>(event: APIGatewayProxyEvent): T | undefined {
   if (!event.body) {
     return undefined;
   }
-  return (
-    typeof event.body === 'string' ? JSON.parse(event.body) : event.body
-  ) as T;
+  if (typeof event.body !== 'string') {
+    return event.body as T;
+  }
+  try {
+    return JSON.parse(event.body) as T;
+  } catch {
+    throw badRequest('Invalid JSON in request body');
+  }
 }
 
 export function createLambdaHandler<
@@ -78,8 +85,7 @@ export function createLambdaHandler<
     } catch (error) {
       console.error(`[${meta.path}] Error occurred:`, error);
 
-      // If the error is an ErrorResponse, ensure it has CORS headers
-      if (error && typeof error === 'object' && 'statusCode' in error) {
+      if (isErrorResponse(error)) {
         console.log(`[${meta.path}] Returning error response:`, error);
         const errorResponse = error as ErrorResponse;
         return {

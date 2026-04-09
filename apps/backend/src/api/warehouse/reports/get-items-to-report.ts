@@ -6,6 +6,13 @@ import {
   UserRole,
 } from '@equip-track/shared';
 import { InventoryAdapter } from '../../../db/tables/inventory.adapter';
+import {
+  badRequest,
+  internalServerError,
+  isErrorResponse,
+  jwtPayloadRequired,
+  organizationIdRequired,
+} from '../../responses';
 import { getCustomerDepartmentScope } from './customer-department-scope';
 
 export async function handler(
@@ -15,21 +22,21 @@ export async function handler(
 ): Promise<GetItemsToReportRequestResponse> {
   const userId = jwtPayload?.sub;
   if (!userId) {
-    throw new Error(`User ID is required, got payload: ${JSON.stringify(jwtPayload)}`);
+    throw jwtPayloadRequired;
   }
 
   const organizationId = pathParams?.organizationId;
   if (!organizationId) {
-    throw new Error('Organization ID is required');
+    throw organizationIdRequired;
   }
 
   try {
     const inventoryAdapter = new InventoryAdapter();
     const upiItems = await inventoryAdapter.getOrganizationUpiItems(organizationId);
 
-    const userRole = jwtPayload?.orgIdToRole[organizationId];
+    const userRole = jwtPayload?.orgIdToRole?.[organizationId];
     if (!userRole) {
-      throw new Error(`User role is required, got payload: ${JSON.stringify(jwtPayload)}`);
+      throw badRequest('User role not found for this organization');
     }
 
     if (
@@ -62,6 +69,9 @@ export async function handler(
     };
   } catch (error) {
     console.error('Error getting items to report:', error);
-    throw new Error('Failed to get items to report');
+    if (isErrorResponse(error)) {
+      throw error;
+    }
+    throw internalServerError('Failed to get items to report');
   }
 }

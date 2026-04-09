@@ -7,6 +7,12 @@ import {
   UserRole,
 } from '@equip-track/shared';
 import { ReportItem, ReportsAdapter } from '../../../db/tables/reports.adapter';
+import {
+  badRequest,
+  internalServerError,
+  isErrorResponse,
+  organizationIdRequired,
+} from '../../responses';
 import { getCustomerDepartmentScope } from './customer-department-scope';
 
 export async function handler(
@@ -16,16 +22,16 @@ export async function handler(
 ): Promise<GetReportsByDatesResponse> {
   const organizationId = pathParams?.organizationId;
   if (!organizationId) {
-    throw new Error('Organization ID is required');
+    throw organizationIdRequired;
   }
 
   if (!req.dates || !Array.isArray(req.dates) || req.dates.length === 0) {
-    throw new Error('Dates array is required and must not be empty');
+    throw badRequest('Dates array is required and must not be empty');
   }
 
   const invalidDates = req.dates.filter((date) => !isValidDate(date));
   if (invalidDates.length > 0) {
-    throw new Error(`Invalid dates: ${invalidDates.join(', ')}`);
+    throw badRequest(`Invalid dates: ${invalidDates.join(', ')}`);
   }
 
   const reportsAdapter = new ReportsAdapter();
@@ -53,6 +59,9 @@ export async function handler(
     };
   } catch (error) {
     console.error('Error getting reports by dates:', error);
-    throw new Error('Failed to get reports by dates');
+    if (isErrorResponse(error)) {
+      throw error;
+    }
+    throw internalServerError('Failed to get reports by dates');
   }
 }
