@@ -1,4 +1,9 @@
-import { Organization, User, UserInOrganization } from '@equip-track/shared';
+import {
+  Organization,
+  OwnershipEvent,
+  User,
+  UserInOrganization,
+} from '@equip-track/shared';
 
 /**
  * Base interface for all items stored in the main EquipTrack DynamoDB table.
@@ -70,6 +75,7 @@ export interface InventoryItemDb extends DbItem {
  */
 export interface UniqueInventoryItemDb extends InventoryItemDb {
   upi: string;
+  ownershipHistory?: OwnershipEvent[];
 }
 
 /**

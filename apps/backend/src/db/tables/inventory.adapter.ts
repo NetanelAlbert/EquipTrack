@@ -38,6 +38,7 @@ import {
   InventoryItem,
   itemReportCompositeKey,
   mergeInventoryItem,
+  OwnershipEvent,
   Product,
 } from '@equip-track/shared';
 import { getDynamoDbClientConfig } from '../../services/aws-client-config.service';
@@ -432,28 +433,56 @@ export class InventoryAdapter {
     productId: string,
     upi: string,
     organizationId: string,
-    newHolderId: string
+    newHolderId: string,
+    ownershipEvent?: OwnershipEvent
   ): Promise<void> {
     console.log('[InventoryAdapter.updateUniqueInventoryItemHolder]', {
       productId,
       upi,
       organizationId,
       newHolderId,
+      hasOwnershipEvent: !!ownershipEvent,
     });
     const key = this.getUniqueProductKey(productId, upi, organizationId);
+
+    const baseValues = {
+      ':holderId': newHolderId,
+      ':holderIdQueryKey': `${HOLDER_PREFIX}${organizationId}#${newHolderId}`,
+    };
 
     const command = new UpdateCommand({
       TableName: this.tableName,
       Key: key,
-      UpdateExpression:
-        'SET holderId = :holderId, holderIdQueryKey = :holderIdQueryKey',
-      ExpressionAttributeValues:  {
-        ':holderId': newHolderId,
-        ':holderIdQueryKey': `${HOLDER_PREFIX}${organizationId}#${newHolderId}`,
-      },
+      UpdateExpression: ownershipEvent
+        ? 'SET holderId = :holderId, holderIdQueryKey = :holderIdQueryKey, ownershipHistory = list_append(if_not_exists(ownershipHistory, :emptyList), :newEvent)'
+        : 'SET holderId = :holderId, holderIdQueryKey = :holderIdQueryKey',
+      ExpressionAttributeValues: ownershipEvent
+        ? {
+            ...baseValues,
+            ':emptyList': [],
+            ':newEvent': [ownershipEvent],
+          }
+        : baseValues,
     });
 
     await this.docClient.send(command);
+  }
+
+  /**
+   * Reads a single unique (UPI) inventory row.
+   */
+  async getUniqueInventoryItem(
+    productId: string,
+    upi: string,
+    organizationId: string
+  ): Promise<UniqueInventoryItemDb | undefined> {
+    const key = this.getUniqueProductKey(productId, upi, organizationId);
+    const command = new GetCommand({
+      TableName: this.tableName,
+      Key: key,
+    });
+    const result = await this.docClient.send(command);
+    return result.Item as UniqueInventoryItemDb | undefined;
   }
 
   /**
