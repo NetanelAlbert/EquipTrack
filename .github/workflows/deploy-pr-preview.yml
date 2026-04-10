@@ -1,17 +1,35 @@
 # Isolated full-stack preview per PR: STAGE=pr-<number>, unique hostname under BASE_DOMAIN.
-# Required repo secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, API_GATEWAY_REGIONAL_CERTIFICATE_ARN,
-#   PR_PREVIEW_SEED_PASSWORD (shared password for all seeded preview users — not committed).
-#   Until this secret exists, the deploy job is skipped so PR checks stay green.
-# Optional: NX_CLOUD_ACCESS_TOKEN
+#
+# Secrets (GitHub → Settings → Environments → development → Environment secrets recommended):
+#   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, API_GATEWAY_REGIONAL_CERTIFICATE_ARN,
+#   PR_PREVIEW_SEED_PASSWORD (shared password for seeded preview users — not in git).
+#
+# IMPORTANT: Put PR_PREVIEW_SEED_PASSWORD on the same "development" environment as the other
+# deploy secrets. Job-level `if: secrets.*` does NOT see environment-only secrets, which
+# caused skipped/failed runs before the two-job pattern below.
+#
+# Manual validation: Actions → "Deploy PR preview" → Run workflow (PR number + optional ref).
+#
+# Optional: NX_CLOUD_ACCESS_TOKEN (repository or environment)
 name: Deploy PR preview
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: [develop, main]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull request number (preview stage will be pr-<number>)'
+        required: true
+        type: string
+      ref:
+        description: 'Git ref to build and deploy (branch, tag, or SHA)'
+        required: false
+        default: 'develop'
 
 concurrency:
-  group: pr-preview-${{ github.event.pull_request.number }}
+  group: pr-preview-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.event.inputs.pr_number }}
   cancel-in-progress: true
 
 env:
@@ -20,27 +38,63 @@ env:
   NX_NO_CLOUD: 'true'
   NX_BRANCH: ${{ github.event.repository.default_branch || 'develop' }}
   NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
-  STAGE: pr-${{ github.event.pull_request.number }}
   BASE_DOMAIN: equip-track.com
-  PR_PREVIEW_SEED_PASSWORD: ${{ secrets.PR_PREVIEW_SEED_PASSWORD }}
   RUNTIME_FEATURE_PREVIEW_LOGIN: 'true'
   E2E_AUTH_ENABLED: 'false'
 
 jobs:
-  deploy-preview:
-    # Skip until maintainers add PR_PREVIEW_SEED_PASSWORD (required for hashed preview logins).
-    if: >
-      github.event.pull_request.draft == false &&
-      secrets.PR_PREVIEW_SEED_PASSWORD != ''
-    name: Deploy PR preview stack
+  # Resolve environment secrets (incl. PR_PREVIEW_SEED_PASSWORD) before gating deploy.
+  check-preview-secrets:
+    name: Check preview prerequisites
     runs-on: ubuntu-latest
     environment: development
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
+    outputs:
+      has_seed_password: ${{ steps.gate.outputs.has_seed_password }}
+      stage: ${{ steps.stage.outputs.stage }}
+
+    steps:
+      - name: Determine stage name
+        id: stage
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            N="${{ github.event.inputs.pr_number }}"
+          else
+            N="${{ github.event.pull_request.number }}"
+          fi
+          echo "stage=pr-${N}" >> "$GITHUB_OUTPUT"
+
+      - name: Check PR_PREVIEW_SEED_PASSWORD is available
+        id: gate
+        env:
+          PR_PREVIEW_SEED_PASSWORD: ${{ secrets.PR_PREVIEW_SEED_PASSWORD }}
+        run: |
+          if [ -n "${PR_PREVIEW_SEED_PASSWORD}" ]; then
+            echo "has_seed_password=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_seed_password=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::PR_PREVIEW_SEED_PASSWORD is empty. Add it under Settings → Environments → **development** → Environment secrets (same place as AWS keys). Repository-only secrets are also supported if you remove \`environment: development\` from jobs."
+          fi
+
+  deploy-preview:
+    name: Deploy PR preview stack
+    runs-on: ubuntu-latest
+    needs: check-preview-secrets
+    if: needs.check-preview-secrets.outputs.has_seed_password == 'true'
+    environment: development
+
+    env:
+      STAGE: ${{ needs.check-preview-secrets.outputs.stage }}
+      PR_PREVIEW_SEED_PASSWORD: ${{ secrets.PR_PREVIEW_SEED_PASSWORD }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -141,12 +195,13 @@ jobs:
           fi
 
       - name: Comment preview URLs on PR
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
             const stage = `pr-${{ github.event.pull_request.number }}`;
             const base = 'equip-track.com';
-            const body = `### PR preview deployed\n\n- **App:** https://${stage}.${base}\n- **API:** https://${stage}-api.${base}\n\n**Sign-in:** Use **email + password** on the login page (not Google). Seeded emails are unchanged (e.g. \`e2e.admin@example.com\`); the **shared preview password** is in the \`PR_PREVIEW_SEED_PASSWORD\` repository secret (ask a maintainer).\n`;
+            const body = `### PR preview deployed\n\n- **App:** https://${stage}.${base}\n- **API:** https://${stage}-api.${base}\n\n**Sign-in:** Use **email + password** on the login page (not Google). Seeded emails are unchanged (e.g. \`e2e.admin@example.com\`); the **shared preview password** is the \`PR_PREVIEW_SEED_PASSWORD\` value from the **development** environment secret.\n`;
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,

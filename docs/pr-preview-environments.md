@@ -13,7 +13,7 @@ The deploy job is **skipped** until the **`PR_PREVIEW_SEED_PASSWORD`** repositor
 
 ## Required GitHub configuration
 
-In **Settings → Secrets and variables → Actions**:
+Use **Settings → Environments → `development` → Environment secrets** (same as the main dev deploy workflow). The preview workflow’s first job runs in that environment so secrets resolve correctly.
 
 | Secret | Purpose |
 |--------|---------|
@@ -21,7 +21,11 @@ In **Settings → Secrets and variables → Actions**:
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Same as development deploys (or scoped IAM for preview resources). |
 | `API_GATEWAY_REGIONAL_CERTIFICATE_ARN` | ACM cert that covers `*.equip-track.com` (or your `BASE_DOMAIN`) so `pr-<n>-api.<domain>` works. |
 
-The workflow uses GitHub **environment** `development` (same as other dev deploys).
+**Do not** rely on repository-level secrets for `PR_PREVIEW_SEED_PASSWORD` alone if the deploy job uses `environment: development`: GitHub does **not** expose environment secrets in job-level `if` conditions, so the workflow uses a small **prerequisite job** that runs in `development` and only then gates the deploy.
+
+### Manual validation
+
+After changing secrets, run **Actions → Deploy PR preview → Run workflow**: enter a PR number (and optional git ref). This uses the same deploy steps as pull requests.
 
 ## URLs and login
 
