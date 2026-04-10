@@ -219,6 +219,11 @@ function samBuild() {
 function samDeploy(certArn, apiHostname, lambdaCode) {
   const e2eEnabled = (process.env.E2E_AUTH_ENABLED || '').toLowerCase() === 'true' ? 'true' : 'false';
   const e2eSecret = (process.env.E2E_AUTH_SECRET || '').trim();
+  if (e2eEnabled === 'true' && !e2eSecret) {
+    throw new Error('E2E_AUTH_ENABLED=true but E2E_AUTH_SECRET is empty');
+  }
+  // SAM CLI rejects empty E2eAuthSecret= in parameter-overrides; use placeholder when E2E routes are off.
+  const e2eSecretParam = e2eEnabled === 'true' ? e2eSecret : 'disabled';
   const overrides = [
     `Stage=${STAGE}`,
     `CertificateArn=${certArn}`,
@@ -226,7 +231,7 @@ function samDeploy(certArn, apiHostname, lambdaCode) {
     `LambdaCodeBucketName=${lambdaCode.bucket}`,
     `LambdaCodeS3Key=${lambdaCode.s3Key}`,
     `E2eAuthEnabled=${e2eEnabled}`,
-    `E2eAuthSecret=${e2eSecret}`,
+    `E2eAuthSecret=${e2eSecretParam}`,
   ];
   console.log('🚀 sam deploy...');
   execFileSync(
