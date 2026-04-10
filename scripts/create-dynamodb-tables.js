@@ -2,6 +2,7 @@ const {
   DynamoDBClient,
   CreateTableCommand,
   DescribeTableCommand,
+  waitUntilTableExists,
 } = require('@aws-sdk/client-dynamodb');
 
 // Constants
@@ -136,6 +137,39 @@ const tableDefinitions = {
   },
 };
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * After CreateTable, the table can be ACTIVE while GSIs are still CREATING.
+ * Queries on a GSI fail until every index is ACTIVE.
+ */
+async function waitForTableAndIndexesActive(client, tableName) {
+  await waitUntilTableExists({ client, maxWaitTime: 300 }, { TableName: tableName });
+  const deadline = Date.now() + 300000;
+  while (Date.now() < deadline) {
+    const out = await client.send(new DescribeTableCommand({ TableName: tableName }));
+    const table = out.Table;
+    if (!table || table.TableStatus !== 'ACTIVE') {
+      await sleep(2000);
+      continue;
+    }
+    const gsis = table.GlobalSecondaryIndexes || [];
+    const allActive =
+      gsis.length === 0 ||
+      gsis.every((ix) => ix.IndexStatus === 'ACTIVE');
+    if (allActive) {
+      console.log(`✅ Table ${tableName} and all GSIs are ACTIVE`);
+      return;
+    }
+    await sleep(2000);
+  }
+  throw new Error(
+    `Timeout waiting for DynamoDB table ${tableName} (or its GSIs) to become ACTIVE`
+  );
+}
+
 class TableCreator {
   constructor(options = {}) {
     this.region = options.region || process.env.AWS_REGION || 'il-central-1';
@@ -181,27 +215,32 @@ class TableCreator {
 
       try {
         // Check if table exists
+        let created = false;
         try {
           await this.client.send(
             new DescribeTableCommand({ TableName: stageTableName })
           );
           console.log(`✅ Table ${stageTableName} already exists`);
-          continue;
         } catch (error) {
           // Table doesn't exist, proceed with creation
           console.log(`📝 Creating table ${stageTableName}...`);
+          const command = new CreateTableCommand({
+            TableName: stageTableName,
+            KeySchema: keySchema,
+            AttributeDefinitions: attributeDefinitions,
+            GlobalSecondaryIndexes: globalSecondaryIndexes,
+            BillingMode: billingMode,
+          });
+
+          await this.client.send(command);
+          console.log(`✅ CreateTable issued for ${stageTableName}`);
+          created = true;
         }
 
-        const command = new CreateTableCommand({
-          TableName: stageTableName,
-          KeySchema: keySchema,
-          AttributeDefinitions: attributeDefinitions,
-          GlobalSecondaryIndexes: globalSecondaryIndexes,
-          BillingMode: billingMode,
-        });
-
-        await this.client.send(command);
-        console.log(`✅ Created table ${stageTableName}`);
+        await waitForTableAndIndexesActive(this.client, stageTableName);
+        if (!created) {
+          continue;
+        }
       } catch (error) {
         console.error(`❌ Error creating table ${stageTableName}:`, error);
         throw error;
