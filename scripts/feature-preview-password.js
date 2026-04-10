@@ -3,10 +3,13 @@
  * Used by seed-e2e-data (when STAGE matches pr-<number>) and verified in the backend.
  */
 const crypto = require('crypto');
+const { promisify } = require('util');
 
 const PREFIX = 'scrypt1';
 const SCRYPT_PARAMS = { N: 16384, r: 8, p: 1 };
 const KEYLEN = 64;
+
+const scryptAsync = promisify(crypto.scrypt);
 
 /**
  * @param {string} password
@@ -14,12 +17,7 @@ const KEYLEN = 64;
  */
 async function hashFeaturePreviewPassword(password) {
   const salt = crypto.randomBytes(16);
-  const hash = await crypto.promises.scrypt(
-    password,
-    salt,
-    KEYLEN,
-    SCRYPT_PARAMS
-  );
+  const hash = await scryptAsync(password, salt, KEYLEN, SCRYPT_PARAMS);
   return `${PREFIX}.${salt.toString('base64')}.${hash.toString('base64')}`;
 }
 
@@ -41,12 +39,7 @@ async function verifyFeaturePreviewPassword(password, stored) {
   if (salt.length === 0 || expected.length === 0) {
     return false;
   }
-  const hash = await crypto.promises.scrypt(
-    password,
-    salt,
-    expected.length,
-    SCRYPT_PARAMS
-  );
+  const hash = await scryptAsync(password, salt, expected.length, SCRYPT_PARAMS);
   try {
     return crypto.timingSafeEqual(hash, expected);
   } catch {
