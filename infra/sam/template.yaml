@@ -8,10 +8,7 @@ Parameters:
   Stage:
     Type: String
     Default: dev
-    AllowedValues:
-      - dev
-      - production
-    Description: Deployment stage (matches STAGE in deploy scripts)
+    Description: Deployment stage (matches STAGE in deploy scripts; e.g. dev, production, pr-123)
   CertificateArn:
     Type: String
     Default: ''
@@ -186,6 +183,24 @@ Resources:
         Variables:
           STAGE: !Ref Stage
           LAMBDA_HANDLER_KEY: 'e2eAuth'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdafeaturePreviewPasswordAuth:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'featurePreviewPasswordAuth'
           E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
           E2E_AUTH_SECRET: !Ref E2eAuthSecret
 
@@ -544,6 +559,18 @@ Resources:
               responses:
                 default:
                   description: Default response
+          /api/auth/feature-preview-password:
+            post:
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdafeaturePreviewPasswordAuth.Arn
+              responses:
+                default:
+                  description: Default response
           /api/auth/google:
             post:
               x-amazon-apigateway-integration:
@@ -840,6 +867,13 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref Lambdae2eAuth
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
+  LambdaInvokefeaturePreviewPasswordAuth:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdafeaturePreviewPasswordAuth
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'

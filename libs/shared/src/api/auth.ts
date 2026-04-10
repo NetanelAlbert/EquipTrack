@@ -32,6 +32,19 @@ export interface E2eAuthResponse extends BasicResponse {
 }
 
 /**
+ * Email/password login for isolated preview stages only (e.g. STAGE=pr-123).
+ * Disabled in production and standard dev/prod deploys.
+ */
+export interface FeaturePreviewPasswordAuthRequest {
+  email: string;
+  password: string;
+}
+
+export interface FeaturePreviewPasswordAuthResponse extends BasicResponse {
+  jwt: string;
+}
+
+/**
  * JWT payload interface with user, organization, and role information
  */
 export interface JwtPayload {

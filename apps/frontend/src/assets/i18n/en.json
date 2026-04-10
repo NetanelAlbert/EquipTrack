@@ -28,7 +28,12 @@
     "try-again": "Try Again",
     "try-again-detailed": "Try signing in again",
     "error": "Authentication Error",
-    "success": "Authentication Successful"
+    "success": "Authentication Successful",
+    "feature-preview-section": "Preview environment sign-in",
+    "feature-preview-hint": "This preview environment uses email and password. Use the shared preview password from your team (GitHub Actions secret), not your production Google account.",
+    "feature-preview-email-label": "Email",
+    "feature-preview-password-label": "Password",
+    "feature-preview-submit": "Sign in with email"
   },
   "common": {
     "close": "Close",

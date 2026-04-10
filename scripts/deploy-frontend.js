@@ -3,6 +3,10 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { invalidateCloudFront } = require('./setup-cloudfront.js');
+const {
+  syncRuntimeConfigToS3,
+  resolveRuntimeApiUrl,
+} = require('./write-runtime-config.js');
 
 const STAGE = process.env.STAGE || 'dev';
 const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
@@ -174,14 +178,25 @@ function deployFrontend() {
   
   const bucketName = createS3Bucket();
   uploadToS3(bucketName);
-  
-  const s3WebsiteUrl = `http://${bucketName}.s3-website.${AWS_REGION}.amazonaws.com`;
-  
-  // Load existing deployment info
+
   let deploymentInfo = {};
   if (fs.existsSync('deployment-info.json')) {
     deploymentInfo = JSON.parse(fs.readFileSync('deployment-info.json', 'utf8'));
   }
+  const runtimeApiUrl = resolveRuntimeApiUrl(deploymentInfo);
+  if (runtimeApiUrl) {
+    try {
+      syncRuntimeConfigToS3(bucketName, runtimeApiUrl);
+    } catch (e) {
+      console.warn('⚠️  Could not sync runtime-config.json to S3:', e.message);
+    }
+  } else {
+    console.log(
+      '⏭️  Skipping runtime-config.json S3 sync (no API URL in deployment-info and RUNTIME_API_URL unset)'
+    );
+  }
+
+  const s3WebsiteUrl = `http://${bucketName}.s3-website.${AWS_REGION}.amazonaws.com`;
   
   // Update frontend deployment info
   deploymentInfo.frontend = deploymentInfo.frontend || {};

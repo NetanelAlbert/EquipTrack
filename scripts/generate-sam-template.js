@@ -200,10 +200,7 @@ Parameters:
   Stage:
     Type: String
     Default: dev
-    AllowedValues:
-      - dev
-      - production
-    Description: Deployment stage (matches STAGE in deploy scripts)
+    Description: Deployment stage (matches STAGE in deploy scripts; e.g. dev, production, pr-123)
   CertificateArn:
     Type: String
     Default: ''

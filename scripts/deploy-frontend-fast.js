@@ -6,6 +6,10 @@ const {
   loadDeploymentInfo,
   hydrateFrontendInfraFromAws
 } = require('./setup-cloudfront.js');
+const {
+  syncRuntimeConfigToS3,
+  resolveRuntimeApiUrl,
+} = require('./write-runtime-config.js');
 
 // Disable AWS CLI pager to prevent interactive prompts
 process.env.AWS_PAGER = '';
@@ -216,7 +220,17 @@ async function deployFrontendFast() {
     
     // Deploy to S3
     const deployTime = deployToS3(bucketName);
-    
+
+    const runtimeApiUrl = resolveRuntimeApiUrl(deploymentInfo);
+    if (runtimeApiUrl) {
+      try {
+        syncRuntimeConfigToS3(bucketName, runtimeApiUrl);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.warn('⚠️  Could not sync runtime-config.json to S3:', msg);
+      }
+    }
+
     // Invalidate CloudFront cache with enhanced reliability and wait for completion
     let invalidationResult = null;
     if (distributionId) {

@@ -113,6 +113,27 @@
           opacity: 0.9;
         }
 
+        .feature-preview-login {
+          width: 100%;
+
+          .feature-preview-hint {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--mat-text-secondary);
+            margin: 0 0 16px 0;
+          }
+
+          .feature-preview-form {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+
+            .full-width {
+              width: 100%;
+            }
+          }
+        }
+
         .sign-in-section {
           display: flex;
           justify-content: center;

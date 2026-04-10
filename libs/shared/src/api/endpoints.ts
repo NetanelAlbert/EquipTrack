@@ -42,6 +42,16 @@ export const endpointMetas = {
     requestType: {} as Auth.E2eAuthRequest,
     responseType: {} as Auth.E2eAuthResponse,
   } as EndpointMeta<Auth.E2eAuthRequest, Auth.E2eAuthResponse>,
+  featurePreviewPasswordAuth: {
+    path: `/api/auth/feature-preview-password`,
+    method: 'POST',
+    allowedRoles: [], // Guarded by STAGE prefix + password hash env
+    requestType: {} as Auth.FeaturePreviewPasswordAuthRequest,
+    responseType: {} as Auth.FeaturePreviewPasswordAuthResponse,
+  } as EndpointMeta<
+    Auth.FeaturePreviewPasswordAuthRequest,
+    Auth.FeaturePreviewPasswordAuthResponse
+  >,
 
   // Admin Users
   getUsers: {

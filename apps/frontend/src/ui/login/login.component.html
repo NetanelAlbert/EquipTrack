@@ -33,7 +33,66 @@
           data-testid="signin-methods"
           [attr.aria-label]="'auth.google-signin-group' | translate"
         >
-        
+        @if (showFeaturePreviewLogin) {
+          <section
+            class="feature-preview-login"
+            data-testid="feature-preview-login"
+            [attr.aria-label]="'auth.feature-preview-section' | translate"
+          >
+            <p class="feature-preview-hint" role="note">
+              {{ 'auth.feature-preview-hint' | translate }}
+            </p>
+            <form
+              (ngSubmit)="onPreviewPasswordSubmit()"
+              class="feature-preview-form"
+            >
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'auth.feature-preview-email-label' | translate }}</mat-label>
+                <input
+                  matInput
+                  type="email"
+                  name="previewEmail"
+                  [(ngModel)]="previewEmail"
+                  autocomplete="username"
+                  [attr.aria-label]="'auth.feature-preview-email-label' | translate"
+                  data-testid="feature-preview-email"
+                />
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'auth.feature-preview-password-label' | translate }}</mat-label>
+                <input
+                  matInput
+                  type="password"
+                  name="previewPassword"
+                  [(ngModel)]="previewPassword"
+                  autocomplete="current-password"
+                  [attr.aria-label]="'auth.feature-preview-password-label' | translate"
+                  data-testid="feature-preview-password"
+                />
+              </mat-form-field>
+              <button
+                mat-raised-button
+                color="primary"
+                type="submit"
+                class="full-width"
+                data-testid="feature-preview-submit"
+                [disabled]="authState().isLoading"
+                [attr.aria-label]="'auth.feature-preview-submit' | translate"
+              >
+                {{ 'auth.feature-preview-submit' | translate }}
+              </button>
+            </form>
+          </section>
+
+          <div
+            class="divider"
+            role="separator"
+            [attr.aria-label]="'auth.or-separator' | translate"
+          >
+            <span aria-hidden="true">{{ 'auth.or' | translate }}</span>
+          </div>
+        }
+
         <!-- Error message display -->
         @if (authState().error) {
           <div

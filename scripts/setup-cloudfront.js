@@ -4,6 +4,10 @@ const fs = require('fs');
 
 const STAGE = process.env.STAGE || 'dev';
 const AWS_REGION = process.env.AWS_REGION || 'il-central-1';
+const {
+  syncRuntimeConfigToS3,
+  resolveRuntimeApiUrl,
+} = require('./write-runtime-config.js');
 const CLOUDFRONT_PRICE_CLASS = process.env.CLOUDFRONT_PRICE_CLASS || 'PriceClass_100';
 const SKIP_CLOUDFRONT = process.env.SKIP_CLOUDFRONT === 'true';
 
@@ -591,6 +595,15 @@ function setupCloudFront() {
   deploymentInfo.frontend.cloudfrontUrl = cloudfront.cloudfrontUrl;
 
   fs.writeFileSync('deployment-info.json', JSON.stringify(deploymentInfo, null, 2));
+
+  const runtimeApiUrl = resolveRuntimeApiUrl(deploymentInfo);
+  if (runtimeApiUrl && bucketName) {
+    try {
+      syncRuntimeConfigToS3(bucketName, runtimeApiUrl);
+    } catch (e) {
+      console.warn('⚠️  Could not sync runtime-config.json to S3:', e.message);
+    }
+  }
 
   console.log('\n🎉 CloudFront setup completed!');
   console.log(`CloudFront URL: ${cloudfront.cloudfrontUrl}`);

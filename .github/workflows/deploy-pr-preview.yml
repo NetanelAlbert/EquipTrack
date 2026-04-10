@@ -1,0 +1,178 @@
+# Isolated full-stack preview per PR: STAGE=pr-<number>, unique hostname under BASE_DOMAIN.
+# Required repo secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, API_GATEWAY_REGIONAL_CERTIFICATE_ARN,
+#   PR_PREVIEW_SEED_PASSWORD (shared password for all seeded preview users — not committed).
+#   Until this secret exists, the deploy job is skipped so PR checks stay green.
+# Optional: NX_CLOUD_ACCESS_TOKEN
+name: Deploy PR preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [develop, main]
+
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: il-central-1
+  NODE_VERSION: '20'
+  NX_NO_CLOUD: 'true'
+  NX_BRANCH: ${{ github.event.repository.default_branch || 'develop' }}
+  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+  STAGE: pr-${{ github.event.pull_request.number }}
+  BASE_DOMAIN: equip-track.com
+  PR_PREVIEW_SEED_PASSWORD: ${{ secrets.PR_PREVIEW_SEED_PASSWORD }}
+  RUNTIME_FEATURE_PREVIEW_LOGIN: 'true'
+  E2E_AUTH_ENABLED: 'false'
+
+jobs:
+  deploy-preview:
+    # Skip until maintainers add PR_PREVIEW_SEED_PASSWORD (required for hashed preview logins).
+    if: >
+      github.event.pull_request.draft == false &&
+      secrets.PR_PREVIEW_SEED_PASSWORD != ''
+    name: Deploy PR preview stack
+    runs-on: ubuntu-latest
+    environment: development
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Prepare deployment
+        run: |
+          node scripts/deployment-status-tracker.js track prepare started
+          node scripts/prepare-deployment.js
+          node scripts/deployment-status-tracker.js track prepare success
+
+      - name: Hydrate backend infra from AWS
+        run: node scripts/hydrate-backend-infra.js
+
+      - name: Build backend
+        run: npx nx build backend --configuration=development
+
+      - name: Create DynamoDB tables
+        run: |
+          node scripts/deployment-status-tracker.js track dynamodb started
+          node scripts/create-dynamodb-tables.js
+          node scripts/deployment-status-tracker.js track dynamodb success
+
+      - name: Seed preview data (E2E fixtures + password hashes)
+        run: |
+          node scripts/deployment-status-tracker.js track seed-e2e started
+          node scripts/seed-e2e-data.js
+          node scripts/deployment-status-tracker.js track seed-e2e success
+
+      - name: Create Lambda packages
+        run: |
+          node scripts/deployment-status-tracker.js track lambda-packages started
+          node scripts/create-lambda-packages.js
+          node scripts/deployment-status-tracker.js track lambda-packages success
+
+      - name: Deploy API (SAM)
+        env:
+          API_GATEWAY_REGIONAL_CERTIFICATE_ARN: ${{ secrets.API_GATEWAY_REGIONAL_CERTIFICATE_ARN }}
+          E2E_AUTH_SECRET: ''
+        run: |
+          node scripts/deployment-status-tracker.js track api-gateway started
+          node scripts/deploy-sam-api.js
+          node scripts/deployment-status-tracker.js track api-gateway success
+
+      - name: Build frontend
+        run: npx nx build frontend --configuration=development
+
+      - name: Deploy frontend (fast path)
+        id: frontend
+        continue-on-error: true
+        run: node scripts/deploy-frontend-fast.js
+
+      - name: Deploy frontend (full setup)
+        if: steps.frontend.outcome == 'failure'
+        run: |
+          node scripts/deploy-frontend.js
+          node scripts/setup-cloudfront.js
+
+      - name: Setup frontend custom domain
+        run: node scripts/setup-frontend-custom-domain.js
+
+      - name: Sync runtime-config.json to S3 (API URL + preview login flag)
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const {
+            syncRuntimeConfigToS3,
+            resolveRuntimeApiUrl,
+          } = require('./scripts/write-runtime-config.js');
+          const stage = process.env.STAGE;
+          const di = JSON.parse(fs.readFileSync('deployment-info.json', 'utf8'));
+          const apiUrl = resolveRuntimeApiUrl(di);
+          if (!apiUrl) {
+            console.error('Could not resolve API URL from deployment-info.json');
+            process.exit(1);
+          }
+          process.env.RUNTIME_FEATURE_PREVIEW_LOGIN = 'true';
+          syncRuntimeConfigToS3(`equip-track-frontend-${stage}`, apiUrl);
+          NODE
+
+      - name: Invalidate CloudFront for runtime config
+        run: |
+          DIST_ID=$(jq -r '.frontend.cloudfront.distributionId // empty' deployment-info.json)
+          if [[ -n "$DIST_ID" ]]; then
+            aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/assets/runtime-config.json" "/*"
+          fi
+
+      - name: Comment preview URLs on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const stage = `pr-${{ github.event.pull_request.number }}`;
+            const base = 'equip-track.com';
+            const body = `### PR preview deployed\n\n- **App:** https://${stage}.${base}\n- **API:** https://${stage}-api.${base}\n\n**Sign-in:** Use **email + password** on the login page (not Google). Seeded emails are unchanged (e.g. \`e2e.admin@example.com\`); the **shared preview password** is in the \`PR_PREVIEW_SEED_PASSWORD\` repository secret (ask a maintainer).\n`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const marker = '<!-- equiptrack-pr-preview-bot -->';
+            const existing = comments.find((c) =>
+              c.user.type === 'Bot' && c.body.includes(marker)
+            );
+            const fullBody = marker + '\n' + body;
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: fullBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: fullBody,
+              });
+            }
+
+      - name: Deployment report
+        if: always()
+        run: node scripts/deployment-status-tracker.js report
