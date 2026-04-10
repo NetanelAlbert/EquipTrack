@@ -27,6 +27,10 @@ Use **Settings → Environments → `development` → Environment secrets** (sam
 
 After changing secrets, run **Actions → Deploy PR preview → Run workflow**: enter a PR number (and optional git ref). This uses the same deploy steps as pull requests.
 
+### PR comment with preview URLs
+
+The workflow posts (or updates) a bot comment on the PR with app/API links. That requires **`pull-requests: write`** on the default `GITHUB_TOKEN`. If the job deploys successfully but the comment step is skipped or warns, check **Settings → Actions → General → Workflow permissions** (“Read and write permissions”) or open the PR from a branch in the same repo (not a fork).
+
 ## URLs and login
 
 - **App:** `https://pr-<PR_NUMBER>.equip-track.com` (override with `BASE_DOMAIN` / `FRONTEND_DOMAIN` in scripts if you fork the domain layout)
