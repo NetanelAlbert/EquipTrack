@@ -12,11 +12,26 @@ function isFeaturePreviewLoginEnabled() {
   );
 }
 
+function isSameOriginApi() {
+  return (
+    String(process.env.RUNTIME_USE_SAME_ORIGIN_FOR_API || '').toLowerCase() ===
+    'true'
+  );
+}
+
 /**
  * @param {string} apiUrl
  * @returns {Record<string, unknown>}
  */
 function buildRuntimeConfigObject(apiUrl) {
+  if (isSameOriginApi()) {
+    return {
+      useSameOriginForApi: true,
+      ...(isFeaturePreviewLoginEnabled()
+        ? { featurePreviewLoginEnabled: true }
+        : {}),
+    };
+  }
   const url = (apiUrl || DEFAULT_API_URL).trim() || DEFAULT_API_URL;
   return {
     apiUrl: url,
@@ -34,8 +49,11 @@ function writeRuntimeConfigFile(outputPath, apiUrl) {
   const obj = buildRuntimeConfigObject(apiUrl ?? DEFAULT_API_URL);
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, `${JSON.stringify(obj, null, 2)}\n`, 'utf-8');
+  const apiInfo = obj.useSameOriginForApi
+    ? 'same-origin-api'
+    : `apiUrl=${obj.apiUrl}`;
   console.log(
-    `[write-runtime-config] wrote ${outputPath} apiUrl=${obj.apiUrl} featurePreviewLogin=${Boolean(obj.featurePreviewLoginEnabled)}`
+    `[write-runtime-config] wrote ${outputPath} ${apiInfo} featurePreviewLogin=${Boolean(obj.featurePreviewLoginEnabled)}`
   );
 }
 

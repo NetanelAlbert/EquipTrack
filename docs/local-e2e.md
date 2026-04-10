@@ -11,6 +11,10 @@ This setup provisions local AWS dependencies used by backend E2E flows:
 - Docker
 - Node/npm dependencies installed (`npm ci`)
 
+## Docker full-stack preview (alternative)
+
+To run **frontend + backend + LocalStack** entirely in containers (no local `nx serve`), see [docker-preview.md](./docker-preview.md) (`npm run docker:preview:up`).
+
 ## Start and provision
 
 ```bash

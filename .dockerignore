@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.github
+.nx
+coverage
+**/.angular/cache
+tmp
+*.log
+.env
+.env.*
+!.env.example

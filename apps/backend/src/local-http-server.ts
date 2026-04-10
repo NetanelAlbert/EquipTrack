@@ -196,6 +196,7 @@ async function invokeLambdaHandler(
 
 export async function startLocalHttpServer(): Promise<void> {
   const port = Number(process.env.BACKEND_PORT || 3000);
+  const listenHost = process.env.BACKEND_LISTEN_HOST?.trim() || undefined;
 
   const server = createServer(async (req, res) => {
     const method = (req.method || 'GET').toUpperCase();
@@ -243,10 +244,17 @@ export async function startLocalHttpServer(): Promise<void> {
     }
   });
 
-  await new Promise<void>((resolve) => {
-    server.listen(port, () => {
-      console.log(`[local-http-server] listening on http://localhost:${port}`);
+  await new Promise<void>((resolve, reject) => {
+    const onListen = () => {
+      const where = listenHost ? `${listenHost}:${port}` : `localhost:${port}`;
+      console.log(`[local-http-server] listening on http://${where}`);
       resolve();
-    });
+    };
+    if (listenHost) {
+      server.listen(port, listenHost, onListen);
+    } else {
+      server.listen(port, onListen);
+    }
+    server.on('error', reject);
   });
 }

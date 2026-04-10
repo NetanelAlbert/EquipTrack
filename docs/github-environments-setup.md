@@ -45,6 +45,14 @@ Navigate to **Settings** → **Environments** → **development** → **Environm
 - `API_GATEWAY_REGIONAL_CERTIFICATE_ARN`: ACM cert in the API region for `dev-api.*` (optional; see `infra/sam/README.md`)
 - `BASE_DOMAIN`: `dev.equip-track.com` (if using custom domains)
 
+#### PR preview (repository secret)
+
+For **AWS per-PR preview** deployments (`.github/workflows/deploy-pr-preview.yml`), add a **repository** secret (not environment-specific):
+
+- **`PR_PREVIEW_SEED_PASSWORD`**: Single shared password for all seeded preview users (emails like `e2e.admin@example.com`). Required before the preview deploy job runs; never commit this value.
+
+See [pr-preview-environments.md](./pr-preview-environments.md) for full behavior and URLs.
+
 #### Production Environment Secrets  
 Navigate to **Settings** → **Environments** → **production** → **Environment secrets**:
 

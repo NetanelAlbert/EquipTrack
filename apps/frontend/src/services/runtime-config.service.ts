@@ -4,6 +4,8 @@ import { environment } from '../environments/environment';
 interface RuntimeConfig {
   apiUrl?: string;
   featurePreviewLoginEnabled?: boolean;
+  /** When true, API calls use the SPA origin (e.g. nginx proxies /api → backend). */
+  useSameOriginForApi?: boolean;
 }
 
 function isRuntimeConfig(value: unknown): value is RuntimeConfig {
@@ -13,6 +15,10 @@ function isRuntimeConfig(value: unknown): value is RuntimeConfig {
   const o = value as Record<string, unknown>;
   const previewFlag = o['featurePreviewLoginEnabled'];
   if (previewFlag !== undefined && typeof previewFlag !== 'boolean') {
+    return false;
+  }
+  const sameOrigin = o['useSameOriginForApi'];
+  if (sameOrigin !== undefined && typeof sameOrigin !== 'boolean') {
     return false;
   }
   return true;
@@ -61,7 +67,12 @@ export class RuntimeConfigService {
     apiUrl: environment.apiUrl,
   };
 
+  private sameOriginApi = false;
+
   get apiUrl(): string {
+    if (this.sameOriginApi) {
+      return '';
+    }
     return this.config.apiUrl || environment.apiUrl;
   }
 
@@ -100,6 +111,13 @@ export class RuntimeConfigService {
         this.config = {
           ...this.config,
           featurePreviewLoginEnabled: true,
+        };
+      }
+      if (configFromFile['useSameOriginForApi'] === true) {
+        this.sameOriginApi = true;
+        this.config = {
+          ...this.config,
+          apiUrl: '',
         };
       }
     } catch {
