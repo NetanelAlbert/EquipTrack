@@ -145,6 +145,19 @@ describe('InventorySearchComponent', () => {
     expect(component.hasActiveFilters()).toBe(true);
   });
 
+  it('should detect upiFilter as an active filter', () => {
+    expect(component.hasActiveFilters()).toBe(false);
+
+    component.upiFilter.set('upi');
+    expect(component.hasActiveFilters()).toBe(true);
+
+    component.upiFilter.set('non-upi');
+    expect(component.hasActiveFilters()).toBe(true);
+
+    component.upiFilter.set('all');
+    expect(component.hasActiveFilters()).toBe(false);
+  });
+
   it('should clear search term', () => {
     component.searchTerm.set('test');
     expect(component.searchTerm()).toBe('test');
@@ -174,6 +187,20 @@ describe('InventorySearchComponent', () => {
     // Clear all
     component.clearAllFilters();
 
+    expect(component.searchTerm()).toBe('');
+    expect(component.sortBy()).toBe('productId');
+    expect(component.sortDirection()).toBe('asc');
+    expect(component.hasActiveFilters()).toBe(false);
+  });
+
+  it('should reset upiFilter when clearing all filters', () => {
+    component.upiFilter.set('upi');
+    component.searchTerm.set('test');
+    expect(component.hasActiveFilters()).toBe(true);
+
+    component.clearAllFilters();
+
+    expect(component.upiFilter()).toBe('all');
     expect(component.searchTerm()).toBe('');
     expect(component.sortBy()).toBe('productId');
     expect(component.sortDirection()).toBe('asc');

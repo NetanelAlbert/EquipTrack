@@ -315,6 +315,7 @@ export class InventorySearchComponent {
   hasActiveFilters = computed(() => {
     return (
       this.searchTerm() !== '' ||
+      this.upiFilter() !== 'all' ||
       this.sortBy() !== 'productId' ||
       this.sortDirection() !== 'asc'
     );
@@ -413,6 +414,7 @@ export class InventorySearchComponent {
 
   clearAllFilters() {
     this.searchTerm.set('');
+    this.upiFilter.set('all');
     this.sortBy.set('productId');
     this.sortDirection.set('asc');
   }
