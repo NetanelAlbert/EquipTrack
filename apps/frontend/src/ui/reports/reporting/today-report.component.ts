@@ -457,7 +457,7 @@ export class TodayReportComponent {
         const itemReport =
           this.todayReportMap()[itemReportCompositeKey(item.productId, upi)];
         if (itemReport) {
-          return itemReport;
+          return { ...itemReport };
         }
         return {
           productId: item.productId,

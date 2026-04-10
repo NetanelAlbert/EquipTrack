@@ -29,12 +29,14 @@ export class SignaturePadComponent implements OnDestroy, AfterViewInit {
   @Output() signatureChange = new EventEmitter<string>();
 
   private signaturePad!: SignaturePad;
+  private readonly boundResizeCanvas = this.resizeCanvas.bind(this);
 
   ngAfterViewInit() {
     this.initializeSignaturePad();
   }
 
   ngOnDestroy() {
+    window.removeEventListener('resize', this.boundResizeCanvas);
     if (this.signaturePad) {
       this.signaturePad.off();
     }
@@ -58,8 +60,7 @@ export class SignaturePadComponent implements OnDestroy, AfterViewInit {
       this.signatureChange.emit(this.signaturePad.toDataURL());
     });
 
-    // Handle window resize
-    window.addEventListener('resize', this.resizeCanvas.bind(this));
+    window.addEventListener('resize', this.boundResizeCanvas);
   }
 
   private resizeCanvas() {
