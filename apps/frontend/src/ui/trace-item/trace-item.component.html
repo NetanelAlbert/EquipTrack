@@ -47,7 +47,7 @@
     </div>
   }
 
-  @if (!isLoading() && hasSearched() && reports().length === 0) {
+  @if (!isLoading() && hasSearched() && reports().length === 0 && ownershipHistory().length === 0) {
     <div class="no-data-message" data-testid="trace-no-results">
       <mat-icon class="no-data-icon">search_off</mat-icon>
       <h3>{{ 'trace.noReports' | translate }}</h3>
@@ -55,54 +55,132 @@
     </div>
   }
 
-  @if (!isLoading() && reports().length > 0) {
-    <div class="results-section" data-testid="trace-results">
-      <div class="results-header">
-        <h2>
-          {{ 'trace.reportHistory' | translate }}
-          — {{ getProductName(selectedProductId()!) }}
-          ({{ selectedUpi() }})
-        </h2>
-        <span class="results-count">
-          {{ reports().length }} {{ 'trace.reportsFound' | translate }}
-        </span>
-      </div>
+  @if (!isLoading() && hasSearched() && (reports().length > 0 || ownershipHistory().length > 0)) {
+    <div class="results-wrapper" data-testid="trace-results">
+      @if (reports().length > 0) {
+        <div class="results-section">
+          <div class="results-header">
+            <h2>
+              {{ 'trace.reportHistory' | translate }}
+              — {{ getProductName(selectedProductId()!) }}
+              ({{ selectedUpi() }})
+            </h2>
+            <span class="results-count">
+              {{ reports().length }} {{ 'trace.reportsFound' | translate }}
+            </span>
+          </div>
 
-      <div class="table-wrap">
-        <table mat-table [dataSource]="reports()" class="trace-table">
-          <ng-container matColumnDef="reportDate">
-            <th mat-header-cell *matHeaderCellDef>{{ 'trace.columnDate' | translate }}</th>
-            <td mat-cell *matCellDef="let row">{{ row.reportDate }}</td>
-          </ng-container>
+          <div class="table-wrap">
+            <table mat-table [dataSource]="reports()" class="trace-table">
+              <ng-container matColumnDef="reportDate">
+                <th mat-header-cell *matHeaderCellDef>{{ 'trace.columnDate' | translate }}</th>
+                <td mat-cell *matCellDef="let row">{{ row.reportDate }}</td>
+              </ng-container>
 
-          <ng-container matColumnDef="reportTime">
-            <th mat-header-cell *matHeaderCellDef>{{ 'trace.columnTime' | translate }}</th>
-            <td mat-cell *matCellDef="let row">{{ formatTimestamp(row) }}</td>
-          </ng-container>
+              <ng-container matColumnDef="reportTime">
+                <th mat-header-cell *matHeaderCellDef>{{ 'trace.columnTime' | translate }}</th>
+                <td mat-cell *matCellDef="let row">{{ formatTimestamp(row) }}</td>
+              </ng-container>
 
-          <ng-container matColumnDef="location">
-            <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnLocation' | translate }}</th>
-            <td mat-cell *matCellDef="let row">{{ row.location }}</td>
-          </ng-container>
+              <ng-container matColumnDef="location">
+                <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnLocation' | translate }}</th>
+                <td mat-cell *matCellDef="let row">{{ row.location }}</td>
+              </ng-container>
 
-          <ng-container matColumnDef="holder">
-            <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnHolder' | translate }}</th>
-            <td mat-cell *matCellDef="let row">{{ getUserName(row.ownerUserId) }}</td>
-          </ng-container>
+              <ng-container matColumnDef="holder">
+                <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnHolder' | translate }}</th>
+                <td mat-cell *matCellDef="let row">{{ getUserName(row.ownerUserId) }}</td>
+              </ng-container>
 
-          <ng-container matColumnDef="department">
-            <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnDepartment' | translate }}</th>
-            <td mat-cell *matCellDef="let row">{{ getDepartmentLabel(row) }}</td>
-          </ng-container>
+              <ng-container matColumnDef="department">
+                <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnDepartment' | translate }}</th>
+                <td mat-cell *matCellDef="let row">{{ getDepartmentLabel(row) }}</td>
+              </ng-container>
 
-          <ng-container matColumnDef="reporter">
-            <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnReporter' | translate }}</th>
-            <td mat-cell *matCellDef="let row">{{ getUserName(row.reportedBy) }}</td>
-          </ng-container>
+              <ng-container matColumnDef="reporter">
+                <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnReporter' | translate }}</th>
+                <td mat-cell *matCellDef="let row">{{ getUserName(row.reportedBy) }}</td>
+              </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-        </table>
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+            </table>
+          </div>
+        </div>
+      }
+
+      @if (reports().length === 0 && ownershipHistory().length > 0) {
+        <p class="trace-muted" data-testid="trace-no-report-rows">
+          {{ 'trace.noReports' | translate }}
+        </p>
+      }
+
+      <div class="results-section ownership-section" data-testid="trace-ownership-section">
+        <div class="results-header">
+          <h2>{{ 'trace.ownershipHistory' | translate }}</h2>
+          @if (ownershipHistory().length > 0) {
+            <span class="results-count">
+              {{ ownershipHistory().length }} {{ 'trace.eventsFound' | translate }}
+            </span>
+          }
+        </div>
+
+        @if (ownershipHistory().length > 0) {
+          <div class="table-wrap">
+            <table
+              mat-table
+              [dataSource]="ownershipHistory()"
+              class="trace-table"
+              data-testid="trace-ownership-table">
+              <ng-container matColumnDef="previousHolder">
+                <th mat-header-cell *matHeaderCellDef>
+                  {{ 'trace.columnPreviousHolder' | translate }}
+                </th>
+                <td mat-cell *matCellDef="let row">
+                  {{ getUserName(row.previousHolderId) }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="newHolder">
+                <th mat-header-cell *matHeaderCellDef>
+                  {{ 'trace.columnNewHolder' | translate }}
+                </th>
+                <td mat-cell *matCellDef="let row">{{ getUserName(row.newHolderId) }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="timestamp">
+                <th mat-header-cell *matHeaderCellDef>
+                  {{ 'trace.columnOwnershipDate' | translate }}
+                </th>
+                <td mat-cell *matCellDef="let row">{{ formatOwnershipTimestamp(row) }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="formType">
+                <th mat-header-cell *matHeaderCellDef>
+                  {{ 'trace.columnFormType' | translate }}
+                </th>
+                <td mat-cell *matCellDef="let row">
+                  {{ ownershipFormTypeKey(row.formType) | translate }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="formId">
+                <th mat-header-cell *matHeaderCellDef>
+                  {{ 'trace.columnFormId' | translate }}
+                </th>
+                <td mat-cell *matCellDef="let row">{{ row.formId }}</td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="ownershipDisplayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: ownershipDisplayedColumns"></tr>
+            </table>
+          </div>
+        } @else {
+          <div class="no-data-message ownership-empty" data-testid="trace-ownership-empty">
+            <h3>{{ 'trace.noOwnershipHistory' | translate }}</h3>
+            <p>{{ 'trace.noOwnershipHistoryDescription' | translate }}</p>
+          </div>
+        }
       </div>
     </div>
   }

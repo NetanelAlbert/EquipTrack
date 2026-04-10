@@ -288,6 +288,15 @@ async function seedE2eData() {
     organizationId,
     holderId: 'user-e2e-customer',
     holderIdQueryKey: `${HOLDER_PREFIX}${organizationId}#user-e2e-customer`,
+    ownershipHistory: [
+      {
+        previousHolderId: WAREHOUSE_SUFFIX,
+        newHolderId: 'user-e2e-customer',
+        timestamp: Date.now() - 86_400_000,
+        formId: 'form-e2e-approved-checkout',
+        formType: 'check-out',
+      },
+    ],
   });
 
   // ── Forms ───────────────────────────────────────────

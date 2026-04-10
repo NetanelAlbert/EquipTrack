@@ -28,7 +28,7 @@ export class InventoryTransferService {
 
       // Perform the transfer
       await this.performTransfer(
-        form.items,
+        form,
         organizationId,
         sourceHolderId,
         destinationHolderId
@@ -118,11 +118,12 @@ export class InventoryTransferService {
    * Performs the actual inventory transfer between holders
    */
   private async performTransfer(
-    items: InventoryItem[],
+    form: InventoryForm,
     organizationId: string,
     sourceHolderId: string,
     destinationHolderId: string
   ): Promise<void> {
+    const items = form.items;
     // Get inventories once before processing bulk items
     const sourceInventory = await this.inventoryAdapter.getUserInventory(
       organizationId,
@@ -139,7 +140,10 @@ export class InventoryTransferService {
         await this.transferUniqueItems(
           item,
           organizationId,
-          destinationHolderId
+          destinationHolderId,
+          sourceHolderId,
+          form.formID,
+          form.type
         );
       } else {
         // Handle bulk items - pass inventories and get updated versions
@@ -161,11 +165,22 @@ export class InventoryTransferService {
   private async transferUniqueItems(
     item: InventoryItem,
     organizationId: string,
-    destinationHolderId: string
+    destinationHolderId: string,
+    sourceHolderId: string,
+    formId: string,
+    formType: InventoryForm['type']
   ): Promise<void> {
     if (!item.upis || item.upis.length === 0) {
       throw new Error('UPIs required for unique item transfer');
     }
+
+    const ownershipEvent = {
+      previousHolderId: sourceHolderId,
+      newHolderId: destinationHolderId,
+      timestamp: Date.now(),
+      formId,
+      formType,
+    };
 
     // Update holder information for each UPI
     for (const upi of item.upis) {
@@ -173,7 +188,8 @@ export class InventoryTransferService {
         item.productId,
         upi,
         organizationId,
-        destinationHolderId
+        destinationHolderId,
+        ownershipEvent
       );
     }
   }

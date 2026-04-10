@@ -22,6 +22,7 @@ import { NotificationService } from '../../services/notification.service';
 import {
   ItemReport,
   ORGANIZATION_ID_PATH_PARAM,
+  OwnershipEvent,
   Product,
   UI_DATE_TIME_FORMAT,
 } from '@equip-track/shared';
@@ -57,6 +58,7 @@ export class TraceItemComponent {
   selectedUpi = signal<string | null>(null);
   isLoading = signal(false);
   reports = signal<ItemReport[]>([]);
+  ownershipHistory = signal<OwnershipEvent[]>([]);
   hasSearched = signal(false);
 
   upiProducts = computed(() =>
@@ -84,12 +86,21 @@ export class TraceItemComponent {
     'reporter',
   ];
 
+  ownershipDisplayedColumns = [
+    'previousHolder',
+    'newHolder',
+    'timestamp',
+    'formType',
+    'formId',
+  ];
+
   constructor() {
     void this.inventoryStore.fetchTotalInventory();
     effect(() => {
       this.selectedProductId();
       this.selectedUpi.set(null);
       this.reports.set([]);
+      this.ownershipHistory.set([]);
       this.hasSearched.set(false);
     });
   }
@@ -101,6 +112,7 @@ export class TraceItemComponent {
   onUpiChange(upi: string): void {
     this.selectedUpi.set(upi);
     this.reports.set([]);
+    this.ownershipHistory.set([]);
     this.hasSearched.set(false);
   }
 
@@ -116,30 +128,71 @@ export class TraceItemComponent {
     this.hasSearched.set(true);
 
     try {
-      const response = await firstValueFrom(
-        this.apiService.endpoints.getItemReportHistory.execute(
-          { productId, upi },
-          { [ORGANIZATION_ID_PATH_PARAM]: organizationId }
-        )
-      );
+      const [reportOutcome, ownershipOutcome] = await Promise.allSettled([
+        firstValueFrom(
+          this.apiService.endpoints.getItemReportHistory.execute(
+            { productId, upi },
+            { [ORGANIZATION_ID_PATH_PARAM]: organizationId }
+          )
+        ),
+        firstValueFrom(
+          this.apiService.endpoints.getItemOwnershipHistory.execute(
+            { productId, upi },
+            { [ORGANIZATION_ID_PATH_PARAM]: organizationId }
+          )
+        ),
+      ]);
 
-      if (!response.status) {
-        this.notificationService.showError(
-          response.errorKey ?? 'errors.reports.fetch-failed',
-          response.errorMessage ?? 'Failed to fetch item report history'
+      if (reportOutcome.status === 'fulfilled') {
+        const response = reportOutcome.value;
+        if (!response.status) {
+          this.notificationService.showError(
+            response.errorKey ?? 'errors.reports.fetch-failed',
+            response.errorMessage ?? 'Failed to fetch item report history'
+          );
+          this.reports.set([]);
+        } else {
+          this.reports.set(response.reports);
+        }
+      } else {
+        console.error('Error fetching item report history:', reportOutcome.reason);
+        this.notificationService.handleApiError(
+          reportOutcome.reason,
+          'errors.reports.fetch-failed'
         );
         this.reports.set([]);
-        return;
       }
 
-      this.reports.set(response.reports);
+      if (ownershipOutcome.status === 'fulfilled') {
+        const response = ownershipOutcome.value;
+        if (!response.status) {
+          this.notificationService.showError(
+            response.errorKey ?? 'errors.trace.ownership-fetch-failed',
+            response.errorMessage ?? 'Failed to fetch ownership history'
+          );
+          this.ownershipHistory.set([]);
+        } else {
+          this.ownershipHistory.set(response.ownershipHistory);
+        }
+      } else {
+        console.error(
+          'Error fetching ownership history:',
+          ownershipOutcome.reason
+        );
+        this.notificationService.handleApiError(
+          ownershipOutcome.reason,
+          'errors.trace.ownership-fetch-failed'
+        );
+        this.ownershipHistory.set([]);
+      }
     } catch (error) {
-      console.error('Error fetching item report history:', error);
+      console.error('Error tracing item:', error);
       this.notificationService.handleApiError(
         error,
         'errors.reports.fetch-failed'
       );
       this.reports.set([]);
+      this.ownershipHistory.set([]);
     } finally {
       this.isLoading.set(false);
     }
@@ -172,5 +225,15 @@ export class TraceItemComponent {
     const parsed = new Date(report.reportTimestamp);
     if (isNaN(parsed.getTime())) return report.reportTimestamp;
     return parsed.toLocaleString();
+  }
+
+  formatOwnershipTimestamp(event: OwnershipEvent): string {
+    const parsed = new Date(event.timestamp);
+    if (isNaN(parsed.getTime())) return String(event.timestamp);
+    return parsed.toLocaleString();
+  }
+
+  ownershipFormTypeKey(formType: OwnershipEvent['formType']): string {
+    return `trace.formType.${formType}`;
   }
 }

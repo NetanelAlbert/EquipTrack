@@ -1,6 +1,6 @@
 import { ItemReport } from '../elements/reports';
 import { BasicResponse } from './basic';
-import { InventoryItem } from '../elements/inventory';
+import { InventoryItem, OwnershipEvent } from '../elements/inventory';
 
 export interface GetReportsByDatesRequest {
   dates: string[]; // YYYY-MM-DD format
@@ -35,4 +35,13 @@ export interface GetItemReportHistoryRequest {
 
 export interface GetItemReportHistoryResponse extends BasicResponse {
   reports: ItemReport[];
+}
+
+export interface GetItemOwnershipHistoryRequest {
+  productId: string;
+  upi: string;
+}
+
+export interface GetItemOwnershipHistoryResponse extends BasicResponse {
+  ownershipHistory: OwnershipEvent[];
 }
