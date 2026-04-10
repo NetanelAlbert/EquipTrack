@@ -8,7 +8,7 @@
     "validate:translations": "node scripts/validate-translation-keys.js",
     "generate:sam": "node scripts/generate-sam-template.js",
     "deploy:sam": "node scripts/deploy-sam-api.js",
-    "e2e:local:stack:up": "docker compose -f docker-compose.e2e.yml up -d --wait localstack",
+    "e2e:local:stack:up": "bash scripts/e2e-local-stack-up-with-retry.sh",
     "e2e:local:stack:down": "docker compose -f docker-compose.e2e.yml down",
     "e2e:local:stack:reset": "docker compose -f docker-compose.e2e.yml down -v",
     "e2e:local:setup": "node scripts/setup-local-e2e.js",
