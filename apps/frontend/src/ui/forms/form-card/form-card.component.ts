@@ -161,6 +161,7 @@ export class FormCardComponent {
     this.router.navigate(['/create-form'], {
       queryParams: {
         formType: this.form.type,
+        userId: this.form.userID,
         items: JSON.stringify(this.form.items),
       },
     });
