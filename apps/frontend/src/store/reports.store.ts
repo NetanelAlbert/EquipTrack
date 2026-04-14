@@ -181,6 +181,12 @@ export const ReportsStore = signalStore(
               'errors.reports.publish-failed',
               publishResponse.errorMessage
             );
+            patchState(store, {
+              updateItemReportStatus: {
+                isLoading: false,
+                error: publishResponse.errorMessage ?? 'Failed to publish report',
+              },
+            });
             return;
           }
 
@@ -248,6 +254,13 @@ export const ReportsStore = signalStore(
               itemsToReportResponse.errorKey ?? 'errors.reports.fetch-items-to-report-failed',
               itemsToReportResponse.errorMessage ?? 'Failed to fetch items to report'
             );
+            patchState(store, {
+              fetchItemsToReportStatus: {
+                isLoading: false,
+                error: itemsToReportResponse.errorMessage ?? 'Failed to fetch items to report',
+              },
+            });
+            return;
           }
 
           patchState(store, {
