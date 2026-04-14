@@ -3,8 +3,9 @@ name: E2E LocalStack Core Regression
 on:
   pull_request:
     branches:
-      - main
+      - master
       - develop
+      - 'release/*'
 
 concurrency:
   group: e2e-localstack-${{ github.ref }}

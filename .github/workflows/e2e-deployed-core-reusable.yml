@@ -24,6 +24,11 @@ on:
         required: false
         type: string
         default: deployed-core
+      suite:
+        description: Which deployed suite to run (core/full)
+        required: false
+        type: string
+        default: core
       summarize_label:
         description: Label passed to summarize-playwright-error-contexts.py
         required: false
@@ -56,6 +61,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run deployed core regression
+        if: ${{ inputs.suite == 'core' }}
         env:
           BASE_URL: ${{ inputs.base_url }}
           BACKEND_BASE_URL: ${{ inputs.backend_base_url }}
@@ -63,6 +69,16 @@ jobs:
           PLAYWRIGHT_HTML_OPEN: never
           NX_NO_CLOUD: 'true'
         run: npx nx run frontend-e2e:e2e-deployed-core
+
+      - name: Run deployed full regression
+        if: ${{ inputs.suite == 'full' }}
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          BACKEND_BASE_URL: ${{ inputs.backend_base_url }}
+          E2E_AUTH_SECRET: ${{ secrets.E2E_AUTH_SECRET }}
+          PLAYWRIGHT_HTML_OPEN: never
+          NX_NO_CLOUD: 'true'
+        run: npx nx run frontend-e2e:e2e-deployed-full
 
       - name: Upload Playwright report
         if: always()

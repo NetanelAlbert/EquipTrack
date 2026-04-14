@@ -5,10 +5,13 @@ on:
     tags:
       - 'v*'
 
-# One deploy at a time per AWS stage (not per tag ref). Prerelease tags share the same target as dev;
-# using github.ref per tag allowed v1.0.0-beta.1 and v1.0.0-beta.2 to run in parallel and race S3/CloudFront.
+# One deploy at a time per AWS stage (not per tag ref).
+# Channel mapping:
+# - alpha prerelease tags -> dev
+# - beta prerelease tags -> release
+# - stable tags -> production
 concurrency:
-  group: deploy-fullstack-${{ contains(github.ref, '-') && 'dev' || 'production' }}
+  group: deploy-fullstack-${{ !contains(github.ref, '-') && 'production' || contains(github.ref_name, '-beta.') && 'release' || 'dev' }}
   cancel-in-progress: false
 
 env:
@@ -17,8 +20,8 @@ env:
   NODE_VERSION: '20'
   # Skip Nx Cloud when the linked org is unavailable (CI would otherwise exit immediately).
   NX_NO_CLOUD: 'true'
-  # Pre-release tags (semver prerelease, e.g. v1.2.3-beta.0) deploy to dev; stable release tags deploy to production.
-  STAGE: ${{ contains(github.ref, '-') && 'dev' || 'production' }}
+  # Pre-release tags map by channel: alpha -> dev, beta -> release, stable -> production.
+  STAGE: ${{ !contains(github.ref, '-') && 'production' || contains(github.ref_name, '-beta.') && 'release' || 'dev' }}
   # Optional: set repository secret NX_CLOUD_ACCESS_TOKEN after `nx connect` for remote cache.
   NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
   # Tag pushes report refs/tags/* as the branch in CI metadata; Nx Cloud uses that for cache partitioning,
@@ -31,7 +34,7 @@ jobs:
     name: Deploy Full Stack
     runs-on: ubuntu-latest
     # Use GitHub Environments for proper separation and protection
-    environment: ${{ contains(github.ref, '-') && 'development' || 'production' }}
+    environment: ${{ !contains(github.ref, '-') && 'production' || contains(github.ref_name, '-beta.') && 'release' || 'development' }}
 
     steps:
       - name: Checkout code
@@ -183,11 +186,11 @@ jobs:
 
       - name: Build backend
         if: steps.scope.outputs.deploy_backend == 'true'
-        run: npx nx build backend --configuration=${{ env.STAGE == 'production' && 'production' || 'development' }}
+        run: npx nx build backend --configuration=${{ env.STAGE == 'dev' && 'development' || 'production' }}
 
       - name: Build frontend
         if: steps.scope.outputs.deploy_frontend == 'true'
-        run: npx nx build frontend --configuration=${{ env.STAGE == 'production' && 'production' || 'development' }}
+        run: npx nx build frontend --configuration=${{ env.STAGE == 'dev' && 'development' || 'production' }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -219,9 +222,9 @@ jobs:
           node scripts/create-dynamodb-tables.js
           node scripts/deployment-status-tracker.js track dynamodb success
 
-      # Deployed Playwright core regression expects org-e2e-main / prod-bulk-helmet / etc. in dev DynamoDB.
-      - name: Seed E2E fixture data (dev only)
-        if: ${{ steps.scope.outputs.deploy_backend == 'true' && env.STAGE == 'dev' }}
+      # Deployed Playwright regressions expect fixture records in non-production DynamoDB stages.
+      - name: Seed E2E fixture data (dev/release only)
+        if: ${{ steps.scope.outputs.deploy_backend == 'true' && env.STAGE != 'production' }}
         run: |
           node scripts/deployment-status-tracker.js track seed-e2e started
           node scripts/seed-e2e-data.js
@@ -240,7 +243,7 @@ jobs:
         if: ${{ steps.scope.outputs.deploy_backend == 'true' && (steps.scope.outputs.deploy_api_gateway == 'true' || steps.hydrate-backend.outputs.api_exists != 'true') }}
         env:
           API_GATEWAY_REGIONAL_CERTIFICATE_ARN: ${{ secrets.API_GATEWAY_REGIONAL_CERTIFICATE_ARN }}
-          E2E_AUTH_ENABLED: ${{ env.STAGE == 'dev' && 'true' || 'false' }}
+          E2E_AUTH_ENABLED: ${{ env.STAGE != 'production' && 'true' || 'false' }}
           E2E_AUTH_SECRET: ${{ secrets.E2E_AUTH_SECRET }}
           PRUNE_LEGACY_API_GATEWAY: ${{ vars.PRUNE_LEGACY_API_GATEWAY }}
         run: |

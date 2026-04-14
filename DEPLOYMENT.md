@@ -252,37 +252,61 @@ setup-cloudfront.js       →  updates deployment-info.json
 - ✅ **CI/CD Resilient**: Fallback to hardcoded definitions when needed
 - ✅ **Easy Debugging**: JSON files can be inspected manually
 
-## Release to production (develop → master)
+## Automated release train (develop -> release -> master)
 
-This section summarizes what **develop** has hardened for **SAM-based API deploys** so you can merge to **`master`** and cut a **stable** release tag with confidence.
+The release process is now orchestrated by **`.github/workflows/release-orchestrator.yml`** and uses three channels:
 
-### How production is targeted
+- **`alpha`** tags from `develop` -> deploy to GitHub Environment `development` (`STAGE=dev`).
+- **`beta`** tags from `release/*` -> deploy to GitHub Environment `release` (`STAGE=release`).
+- **stable** tags from `master` -> deploy to GitHub Environment `production` (`STAGE=production`).
 
-- Workflow: **`.github/workflows/deploy-fullstack.yml`** runs on **`push` of tags** `v*`.
-- **Pre-release tags** (semver prerelease, e.g. `v1.2.3-beta.0`) deploy to **`STAGE=dev`** and GitHub Environment **`development`**.
-- **Stable tags** (e.g. `v1.2.3` with **no** prerelease segment) deploy to **`STAGE=production`** and GitHub Environment **`production`**.
+`deploy-fullstack.yml` keeps concurrency per stage to avoid races between tags targeting the same infrastructure.
 
-Concurrency is **per AWS stage** (not per tag), so two prerelease tags cannot race the same dev buckets/API.
+### Fully automated flow
 
-### Pre-merge checklist
+1. Run **Release Orchestrator** with `release_version` (for example `1.2.3`).
+2. Workflow creates/uses `release/v1.2.3` from `develop`.
+3. Workflow tags `v1.2.3-beta.0` and waits for release deployment.
+4. Release gates run:
+   - LocalStack full regression (`e2e-localstack-full-regression.yml`, including backend e2e).
+   - Deployed full regression against release URLs.
+5. On failure, remediation workflow (`release-failure-remediation.yml`) creates a Cursor auto-fix issue, waits for a fix PR, enables auto-merge, and retries gates up to configured attempts.
+6. On success, workflow merges release into `master`, tags `v1.2.3`, deploys production, runs deployed full production regression, then merges `master` back into `develop`.
 
-1. **Green develop pipeline** — Recent pre-release deploy (e.g. `v0.0.12-beta.x`) completed successfully, including **Deploy API (AWS SAM)** and **`setup-api-custom-domain.js`**.
-2. **SAM template CI** — **SAM API template** workflow passes (regenerate + `sam validate --lint` on `infra/sam/template.yaml`).
-3. **Production environment secrets** — In GitHub **Settings → Environments → production**: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and usually **`API_GATEWAY_REGIONAL_CERTIFICATE_ARN`** for `api.<your-domain>` in **`il-central-1`**. Add **`E2E_AUTH_SECRET`** if you run deployed Playwright against production.
-4. **IAM** — Deploy principal allows **CloudFormation**, **API Gateway**, **Lambda**, **S3** (including SAM artifact uploads), **IAM** PassRole for Lambda roles, and **Route53** if API DNS is managed in Route53 (see policies above).
+### Environment requirements
 
-### First stable tag after SAM (production account)
+Set GitHub Environment secrets for **development**, **release**, **production**:
 
-1. Merge **`develop`** into **`master`** (or your release process).
-2. Create and push a **stable** version tag from the commit you intend to ship (e.g. `v1.0.0`). Your **auto-version** workflow on `master` may do this; otherwise tag manually.
-3. Approve the **`production`** environment deployment if you use required reviewers.
-4. **CloudFormation** creates or updates **`equip-track-api-stack-production`**. REST API name remains **`equip-track-api-production`** (same as pre-SAM scripts).
-5. **Legacy REST API cleanup** — If an **old** REST API with the same name still exists outside the stack, delete it once or use a **single** cutover run with **`PRUNE_LEGACY_API_GATEWAY=true`** (see **`infra/sam/README.md`**). Default is **off** to avoid accidental deletes.
-6. **Failed stack** — If a run leaves the stack in **`ROLLBACK_COMPLETE`**, delete **`equip-track-api-stack-production`** in CloudFormation and re-run the workflow once (see **`infra/sam/README.md`**).
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `API_GATEWAY_REGIONAL_CERTIFICATE_ARN` (recommended)
+- `E2E_AUTH_SECRET` (required for deployed Playwright)
+
+Set repository variables for deployed E2E URLs:
+
+- `E2E_RELEASE_FRONTEND_URL`
+- `E2E_RELEASE_BACKEND_URL`
+- `E2E_PROD_FRONTEND_URL`
+- `E2E_PROD_BACKEND_URL`
+
+### Rollout and hardening checklist
+
+1. **Dry run**: run orchestrator with `dry_run=true` and verify only branch metadata is created.
+2. **Release-only rehearsal**: run a release with beta deploy + release gates; stop before stable promotion.
+3. **Full promotion**: execute end-to-end into production and verify merge-back to `develop`.
+4. **Failure drills**:
+   - force a failing LocalStack release gate and validate remediation loop behavior,
+   - force a deployed E2E failure and confirm retry/escalation,
+   - simulate SAM failure to validate rollback path.
+5. **Escalation policy**: when max remediation attempts are exhausted, block promotion and require manual intervention.
 
 ### Rollback expectations
 
-- Reverting a **Git** merge does **not** automatically revert **AWS**. Prefer **CloudFormation stack** history, **previous Lambda** builds, or re-tagging a known-good commit for emergency rollback.
+- Reverting a Git merge does not automatically revert AWS resources.
+- Emergency rollback path:
+  1. re-tag last known-good stable version (or deploy previous artifact),
+  2. validate production deployed full regression,
+  3. open follow-up incident fix in `develop` and promote again through release.
 
 ## Troubleshooting
 

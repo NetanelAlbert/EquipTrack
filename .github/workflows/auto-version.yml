@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - develop
+      - 'release/*'
     paths-ignore:
       - 'package.json'
       - 'package-lock.json'
@@ -16,7 +17,7 @@ jobs:
     name: Bump Version
     runs-on: ubuntu-latest
 
-    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop') && !contains(github.event.head_commit.message, '[skip version]') }}
+    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release/')) && !contains(github.event.head_commit.message, '[skip version]') }}
 
     permissions:
       contents: write
@@ -52,7 +53,9 @@ jobs:
         run: |
           git add package.json package-lock.json apps/frontend/src/environments/environment.ts apps/frontend/src/environments/environment.prod.ts
           if [ "${{ github.ref }}" = "refs/heads/develop" ]; then
-            msg="chore: bump pre-release version to ${{ steps.bump-version.outputs.new }} [skip version]"
+            msg="chore: bump alpha version to ${{ steps.bump-version.outputs.new }} [skip version]"
+          elif [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
+            msg="chore: bump beta version to ${{ steps.bump-version.outputs.new }} [skip version]"
           else
             msg="chore: bump version to ${{ steps.bump-version.outputs.new }} [skip version]"
           fi
@@ -70,11 +73,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: "v${{ steps.bump-version.outputs.new }}"
-          release_name: ${{ github.ref == 'refs/heads/develop' && format('Pre-release v{0}', steps.bump-version.outputs.new) || format('Release v{0}', steps.bump-version.outputs.new) }}
+          release_name: ${{ github.ref == 'refs/heads/develop' && format('Alpha v{0}', steps.bump-version.outputs.new) || startsWith(github.ref, 'refs/heads/release/') && format('Beta v{0}', steps.bump-version.outputs.new) || format('Release v{0}', steps.bump-version.outputs.new) }}
           body: |
-            Auto-generated ${{ github.ref == 'refs/heads/develop' && 'pre-release' || 'release' }} for version ${{ steps.bump-version.outputs.new }}
+            Auto-generated ${{ github.ref == 'refs/heads/develop' && 'alpha pre-release' || startsWith(github.ref, 'refs/heads/release/') && 'beta pre-release' || 'release' }} for version ${{ steps.bump-version.outputs.new }}
 
             Changes:
             ${{ github.event.head_commit.message }}
           draft: false
-          prerelease: ${{ github.ref == 'refs/heads/develop' }}
+          prerelease: ${{ github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release/') }}
