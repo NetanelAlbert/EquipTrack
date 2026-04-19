@@ -12,11 +12,31 @@ on:
       - 'apps/frontend/src/environments/environment.prod.ts'
 
 jobs:
+  # Only honor [skip version] on the commit subject (first line). Merge commits to master often
+  # include a long body listing merged commits; many of those lines contain [skip version] from
+  # prior auto-bumps on develop, which must not suppress the post-merge bump on master.
+  skip-gate:
+    name: Check skip token on subject only
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.eval.outputs.should_run }}
+    steps:
+      - id: eval
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          first_line=$(printf '%s\n' "$COMMIT_MSG" | head -n1)
+          if printf '%s' "$first_line" | grep -qiF '[skip version]'; then
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          fi
+
   version-bump:
     name: Bump Version
+    needs: skip-gate
+    if: needs.skip-gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
-
-    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop') && !contains(github.event.head_commit.message, '[skip version]') }}
 
     permissions:
       contents: write
