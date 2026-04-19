@@ -48,3 +48,4 @@ The app will manage two types of products:
 - **Backend:** Node.js
 - **Compute:** AWS EC2 / EKS
 - **Database:** DynamoDB
+
