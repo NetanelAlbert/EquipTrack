@@ -21,6 +21,8 @@ import { ApiStatus } from './stores.models';
 interface InventoryState {
   // key is userID, value is inventory items for that user
   inventory: Record<string, InventoryItem[]>;
+  /** Organization id the `inventory` cache belongs to; cleared when org changes. */
+  inventoryOrgId: string;
   totalInventory: InventoryItem[];
 
   // API status for operations using ApiStatus
@@ -30,8 +32,12 @@ interface InventoryState {
   removeInventoryStatus: ApiStatus;
 }
 
+/** Stable Signal per user id so templates/computeds do not create new computeds each run. */
+const userInventorySignals = new Map<string, Signal<InventoryItem[]>>();
+
 const initialState: InventoryState = {
   inventory: {},
+  inventoryOrgId: '',
   totalInventory: [],
   fetchInventoryStatus: {
     isLoading: false,
@@ -76,6 +82,9 @@ export const InventoryStore = signalStore(
     const userStore = inject(UserStore);
     const organizationStore = inject(OrganizationStore);
 
+    /** One in-flight fetch per user id to avoid duplicate API calls from repeated reads. */
+    const userInventoryFetchesInFlight = new Map<string, Promise<InventoryItem[]>>();
+
     const updateState = (newState: Partial<InventoryState>) => {
       patchState(store, (state) => {
         return {
@@ -83,6 +92,24 @@ export const InventoryStore = signalStore(
           ...newState,
         };
       });
+    };
+
+    const resetUserInventoryCacheForOrgChange = (newOrgId: string) => {
+      userInventorySignals.clear();
+      userInventoryFetchesInFlight.clear();
+      patchState(store, {
+        inventory: {},
+        inventoryOrgId: newOrgId,
+      });
+    };
+
+    /** Drop per-user cache when the selected organization changes so we never show wrong-org data. */
+    const ensureInventoryCacheMatchesOrganization = () => {
+      const orgId = userStore.selectedOrganizationId();
+      if (store.inventoryOrgId() === orgId) {
+        return;
+      }
+      resetUserInventoryCacheForOrgChange(orgId);
     };
 
     return {
@@ -138,6 +165,8 @@ export const InventoryStore = signalStore(
       },
 
       async fetchUserInventory(userId: string): Promise<InventoryItem[]> {
+        ensureInventoryCacheMatchesOrganization();
+
         updateState({
           fetchUserInventoryStatus: { isLoading: true, error: undefined },
         });
@@ -173,21 +202,20 @@ export const InventoryStore = signalStore(
             organizationStore.setProducts(userInventoryResponse.products);
           }
 
-          // It's important to update the inventory state only if the user has items
-          // otherwise the computed that call getUserInventory will trigger infinite loop
-          if (userInventoryResponse.items?.length) {
-            patchState(store, {
-              inventory: {
-                ...store.inventory(),
-                [userId]: userInventoryResponse.items,
-              },
-            });
-          }
+          const items = userInventoryResponse.items ?? [];
+          patchState(store, {
+            inventory: {
+              ...store.inventory(),
+              [userId]: items,
+            },
+            inventoryOrgId: organizationId,
+          });
+
           updateState({
             fetchUserInventoryStatus: { isLoading: false, error: undefined },
           });
 
-          return userInventoryResponse.items || [];
+          return items;
         } catch (error) {
           console.error('Error fetching user inventory:', error);
           notificationService.handleApiError(
@@ -208,6 +236,10 @@ export const InventoryStore = signalStore(
         }
       },
 
+      /**
+       * Returns a stable Signal for the given holder id (read-only).
+       * Does not trigger network I/O — use `ensureUserInventoryLoaded` when data must be present.
+       */
       getUserInventory(userID?: string): Signal<InventoryItem[]> {
         if (!userID) {
           return signal([]);
@@ -215,26 +247,48 @@ export const InventoryStore = signalStore(
         if (userID === 'WAREHOUSE') {
           return this.getWarehouseInventory();
         }
-        const answer = computed(() => store.inventory()[userID] ?? []);
-        if (!answer().length) {
-          // Risky workaround. make sure to not update on empty response, to avoid infinite loop
-          setTimeout(() => {
-            this.fetchUserInventory(userID);
-          });
+        let cached = userInventorySignals.get(userID);
+        if (!cached) {
+          cached = computed(() => store.inventory()[userID] ?? []);
+          userInventorySignals.set(userID, cached);
         }
-        return answer;
+        return cached;
       },
 
       getWarehouseInventory(): Signal<InventoryItem[]> {
         const { warehouseInventoryItems } = this as unknown as {
           warehouseInventoryItems: Signal<InventoryItem[]>;
         };
-        if (!warehouseInventoryItems().length) {
-          setTimeout(() => {
-            void this.fetchUserInventory('WAREHOUSE');
-          });
-        }
         return warehouseInventoryItems;
+      },
+
+      /**
+       * Fetches per-holder inventory once per org (and dedupes concurrent calls).
+       * Set `forceRefresh` to bypass cache checks and fetch latest data.
+       */
+      ensureUserInventoryLoaded(
+        userId: string | undefined,
+        options?: { forceRefresh?: boolean }
+      ): Promise<void> {
+        if (!userId) {
+          return Promise.resolve();
+        }
+        ensureInventoryCacheMatchesOrganization();
+        const inv = store.inventory();
+        if (
+          !options?.forceRefresh &&
+          Object.prototype.hasOwnProperty.call(inv, userId)
+        ) {
+          return Promise.resolve();
+        }
+        let inFlight = userInventoryFetchesInFlight.get(userId);
+        if (!inFlight) {
+          inFlight = this.fetchUserInventory(userId).finally(() => {
+            userInventoryFetchesInFlight.delete(userId);
+          });
+          userInventoryFetchesInFlight.set(userId, inFlight);
+        }
+        return inFlight.then(() => undefined);
       },
 
       async addInventory(items: InventoryItem[]): Promise<boolean> {
@@ -276,7 +330,8 @@ export const InventoryStore = signalStore(
           });
           notificationService.showSuccess(
             'inventory.add.success',
-            'Inventory items added successfully'
+            'Inventory items added successfully',
+            { count: items.length }
           );
 
           // Refresh inventory after successful add
@@ -289,8 +344,16 @@ export const InventoryStore = signalStore(
             error,
             'errors.inventory.add-failed'
           );
-          const errorMessage =
-            error instanceof Error ? error.message : 'Failed to add inventory';
+          let errorMessage = 'Failed to add inventory';
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          }
+          if (error && typeof error === 'object' && 'error' in error) {
+            const body = (error as { error: unknown }).error;
+            if (body && typeof body === 'object' && 'errorMessage' in body) {
+              errorMessage = String((body as { errorMessage: unknown }).errorMessage);
+            }
+          }
           updateState({
             addInventoryStatus: { isLoading: false, error: errorMessage },
           });
@@ -337,7 +400,8 @@ export const InventoryStore = signalStore(
           });
           notificationService.showSuccess(
             'inventory.remove.success',
-            'Inventory items removed successfully'
+            'Inventory items removed successfully',
+            { count: items.length }
           );
 
           // Refresh inventory after successful remove

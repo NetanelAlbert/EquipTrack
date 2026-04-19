@@ -8,6 +8,7 @@ import {
   unauthorized,
   forbidden,
   emailVerificationRequired,
+  isErrorResponse,
 } from '../api/responses';
 
 /**
@@ -133,8 +134,7 @@ export class GoogleAuthService {
     } catch (error) {
       console.error('Google authentication error:', error);
 
-      // If it's already a response object, re-throw it
-      if (error && typeof error === 'object' && 'statusCode' in error) {
+      if (isErrorResponse(error)) {
         throw error;
       }
 

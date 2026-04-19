@@ -7,7 +7,7 @@ import {
   clickSideNavRoute,
   waitForTestId,
 } from '../helpers/e2e-navigation';
-import { E2E_ORG_ID } from '../helpers/e2e-api';
+import { E2E_ORG_ID, E2E_ADMIN_USER_ID } from '../helpers/e2e-api';
 
 const backendBaseUrl =
   process.env['BACKEND_BASE_URL'] || 'http://localhost:3000';
@@ -31,7 +31,7 @@ test.describe('reports-history screen', () => {
 
     await waitForTestId(page, 'reports-history-page');
     await expect(
-      page.locator('[data-testid^="reports-history-item-card-"]').first()
+      page.locator('[data-testid^="reports-history-item-row-"]').first()
     ).toBeVisible({ timeout: 20000 });
   });
 
@@ -69,7 +69,10 @@ test.describe('reports-history screen', () => {
     await expect(dateInput).toHaveValue(initialDate);
   });
 
-  test('empty state for date with no report', async ({ page, request }) => {
+  test('past date without saved report still shows expected items (not-reported rows)', async ({
+    page,
+    request,
+  }) => {
     const token = await mintE2eJwt(request, {
       backendBaseUrl,
       e2eSecret,
@@ -82,17 +85,20 @@ test.describe('reports-history screen', () => {
     await clickSideNavRoute(page, 'reports-history');
     await waitForTestId(page, 'reports-history-page');
 
-    // Go back several days to find a date without a report
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 8; i++) {
       await page.getByTestId('reports-history-prev-day').click();
     }
 
-    await expect(
-      page.getByTestId('reports-history-empty-state')
-    ).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('table.report-table')).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.getByTestId('reports-history-counts')).toBeVisible();
   });
 
-  test('sort toggle reorders items', async ({ page, request }) => {
+  test('multi-sort: second column sort affects row order', async ({
+    page,
+    request,
+  }) => {
     const token = await mintE2eJwt(request, {
       backendBaseUrl,
       e2eSecret,
@@ -105,17 +111,132 @@ test.describe('reports-history screen', () => {
     await clickSideNavRoute(page, 'reports-history');
     await waitForTestId(page, 'reports-history-page');
 
+    const rows = page.locator('[data-testid^="reports-history-item-row-"]');
+    await expect(rows.first()).toBeVisible({ timeout: 20000 });
+
+    const rowCount = await rows.count();
+    if (rowCount < 2) {
+      return;
+    }
+
+    const holderHeader = page.locator('th[mat-multi-sort-header="holder"]');
+    await expect(holderHeader).toBeVisible();
+    await holderHeader.click();
     await expect(
-      page.locator('[data-testid^="reports-history-item-card-"]').first()
-    ).toBeVisible({ timeout: 20000 });
+      holderHeader.locator('.mat-sort-header-sorted')
+    ).toBeVisible({ timeout: 5000 });
 
-    const sortGroup = page.getByTestId('reports-history-sort-group');
-    await expect(sortGroup).toBeVisible();
+    const productHeader = page.locator('th[mat-multi-sort-header="product"]');
+    await expect(productHeader).toBeVisible();
+    await productHeader.click();
+    await expect(
+      productHeader.locator('.mat-sort-header-sorted')
+    ).toBeVisible({ timeout: 5000 });
 
-    await sortGroup.locator('mat-radio-button[value="product"]').click();
-    await expect(page.getByTestId('reports-history-page')).toBeVisible();
+    await page.waitForTimeout(500);
 
-    await sortGroup.locator('mat-radio-button[value="location"]').click();
-    await expect(page.getByTestId('reports-history-page')).toBeVisible();
+    const dataRows = page.locator('table.report-table tbody tr');
+    const cellCount = await dataRows.count();
+
+    const holders: string[] = [];
+    const products: string[] = [];
+    for (let i = 0; i < cellCount; i++) {
+      const tds = dataRows.nth(i).locator('td');
+      holders.push((await tds.nth(4).innerText()).trim());
+      products.push((await tds.nth(0).innerText()).trim());
+    }
+
+    for (let i = 1; i < holders.length; i++) {
+      const holderCmp = holders[i - 1].localeCompare(holders[i]);
+      expect(
+        holderCmp,
+        `Holder sort broken at index ${i}: "${holders[i - 1]}" vs "${holders[i]}"`
+      ).toBeLessThanOrEqual(0);
+
+      if (holderCmp === 0) {
+        expect(
+          products[i - 1].localeCompare(products[i]),
+          `Product sort broken at index ${i} within holder "${holders[i]}": "${products[i - 1]}" vs "${products[i]}"`
+        ).toBeLessThanOrEqual(0);
+      }
+    }
+  });
+
+  test('reporter filter narrows rows to selected reporter', async ({
+    page,
+    request,
+  }) => {
+    const token = await mintE2eJwt(request, {
+      backendBaseUrl,
+      e2eSecret,
+      userId: 'user-e2e-admin',
+      orgIdToRole: { [E2E_ORG_ID]: UserRole.Admin },
+    });
+
+    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+    await clickSideNavRoute(page, 'reports-history');
+    await waitForTestId(page, 'reports-history-page');
+
+    const rows = page.locator('[data-testid^="reports-history-item-row-"]');
+    await expect(rows.first()).toBeVisible({ timeout: 20000 });
+
+    const filtersRow = page.getByTestId('reports-history-filters');
+    await expect(filtersRow).toBeVisible();
+
+    const reporterFilter = page.getByTestId('reports-history-reporter-filter');
+    await expect(reporterFilter).toBeVisible();
+
+    const totalBefore = await rows.count();
+    if (totalBefore < 1) {
+      return;
+    }
+
+    await reporterFilter.locator('.mat-mdc-select-trigger').click();
+    const options = page.locator('mat-option');
+    await expect(options.first()).toBeVisible({ timeout: 5000 });
+    const optionCount = await options.count();
+    if (optionCount <= 1) {
+      return;
+    }
+    await options.nth(1).click();
+
+    await page.waitForTimeout(500);
+
+    const reporterCells = page.locator('table.report-table tbody tr td:nth-child(7) .reporter-name');
+    const visibleCount = await reporterCells.count();
+    if (visibleCount > 0) {
+      const firstName = await reporterCells.first().innerText();
+      for (let i = 1; i < visibleCount; i++) {
+        await expect(reporterCells.nth(i)).toHaveText(firstName.trim());
+      }
+    }
+  });
+
+  test('inspector sees reporter display name instead of reporter user id', async ({
+    page,
+    request,
+  }) => {
+    const token = await mintE2eJwt(request, {
+      backendBaseUrl,
+      e2eSecret,
+      userId: 'user-e2e-inspector',
+      orgIdToRole: { [E2E_ORG_ID]: UserRole.Inspector },
+    });
+
+    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+    await clickSideNavRoute(page, 'reports-history');
+
+    await waitForTestId(page, 'reports-history-page');
+
+    const firstRow = page
+      .locator('[data-testid^="reports-history-item-row-"]:has(.reporter-name)')
+      .first();
+    await expect(firstRow).toBeVisible({ timeout: 20000 });
+
+    const reporterName = firstRow.locator('.reporter-name');
+    await expect(reporterName).toContainText('E2E Admin');
+    await expect(reporterName).not.toContainText(E2E_ADMIN_USER_ID);
   });
 });

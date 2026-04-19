@@ -47,6 +47,7 @@ export class AddInventoryComponent implements CanComponentDeactivate {
 
     if (success) {
       // Success notification is now handled by the store
+      this.itemEdited.set(false);
       this.goBack();
     }
     // Error notifications are also handled by the store

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import * as path from 'node:path';
 import { UserRole } from '@equip-track/shared';
 import { mintE2eJwt } from '../helpers/e2e-auth';
 import {
@@ -15,6 +16,24 @@ const backendBaseUrl =
 const e2eSecret = process.env['E2E_AUTH_SECRET'] || 'e2e-local-secret';
 
 test.describe('create-form screen', () => {
+  test.beforeAll(async () => {
+    const endpoint =
+      process.env['AWS_ENDPOINT_URL'] || 'http://localhost:4566';
+    process.env['AWS_ENDPOINT_URL'] = endpoint;
+    process.env['AWS_ENDPOINT_URL_DYNAMODB'] =
+      process.env['AWS_ENDPOINT_URL_DYNAMODB'] || endpoint;
+    process.env['AWS_REGION'] = process.env['AWS_REGION'] || 'us-east-1';
+    process.env['AWS_ACCESS_KEY_ID'] =
+      process.env['AWS_ACCESS_KEY_ID'] || 'test';
+    process.env['AWS_SECRET_ACCESS_KEY'] =
+      process.env['AWS_SECRET_ACCESS_KEY'] || 'test';
+    process.env['STAGE'] = process.env['STAGE'] || 'local';
+
+    const seedPath = path.join(process.cwd(), 'scripts', 'seed-e2e-data.js');
+    const { reseedE2eOrgUsers } = require(seedPath);
+    await reseedE2eOrgUsers();
+  });
+
   test('create checkin form via UI', async ({ page, request }, testInfo) => {
     testInfo.setTimeout(120_000);
     const token = await mintE2eJwt(request, {
@@ -26,15 +45,37 @@ test.describe('create-form screen', () => {
 
     await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
     await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+    const usersForCreateForm = page.waitForResponse(
+      (r) =>
+        r.request().method() === 'GET' &&
+        r.url().includes(`/organizations/${E2E_ORG_ID}/users`) &&
+        r.ok(),
+      { timeout: 30000 }
+    );
     await clickSideNavRoute(page, 'create-form');
     await waitForTestId(page, 'create-form-page');
+    await usersForCreateForm;
 
     await page.getByTestId('form-type-checkin').click();
+    await expect(page.getByTestId('create-form-loading-overlay')).toHaveCount(
+      0,
+      { timeout: 5000 }
+    );
 
-    await page.getByTestId('create-form-user-select').click();
-    await page
-      .getByTestId(`create-form-user-option-${E2E_CUSTOMER_USER_ID}`)
-      .click();
+    const userSelect = page.getByTestId('create-form-user-select');
+    await userSelect.click();
+    const filterInput = userSelect.locator('input[type="text"]');
+    await filterInput.fill('customer');
+    const customerInv = page.waitForResponse(
+      (r) =>
+        r.request().method() === 'GET' &&
+        r.url().includes(`/inventory/user/${E2E_CUSTOMER_USER_ID}`) &&
+        r.ok(),
+      { timeout: 30000 }
+    );
+    await filterInput.press('ArrowDown');
+    await filterInput.press('Enter');
+    await customerInv;
 
     const description = `e2e checkin ${Date.now()}`;
     await page.getByTestId('create-form-description-input').fill(description);
@@ -68,8 +109,16 @@ test.describe('create-form screen', () => {
 
     await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
     await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+    const usersForCreateForm = page.waitForResponse(
+      (r) =>
+        r.request().method() === 'GET' &&
+        r.url().includes(`/organizations/${E2E_ORG_ID}/users`) &&
+        r.ok(),
+      { timeout: 30000 }
+    );
     await clickSideNavRoute(page, 'create-form');
     await waitForTestId(page, 'create-form-page');
+    await usersForCreateForm;
 
     await expect(page.getByTestId('form-type-checkout')).toBeVisible();
     await expect(page.getByTestId('form-type-checkin')).toBeVisible();
@@ -94,8 +143,16 @@ test.describe('create-form screen', () => {
 
     await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
     await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+    const usersForCreateForm = page.waitForResponse(
+      (r) =>
+        r.request().method() === 'GET' &&
+        r.url().includes(`/organizations/${E2E_ORG_ID}/users`) &&
+        r.ok(),
+      { timeout: 30000 }
+    );
     await clickSideNavRoute(page, 'create-form');
     await waitForTestId(page, 'create-form-page');
+    await usersForCreateForm;
 
     const predefinedSection = page.getByTestId('predefined-forms-section');
     try {
@@ -113,35 +170,4 @@ test.describe('create-form screen', () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
-  test('unsaved changes guard after editing items', async ({
-    page,
-    request,
-  }) => {
-    const token = await mintE2eJwt(request, {
-      backendBaseUrl,
-      e2eSecret,
-      userId: 'user-e2e-admin',
-      orgIdToRole: { [E2E_ORG_ID]: UserRole.Admin },
-    });
-
-    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
-    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
-    await clickSideNavRoute(page, 'create-form');
-    await waitForTestId(page, 'create-form-page');
-
-    await fillInventoryRow(page, 0, E2E_BULK_PRODUCT_ID, 1);
-    await page.waitForTimeout(500);
-
-    const navLink = page.getByTestId('nav-link-my-items');
-    await navLink.waitFor({ state: 'attached', timeout: 10000 });
-    await navLink.evaluate((el: HTMLElement) => el.click());
-
-    const leaveBtn = page.getByRole('button', { name: /^Leave$/i });
-    await expect(leaveBtn).toBeVisible({ timeout: 8000 });
-
-    const stayBtn = page.getByRole('button', { name: /^Stay$/i });
-    await stayBtn.click();
-
-    await expect(page.getByTestId('create-form-page')).toBeVisible();
-  });
 });

@@ -242,6 +242,7 @@ jobs:
           API_GATEWAY_REGIONAL_CERTIFICATE_ARN: ${{ secrets.API_GATEWAY_REGIONAL_CERTIFICATE_ARN }}
           E2E_AUTH_ENABLED: ${{ env.STAGE == 'dev' && 'true' || 'false' }}
           E2E_AUTH_SECRET: ${{ secrets.E2E_AUTH_SECRET }}
+          PRUNE_LEGACY_API_GATEWAY: ${{ vars.PRUNE_LEGACY_API_GATEWAY }}
         run: |
           echo "🚀 Deploying SAM stack (API Gateway + Lambdas) for stage: ${{ env.STAGE }}"
           node scripts/deployment-status-tracker.js track api-gateway started

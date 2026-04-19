@@ -4,6 +4,7 @@
   "license": "MIT",
   "scripts": {
     "fullstack": "nx run-many --parallel --target=serve --projects=backend,frontend",
+    "frontend:serve:dev": "node scripts/write-runtime-config.js https://dev-api.equip-track.com && nx s frontend",
     "validate:translations": "node scripts/validate-translation-keys.js",
     "generate:sam": "node scripts/generate-sam-template.js",
     "deploy:sam": "node scripts/deploy-sam-api.js",
@@ -46,8 +47,9 @@
     "axios": "^1.6.0",
     "google-auth-library": "^10.1.0",
     "jsonwebtoken": "^9.0.2",
-    "jspdf": "^4.2.0",
-    "jspdf-autotable": "^5.0.7",
+    "jspdf": "^3.0.0",
+    "jspdf-autotable-rtl": "^1.0.2",
+    "ngx-mat-multi-sort": "^21.0.1",
     "ngxtension": "^5.0.0",
     "rxjs": "~7.8.0",
     "signature_pad": "^5.0.9",
@@ -94,14 +96,14 @@
     "jest-environment-jsdom": "30.3.0",
     "jest-environment-node": "30.3.0",
     "jest-preset-angular": "16.1.1",
+    "jest-util": "30.3.0",
     "nx": "22.6.1",
     "prettier": "^2.6.2",
     "ts-jest": "29.4.6",
     "ts-node": "10.9.1",
     "tslib": "^2.3.0",
     "typescript": "~5.9.0",
-    "typescript-eslint": "^8.33.1",
-    "jest-util": "30.3.0"
+    "typescript-eslint": "^8.33.1"
   },
   "overrides": {
     "picomatch": "4.0.4",

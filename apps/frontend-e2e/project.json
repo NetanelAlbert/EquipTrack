@@ -10,7 +10,7 @@
       "executor": "nx:run-commands",
       "cache": false,
       "options": {
-        "command": "node scripts/ensure-local-e2e-before-playwright.js && E2E_AUTH_SECRET=e2e-local-secret BACKEND_BASE_URL=http://localhost:3000 npx playwright test -c apps/frontend-e2e/playwright.config.ts apps/frontend-e2e/src/core-regression.spec.ts apps/frontend-e2e/src/core-regression-ui.spec.ts --project=chromium --workers=1"
+        "command": "node scripts/ensure-local-e2e-before-playwright.js && E2E_AUTH_SECRET=e2e-local-secret BACKEND_BASE_URL=http://localhost:3000 npx playwright test -c apps/frontend-e2e/playwright.config.ts apps/frontend-e2e/src/core-regression.spec.ts apps/frontend-e2e/src/core-regression-ui.spec.ts apps/frontend-e2e/src/create-form.spec.ts --project=chromium --workers=1"
       }
     },
     "e2e-deployed-core": {
@@ -24,7 +24,7 @@
       "executor": "nx:run-commands",
       "cache": false,
       "options": {
-        "command": "node scripts/ensure-local-e2e-before-playwright.js && E2E_AUTH_SECRET=e2e-local-secret BACKEND_BASE_URL=http://localhost:3000 npx playwright test -c apps/frontend-e2e/playwright.config.ts apps/frontend-e2e/src/screens/ apps/frontend-e2e/src/core-regression.spec.ts apps/frontend-e2e/src/core-regression-ui.spec.ts --project=chromium --workers=1"
+        "command": "node scripts/ensure-local-e2e-before-playwright.js && E2E_AUTH_SECRET=e2e-local-secret BACKEND_BASE_URL=http://localhost:3000 npx playwright test -c apps/frontend-e2e/playwright.config.ts apps/frontend-e2e/src/screens/ apps/frontend-e2e/src/core-regression.spec.ts apps/frontend-e2e/src/core-regression-ui.spec.ts apps/frontend-e2e/src/create-form.spec.ts --project=chromium --workers=1"
       }
     }
   }

@@ -1,7 +1,7 @@
 import { BasicUser, ORGANIZATION_ID_PATH_PARAM, USER_ID_PATH_PARAM } from "@equip-track/shared";
 import { FORM_ID_PATH_PARAM } from "@equip-track/shared";
 import { APIGatewayProxyEventPathParameters } from "aws-lambda";
-import { formIdRequired, organizationIdRequired, userIdRequired } from "../responses";
+import { badRequest, formIdRequired, organizationIdRequired, userIdRequired } from "../responses";
 import { FormsAdapter } from "../../db/tables/forms.adapter";
 import { S3Service } from "../../services/s3.service";
 
@@ -29,6 +29,10 @@ export const handler = async (
   }
 
   const form = await formsAdapter.getForm(userId, organizationId, formId);
+
+  if (!form?.pdfUri) {
+    throw badRequest('PDF not available for this form');
+  }
 
   const presignedUrl = await s3Service.getPresignedUrl(form.pdfUri);
 

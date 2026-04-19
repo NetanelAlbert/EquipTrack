@@ -1,0 +1,109 @@
+<div class="trace-container" data-testid="trace-item-page">
+  <h1>{{ 'trace.title' | translate }}</h1>
+
+  <div class="search-section">
+    <div class="search-fields">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>{{ 'trace.selectProduct' | translate }}</mat-label>
+        <mat-select
+          [ngModel]="selectedProductId()"
+          (ngModelChange)="onProductChange($event)"
+          data-testid="trace-product-select">
+          @for (product of upiProducts(); track product.id) {
+            <mat-option [value]="product.id">{{ product.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>{{ 'trace.selectUpi' | translate }}</mat-label>
+        <mat-select
+          [ngModel]="selectedUpi()"
+          (ngModelChange)="onUpiChange($event)"
+          [disabled]="!selectedProductId()"
+          data-testid="trace-upi-select">
+          @for (upi of availableUpis(); track upi) {
+            <mat-option [value]="upi">{{ upi }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <button
+        mat-raised-button
+        color="primary"
+        [disabled]="!canSearch()"
+        (click)="search()"
+        class="search-button"
+        data-testid="trace-search-button">
+        <mat-icon>search</mat-icon>
+        {{ 'trace.search' | translate }}
+      </button>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading-spinner" data-testid="trace-loading">
+      <mat-spinner></mat-spinner>
+    </div>
+  }
+
+  @if (!isLoading() && hasSearched() && reports().length === 0) {
+    <div class="no-data-message" data-testid="trace-no-results">
+      <mat-icon class="no-data-icon">search_off</mat-icon>
+      <h3>{{ 'trace.noReports' | translate }}</h3>
+      <p>{{ 'trace.noReportsDescription' | translate }}</p>
+    </div>
+  }
+
+  @if (!isLoading() && reports().length > 0) {
+    <div class="results-section" data-testid="trace-results">
+      <div class="results-header">
+        <h2>
+          {{ 'trace.reportHistory' | translate }}
+          — {{ getProductName(selectedProductId()!) }}
+          ({{ selectedUpi() }})
+        </h2>
+        <span class="results-count">
+          {{ reports().length }} {{ 'trace.reportsFound' | translate }}
+        </span>
+      </div>
+
+      <div class="table-wrap">
+        <table mat-table [dataSource]="reports()" class="trace-table">
+          <ng-container matColumnDef="reportDate">
+            <th mat-header-cell *matHeaderCellDef>{{ 'trace.columnDate' | translate }}</th>
+            <td mat-cell *matCellDef="let row">{{ row.reportDate }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="reportTime">
+            <th mat-header-cell *matHeaderCellDef>{{ 'trace.columnTime' | translate }}</th>
+            <td mat-cell *matCellDef="let row">{{ formatTimestamp(row) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="location">
+            <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnLocation' | translate }}</th>
+            <td mat-cell *matCellDef="let row">{{ row.location }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="holder">
+            <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnHolder' | translate }}</th>
+            <td mat-cell *matCellDef="let row">{{ getUserName(row.ownerUserId) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="department">
+            <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnDepartment' | translate }}</th>
+            <td mat-cell *matCellDef="let row">{{ getDepartmentLabel(row) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="reporter">
+            <th mat-header-cell *matHeaderCellDef>{{ 'reports.columnReporter' | translate }}</th>
+            <td mat-cell *matCellDef="let row">{{ getUserName(row.reportedBy) }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      </div>
+    </div>
+  }
+</div>

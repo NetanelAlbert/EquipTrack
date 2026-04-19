@@ -91,18 +91,19 @@
       <mat-form-field>
         <mat-label>{{ 'inventory.form.upi' | translate }} #{{upiIndex + 1}}</mat-label>
         <input 
+          #upiInput
           matInput 
           [formControl]="upi" 
           type="text" 
           [placeholder]="'inventory.form.upi-placeholder' | translate" 
           [attr.data-testid]="'editable-item-upi-input-' + upiIndex"
-          (keydown.enter)="$event.preventDefault()"
+          (keydown.enter)="$event.preventDefault(); onUpiEnter(upiIndex)"
         />
         <button
           mat-icon-button
           matSuffix
           [attr.data-testid]="'editable-item-upi-delete-' + upiIndex"
-          (click)="upisControl().removeAt(upiIndex)"
+          (click)="removeUpiAt(upiIndex)"
         >
           <mat-icon>delete</mat-icon>
         </button>

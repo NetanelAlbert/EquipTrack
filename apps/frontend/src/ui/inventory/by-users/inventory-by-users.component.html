@@ -24,37 +24,60 @@
       </div>
     </div>
 
-    <div class="user-selection">
-      <div class="add-user-section">
-        <mat-form-field>
-          <mat-label>{{ 'inventory.table.addUser' | translate }}</mat-label>
-          <mat-select
-            data-testid="inventory-by-users-add-user-select"
-            #userSelect
-            [disabled]="isLoadingUsers()"
-            (selectionChange)="addUser($event.value); userSelect.value = null"
-          >
-            @if (isLoadingUsers()) {
-              <mat-option disabled>
-                {{ 'inventory.users.loading' | translate }}
-              </mat-option>
-            } @else if (usersError()) {
-              <mat-option disabled>
-                {{ 'inventory.users.errorLoading' | translate }}
-              </mat-option>
-            } @else if (!hasUsers()) {
-              <mat-option disabled>
-                {{ 'inventory.users.noUsers' | translate }}
-              </mat-option>
-            } @else {
-              @for (user of availableUsersForSelection(); track user.user.id) {
-                <mat-option [value]="user.user.id">
-                  <app-user-display [user]="user" />
-                </mat-option>
+    @if (departmentFilterOptions().length > 0) {
+      <div class="department-filter" data-testid="inventory-by-users-department-filter">
+        <mat-form-field appearance="outline" class="filter-field">
+          <mat-label>{{ 'inventory.table.filterByDepartment' | translate }}</mat-label>
+          <mat-select [ngModel]="filterDepartmentId()" (ngModelChange)="filterDepartmentId.set($event)">
+            <mat-option value="all">{{ 'inventory.table.allDepartments' | translate }}</mat-option>
+            @for (d of departmentFilterOptions(); track d.id) {
+              <mat-option [value]="d.id">{{ d.name }}</mat-option>
+              @for (sd of d.subDepartments ?? []; track sd.id) {
+                <mat-option [value]="sd.id">{{ d.name }} — {{ sd.name }}</mat-option>
               }
             }
           </mat-select>
         </mat-form-field>
+      </div>
+    }
+
+    <div class="user-selection">
+      <div class="add-user-section">
+        <label class="user-select-label" for="inventory-by-users-add-user-input">{{
+          'inventory.table.addUser' | translate
+        }}</label>
+        <ng-select
+          [inputAttrs]="{ id: 'inventory-by-users-add-user-input' }"
+          [attr.data-testid]="'inventory-by-users-add-user-select'"
+          appendTo="body"
+          [(ngModel)]="selectedUserToAdd"
+          (change)="onAddUserSelected($event)"
+          [items]="addUserSelectItems()"
+          [disabled]="addUserSelectDisabled()"
+          [loading]="isLoadingUsers()"
+          bindLabel="user.name"
+          bindValue="user.id"
+          [searchable]="true"
+          [clearable]="false"
+          [searchFn]="userSelectSearchFn"
+          [placeholder]="addUserSelectPlaceholder()"
+          [notFoundText]="'user-select.no-results' | translate"
+          [typeToSearchText]="'user-select.type-to-search' | translate"
+          appearance="outline"
+        >
+          <ng-template ng-label-tmp let-item="item">
+            <app-user-display [user]="item" />
+          </ng-template>
+          <ng-template ng-option-tmp let-item="item">
+            <div
+              [attr.data-testid]="
+                'inventory-by-users-add-user-option-' + item.user.id
+              "
+            >
+              <app-user-display [user]="item" />
+            </div>
+          </ng-template>
+        </ng-select>
       </div>
 
       <div class="action-buttons">

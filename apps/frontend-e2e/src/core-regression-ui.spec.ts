@@ -103,6 +103,22 @@ async function ensureOrganizationIsSelected(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/my-items/, { timeout: 20000 });
 }
 
+async function ensureInspectorLandsOnReportsHistory(page: Page): Promise<void> {
+  await page.goto('/');
+
+  try {
+    await expect(page).toHaveURL(/\/reports-history/, { timeout: 20000 });
+    return;
+  } catch {
+    // Staying on org selection means we need an explicit click.
+  }
+
+  const orgSelect = page.getByTestId(`select-organization-${organizationId}`);
+  await expect(orgSelect).toBeVisible({ timeout: 15000 });
+  await orgSelect.click({ timeout: 30000 });
+  await expect(page).toHaveURL(/\/reports-history/, { timeout: 20000 });
+}
+
 /** Client-side nav: avoids `page.goto` full reload (org selection / APP_INITIALIZER race). */
 async function clickSideNavRoute(page: Page, route: string): Promise<void> {
   const link = page.getByTestId(`nav-link-${route}`);
@@ -282,8 +298,16 @@ test.describe('core regression ui flow', () => {
     const laptopAtFormOpen = getItem(whAtFormOpen, upiProductId);
     expect(laptopAtFormOpen.upis || []).toContain(transferredUpi);
 
-    await page.getByTestId('create-form-user-select').click();
-    await page.getByTestId(`create-form-user-option-${customerUserId}`).click();
+    const userSelect = page.getByTestId('create-form-user-select');
+    await userSelect.locator('.ng-select-container').click();
+    // Filter input stays in the ng-select host; options render in appendTo panel.
+    const filterInput = userSelect.locator('.ng-input input');
+    await expect(filterInput).toBeVisible({ timeout: 15000 });
+    // Narrow to one user (several org members match the substring "E2E").
+    await filterInput.fill('E2E Customer');
+    // Option rows do not always surface inner data-testid to Playwright; use keyboard.
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
     await page
       .getByTestId('create-form-description-input')
       .fill(checkoutDescription);
@@ -339,5 +363,34 @@ test.describe('core regression ui flow', () => {
     expect(afterCustomerUpi.upis || []).toEqual(
       expect.arrayContaining([...(beforeCustomerUpi.upis || []), transferredUpi])
     );
+  });
+
+  test('inspector lands on report history and cannot access restricted routes', async ({
+    page,
+    request,
+  }) => {
+    const inspectorToken = await mintE2eJwt(request, {
+      backendBaseUrl,
+      e2eSecret,
+      userId: 'user-e2e-inspector',
+      orgIdToRole: {
+        [organizationId]: UserRole.Inspector,
+      },
+    });
+
+    await bootstrapAuthenticatedSession(page, inspectorToken);
+    await ensureInspectorLandsOnReportsHistory(page);
+
+    await expect(page.getByRole('heading', { name: 'Reports History' })).toBeVisible({
+      timeout: 20000,
+    });
+    await expect(page.getByTestId('nav-link-reports-history')).toHaveCount(1);
+    await expect(page.getByTestId('nav-link-my-items')).toHaveCount(0);
+    await expect(page.getByTestId('nav-link-create-form')).toHaveCount(0);
+    await expect(page.getByTestId('nav-link-forms')).toHaveCount(0);
+
+    await page.goto('/my-items');
+    await expect(page).toHaveURL(/\/not-allowed/, { timeout: 20000 });
+    await expect(page.getByRole('heading', { name: 'Access Denied' })).toBeVisible();
   });
 });
