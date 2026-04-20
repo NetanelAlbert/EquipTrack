@@ -1,0 +1,19 @@
+# Backend + scripts for LocalStack provisioning (PR preview stack on shared host)
+FROM node:20-bookworm AS builder
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npx nx run backend:build:development
+
+FROM node:20-bookworm
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/scripts ./scripts
+COPY infra/preview/backend-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENV LOCAL_HTTP_SERVER=true
+ENV BACKEND_PORT=3000
+EXPOSE 3000
+ENTRYPOINT ["/entrypoint.sh"]

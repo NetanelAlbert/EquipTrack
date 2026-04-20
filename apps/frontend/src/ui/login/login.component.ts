@@ -5,8 +5,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule } from '@ngx-translate/core';
 import { GoogleSignInComponent } from '../auth/google-sign-in.component';
+import { FeaturePreviewSignInComponent } from '../auth/feature-preview-sign-in.component';
 import { AuthService } from '../../services/auth.service';
 import { AuthStore } from '../../store/auth.store';
+import { RuntimeConfigService } from '../../services/runtime-config.service';
 import { GoogleAuthResponse } from '@equip-track/shared';
 
 @Component({
@@ -18,6 +20,7 @@ import { GoogleAuthResponse } from '@equip-track/shared';
     MatProgressSpinnerModule,
     TranslateModule,
     GoogleSignInComponent,
+    FeaturePreviewSignInComponent,
   ],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
@@ -26,15 +29,24 @@ export class LoginComponent implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private authStore = inject(AuthStore);
+  private runtimeConfig = inject(RuntimeConfigService);
 
   // Expose auth state for template
   authState = this.authStore.authenticationState;
+
+  get showFeaturePreviewLogin(): boolean {
+    return this.runtimeConfig.featurePreviewLoginEnabled;
+  }
 
   ngOnInit() {
     this.authService.initializeAuth();
     if (this.authStore.isAuthenticated()) {
       this.router.navigate(['/']);
     }
+  }
+
+  onFeaturePreviewSuccess(): void {
+    this.router.navigate(['/']);
   }
 
   onGoogleSignIn(idToken: string) {

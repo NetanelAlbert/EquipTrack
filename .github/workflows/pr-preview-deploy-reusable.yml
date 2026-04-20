@@ -1,0 +1,45 @@
+# Called by pr-preview-deploy.yml and pr-preview-reconcile.yml
+name: Preview deploy one PR (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      pr_number:
+        required: true
+        type: string
+      git_ref:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Sync and compose pr-${{ inputs.pr_number }}
+    environment: preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.git_ref }}
+          fetch-depth: 0
+
+      - name: Install SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PREVIEW_SSH_KEY }}
+
+      - name: Deploy via SSH (skip if host down)
+        env:
+          PREVIEW_SSH_HOST: ${{ secrets.PREVIEW_SSH_HOST }}
+          PREVIEW_SSH_USER: ${{ secrets.PREVIEW_SSH_USER }}
+          PREVIEW_REMOTE_REPO_DIR: ${{ vars.PREVIEW_REMOTE_REPO_DIR }}
+          PREVIEW_SEED_PASSWORD: ${{ secrets.PREVIEW_SEED_PASSWORD }}
+          GH_PR: ${{ inputs.pr_number }}
+          PREVIEW_PUBLIC_ORIGIN: ${{ vars.PREVIEW_PUBLIC_ORIGIN }}
+          PREVIEW_HOST_PORT_BASE: ${{ vars.PREVIEW_HOST_PORT_BASE }}
+        run: chmod +x scripts/preview-gha-deploy.sh && bash scripts/preview-gha-deploy.sh
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "Preview deploy finished for PR #${{ inputs.pr_number }} (ref ${{ inputs.git_ref }})."

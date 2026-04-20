@@ -1,0 +1,109 @@
+# Start or stop the preview EC2 from GitHub (e.g. GitHub mobile app → Actions → run workflow).
+# After **start**, waits until SSH works, then dispatches **PR preview reconcile** so open PRs redeploy automatically.
+# Add IAM user/keys with ec2:StartInstances + ec2:StopInstances scoped to this instance.
+
+name: Preview EC2 start / stop
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Instance power action'
+        required: true
+        type: choice
+        options:
+          - start
+          - stop
+
+concurrency:
+  group: preview-ec2-power
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  power:
+    name: EC2 ${{ inputs.action }}
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.PREVIEW_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.PREVIEW_AWS_SECRET_ACCESS_KEY }}
+          aws-region: il-central-1
+
+      - name: ${{ inputs.action }} instance
+        env:
+          INSTANCE_ID: ${{ secrets.PREVIEW_EC2_INSTANCE_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${INSTANCE_ID}" ]; then
+            echo "Set secret PREVIEW_EC2_INSTANCE_ID on the preview environment."
+            exit 1
+          fi
+          if [ "${{ inputs.action }}" = "start" ]; then
+            aws ec2 start-instances --instance-ids "${INSTANCE_ID}"
+            echo "Start requested. Next job waits for the instance and SSH, then runs **PR preview reconcile**."
+          else
+            aws ec2 stop-instances --instance-ids "${INSTANCE_ID}"
+            echo "Stop requested."
+          fi
+
+  wait-and-reconcile:
+    name: Wait for SSH and dispatch reconcile
+    needs: power
+    if: success() && github.event.inputs.action == 'start'
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.PREVIEW_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.PREVIEW_AWS_SECRET_ACCESS_KEY }}
+          aws-region: il-central-1
+
+      - name: Wait for instance running
+        env:
+          INSTANCE_ID: ${{ secrets.PREVIEW_EC2_INSTANCE_ID }}
+        run: aws ec2 wait instance-running --instance-ids "${INSTANCE_ID}"
+
+      - name: Install SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PREVIEW_SSH_KEY }}
+
+      - name: Wait for SSH
+        env:
+          PREVIEW_SSH_HOST: ${{ secrets.PREVIEW_SSH_HOST }}
+          PREVIEW_SSH_USER: ${{ secrets.PREVIEW_SSH_USER }}
+        run: |
+          set -euo pipefail
+          USER="${PREVIEW_SSH_USER:-ubuntu}"
+          TARGET="${USER}@${PREVIEW_SSH_HOST}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${PREVIEW_SSH_HOST}" >> ~/.ssh/known_hosts
+          for i in $(seq 1 36); do
+            if ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new \
+              "${TARGET}" "echo ssh-ready" 2>/dev/null; then
+              echo "SSH is ready."
+              exit 0
+            fi
+            echo "Waiting for SSH... (${i}/36, ~6 min max)"
+            sleep 10
+          done
+          echo "::error::SSH did not become ready in time. Start **PR preview reconcile** manually when the host is up."
+          exit 1
+
+      - name: Dispatch PR preview reconcile workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REF="${{ github.event.repository.default_branch }}"
+          gh workflow run pr-preview-reconcile.yml --ref "${REF}"
+          echo "Dispatched pr-preview-reconcile.yml on ${REF}. Open the **PR preview reconcile** run in Actions to monitor progress."

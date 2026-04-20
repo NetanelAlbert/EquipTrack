@@ -1,0 +1,79 @@
+# After the preview host was offline (e.g. EC2 stopped), redeploy all open PRs in one go.
+# PR pushes already redeploy via pr-preview-deploy.yml — this is only for catch-up after downtime.
+# Run manually from the Actions tab (e.g. after starting the instance with pr-preview-ec2-power.yml).
+
+name: PR preview reconcile (open PRs)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: pr-preview-reconcile
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check-preview-config:
+    name: Check preview secrets
+    runs-on: ubuntu-latest
+    environment: preview
+    outputs:
+      can_run: ${{ steps.check.outputs.can_run }}
+    steps:
+      - id: check
+        run: |
+          if [ -z "${{ secrets.PREVIEW_SSH_HOST }}" ] || [ -z "${{ secrets.PREVIEW_SSH_KEY }}" ] || [ -z "${{ secrets.PREVIEW_SEED_PASSWORD }}" ]; then
+            echo "can_run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "can_run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  reconcile:
+    name: Redeploy open PRs
+    needs: check-preview-config
+    if: needs.check-preview-config.outputs.can_run == 'true'
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PREVIEW_SSH_KEY }}
+
+      - name: Redeploy each open PR to main/develop
+        env:
+          PREVIEW_SSH_HOST: ${{ secrets.PREVIEW_SSH_HOST }}
+          PREVIEW_SSH_USER: ${{ secrets.PREVIEW_SSH_USER }}
+          PREVIEW_REMOTE_REPO_DIR: ${{ vars.PREVIEW_REMOTE_REPO_DIR }}
+          PREVIEW_SEED_PASSWORD: ${{ secrets.PREVIEW_SEED_PASSWORD }}
+          PREVIEW_PUBLIC_ORIGIN: ${{ vars.PREVIEW_PUBLIC_ORIGIN }}
+          PREVIEW_HOST_PORT_BASE: ${{ vars.PREVIEW_HOST_PORT_BASE }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/preview-gha-deploy.sh
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions"
+          git fetch origin
+          MAP="$(gh pr list --repo "${GITHUB_REPOSITORY}" --state open -L 100 \
+            --json number,headRefOid,baseRefName \
+            | jq -r '.[] | select(.baseRefName == "main" or .baseRefName == "develop") | "\(.number) \(.headRefOid)"')"
+          if [ -z "${MAP}" ]; then
+            echo "No open PRs targeting main/develop — nothing to reconcile."
+            exit 0
+          fi
+          echo "$MAP" | while read -r NUM REF; do
+            [ -z "${NUM:-}" ] && continue
+            echo "=== Reconciling PR #${NUM} at ${REF} ==="
+            git checkout -f "$REF"
+            export GH_PR="$NUM"
+            bash scripts/preview-gha-deploy.sh
+          done

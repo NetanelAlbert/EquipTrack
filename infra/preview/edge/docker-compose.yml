@@ -1,0 +1,11 @@
+# One-time: copy this directory to ~/preview-edge/ on the preview host, then:
+#   docker compose -f ~/preview-edge/docker-compose.yml up -d
+# Requires Linux (network_mode: host). Snippets are written by scripts/preview-edge-write-snippet.sh.
+
+services:
+  preview-edge:
+    image: nginx:1.27-alpine
+    network_mode: host
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./snippets:/etc/nginx/preview-snippets:ro

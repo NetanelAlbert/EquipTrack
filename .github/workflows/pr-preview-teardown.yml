@@ -1,0 +1,84 @@
+name: PR preview teardown
+
+on:
+  pull_request:
+    types: [closed]
+
+concurrency:
+  group: pr-preview-teardown-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  check-preview-config:
+    name: Check preview secrets
+    runs-on: ubuntu-latest
+    environment: preview
+    outputs:
+      can_run: ${{ steps.check.outputs.can_run }}
+    steps:
+      - id: check
+        run: |
+          if [ -z "${{ secrets.PREVIEW_SSH_HOST }}" ] || [ -z "${{ secrets.PREVIEW_SSH_KEY }}" ]; then
+            echo "can_run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "can_run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  teardown:
+    name: Remove preview stack
+    runs-on: ubuntu-latest
+    needs: check-preview-config
+    if: needs.check-preview-config.outputs.can_run == 'true'
+    environment: preview
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PREVIEW_SSH_KEY }}
+
+      - name: Docker compose down
+        env:
+          PREVIEW_SSH_HOST: ${{ secrets.PREVIEW_SSH_HOST }}
+          PREVIEW_SSH_USER: ${{ secrets.PREVIEW_SSH_USER }}
+          PREVIEW_REMOTE_REPO_DIR: ${{ vars.PREVIEW_REMOTE_REPO_DIR }}
+          GH_PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          USER="${PREVIEW_SSH_USER:-ubuntu}"
+          TARGET="${USER}@${PREVIEW_SSH_HOST}"
+          REMOTE_DIR="${PREVIEW_REMOTE_REPO_DIR:-/home/${USER}/preview/EquipTrack}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${PREVIEW_SSH_HOST}" >> ~/.ssh/known_hosts
+          if ! ssh -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new \
+            "${TARGET}" "echo preview-ssh-ok" 2>/dev/null; then
+            echo "::notice title=Preview host::SSH to ${PREVIEW_SSH_HOST} failed — teardown skipped (instance stopped or unreachable)."
+            exit 0
+          fi
+          ssh "${TARGET}" "cd '${REMOTE_DIR}' && docker compose -p pr-${GH_PR} -f docker-compose.preview.yml down -v || true"
+
+      - name: Remove edge path route (path-based preview)
+        env:
+          PREVIEW_SSH_HOST: ${{ secrets.PREVIEW_SSH_HOST }}
+          PREVIEW_SSH_USER: ${{ secrets.PREVIEW_SSH_USER }}
+          PREVIEW_PUBLIC_ORIGIN: ${{ vars.PREVIEW_PUBLIC_ORIGIN }}
+          GH_PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PREVIEW_PUBLIC_ORIGIN:-}" ]; then
+            echo "PREVIEW_PUBLIC_ORIGIN not set — skipping edge snippet removal."
+            exit 0
+          fi
+          USER="${PREVIEW_SSH_USER:-ubuntu}"
+          TARGET="${USER}@${PREVIEW_SSH_HOST}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${PREVIEW_SSH_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
+          if ! ssh -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new \
+            "${TARGET}" "echo preview-ssh-ok" 2>/dev/null; then
+            echo "::notice title=Preview host::SSH failed — edge snippet removal skipped."
+            exit 0
+          fi
+          chmod +x scripts/preview-edge-remove-snippet.sh
+          ssh "${TARGET}" "export GH_PR='${GH_PR}'; export PREVIEW_PUBLIC_ORIGIN='${PREVIEW_PUBLIC_ORIGIN}'; bash -s" < scripts/preview-edge-remove-snippet.sh

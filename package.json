@@ -18,6 +18,8 @@
     "frontend:serve:e2e-local": "node scripts/write-runtime-config.js http://localhost:3000 && nx run frontend:serve",
     "e2e:local:test": "npm run e2e:local:prepare && npm run e2e:local:install-browsers && PLAYWRIGHT_HTML_OPEN=never E2E_SKIP_LOCAL_E2E_ENSURE=true npx nx run frontend-e2e:e2e-local-core",
     "e2e:deployed:test": "npm run e2e:local:install-browsers && PLAYWRIGHT_HTML_OPEN=never npx nx run frontend-e2e:e2e-deployed-core",
+    "preview:compose:up": "docker compose -f docker-compose.preview.yml --env-file .env.preview up -d --build",
+    "preview:compose:down": "docker compose -f docker-compose.preview.yml --env-file .env.preview down -v",
     "precommit": "nx affected -t lint,test --uncommitted --nxBail --exclude=frontend-e2e,backend-e2e && npm run validate:translations",
     "prepare": "husky"
   },

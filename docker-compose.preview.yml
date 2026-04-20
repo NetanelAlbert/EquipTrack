@@ -1,0 +1,60 @@
+# PR preview stack: LocalStack + Node backend + Nginx (Angular).
+# Deploy on a shared host with Docker; one compose project per PR: docker compose -p pr-123 -f docker-compose.preview.yml up -d
+# See docs/pr-preview-environments.md
+
+services:
+  localstack:
+    image: public.ecr.aws/localstack/localstack:3.8
+    environment:
+      - SERVICES=dynamodb,s3,secretsmanager
+      - AWS_DEFAULT_REGION=us-east-1
+      - DEBUG=0
+      - PERSISTENCE=1
+    volumes:
+      - localstack-data:/var/lib/localstack
+    healthcheck:
+      test: ['CMD', 'bash', '-c', 'curl -fsS http://localhost:4566/_localstack/health > /dev/null']
+      interval: 5s
+      timeout: 3s
+      retries: 25
+
+  backend:
+    build:
+      context: .
+      dockerfile: infra/preview/Dockerfile.backend
+    environment:
+      STAGE: preview
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_ENDPOINT_URL_DYNAMODB: http://localstack:4566
+      AWS_ENDPOINT_URL_S3: http://localstack:4566
+      AWS_ENDPOINT_URL_SECRETSMANAGER: http://localstack:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      E2E_AUTH_ENABLED: 'true'
+      E2E_AUTH_SECRET: ${E2E_AUTH_SECRET:-e2e-local-secret}
+      FEATURE_PREVIEW_AUTH_ENABLED: 'true'
+      PREVIEW_SEED_PASSWORD: ${PREVIEW_SEED_PASSWORD:?Set PREVIEW_SEED_PASSWORD in .env or environment}
+      BACKEND_PORT: '3000'
+      LOCAL_HTTP_SERVER: 'true'
+    depends_on:
+      localstack:
+        condition: service_healthy
+
+  preview-web:
+    build:
+      context: .
+      dockerfile: infra/preview/Dockerfile.preview-web
+      args:
+        PREVIEW_PATH_SEGMENT: ${PREVIEW_PATH_SEGMENT:-}
+        PREVIEW_PUBLIC_ORIGIN: ${PREVIEW_PUBLIC_ORIGIN:-}
+        FEATURE_PREVIEW_LOGIN_ENABLED: 'true'
+    ports:
+      # Per-PR public preview: bind loopback only; edge nginx routes https://host/{pr}/ here.
+      # Local dev: default 127.0.0.1:8080 (no path). CI sets PREVIEW_BIND e.g. 127.0.0.1:30123
+      - '${PREVIEW_BIND:-127.0.0.1:8080}:80'
+    depends_on:
+      - backend
+
+volumes:
+  localstack-data:
