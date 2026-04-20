@@ -14,7 +14,12 @@ if ! [[ "${GH_PR}" =~ ^[0-9]+$ ]]; then
   exit 1
 fi
 
+# GitHub vars may be empty or malformed; sanitize so arithmetic never fails.
 PREVIEW_HOST_PORT_BASE="${PREVIEW_HOST_PORT_BASE:-30000}"
+PREVIEW_HOST_PORT_BASE="${PREVIEW_HOST_PORT_BASE//[^0-9]/}"
+if [ -z "${PREVIEW_HOST_PORT_BASE}" ]; then
+  PREVIEW_HOST_PORT_BASE=30000
+fi
 PREVIEW_HOST_PORT=$((PREVIEW_HOST_PORT_BASE + GH_PR))
 if [ "${PREVIEW_HOST_PORT}" -ge 65536 ]; then
   echo "::error::PR #${GH_PR} is too large for default port formula (30000 + PR < 65536). Set PREVIEW_HOST_PORT_BASE lower or adjust the formula."
@@ -55,9 +60,25 @@ PREVIEW_PATH_SEGMENT=${PREVIEW_PATH_SEGMENT}
 PREVIEW_PUBLIC_ORIGIN=${PREVIEW_PUBLIC_ORIGIN}
 EOFENV
 
-ssh "${TARGET}" "cd '${REMOTE_DIR}' && docker compose -p pr-${GH_PR} -f docker-compose.preview.yml --env-file .env.preview up -d --build && docker compose -p pr-${GH_PR} -f docker-compose.preview.yml ps"
+# Prefer Docker Compose v2 (`docker compose`); many hosts still only have `docker-compose` v1.
+ssh "${TARGET}" bash -s <<EOF
+set -euo pipefail
+cd "$(printf '%q' "${REMOTE_DIR}")"
+if docker compose version >/dev/null 2>&1; then
+  DC=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+  DC=(docker-compose)
+else
+  echo "error: neither 'docker compose' nor docker-compose is available on the preview host" >&2
+  exit 1
+fi
+"\${DC[@]}" -p pr-${GH_PR} -f docker-compose.preview.yml --env-file .env.preview up -d --build
+"\${DC[@]}" -p pr-${GH_PR} -f docker-compose.preview.yml ps
+EOF
 
 if [ -n "${PREVIEW_PUBLIC_ORIGIN}" ]; then
+  # Edge is optional until ~/preview-edge is provisioned; do not fail the job if reload/snippet fails.
   ssh "${TARGET}" \
-    "cd '${REMOTE_DIR}' && PREVIEW_EDGE_SNIPPET_DIR=\"\${PREVIEW_EDGE_SNIPPET_DIR:-\$HOME/preview-edge/snippets}\" PREVIEW_EDGE_COMPOSE_FILE=\"\${PREVIEW_EDGE_COMPOSE_FILE:-\$HOME/preview-edge/docker-compose.yml}\" bash scripts/preview-edge-write-snippet.sh '${GH_PR}' '${PREVIEW_HOST_PORT}'"
+    "cd '${REMOTE_DIR}' && PREVIEW_EDGE_SNIPPET_DIR=\"\${PREVIEW_EDGE_SNIPPET_DIR:-\$HOME/preview-edge/snippets}\" PREVIEW_EDGE_COMPOSE_FILE=\"\${PREVIEW_EDGE_COMPOSE_FILE:-\$HOME/preview-edge/docker-compose.yml}\" bash scripts/preview-edge-write-snippet.sh '${GH_PR}' '${PREVIEW_HOST_PORT}'" \
+    || echo "::warning title=Preview edge::Edge nginx snippet or reload failed — main compose stack may still be up. Ensure ~/preview-edge exists and see docs/pr-preview-environments.md."
 fi

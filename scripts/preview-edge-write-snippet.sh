@@ -33,9 +33,17 @@ if [ -f "${COMPOSE_FILE}" ]; then
   COMPOSE_DIR="$(dirname "${COMPOSE_FILE}")"
   COMPOSE_BASE="$(basename "${COMPOSE_FILE}")"
   (
-    cd "${COMPOSE_DIR}" &&
-      docker compose -f "${COMPOSE_BASE}" up -d &&
-      docker compose -f "${COMPOSE_BASE}" exec -T preview-edge nginx -s reload
+    cd "${COMPOSE_DIR}" || exit 1
+    if docker compose version >/dev/null 2>&1; then
+      docker compose -f "${COMPOSE_BASE}" up -d
+      docker compose -f "${COMPOSE_BASE}" exec -T preview-edge nginx -s reload || true
+    elif command -v docker-compose >/dev/null 2>&1; then
+      docker-compose -f "${COMPOSE_BASE}" up -d
+      docker-compose -f "${COMPOSE_BASE}" exec -T preview-edge nginx -s reload || true
+    else
+      echo "preview-edge: docker compose not found on host" >&2
+      exit 1
+    fi
   )
 else
   echo "preview-edge: ${COMPOSE_FILE} not found — snippet written to ${SNIP_DIR}; start or reload edge nginx when ready."
