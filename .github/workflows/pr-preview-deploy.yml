@@ -34,7 +34,6 @@ jobs:
     name: Deploy preview stack
     needs: check-preview-config
     if: needs.check-preview-config.outputs.can_deploy == 'true' && github.event.pull_request.draft == false
-    environment: preview
     uses: ./.github/workflows/pr-preview-deploy-reusable.yml
     with:
       pr_number: ${{ github.event.pull_request.number }}
