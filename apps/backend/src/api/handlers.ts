@@ -1,6 +1,7 @@
 import { endpointMetas, EndpointMeta, JwtPayload } from '@equip-track/shared';
 import { handler as googleAuthHandler } from './auth/google';
 import { handler as e2eAuthHandler } from './auth/e2e-login';
+import { handler as featurePreviewPasswordAuthHandler } from './auth/feature-preview-password';
 import { handler as getUsersHandler } from './admin/users/get';
 import { handler as setUserHandler } from './admin/users/set';
 import { handler as inviteUserHandler } from './admin/users/invite';
@@ -48,6 +49,7 @@ export const handlers: HandlersDefinition = {
   // Authentication
   googleAuth: googleAuthHandler,
   e2eAuth: e2eAuthHandler,
+  featurePreviewPasswordAuth: featurePreviewPasswordAuthHandler,
 
   // Admin Users
   getUsers: getUsersHandler,

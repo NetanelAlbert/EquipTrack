@@ -1,0 +1,42 @@
+name: PR preview deploy (shared host)
+
+# Syncs the repo to a shared Docker host and runs docker compose -p pr-<N>.
+# If the EC2 instance is stopped, the deploy job succeeds with a notice (no CI failure).
+# Configure GitHub Environment "preview" with secrets: PREVIEW_SSH_KEY, PREVIEW_SSH_HOST, PREVIEW_SEED_PASSWORD
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main, develop]
+
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check-preview-config:
+    name: Check preview secrets
+    runs-on: ubuntu-latest
+    environment: preview
+    outputs:
+      can_deploy: ${{ steps.check.outputs.can_deploy }}
+    steps:
+      - id: check
+        run: |
+          if [ -z "${{ secrets.PREVIEW_SSH_HOST }}" ] || [ -z "${{ secrets.PREVIEW_SSH_KEY }}" ] || [ -z "${{ secrets.PREVIEW_SEED_PASSWORD }}" ]; then
+            echo "can_deploy=false" >> "$GITHUB_OUTPUT"
+            echo "Preview deploy skipped: set PREVIEW_SSH_HOST, PREVIEW_SSH_KEY, and PREVIEW_SEED_PASSWORD in the preview environment."
+          else
+            echo "can_deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    name: Deploy preview stack
+    needs: check-preview-config
+    if: needs.check-preview-config.outputs.can_deploy == 'true' && github.event.pull_request.draft == false
+    environment: preview
+    uses: ./.github/workflows/pr-preview-deploy-reusable.yml
+    with:
+      pr_number: ${{ github.event.pull_request.number }}
+      git_ref: ${{ github.event.pull_request.head.sha }}
+    secrets: inherit

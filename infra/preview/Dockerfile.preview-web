@@ -1,0 +1,27 @@
+# Nginx serving Angular build + reverse-proxy /api → backend (same host as reviewers)
+FROM node:20-bookworm AS builder
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+ARG PREVIEW_PATH_SEGMENT=
+ARG PREVIEW_PUBLIC_ORIGIN=
+ARG FEATURE_PREVIEW_LOGIN_ENABLED=true
+ENV FEATURE_PREVIEW_LOGIN_ENABLED=${FEATURE_PREVIEW_LOGIN_ENABLED}
+# Path-based public preview: full apiUrl https://host/{pr}; local/docker dev leaves both empty → same-origin build
+RUN if [ -n "${PREVIEW_PATH_SEGMENT}" ] && [ -n "${PREVIEW_PUBLIC_ORIGIN}" ]; then \
+  PREVIEW_PATH_SEGMENT="${PREVIEW_PATH_SEGMENT}" PREVIEW_PUBLIC_ORIGIN="${PREVIEW_PUBLIC_ORIGIN}" \
+    FEATURE_PREVIEW_LOGIN_ENABLED="${FEATURE_PREVIEW_LOGIN_ENABLED}" \
+    node scripts/write-runtime-config.js \
+  && npx nx run frontend:build:production -- --base-href="/${PREVIEW_PATH_SEGMENT}/"; \
+  else \
+  RUNTIME_API_URL=same-origin \
+    FEATURE_PREVIEW_LOGIN_ENABLED="${FEATURE_PREVIEW_LOGIN_ENABLED}" \
+    node scripts/write-runtime-config.js same-origin \
+  && npx nx run frontend:build:production; \
+  fi
+
+FROM nginx:1.27-alpine
+COPY --from=builder /app/dist/apps/frontend/browser /usr/share/nginx/html
+COPY infra/preview/nginx-preview.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80

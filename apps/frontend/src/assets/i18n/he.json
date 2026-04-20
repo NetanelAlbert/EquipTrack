@@ -28,7 +28,15 @@
     "try-again": "נסה שוב",
     "try-again-detailed": "נסה להתחבר שוב",
     "error": "שגיאת אימות",
-    "success": "האימות הצליח"
+    "success": "האימות הצליח",
+    "feature-preview-intro": "סביבת תצוגה מקדימה: התחבר/י עם פרטי הגישה המשותפים שסופקו על ידי הצוות.",
+    "feature-preview-email": "אימייל",
+    "feature-preview-password": "סיסמה",
+    "feature-preview-submit": "התחברות",
+    "feature-preview-email-required": "נדרש אימייל",
+    "feature-preview-email-invalid": "הזן/י כתובת אימייל תקינה",
+    "feature-preview-password-required": "נדרשת סיסמה",
+    "feature-preview-form-aria": "התחברות לתצוגה מקדימה באימייל וסיסמה"
   },
   "common": {
     "close": "סגור",

@@ -80,6 +80,19 @@
           </div>
         }
 
+        @if (showFeaturePreviewLogin) {
+          <app-feature-preview-sign-in
+            (signInSuccess)="onFeaturePreviewSuccess()"
+          />
+          <div
+            class="divider"
+            role="separator"
+            [attr.aria-label]="'auth.or-separator' | translate"
+          >
+            <span aria-hidden="true">{{ 'auth.or' | translate }}</span>
+          </div>
+        }
+
         <app-google-sign-in
           data-testid="google-signin-widget"
           (signInSuccess)="onGoogleSignIn($event)"

@@ -44,6 +44,8 @@ export interface ProductDb extends DbItem {
 export interface UserDb extends User, DbItem {
   // Optional Google sub ID for users who authenticated with Google
   googleSub?: string;
+  /** Scrypt hash for preview-only password login (never returned to clients). */
+  featurePreviewPasswordHash?: string;
 }
 
 /**

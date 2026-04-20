@@ -3,6 +3,8 @@ import { environment } from '../environments/environment';
 
 interface RuntimeConfig {
   apiUrl?: string;
+  /** When true, login shows email/password for preview environments (runtime file only). */
+  featurePreviewLoginEnabled?: boolean;
 }
 
 function isRuntimeConfig(value: unknown): value is RuntimeConfig {
@@ -56,9 +58,14 @@ export class RuntimeConfigService {
     return this.config.apiUrl || environment.apiUrl;
   }
 
+  get featurePreviewLoginEnabled(): boolean {
+    return this.config.featurePreviewLoginEnabled === true;
+  }
+
   async load(): Promise<void> {
     try {
-      const response = await fetch('/assets/runtime-config.json', {
+      // Relative to <base href> so path-based previews (e.g. /123/) load /123/assets/...
+      const response = await fetch('assets/runtime-config.json', {
         cache: 'no-store',
       });
       if (!response.ok) {
@@ -70,18 +77,38 @@ export class RuntimeConfigService {
         return;
       }
 
-      const fileApiUrl = configFromFile.apiUrl?.trim();
-      if (fileApiUrl) {
-        if (shouldIgnoreRuntimeApiUrl(fileApiUrl)) {
-          console.warn(
-            '[RuntimeConfig] Ignoring runtime-config apiUrl pointing to a local/private host while app is served from a public origin. Using build-time environment.apiUrl instead.'
-          );
-        } else {
-          this.config = {
-            ...this.config,
-            apiUrl: fileApiUrl,
-          };
+      const rawApiUrl = configFromFile.apiUrl;
+      if (typeof rawApiUrl === 'string') {
+        const fileApiUrl = rawApiUrl.trim();
+        if (fileApiUrl === 'same-origin') {
+          if (typeof globalThis !== 'undefined' && 'location' in globalThis) {
+            this.config = {
+              ...this.config,
+              apiUrl: (globalThis as unknown as Window).location.origin,
+            };
+          }
+        } else if (fileApiUrl) {
+          if (shouldIgnoreRuntimeApiUrl(fileApiUrl)) {
+            console.warn(
+              '[RuntimeConfig] Ignoring runtime-config apiUrl pointing to a local/private host while app is served from a public origin. Using build-time environment.apiUrl instead.'
+            );
+          } else {
+            this.config = {
+              ...this.config,
+              apiUrl: fileApiUrl,
+            };
+          }
         }
+      }
+
+      if (
+        typeof configFromFile.featurePreviewLoginEnabled === 'boolean' &&
+        configFromFile.featurePreviewLoginEnabled
+      ) {
+        this.config = {
+          ...this.config,
+          featurePreviewLoginEnabled: true,
+        };
       }
     } catch {
       // No-op fallback to environment config when runtime file is unavailable.
