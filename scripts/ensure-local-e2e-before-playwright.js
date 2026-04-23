@@ -69,7 +69,7 @@ function tryStartLocalstack() {
     return false;
   }
   try {
-    execSync('docker compose -f docker-compose.e2e.yml up -d --wait localstack', {
+    execSync('bash scripts/docker-compose-up-localstack.sh', {
       cwd: workspaceRoot,
       stdio: 'inherit',
     });
