@@ -115,6 +115,7 @@ Deployed runs use the GitHub Environment secret `E2E_AUTH_SECRET` plus URLs from
 
 ## Troubleshooting
 
+- **Docker `toomanyrequests` / 429 when pulling**: CI and cold machines can hit registry rate limits. `e2e:local:stack:up` runs `scripts/docker-compose-up-localstack.sh`, which retries `docker compose up` with backoff. Avoid mounting `docker.sock` into LocalStack for this stack: that path can trigger extra pulls from Docker Hub. For more attempts or a different compose file, set `LOCALSTACK_DOCKER_UP_RETRIES` or `COMPOSE_FILE` when invoking the script.
 - **LocalStack not healthy**: Run `npm run e2e:local:stack:down` then `npm run e2e:local:prepare`, or `npm run e2e:local:stack:reset` for a clean volume.
 - **Port 4566 / 3000 / 4200 in use**: Stop conflicting processes or adjust compose ports / `BACKEND_BASE_URL` / `BASE_URL` consistently in Playwright env.
 - **Playwright “browser not installed”**: Run `npm run e2e:local:install-browsers` or `npx playwright install chromium`.
