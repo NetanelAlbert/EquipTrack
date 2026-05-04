@@ -21,7 +21,7 @@ This document describes all environment variables used across the EquipTrack dep
 - `API_THROTTLE_BURST` - API Gateway burst limit
 
 ### Lambda Configuration
-- `LAMBDA_RUNTIME` - Lambda runtime version (default: 'nodejs20.x')
+- `LAMBDA_RUNTIME` - Lambda runtime version (default: 'nodejs24.x')
 - `LAMBDA_TIMEOUT` - Lambda timeout in seconds (default: 30)
 - `LAMBDA_MEMORY_SIZE` - Lambda memory allocation in MB (default: 256)
 

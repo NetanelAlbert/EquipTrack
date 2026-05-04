@@ -53,7 +53,7 @@ const LAMBDA_DEPLOY_CONCURRENCY = Math.max(
 
 // Lambda configuration
 const LAMBDA_CONFIG = {
-  runtime: 'nodejs20.x',
+  runtime: 'nodejs24.x',
   timeout: 30,
   memorySize: 256,
 };
