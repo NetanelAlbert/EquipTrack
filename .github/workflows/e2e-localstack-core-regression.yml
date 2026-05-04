@@ -57,6 +57,19 @@ jobs:
       - name: Install Playwright browser dependencies
         run: npx playwright install --with-deps chromium
 
+      - name: Pull LocalStack image (retry on registry rate limits)
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            if docker compose -f docker-compose.e2e.yml pull localstack; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 5 ]; then
+              exit 1
+            fi
+            sleep $((attempt * 20))
+          done
+
       - name: Prepare local E2E infrastructure
         run: npm run e2e:local:prepare
 

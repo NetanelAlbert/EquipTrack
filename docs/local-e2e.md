@@ -115,6 +115,7 @@ Deployed runs use the GitHub Environment secret `E2E_AUTH_SECRET` plus URLs from
 
 ## Troubleshooting
 
+- **Docker Hub `toomanyrequests` (429) in CI or locally**: The compose file does not mount the host Docker socket, so LocalStack does not pull extra images for Lambda/container features. If you customize compose to mount `docker.sock` and see rate limits, use a Docker Hub login (`docker login`) or a registry mirror — do not store container images in the app repo or in S3 for this; use a registry with authenticated or higher pull limits.
 - **LocalStack not healthy**: Run `npm run e2e:local:stack:down` then `npm run e2e:local:prepare`, or `npm run e2e:local:stack:reset` for a clean volume.
 - **Port 4566 / 3000 / 4200 in use**: Stop conflicting processes or adjust compose ports / `BACKEND_BASE_URL` / `BASE_URL` consistently in Playwright env.
 - **Playwright “browser not installed”**: Run `npm run e2e:local:install-browsers` or `npx playwright install chromium`.
