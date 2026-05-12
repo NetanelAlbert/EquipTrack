@@ -1,6 +1,6 @@
 /**
  * Runs before Playwright local E2E:
- * - Probes LocalStack; if down, runs `docker compose up -d localstack` (same as e2e:local:stack:up)
+ * - Probes LocalStack; if down, runs `e2e-localstack-stack-up.sh` (same as npm run e2e:local:stack:up)
  * - Waits until LocalStack answers, then runs setup-local-e2e.js (tables/secrets/S3/seed).
  *
  * E2E_SKIP_LOCAL_E2E_ENSURE=true — skip entirely (CI after prepare, e2e:local:test).
@@ -69,17 +69,17 @@ function tryStartLocalstack() {
     return false;
   }
   try {
-    execSync('docker compose -f docker-compose.e2e.yml up -d --wait localstack', {
+    execSync('bash scripts/e2e-localstack-stack-up.sh', {
       cwd: workspaceRoot,
       stdio: 'inherit',
     });
     console.log(
-      '[ensure-local-e2e] LocalStack container start requested (docker compose)'
+      '[ensure-local-e2e] LocalStack container start requested (e2e-localstack-stack-up)'
     );
     return true;
   } catch {
     console.error(
-      '[ensure-local-e2e] docker compose failed (is Docker running and compose v2 available?)'
+      '[ensure-local-e2e] LocalStack stack-up failed (is Docker running and compose v2 available?)'
     );
     return false;
   }
