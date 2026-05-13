@@ -36,7 +36,17 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Prepare local E2E infrastructure
-        run: npm run e2e:local:prepare
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            npm run e2e:local:stack:down || true
+            if npm run e2e:local:prepare; then
+              exit 0
+            fi
+            echo "e2e:local:prepare failed on attempt ${attempt}; backing off before retry..."
+            sleep $((attempt * 30))
+          done
+          exit 1
 
       - name: Run full regression E2E
         env:

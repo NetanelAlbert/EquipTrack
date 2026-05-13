@@ -121,6 +121,7 @@ Deployed runs use the GitHub Environment secret `E2E_AUTH_SECRET` plus URLs from
 - **Auth failures in tests**: Ensure backend was started with `E2E_AUTH_ENABLED=true` and the same `E2E_AUTH_SECRET` the tests use (`e2e-local-secret` for local scripts).
 - **Flaky Nx cache on E2E**: `frontend-e2e` e2e targets set `cache: false`; if you run Playwright outside Nx, do not rely on cached failures as green.
 - **CI failures**: Download the workflow artifacts (report + test-results) and check the “Summarize Playwright failure contexts” step output.
+- **Docker `toomanyrequests` / rate limits when starting LocalStack**: The E2E compose file intentionally does not mount `/var/run/docker.sock`. Mounting it lets LocalStack pull additional images (commonly from Docker Hub) and can exhaust anonymous pull quotas on CI runners. If you add Lambda/container emulators locally, use authenticated registry access or a mirror rather than reintroducing unauthenticated Hub pulls in automation.
 
 ## GitHub epic (issue mapping)
 

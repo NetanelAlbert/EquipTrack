@@ -11,7 +11,9 @@ services:
       - PERSISTENCE=1
     volumes:
       - localstack-data:/var/lib/localstack
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Host docker.sock omitted: LocalStack can use the host daemon and pull extra images
+      # (often from Docker Hub), hitting anonymous rate limits on GitHub-hosted runners.
+      # E2E only uses dynamodb, s3, secretsmanager — no container-backed emulators required.
     healthcheck:
       test: ['CMD', 'bash', '-c', 'curl -fsS http://localhost:4566/_localstack/health > /dev/null']
       interval: 5s
