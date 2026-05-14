@@ -17,7 +17,8 @@ jobs:
   e2e-full-regression:
     name: Full regression (LocalStack + Playwright)
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Playwright --with-deps + full suite can exceed 45m on slow runners; May 2026 nightly hit the cap mid-install.
+    timeout-minutes: 90
 
     steps:
       - name: Checkout code

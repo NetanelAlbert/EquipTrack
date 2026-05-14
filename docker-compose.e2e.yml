@@ -11,7 +11,9 @@ services:
       - PERSISTENCE=1
     volumes:
       - localstack-data:/var/lib/localstack
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Do not mount docker.sock: LocalStack would use the host Docker daemon and can
+      # pull Lambda/runtime images from Docker Hub, hitting anonymous rate limits (429) in CI.
+      # E2E only enables dynamodb,s3,secretsmanager — no container-backed services needed.
     healthcheck:
       test: ['CMD', 'bash', '-c', 'curl -fsS http://localhost:4566/_localstack/health > /dev/null']
       interval: 5s
