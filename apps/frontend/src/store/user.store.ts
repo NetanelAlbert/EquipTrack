@@ -255,10 +255,16 @@ export const UserStore = signalStore(
             organizations: startResponse.organizations,
             startDataStatus: { isLoading: false },
           });
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('Failed to load start data:', error);
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : typeof error === 'string'
+                ? error
+                : 'An unknown error occurred';
           updateState({
-            startDataStatus: { isLoading: false, error: error as string },
+            startDataStatus: { isLoading: false, error: errorMessage },
           });
         }
       },

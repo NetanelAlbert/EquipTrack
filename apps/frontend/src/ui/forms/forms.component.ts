@@ -1,4 +1,5 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormsStore } from '../../store/forms.store';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -32,6 +33,7 @@ export class FormsComponent implements OnInit {
   private readonly queryParams = signal<FormQueryParams | undefined>(undefined);
 
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly userStore = inject(UserStore);
   private readonly organizationService = inject(OrganizationService);
 
@@ -61,7 +63,7 @@ export class FormsComponent implements OnInit {
       this.organizationService.getUsers();
     }
 
-    this.route.queryParams.subscribe((params) => {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       if (
         params['formType'] &&
         params['searchStatus'] &&
