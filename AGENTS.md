@@ -103,6 +103,11 @@ See `apps/frontend-e2e/src/helpers/e2e-auth.ts` for the canonical Playwright imp
 - The frontend defaults to **Hebrew (RTL)** localization. This is intentional. E2E automated tests force English via `localStorage['equip-track-language'] = 'en'`.
 - **Google login will not work** in the Cloud Agent VM. Always use the E2E token flow described above.
 
+## README
+
+- **Read `README.md` at the start of every session** to orient yourself on the project structure, tech stack, testing commands, and CI/CD pipelines.
+- If your work changes anything documented there (new workflows, updated commands, stack changes, new test suites, etc.), **update `README.md`** to keep it accurate before opening a pull request.
+
 ## Github context
 - When asked about Github issue, pr, job etc., you can use gh cli to get more context
 
