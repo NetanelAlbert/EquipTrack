@@ -4,7 +4,12 @@ import {
   ORGANIZATION_ID_PATH_PARAM,
 } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { badRequest } from '../../responses';
+import {
+  badRequest,
+  internalServerError,
+  isErrorResponse,
+  organizationIdRequired,
+} from '../../responses';
 import { UsersAndOrganizationsAdapter } from '../../../db';
 
 const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
@@ -16,7 +21,7 @@ export const handler = async (
   const organizationId = pathParams[ORGANIZATION_ID_PATH_PARAM];
 
   if (!organizationId) {
-    throw badRequest('Organization ID is required');
+    throw organizationIdRequired;
   }
 
   if (!req.userInOrganization) {
@@ -55,18 +60,9 @@ export const handler = async (
     };
   } catch (error) {
     console.error('Error updating user:', error);
-
-    // Re-throw known errors
-    if (
-      error.message &&
-      (error.message.includes('required') ||
-        error.message.includes('Invalid') ||
-        error.message.includes('not found'))
-    ) {
+    if (isErrorResponse(error)) {
       throw error;
     }
-
-    // Generic error for unexpected issues
-    throw new Error('Failed to update user');
+    throw internalServerError('Failed to update user');
   }
 };

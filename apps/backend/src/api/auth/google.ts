@@ -1,7 +1,7 @@
 import { Auth } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { GoogleAuthService } from '../../services/google-auth.service';
-import { badRequest } from '../responses';
+import { badRequest, isErrorResponse } from '../responses';
 
 // Get Google Client ID from environment variable
 const GOOGLE_CLIENT_ID =
@@ -56,9 +56,7 @@ export const handler = async (
     console.error('[GOOGLE_AUTH] Google authentication handler error:', error);
     console.error('[GOOGLE_AUTH] Error stack:', error.stack);
 
-    // If it's already a response object from the service, re-throw it
-    if (error && typeof error === 'object' && 'statusCode' in error) {
-      console.log('[GOOGLE_AUTH] Re-throwing response object from service');
+    if (isErrorResponse(error)) {
       throw error;
     }
 

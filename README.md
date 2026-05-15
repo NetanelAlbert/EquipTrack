@@ -23,7 +23,7 @@ EquipTrack is an internal application designed to monitor the supply and locatio
 9. View the check-out history of an item.
 10. View the report history of an item.
 
-### From admin prespective:
+### From admin perspective:
 
 1. Create and delete users.
 2. Assign users warehouse role.
@@ -48,3 +48,4 @@ The app will manage two types of products:
 - **Backend:** Node.js
 - **Compute:** AWS EC2 / EKS
 - **Database:** DynamoDB
+
