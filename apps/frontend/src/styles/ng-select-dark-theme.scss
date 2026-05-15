@@ -176,7 +176,8 @@ $ng-dark-text-disabled: rgba(255, 255, 255, 0.38);
   }
 }
 
-/* User display inside options: match panel (Material vars are for mat-option light theme) */
+/* User display inside selected value and dropdown options */
+.ng-select .user-display,
 .ng-dropdown-panel .user-display {
   .user-name {
     color: $ng-dark-text-primary !important;
