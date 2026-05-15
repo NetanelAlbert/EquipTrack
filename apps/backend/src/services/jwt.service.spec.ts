@@ -127,9 +127,16 @@ describe('JwtService', () => {
       ).rejects.toThrow('Invalid authentication token');
     });
 
-    it('should reject expired tokens', async () => {
-      await expect(jwtService.validateToken('expired')).rejects.toThrow(
-        'Invalid authentication token'
+    it('should reject expired tokens with a specific expiry error', async () => {
+      // Sign a structurally-valid RS256 token whose `exp` is in the past so that
+      // jsonwebtoken throws TokenExpiredError (not JsonWebTokenError).
+      const expiredToken = jwt.sign(
+        { sub: 'user123', orgIdToRole: {}, iat: 1, exp: 1 },
+        mockPrivateKey,
+        { algorithm: 'RS256', issuer: 'equip-track', audience: 'equip-track-users' }
+      );
+      await expect(jwtService.validateToken(expiredToken)).rejects.toThrow(
+        'Authentication token has expired'
       );
     });
   });

@@ -102,6 +102,72 @@ export async function waitForTestId(
 }
 
 /**
+ * Navigate to `/` as an inspector and wait until the app redirects to `/reports-history`
+ * (the inspector's default landing route). Falls back to clicking the org picker button
+ * if the org has not been selected yet.
+ */
+export async function ensureInspectorLandsOnReportsHistory(
+  page: Page,
+  orgId: string
+): Promise<void> {
+  await page.goto('/');
+
+  try {
+    await expect(page).toHaveURL(/\/reports-history/, { timeout: 20000 });
+    return;
+  } catch {
+    // Still on org picker — click the org button.
+  }
+
+  const orgSelect = page.getByTestId(`select-organization-${orgId}`);
+  await expect(orgSelect).toBeVisible({ timeout: 15000 });
+  await orgSelect.click({ timeout: 30000 });
+  await expect(page).toHaveURL(/\/reports-history/, { timeout: 20000 });
+}
+
+/**
+ * Navigate to the create-form page via the side-nav link.
+ * Retries up to 3 times to handle cold-start APP_INITIALIZER race conditions.
+ */
+export async function openCreateFormPage(
+  page: Page,
+  orgId: string
+): Promise<void> {
+  const createFormPage = page.getByTestId('create-form-page');
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const orgPicker = page.getByTestId('organization-selection-page');
+    const onOrgPicker =
+      (await orgPicker.count()) > 0 &&
+      (await orgPicker.first().isVisible().catch(() => false));
+
+    if (onOrgPicker) {
+      const selectBtn = page.getByTestId(`select-organization-${orgId}`);
+      await expect(selectBtn).toBeEnabled({ timeout: 20000 });
+      await selectBtn.click();
+      await expect(page).toHaveURL(/\/my-items/, { timeout: 20000 });
+    }
+
+    await clickSideNavRoute(page, 'create-form');
+
+    try {
+      await createFormPage.waitFor({ state: 'visible', timeout: 10000 });
+      return;
+    } catch {
+      // Retry after recovery paths below
+    }
+
+    if (await page.getByTestId('login-page').isVisible().catch(() => false)) {
+      throw new Error(
+        'Unexpected redirect to login while opening create-form page'
+      );
+    }
+  }
+
+  await expect(createFormPage).toBeVisible({ timeout: 15000 });
+}
+
+/**
  * Fill one row in the editable-inventory component.
  * Selects a product from the autocomplete and sets the quantity.
  */

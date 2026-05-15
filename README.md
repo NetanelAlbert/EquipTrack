@@ -66,7 +66,7 @@ apps/
   frontend/        Angular application
   frontend-e2e/    Playwright end-to-end tests
   backend/         Node.js Lambda handlers
-  backend-e2e/     Backend integration tests (Jest)
+  backend-e2e/     (removed — was a generic Nx scaffold with no meaningful tests)
 libs/
   shared/          Shared types and API surface definitions
 infra/
@@ -141,7 +141,7 @@ npx nx run-many -t lint --all
 
 ```bash
 # Equivalent to what the hook runs:
-npx nx affected -t lint,test --uncommitted --nxBail --exclude=frontend-e2e,backend-e2e
+npx nx affected -t lint,test --uncommitted --nxBail --exclude=frontend-e2e
 npm run validate:translations
 ```
 

@@ -71,11 +71,13 @@ export class JwtService {
 
       return decoded;
     } catch (error) {
-      if (error instanceof jwt.JsonWebTokenError) {
-        throw new Error('Invalid authentication token');
-      }
+      // TokenExpiredError extends JsonWebTokenError, so check the more specific
+      // type first so expired tokens get their own distinct error message.
       if (error instanceof jwt.TokenExpiredError) {
         throw new Error('Authentication token has expired');
+      }
+      if (error instanceof jwt.JsonWebTokenError) {
+        throw new Error('Invalid authentication token');
       }
       console.error('Error validating JWT token:', error);
       throw new Error('Token validation failed');

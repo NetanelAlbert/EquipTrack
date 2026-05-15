@@ -23,6 +23,9 @@ const WAREHOUSE_ADMIN_ROUTES = [
   'forms',
 ];
 
+// Routes that should redirect a customer to the not-allowed page.
+const CUSTOMER_REDIRECT_ROUTES = ['/edit-users', '/all-inventory', '/inventory-by-users'];
+
 async function openSideNav(page: import('@playwright/test').Page) {
   const toggle = page.getByTestId('menu-toggle-button');
   await toggle.click();
@@ -53,7 +56,7 @@ test.describe('navigation and role-based access control', () => {
     }
   });
 
-  test('customer redirect to not-allowed for admin routes', async ({
+  test('customer redirect to not-allowed for restricted routes', async ({
     page,
     request,
   }) => {
@@ -67,15 +70,12 @@ test.describe('navigation and role-based access control', () => {
     await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
     await ensureOrganizationIsSelected(page, E2E_ORG_ID);
 
-    await page.goto('/edit-users');
-    await expect(
-      page.getByTestId('not-allowed-page')
-    ).toBeVisible({ timeout: 20000 });
-
-    await page.goto('/all-inventory');
-    await expect(
-      page.getByTestId('not-allowed-page')
-    ).toBeVisible({ timeout: 20000 });
+    for (const route of CUSTOMER_REDIRECT_ROUTES) {
+      await page.goto(route);
+      await expect(
+        page.getByTestId('not-allowed-page')
+      ).toBeVisible({ timeout: 20000 });
+    }
   });
 
   test('admin sees all 11 nav items and can navigate to each', async ({

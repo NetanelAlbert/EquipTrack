@@ -8,6 +8,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateModule } from '@ngx-translate/core';
 import { GoogleSignInComponent } from './google-sign-in.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { environment } from '../../environments/environment';
 
 describe('GoogleSignInComponent', () => {
   let component: GoogleSignInComponent;
@@ -122,8 +123,7 @@ describe('GoogleSignInComponent', () => {
 
     it('should initialize Google Identity Services with correct configuration', () => {
       expect(mockGoogleApi.accounts.id.initialize).toHaveBeenCalledWith({
-        client_id:
-          '64930861221-3571tfrilm698f11h0p15ph8hi4klt1j.apps.googleusercontent.com',
+        client_id: environment.googleClientId,
         callback: expect.any(Function),
         auto_select: false,
         cancel_on_tap_outside: true,

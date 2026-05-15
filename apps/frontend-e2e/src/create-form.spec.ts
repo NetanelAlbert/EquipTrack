@@ -1,159 +1,66 @@
 import { Page, expect, test } from '@playwright/test';
+import * as path from 'node:path';
 import { UserRole } from '@equip-track/shared';
 import { mintE2eJwt } from './helpers/e2e-auth';
 import {
-  E2E_LANGUAGE_STORAGE_KEY,
-  E2E_TEST_APP_LANGUAGE,
-} from './helpers/e2e-locale';
+  bootstrapAuthenticatedSession,
+  ensureOrganizationIsSelected,
+  clickSideNavRoute,
+  openCreateFormPage,
+  fillInventoryRow,
+  waitForTestId,
+} from './helpers/e2e-navigation';
+import {
+  E2E_ORG_ID,
+  E2E_CUSTOMER_USER_ID,
+  E2E_BULK_PRODUCT_ID,
+} from './helpers/e2e-api';
 
 const backendBaseUrl =
   process.env['BACKEND_BASE_URL'] || 'http://localhost:3000';
 const e2eSecret = process.env['E2E_AUTH_SECRET'] || 'e2e-local-secret';
-const organizationId = 'org-e2e-main';
-
-async function bootstrapAuthenticatedSession(
-  page: Page,
-  token: string
-): Promise<void> {
-  await page.addInitScript(
-    ({
-      jwt,
-      selectedOrganizationId,
-      languageKey,
-      languageValue,
-    }: {
-      jwt: string;
-      selectedOrganizationId: string;
-      languageKey: string;
-      languageValue: string;
-    }) => {
-      window.localStorage.setItem('equip-track-token', jwt);
-      window.localStorage.setItem(
-        'equip-track-selected-org',
-        selectedOrganizationId
-      );
-      window.localStorage.setItem(languageKey, languageValue);
-    },
-    {
-      jwt: token,
-      selectedOrganizationId: organizationId,
-      languageKey: E2E_LANGUAGE_STORAGE_KEY,
-      languageValue: E2E_TEST_APP_LANGUAGE,
-    }
-  );
-}
-
-async function ensureOrganizationIsSelected(page: Page): Promise<void> {
-  await page.goto('/');
-
-  try {
-    await expect(page).toHaveURL(/\/my-items/, { timeout: 20000 });
-    return;
-  } catch {
-    // Staying on / — show org grid and require a click.
-  }
-
-  const orgSelect = page.getByTestId(
-    `select-organization-${organizationId}`
-  );
-  // On cold starts the app may still be loading (no org buttons yet).
-  // Wait longer and retry goto once.
-  try {
-    await expect(orgSelect).toBeVisible({ timeout: 20000 });
-  } catch {
-    await page.goto('/');
-    try {
-      await expect(page).toHaveURL(/\/my-items/, { timeout: 20000 });
-      return;
-    } catch {
-      // Retry org select
-    }
-    await expect(orgSelect).toBeVisible({ timeout: 20000 });
-  }
-  await orgSelect.click({ timeout: 30000 });
-  await expect(page).toHaveURL(/\/my-items/, { timeout: 20000 });
-}
-
-function clickSideNavRoute(page: Page, route: string): Promise<void> {
-  return (async () => {
-    const link = page.getByTestId(`nav-link-${route}`);
-    await link.waitFor({ state: 'attached', timeout: 20000 });
-    await link.evaluate((el: HTMLElement) => el.click());
-
-    const leaveUnsaved = page.getByRole('button', { name: /^Leave$/i });
-    try {
-      await leaveUnsaved.waitFor({ state: 'visible', timeout: 4000 });
-      await leaveUnsaved.click();
-    } catch {
-      // No unsaved-changes dialog
-    }
-  })();
-}
-
-async function openCreateFormPage(page: Page): Promise<void> {
-  const createFormPage = page.getByTestId('create-form-page');
-
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const orgPicker = page.getByTestId('organization-selection-page');
-    const onOrgPicker =
-      (await orgPicker.count()) > 0 &&
-      (await orgPicker.first().isVisible().catch(() => false));
-
-    if (onOrgPicker) {
-      const selectBtn = page.getByTestId(
-        `select-organization-${organizationId}`
-      );
-      await expect(selectBtn).toBeEnabled({ timeout: 20000 });
-      await selectBtn.click();
-      await expect(page).toHaveURL(/\/my-items/, { timeout: 20000 });
-    }
-
-    await clickSideNavRoute(page, 'create-form');
-
-    try {
-      await createFormPage.waitFor({ state: 'visible', timeout: 10000 });
-      return;
-    } catch {
-      // Retry
-    }
-
-    if (
-      await page
-        .getByTestId('login-page')
-        .isVisible()
-        .catch(() => false)
-    ) {
-      throw new Error(
-        'Unexpected redirect to login while opening create-form page'
-      );
-    }
-  }
-
-  await expect(createFormPage).toBeVisible({ timeout: 15000 });
-}
 
 async function navigateToCreateForm(
   page: Page,
   token: string
 ): Promise<void> {
-  await bootstrapAuthenticatedSession(page, token);
-  await ensureOrganizationIsSelected(page);
-  await openCreateFormPage(page);
+  await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+  await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+  await openCreateFormPage(page, E2E_ORG_ID);
 }
 
 test.describe('create-form page', () => {
   let adminToken: string;
 
   test.beforeAll(async ({ request }) => {
+    // Reseed org users so the create-form user dropdown is populated with known data.
+    const endpoint =
+      process.env['AWS_ENDPOINT_URL'] || 'http://localhost:4566';
+    process.env['AWS_ENDPOINT_URL'] = endpoint;
+    process.env['AWS_ENDPOINT_URL_DYNAMODB'] =
+      process.env['AWS_ENDPOINT_URL_DYNAMODB'] || endpoint;
+    process.env['AWS_REGION'] = process.env['AWS_REGION'] || 'us-east-1';
+    process.env['AWS_ACCESS_KEY_ID'] =
+      process.env['AWS_ACCESS_KEY_ID'] || 'test';
+    process.env['AWS_SECRET_ACCESS_KEY'] =
+      process.env['AWS_SECRET_ACCESS_KEY'] || 'test';
+    process.env['STAGE'] = process.env['STAGE'] || 'local';
+
+    const seedPath = path.join(process.cwd(), 'scripts', 'seed-e2e-data.js');
+    const { reseedE2eOrgUsers } = require(seedPath);
+    await reseedE2eOrgUsers();
+
     adminToken = await mintE2eJwt(request, {
       backendBaseUrl,
       e2eSecret,
       userId: 'user-e2e-admin',
       orgIdToRole: {
-        [organizationId]: UserRole.Admin,
+        [E2E_ORG_ID]: UserRole.Admin,
       },
     });
   });
+
+  // ─── UI smoke / interaction tests ────────────────────────────────────────────
 
   test('renders without page-level errors', async ({ page }) => {
     test.setTimeout(90_000);
@@ -281,5 +188,143 @@ test.describe('create-form page', () => {
     const customerCount = await customerOptions.count();
     expect(customerCount).toBeGreaterThan(0);
     expect(customerCount).toBeLessThanOrEqual(allCount);
+  });
+
+  // ─── Submit / journey tests (from screens/create-form) ────────────────────
+
+  test('create checkin form via UI', async ({ page, request }, testInfo) => {
+    testInfo.setTimeout(120_000);
+    const token = await mintE2eJwt(request, {
+      backendBaseUrl,
+      e2eSecret,
+      userId: 'user-e2e-admin',
+      orgIdToRole: { [E2E_ORG_ID]: UserRole.Admin },
+    });
+
+    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+    const usersForCreateForm = page.waitForResponse(
+      (r) =>
+        r.request().method() === 'GET' &&
+        r.url().includes(`/organizations/${E2E_ORG_ID}/users`) &&
+        r.ok(),
+      { timeout: 30000 }
+    );
+    await clickSideNavRoute(page, 'create-form');
+    await waitForTestId(page, 'create-form-page');
+    await usersForCreateForm;
+
+    await page.getByTestId('form-type-checkin').click();
+    await expect(page.getByTestId('create-form-loading-overlay')).toHaveCount(
+      0,
+      { timeout: 5000 }
+    );
+
+    const userSelect = page.getByTestId('create-form-user-select');
+    await userSelect.click();
+    const filterInput = userSelect.locator('input[type="text"]');
+    await filterInput.fill('customer');
+    const customerInv = page.waitForResponse(
+      (r) =>
+        r.request().method() === 'GET' &&
+        r.url().includes(`/inventory/user/${E2E_CUSTOMER_USER_ID}`) &&
+        r.ok(),
+      { timeout: 30000 }
+    );
+    await filterInput.press('ArrowDown');
+    await filterInput.press('Enter');
+    await customerInv;
+
+    const description = `e2e checkin ${Date.now()}`;
+    await page.getByTestId('create-form-description-input').fill(description);
+
+    await fillInventoryRow(page, 0, E2E_BULK_PRODUCT_ID, 1);
+
+    const submitBtn = page.getByTestId('editable-inventory-submit');
+    await expect(submitBtn).toBeEnabled({ timeout: 30000 });
+
+    const createResponse = page.waitForResponse(
+      (r) =>
+        r.request().method() === 'POST' &&
+        r.url().includes('/forms/create') &&
+        r.ok(),
+      { timeout: 30000 }
+    );
+    await submitBtn.click();
+    await createResponse;
+  });
+
+  test('form type toggle switches inventory context', async ({
+    page,
+    request,
+  }) => {
+    const token = await mintE2eJwt(request, {
+      backendBaseUrl,
+      e2eSecret,
+      userId: 'user-e2e-admin',
+      orgIdToRole: { [E2E_ORG_ID]: UserRole.Admin },
+    });
+
+    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+    const usersForCreateForm = page.waitForResponse(
+      (r) =>
+        r.request().method() === 'GET' &&
+        r.url().includes(`/organizations/${E2E_ORG_ID}/users`) &&
+        r.ok(),
+      { timeout: 30000 }
+    );
+    await clickSideNavRoute(page, 'create-form');
+    await waitForTestId(page, 'create-form-page');
+    await usersForCreateForm;
+
+    await expect(page.getByTestId('form-type-checkout')).toBeVisible();
+    await expect(page.getByTestId('form-type-checkin')).toBeVisible();
+
+    await page.getByTestId('form-type-checkout').click();
+    await expect(page.getByTestId('create-form-page')).toBeVisible();
+
+    await page.getByTestId('form-type-checkin').click();
+    await expect(page.getByTestId('create-form-page')).toBeVisible();
+  });
+
+  test('add predefined form items from accordion', async ({
+    page,
+    request,
+  }) => {
+    const token = await mintE2eJwt(request, {
+      backendBaseUrl,
+      e2eSecret,
+      userId: 'user-e2e-admin',
+      orgIdToRole: { [E2E_ORG_ID]: UserRole.Admin },
+    });
+
+    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+    const usersForCreateForm = page.waitForResponse(
+      (r) =>
+        r.request().method() === 'GET' &&
+        r.url().includes(`/organizations/${E2E_ORG_ID}/users`) &&
+        r.ok(),
+      { timeout: 30000 }
+    );
+    await clickSideNavRoute(page, 'create-form');
+    await waitForTestId(page, 'create-form-page');
+    await usersForCreateForm;
+
+    const predefinedSection = page.getByTestId('predefined-forms-section');
+    try {
+      await predefinedSection.waitFor({ state: 'visible', timeout: 10000 });
+    } catch {
+      // Predefined forms may not always be visible; skip if absent.
+      return;
+    }
+
+    const addBtn = page.getByTestId('add-predefined-form-predefined-e2e-kit');
+    await addBtn.click();
+
+    await expect(
+      page.getByTestId('editable-item-row').first()
+    ).toBeVisible({ timeout: 10000 });
   });
 });
