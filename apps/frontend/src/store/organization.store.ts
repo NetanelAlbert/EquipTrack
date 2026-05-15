@@ -24,16 +24,12 @@ interface OrganizationState {
   getProductsStatus: ApiStatus;
   saveProductStatus: ApiStatus;
   deleteProductStatus: ApiStatus;
-
-  // Organization switching state
-  switchingOrganization: boolean;
 }
 
 const emptyState: OrganizationState = {
   users: [],
   products: [],
   predefinedForms: [],
-  switchingOrganization: false,
   invitingUserStatus: {
     isLoading: false,
     error: undefined,

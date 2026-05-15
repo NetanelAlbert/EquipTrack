@@ -35,6 +35,13 @@ export class OrganizationService {
 
     try {
       const orgId = this.userStore.selectedOrganizationId();
+      if (!orgId) {
+        const errorMessage = this.translateService.instant(
+          'organization.users.get.error'
+        );
+        this.organizationStore.setGetUsersError(errorMessage);
+        return;
+      }
       const getUsersResponse = await firstValueFrom(
         this.apiService.endpoints.getUsers.execute(undefined, {
           [ORGANIZATION_ID_PATH_PARAM]: orgId,
