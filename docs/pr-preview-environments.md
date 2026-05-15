@@ -38,7 +38,7 @@ Compose file: [docker-compose.preview.yml](../docker-compose.preview.yml). Docke
   - `https://pr-preview.example.com/123/...` → `http://127.0.0.1:<port-for-123>/...` with the **`/123` prefix stripped** so inner [nginx-preview.conf](../infra/preview/nginx-preview.conf) still serves `/` and `/api/`.
 - **Angular** is built with `--base-href /{pr}/` and runtime **`apiUrl`** set to `https://pr-preview.example.com/{pr}` (no trailing slash) so API calls become `.../{pr}/api/...`.
 
-**Repository / CI variable:** set **`PREVIEW_PUBLIC_ORIGIN`** to the public origin **without a path** (e.g. `https://pr-preview.example.com`). GitHub Actions passes it into [scripts/preview-gha-deploy.sh](../scripts/preview-gha-deploy.sh); when it is set, the deploy also writes **`PREVIEW_PATH_SEGMENT`** to the PR number and registers an **edge nginx snippet**.
+**Host env:** set **`PREVIEW_PUBLIC_ORIGIN`** (e.g. in `/etc/equiptrack/preview-webhook.env`) to the public origin **without a path** (e.g. `https://pr-preview.example.com`). When set, deploy writes **`PREVIEW_PATH_SEGMENT`** to the PR number and registers an **edge nginx snippet** ([preview-deploy-local.sh](../scripts/preview-deploy-local.sh)).
 
 **localStorage caveat:** Browsers treat `https://pr-preview.example.com/123` and `/456` as the **same origin** (same host, scheme, and port). **JWT and other `localStorage` keys are shared** across PR paths in one browser profile. Reviewers comparing two previews should use separate profiles or incognito; **subdomains per PR** avoid that at the cost of more DNS/TLS surface.
 
@@ -57,7 +57,9 @@ One-time on the preview host:
 2. `docker compose -f ~/preview-edge/docker-compose.yml up -d`  
    Uses **host networking** (`network_mode: host`) so nginx can `proxy_pass` to `127.0.0.1:<port>` where each PR stack listens.
 
-Deploys run [scripts/preview-edge-write-snippet.sh](../scripts/preview-edge-write-snippet.sh) to add `~/preview-edge/snippets/pr-<N>.conf` and reload the edge container. PR close runs [scripts/preview-edge-remove-snippet.sh](../scripts/preview-edge-remove-snippet.sh) when **`PREVIEW_PUBLIC_ORIGIN`** is configured.
+Deploys run [scripts/preview-edge-write-snippet.sh](../scripts/preview-edge-write-snippet.sh) to add `~/preview-edge/snippets/pr-<N>.conf` and reload the edge container. PR close runs [scripts/preview-teardown-local.sh](../scripts/preview-teardown-local.sh) (which calls [scripts/preview-edge-remove-snippet.sh](../scripts/preview-edge-remove-snippet.sh)) when **`PREVIEW_PUBLIC_ORIGIN`** is configured.
+
+**GitHub webhook (recommended):** see [pr-preview-webhook.md](pr-preview-webhook.md) — the preview host receives `pull_request` events and runs git fetch + deploy/teardown **without SSH from GitHub Actions**.
 
 Health check: `GET http://<host>/_preview-edge-health` → `200 ok`.
 
@@ -73,15 +75,17 @@ Health check: `GET http://<host>/_preview-edge-health` → `200 ok`.
 2. `npm run preview:compose:up`
 3. Open `http://127.0.0.1:8080` and sign in with a seeded email (e.g. `e2e.admin@example.com`) and the shared password.
 
-## CI deploy (GitHub Actions)
+## Deploy triggers
 
-Workflows:
+**Default:** [GitHub webhook](pr-preview-webhook.md) on the preview host (`pull_request` → git fetch + [scripts/preview-deploy-local.sh](../scripts/preview-deploy-local.sh)). No inbound SSH from GitHub is required.
 
-- [.github/workflows/pr-preview-deploy.yml](../.github/workflows/pr-preview-deploy.yml) — on PR sync, rsyncs sources to the host and runs `docker compose -p pr-<number> ... up -d --build`.
-- [.github/workflows/pr-preview-teardown.yml](../.github/workflows/pr-preview-teardown.yml) — on PR close, `docker compose ... down -v` and removes the edge path snippet when using path-based preview.
-- [.github/workflows/pr-preview-reconcile.yml](../.github/workflows/pr-preview-reconcile.yml) — `workflow_dispatch` only; redeploys open PRs after downtime.
+**Optional — reconcile after downtime (SSH):** [.github/workflows/pr-preview-reconcile.yml](../.github/workflows/pr-preview-reconcile.yml) (`workflow_dispatch` only) rsyncs from the runner and runs deploy on the host. Requires the **preview** environment secrets below.
 
-**GitHub Environment `preview`** should define:
+**Legacy / manual SSH:** [scripts/preview-gha-deploy.sh](../scripts/preview-gha-deploy.sh) (rsync + remote `preview-deploy-local.sh`).
+
+Workflows [.github/workflows/pr-preview-deploy.yml](../.github/workflows/pr-preview-deploy.yml) and [pr-preview-teardown.yml](../.github/workflows/pr-preview-teardown.yml) are documentation placeholders only (webhook replaces automated Actions deploy/teardown).
+
+**GitHub Environment `preview`** (for **reconcile** / optional SSH flows):
 
 | Secret / variable | Purpose |
 |-------------------|---------|
@@ -99,7 +103,7 @@ Optional helper scripts (for custom automation): [scripts/preview-remote-deploy.
 
 Preview deploy and teardown **do not fail CI** if SSH to the preview host fails (instance stopped, security group, or network). The job **succeeds** with a **notice** in the log: deploy/teardown was skipped.
 
-After you **start** the instance again, previews are not updated until each PR gets a new push **or** you run reconcile (below). Normal PR updates already trigger [.github/workflows/pr-preview-deploy.yml](../.github/workflows/pr-preview-deploy.yml).
+After you **start** the instance again, previews are not updated until each PR gets a new push (webhook redeploys) **or** you run reconcile (below).
 
 ## Redeploy all open PRs after a restart (manual only)
 
@@ -107,7 +111,7 @@ Workflow [.github/workflows/pr-preview-reconcile.yml](../.github/workflows/pr-pr
 
 **Suggested routine:** run [.github/workflows/pr-preview-ec2-power.yml](../.github/workflows/pr-preview-ec2-power.yml) with **start** — it waits for the instance and SSH, then **dispatches reconcile automatically**. You can still run **PR preview reconcile** manually anytime.
 
-Shared script: [scripts/preview-gha-deploy.sh](../scripts/preview-gha-deploy.sh).
+Uses [scripts/preview-gha-deploy.sh](../scripts/preview-gha-deploy.sh) (rsync + [preview-deploy-local.sh](../scripts/preview-deploy-local.sh)).
 
 ## Start/stop the preview EC2 without the AWS console (optional)
 

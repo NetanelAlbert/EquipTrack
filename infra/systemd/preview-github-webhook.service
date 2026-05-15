@@ -1,0 +1,14 @@
+[Unit]
+Description=EquipTrack PR preview GitHub webhook (deploy/teardown)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+EnvironmentFile=-/etc/equiptrack/preview-webhook.env
+ExecStart=/usr/bin/node /home/ubuntu/preview/EquipTrack/scripts/preview-github-webhook.cjs
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

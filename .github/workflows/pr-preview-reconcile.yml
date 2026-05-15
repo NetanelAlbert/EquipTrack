@@ -1,5 +1,5 @@
 # After the preview host was offline (e.g. EC2 stopped), redeploy all open PRs in one go.
-# PR pushes already redeploy via pr-preview-deploy.yml — this is only for catch-up after downtime.
+# Normal PR updates are deployed via the preview host webhook (docs/pr-preview-webhook.md).
 # Run manually from the Actions tab (e.g. after starting the instance with pr-preview-ec2-power.yml).
 
 name: PR preview reconcile (open PRs)
