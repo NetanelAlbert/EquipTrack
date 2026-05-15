@@ -1,12 +1,14 @@
 import {
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   OnInit,
   Signal,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -76,6 +78,7 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
   private userStore = inject(UserStore);
   private inventoryStore = inject(InventoryStore);
   private route = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
   form = this.fb.group({
     userID: [null as string | null, Validators.required],
     formDescription: ['', Validators.required],
@@ -142,17 +145,24 @@ export class CreateFormComponent implements OnInit, CanComponentDeactivate {
   ngOnInit(): void {
     this.formsStore.resetAddFormStatus();
     void this.organizationService.getUsers();
-    this.route.queryParams.subscribe((params) => {
-      if (params['formType'] && params['items']) {
-        this.form.patchValue({
-          userID: params['userId'],
-          formType: params['formType'],
-        });
-        const items = JSON.parse(params['items']) as InventoryItem[];
-        this.addAllItems(items);
-      }
-      void this.refreshCurrentInventory(true);
-    });
+    this.route.queryParams
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        if (params['formType'] && params['items']) {
+          this.form.patchValue({
+            userID: params['userId'],
+            formType: params['formType'],
+          });
+          try {
+            const items = JSON.parse(params['items']) as InventoryItem[];
+            this.addAllItems(items);
+          } catch (e) {
+            console.error('Failed to parse items from query params:', e);
+            this.notificationService.showError('errors.api.general');
+          }
+        }
+        void this.refreshCurrentInventory(true);
+      });
   }
 
   addAllItems(items: InventoryItem[]) {

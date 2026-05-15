@@ -1,6 +1,7 @@
 import {
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   input,
@@ -8,6 +9,7 @@ import {
   output,
   Signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { MatListModule } from '@angular/material/list';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -107,6 +109,7 @@ export class EditableInventoryComponent implements OnInit {
   fb = inject(FormBuilder);
   private dialog = inject(MatDialog);
   private translateService = inject(TranslateService);
+  private destroyRef = inject(DestroyRef);
   form: FormGroup = this.fb.group({
     items: this.fb.array<FormGroup<FormInventoryItem>>(
       [],
@@ -130,12 +133,19 @@ export class EditableInventoryComponent implements OnInit {
 
   constructor() {
     this.form.valueChanges
-      .pipe(filter(() => !this.formChanged))
+      .pipe(
+        filter(() => !this.formChanged),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe(() => {
         this.formChanged = true;
       });
     this.form.valueChanges
-      .pipe(debounceTime(100), distinctUntilChanged())
+      .pipe(
+        debounceTime(100),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe(() => {
         this.editedItems.emit(this.getItems());
       });
