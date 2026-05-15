@@ -18,7 +18,7 @@ function makeItemReport(
   };
 }
 
-describe('TodayReportComponent – location editing', () => {
+describe('TodayReportComponent', () => {
   let component: TodayReportComponent;
   let fixture: ComponentFixture<TodayReportComponent>;
 
@@ -131,5 +131,37 @@ describe('TodayReportComponent – location editing', () => {
       expect(component.shouldShowInput(item)).toBe(false);
       document.body.removeChild(outsideElement);
     }));
+  });
+
+  describe('useLastLocation — no direct mutation of store objects', () => {
+    it('should set the location on the local item without mutating the original', () => {
+      const original = makeItemReport({
+        productId: 'prod-1',
+        upi: 'upi-1',
+        location: '',
+      });
+      const localCopy = { ...original };
+
+      component.useLastLocation(localCopy, 'Building B');
+
+      expect(localCopy.location).toBe('Building B');
+      expect(original.location).toBe('');
+    });
+  });
+
+  describe('clearLocation — no direct mutation of store objects', () => {
+    it('should clear the location on the local item without mutating the original', () => {
+      const original = makeItemReport({
+        productId: 'prod-1',
+        upi: 'upi-1',
+        location: 'Building A',
+      });
+      const localCopy = { ...original };
+
+      component.clearLocation(localCopy);
+
+      expect(localCopy.location).toBe('');
+      expect(original.location).toBe('Building A');
+    });
   });
 });

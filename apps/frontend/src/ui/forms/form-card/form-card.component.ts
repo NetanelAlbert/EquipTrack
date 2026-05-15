@@ -1,4 +1,5 @@
-import { Component, Input, inject, signal } from '@angular/core';
+import { Component, DestroyRef, Input, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
@@ -43,6 +44,7 @@ export class FormCardComponent {
   organizationStore = inject(OrganizationStore);
 
   private readonly dialog = inject(MatDialog);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly userStore = inject(UserStore);
   private readonly formsStore = inject(FormsStore);
   private readonly clipboard = inject(Clipboard);
@@ -62,55 +64,58 @@ export class FormCardComponent {
     );
   }
 
-  async onApprove() {
+  onApprove() {
     const dialogRef = this.dialog.open(SignatureDialogComponent, {
       data: { signature: '' },
     });
 
-    dialogRef.afterClosed().subscribe(async (signature: string | undefined) => {
-      if (signature) {
-        try {
-          console.log(
-            'Form approved with signature.',
-            'signature size',
-            signature.length,
-            'for form:',
-            this.form.formID
-          );
-
-          await this.formsStore.approveForm(
-            this.form.formID,
-            this.form.userID,
-            signature
-          );
-        } catch (error) {
-          console.error('Failed to approve form:', error);
-          // TODO: Show error message to user via snackbar or toast
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(async (signature: string | undefined) => {
+        if (signature) {
+          try {
+            await this.formsStore.approveForm(
+              this.form.formID,
+              this.form.userID,
+              signature
+            );
+          } catch (error) {
+            console.error('Failed to approve form:', error);
+            this.notificationService.handleApiError(
+              error,
+              'errors.forms.approve-failed'
+            );
+          }
         }
-      }
-    });
+      });
   }
 
-  async onReject() {
+  onReject() {
     const dialogRef = this.dialog.open(RejectFormDialogComponent, {
       data: { formId: this.form.formID },
     });
 
-    dialogRef.afterClosed().subscribe(async (reason: string | undefined) => {
-      if (reason) {
-        try {
-          console.log('Form rejected with reason:', reason);
-
-          await this.formsStore.rejectForm(
-            this.form.formID,
-            this.form.userID,
-            reason
-          );
-        } catch (error) {
-          console.error('Failed to reject form:', error);
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(async (reason: string | undefined) => {
+        if (reason) {
+          try {
+            await this.formsStore.rejectForm(
+              this.form.formID,
+              this.form.userID,
+              reason
+            );
+          } catch (error) {
+            console.error('Failed to reject form:', error);
+            this.notificationService.handleApiError(
+              error,
+              'errors.forms.reject-failed'
+            );
+          }
         }
-      }
-    });
+      });
   }
 
   onCheckIn() {
