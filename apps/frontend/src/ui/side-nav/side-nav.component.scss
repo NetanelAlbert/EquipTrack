@@ -1,9 +1,20 @@
 @use '../../shared' as shared;
 
 :host {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+
+    top-bar {
+        flex-shrink: 0;
+        position: relative;
+        z-index: 2;
+    }
+
     .sidenav-container {
-        height: 100vh;
-        width: 100vw;
+        flex: 1 1 auto;
+        min-height: 0;
     }
 
     .sidenav {
@@ -11,21 +22,6 @@
         background-color: var(--color-bg-primary);
         border-right: 1px solid var(--color-border-light);
         box-shadow: 0 2px 4px var(--color-shadow-light);
-    }
-
-    .sidenav-header {
-        display: flex;
-        justify-content: flex-end;
-        border-bottom: 1px solid var(--color-border-light);
-    }
-
-    .toggle-button {
-        margin-right: 8px;
-        color: var(--color-accent);
-
-        &:hover {
-            background-color: var(--color-bg-hover);
-        }
     }
 
     mat-nav-list {
@@ -54,17 +50,12 @@
         }
     }
 
-    // Element + class beats Material's `.mat-drawer-content { overflow: auto }` so only `.content` scrolls.
     mat-sidenav-content.mat-drawer-content {
         background-color: var(--color-bg-primary);
         height: 100%;
         display: flex;
         flex-direction: column;
         overflow: hidden;
-    }
-
-    top-bar {
-        flex-shrink: 0;
     }
 
     .content {

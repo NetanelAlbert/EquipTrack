@@ -4,6 +4,7 @@ import {
   badRequest,
   forbidden,
   internalServerError,
+  isErrorResponse,
   unauthorized,
 } from '../responses';
 import { JwtService } from '../../services/jwt.service';
@@ -75,7 +76,7 @@ export const handler = async (
       jwt,
     };
   } catch (error) {
-    if (error && typeof error === 'object' && 'statusCode' in error) {
+    if (isErrorResponse(error)) {
       throw error;
     }
 

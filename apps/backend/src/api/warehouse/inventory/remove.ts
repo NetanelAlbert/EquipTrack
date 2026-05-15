@@ -5,7 +5,12 @@ import {
 } from '@equip-track/shared';
 import { InventoryAdapter } from '../../../db';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { badRequest } from '../../responses';
+import {
+  badRequest,
+  internalServerError,
+  isErrorResponse,
+  organizationIdRequired,
+} from '../../responses';
 import { WAREHOUSE_SUFFIX } from '../../../db/constants';
 import { validateInventoryItems } from '../../validate';
 
@@ -17,7 +22,7 @@ export const handler = async (
 ) => {
   const organizationId = pathParams[ORGANIZATION_ID_PATH_PARAM];
   if (!organizationId) {
-    throw badRequest('Organization ID is required');
+    throw organizationIdRequired;
   }
 
   // Validate items
@@ -112,7 +117,10 @@ export const handler = async (
     return { status: true };
   } catch (error) {
     console.error('Error removing inventory:', error);
-    throw badRequest(
+    if (isErrorResponse(error)) {
+      throw error;
+    }
+    throw internalServerError(
       `Failed to remove inventory: ${
         error instanceof Error ? error.message : 'Unknown error'
       }`

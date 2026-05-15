@@ -28,6 +28,38 @@
       </mat-select>
     </mat-form-field>
 
+    @if (showUserFilters()) {
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'forms.filter.department' | translate }}</mat-label>
+        <mat-select
+          [ngModel]="filterDepartmentId()"
+          (ngModelChange)="onDepartmentChange($event)"
+          name="departmentFilter"
+          data-testid="forms-department-filter"
+        >
+          <mat-option value="all">{{ 'forms.filter.allDepartments' | translate }}</mat-option>
+          @for (dept of departmentFilterOptions(); track dept.id) {
+            <mat-option [value]="dept.id">{{ dept.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'forms.filter.user' | translate }}</mat-label>
+        <mat-select
+          [ngModel]="filterUserId()"
+          (ngModelChange)="filterUserId.set($event)"
+          name="userFilter"
+          data-testid="forms-user-filter"
+        >
+          <mat-option value="all">{{ 'forms.filter.allUsers' | translate }}</mat-option>
+          @for (user of userFilterOptions(); track user.id) {
+            <mat-option [value]="user.id">{{ user.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
+
     <mat-form-field appearance="outline">
       <mat-label>{{ 'forms.sort.label' | translate }}</mat-label>
       <mat-select
