@@ -1,16 +1,23 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
-import { FormType } from '@equip-track/shared';
 import { FormsStore } from './forms.store';
 import { ApiService } from '../services/api.service';
 import { NotificationService } from '../services/notification.service';
 import { UserStore } from './user.store';
+import {
+  FormStatus,
+  FormType,
+  InventoryForm,
+  UserRole,
+} from '@equip-track/shared';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 
 describe('FormsStore', () => {
   let store: InstanceType<typeof FormsStore>;
+  let getPresignedUrlExecute: jest.Mock;
+  let fetchFormsExecute: jest.Mock;
   let createFormExecute: jest.Mock;
   let notificationService: {
     showSuccess: jest.Mock;
@@ -18,18 +25,23 @@ describe('FormsStore', () => {
     handleApiError: jest.Mock;
   };
 
-  const mockForm = {
+  const mockForm: InventoryForm = {
     formID: 'form-1',
     userID: 'user-1',
     organizationID: 'org-1',
-    items: [],
+    status: FormStatus.Pending,
     type: FormType.CheckOut,
-    status: 'pending',
+    items: [],
     createdAtTimestamp: Date.now(),
     lastUpdated: Date.now(),
+    description: 'Test form',
   };
 
   beforeEach(() => {
+    getPresignedUrlExecute = jest.fn();
+    fetchFormsExecute = jest.fn().mockReturnValue(
+      of({ status: true, forms: [mockForm] })
+    );
     createFormExecute = jest.fn().mockReturnValue(
       of({ status: true, form: mockForm })
     );
@@ -49,12 +61,12 @@ describe('FormsStore', () => {
           provide: ApiService,
           useValue: {
             endpoints: {
+              getAllForms: { execute: fetchFormsExecute },
+              getUserForms: { execute: fetchFormsExecute },
+              getPresignedUrl: { execute: getPresignedUrlExecute },
               createForm: { execute: createFormExecute },
-              getAllForms: { execute: jest.fn() },
-              getUserForms: { execute: jest.fn() },
               approveForm: { execute: jest.fn() },
               rejectForm: { execute: jest.fn() },
-              getPresignedUrl: { execute: jest.fn() },
             },
           },
         },
@@ -65,9 +77,9 @@ describe('FormsStore', () => {
         {
           provide: UserStore,
           useValue: {
-            selectedOrganizationId: signal('org-1'),
-            currentRole: signal('admin'),
+            currentRole: signal(UserRole.Admin),
             user: signal({ id: 'user-1', name: 'Test User' }),
+            selectedOrganizationId: signal('org-1'),
           },
         },
         {
@@ -88,6 +100,54 @@ describe('FormsStore', () => {
     delete (globalThis as unknown as Record<string, unknown>)[
       '__EQUIP_TRACK_E2E__'
     ];
+  });
+
+  describe('getPresignedUrl', () => {
+    it('should not mutate the presignedUrls state object when removing expired entry', async () => {
+      await store.fetchForms();
+
+      TestBed.flushEffects();
+
+      getPresignedUrlExecute.mockReturnValue(
+        of({
+          status: true,
+          presignedUrl: 'https://new-url?X-Amz-Expires=300',
+        })
+      );
+
+      expect(store.forms().length).toBe(1);
+
+      const url = await store.getPresignedUrl('form-1', 'user-1', 'org-1');
+
+      expect(url).toBe('https://new-url?X-Amz-Expires=300');
+      expect(getPresignedUrlExecute).toHaveBeenCalled();
+    });
+
+    it('should return cached url when TTL has not expired', async () => {
+      await store.fetchForms();
+      TestBed.flushEffects();
+
+      getPresignedUrlExecute.mockReturnValue(
+        of({
+          status: true,
+          presignedUrl: 'https://fresh-url?X-Amz-Expires=300',
+        })
+      );
+
+      const url1 = await store.getPresignedUrl('form-1', 'user-1', 'org-1');
+      expect(url1).toBe('https://fresh-url?X-Amz-Expires=300');
+      expect(getPresignedUrlExecute).toHaveBeenCalledTimes(1);
+
+      const url2 = await store.getPresignedUrl('form-1', 'user-1', 'org-1');
+      expect(url2).toBe('https://fresh-url?X-Amz-Expires=300');
+      expect(getPresignedUrlExecute).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw when form is not found', async () => {
+      await expect(
+        store.getPresignedUrl('nonexistent', 'user-1', 'org-1')
+      ).rejects.toThrow('Form not found');
+    });
   });
 
   it('addForm shows check-out success message for check-out forms', async () => {
@@ -161,7 +221,7 @@ describe('FormsStore', () => {
           provide: UserStore,
           useValue: {
             selectedOrganizationId: signal(''),
-            currentRole: signal('admin'),
+            currentRole: signal(UserRole.Admin),
             user: signal({ id: 'user-1', name: 'Test User' }),
           },
         },
