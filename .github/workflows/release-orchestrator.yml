@@ -1,0 +1,356 @@
+name: Release Orchestrator
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_fix_attempts:
+        description: 'Maximum AI remediation attempts before escalation'
+        required: false
+        default: '2'
+        type: string
+      dry_run:
+        description: 'Create release branch only (no deploy/promotion)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  actions: write
+  pull-requests: write
+
+concurrency:
+  group: release-orchestrator-auto
+  cancel-in-progress: false
+
+jobs:
+  create-release-branch:
+    name: Create release branch
+    runs-on: ubuntu-latest
+    outputs:
+      release_version: ${{ steps.branch.outputs.release_version }}
+      release_branch: ${{ steps.branch.outputs.release_branch }}
+      release_sha: ${{ steps.branch.outputs.release_sha }}
+      beta_tag: ${{ steps.branch.outputs.beta_tag }}
+      stable_tag: ${{ steps.branch.outputs.stable_tag }}
+      next_develop_version: ${{ steps.branch.outputs.next_develop_version }}
+      max_fix_attempts: ${{ steps.branch.outputs.max_fix_attempts }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Create release metadata
+        id: branch
+        env:
+          MAX_FIX_ATTEMPTS_INPUT: ${{ inputs.max_fix_attempts }}
+        run: |
+          set -euo pipefail
+          git fetch origin develop --prune
+          git checkout -B develop origin/develop
+
+          develop_version="$(node -p "require('./package.json').version")"
+          if [[ "${develop_version}" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)-alpha\.[0-9]+$ ]]; then
+            release_version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+            echo "Derived release version ${release_version} from develop version ${develop_version}"
+          else
+            echo "::error::Cannot auto-derive release version from develop package.json (${develop_version}). Expected x.y.z-alpha.n"
+            exit 1
+          fi
+
+          if ! [[ "${release_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::release_version must match semver core format: x.y.z"
+            exit 1
+          fi
+
+          release_branch="release/v${release_version}"
+          release_source_sha="$(git rev-parse origin/develop)"
+          release_branch_created=false
+
+          if git ls-remote --heads origin "${release_branch}" | grep -q "${release_branch}"; then
+            echo "Release branch already exists: ${release_branch}"
+          else
+            git checkout -B "${release_branch}" "${release_source_sha}"
+            git push origin "${release_branch}"
+            release_branch_created=true
+          fi
+
+          # Bump develop baseline for the next release cycle (x.y.z-alpha.n -> x.y.(z+1)-alpha.0).
+          git checkout -B develop origin/develop
+          current_develop_version="$(node -p "require('./package.json').version")"
+
+          bump_develop_cycle() {
+            npm version prepatch --preid=alpha --no-git-tag-version >/dev/null
+            next_develop_version="$(node -p "require('./package.json').version")"
+            sed -i "s/version: '[^']*'/version: '${next_develop_version}'/g" apps/frontend/src/environments/environment.ts
+            sed -i "s/version: '[^']*'/version: '${next_develop_version}'/g" apps/frontend/src/environments/environment.prod.ts
+            git add package.json package-lock.json apps/frontend/src/environments/environment.ts apps/frontend/src/environments/environment.prod.ts
+            if ! git diff --cached --quiet; then
+              git commit -m "chore: prepare develop for next alpha cycle ${next_develop_version} [skip version]"
+              git push origin develop
+            fi
+          }
+
+          next_develop_version="${current_develop_version}"
+          if [ "${release_branch_created}" = "true" ]; then
+            bump_develop_cycle
+          elif [[ "${current_develop_version}" == "${release_version}-alpha."* ]]; then
+            # Recovery path: if branch exists but develop still points to same release line, advance once.
+            bump_develop_cycle
+          else
+            echo "Develop already advanced to ${current_develop_version}; skipping alpha prepatch bump."
+          fi
+
+          git fetch origin "${release_branch}"
+          release_sha="$(git rev-parse "origin/${release_branch}")"
+          beta_tag="v${release_version}-beta.0"
+          stable_tag="v${release_version}"
+
+          if ! [[ "${MAX_FIX_ATTEMPTS_INPUT}" =~ ^[0-9]+$ ]]; then
+            echo "::error::max_fix_attempts must be an integer"
+            exit 1
+          fi
+
+          {
+            echo "release_version=${release_version}"
+            echo "release_branch=${release_branch}"
+            echo "release_sha=${release_sha}"
+            echo "beta_tag=${beta_tag}"
+            echo "stable_tag=${stable_tag}"
+            echo "next_develop_version=${next_develop_version}"
+            echo "max_fix_attempts=${MAX_FIX_ATTEMPTS_INPUT}"
+          } >> "${GITHUB_OUTPUT}"
+
+  dry-run-summary:
+    name: Dry run summary
+    needs: create-release-branch
+    if: ${{ inputs.dry_run }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print dry-run details
+        run: |
+          {
+            echo "## Dry Run Complete"
+            echo ""
+            echo "- Release version: \`${{ needs.create-release-branch.outputs.release_version }}\`"
+            echo "- Release branch: \`${{ needs.create-release-branch.outputs.release_branch }}\`"
+            echo "- Release SHA: \`${{ needs.create-release-branch.outputs.release_sha }}\`"
+            echo "- Next beta tag: \`${{ needs.create-release-branch.outputs.beta_tag }}\`"
+            echo "- Next stable tag: \`${{ needs.create-release-branch.outputs.stable_tag }}\`"
+            echo "- Next develop alpha baseline: \`${{ needs.create-release-branch.outputs.next_develop_version }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  promote-release:
+    name: Deploy, validate, promote, merge back
+    needs: create-release-branch
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_BRANCH: ${{ needs.create-release-branch.outputs.release_branch }}
+      RELEASE_SHA: ${{ needs.create-release-branch.outputs.release_sha }}
+      BETA_TAG: ${{ needs.create-release-branch.outputs.beta_tag }}
+      STABLE_TAG: ${{ needs.create-release-branch.outputs.stable_tag }}
+      MAX_FIX_ATTEMPTS: ${{ needs.create-release-branch.outputs.max_fix_attempts }}
+      RELEASE_FRONTEND_URL: ${{ vars.E2E_RELEASE_FRONTEND_URL }}
+      RELEASE_BACKEND_URL: ${{ vars.E2E_RELEASE_BACKEND_URL }}
+      PROD_FRONTEND_URL: ${{ vars.E2E_PROD_FRONTEND_URL }}
+      PROD_BACKEND_URL: ${{ vars.E2E_PROD_BACKEND_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Promote release flow
+        run: |
+          set -euo pipefail
+
+          wait_for_run() {
+            local run_id="$1"
+            local timeout_seconds="$2"
+            local elapsed=0
+            local interval=15
+            while true; do
+              status="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '.status')"
+              conclusion="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '.conclusion')"
+              if [ "${status}" = "completed" ]; then
+                if [ "${conclusion}" = "success" ]; then
+                  return 0
+                fi
+                echo "::error::Run ${run_id} failed with conclusion=${conclusion}"
+                return 1
+              fi
+              sleep "${interval}"
+              elapsed=$((elapsed + interval))
+              if [ "${elapsed}" -ge "${timeout_seconds}" ]; then
+                echo "::error::Timed out waiting for run ${run_id}"
+                return 1
+              fi
+            done
+          }
+
+          latest_run_id_for() {
+            local workflow_name="$1"
+            local event="$2"
+            local branch="$3"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/runs" \
+              --jq ".workflow_runs[] | select(.name == \"${workflow_name}\" and .event == \"${event}\" and .head_branch == \"${branch}\") | .id" \
+              | head -n 1
+          }
+
+          wait_for_matching_run_id() {
+            local workflow_name="$1"
+            local event="$2"
+            local branch="$3"
+            local timeout_seconds="$4"
+            local elapsed=0
+            local interval=10
+            local run_id=""
+            while [ "${elapsed}" -lt "${timeout_seconds}" ]; do
+              run_id="$(latest_run_id_for "${workflow_name}" "${event}" "${branch}")"
+              if [ -n "${run_id}" ]; then
+                echo "${run_id}"
+                return 0
+              fi
+              sleep "${interval}"
+              elapsed=$((elapsed + interval))
+            done
+            echo "::error::Timed out waiting for run id (${workflow_name}, ${event}, ${branch})" >&2
+            return 1
+          }
+
+          run_and_wait_dispatch() {
+            local workflow_file="$1"
+            local ref="$2"
+            shift 2
+            local before_ids
+            before_ids="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow_file}/runs" --jq '.workflow_runs[0].id // 0' 2>/dev/null || echo 0)"
+            gh workflow run "${workflow_file}" --ref "${ref}" "$@"
+            sleep 8
+            local run_id
+            run_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow_file}/runs" --jq '.workflow_runs[0].id // 0')"
+            if [ "${run_id}" = "0" ] || [ "${run_id}" = "${before_ids}" ]; then
+              echo "::error::Could not resolve workflow run for ${workflow_file}"
+              return 1
+            fi
+            wait_for_run "${run_id}" 7200
+          }
+
+          git fetch origin --tags
+          git checkout -B "${RELEASE_BRANCH}" "origin/${RELEASE_BRANCH}"
+
+          if git rev-parse "${BETA_TAG}" >/dev/null 2>&1; then
+            echo "::error::Tag ${BETA_TAG} already exists"
+            exit 1
+          fi
+          git tag "${BETA_TAG}" "${RELEASE_SHA}"
+          git push origin "${BETA_TAG}"
+
+          release_deploy_run_id="$(wait_for_matching_run_id 'Deploy Full Stack to AWS' 'push' "${RELEASE_BRANCH}" 300)"
+          wait_for_run "${release_deploy_run_id}" 10800
+
+          run_and_wait_dispatch "e2e-localstack-full-regression.yml" "${RELEASE_BRANCH}" || {
+            attempts=1
+            max_attempts="${MAX_FIX_ATTEMPTS}"
+            while [ "${attempts}" -le "${max_attempts}" ]; do
+              echo "Triggering AI remediation attempt ${attempts}/${max_attempts}"
+              gh workflow run "release-failure-remediation.yml" \
+                --ref "${RELEASE_BRANCH}" \
+                -f release_branch="${RELEASE_BRANCH}" \
+                -f release_version="${STABLE_TAG#v}" \
+                -f failed_stage="release-localstack-full" \
+                -f failure_run_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${release_deploy_run_id}" \
+                -f attempt="${attempts}"
+              remediation_run_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/release-failure-remediation.yml/runs" --jq '.workflow_runs[0].id // 0')"
+              if [ "${remediation_run_id}" = "0" ] || ! wait_for_run "${remediation_run_id}" 10800; then
+                echo "::error::AI remediation workflow failed"
+                exit 1
+              fi
+
+              git fetch origin "${RELEASE_BRANCH}"
+              RELEASE_SHA="$(git rev-parse "origin/${RELEASE_BRANCH}")"
+              if run_and_wait_dispatch "e2e-localstack-full-regression.yml" "${RELEASE_BRANCH}"; then
+                break
+              fi
+              attempts=$((attempts + 1))
+            done
+
+            if [ "${attempts}" -gt "${max_attempts}" ]; then
+              echo "::error::Release gate failed after ${max_attempts} remediation attempts"
+              exit 1
+            fi
+          }
+
+          if [ -z "${RELEASE_FRONTEND_URL}" ] || [ -z "${RELEASE_BACKEND_URL}" ]; then
+            echo "::error::Set repository variables E2E_RELEASE_FRONTEND_URL and E2E_RELEASE_BACKEND_URL"
+            exit 1
+          fi
+
+          run_and_wait_dispatch "e2e-deployed-core-regression.yml" "${RELEASE_BRANCH}" \
+            -f target_environment=release \
+            -f base_url="${RELEASE_FRONTEND_URL}" \
+            -f backend_base_url="${RELEASE_BACKEND_URL}" \
+            -f suite=full
+
+          if [ -z "${PROD_FRONTEND_URL}" ] || [ -z "${PROD_BACKEND_URL}" ]; then
+            echo "::error::Set repository variables E2E_PROD_FRONTEND_URL and E2E_PROD_BACKEND_URL"
+            exit 1
+          fi
+
+          git fetch origin master "${RELEASE_BRANCH}"
+          git checkout -B master origin/master
+          if git merge-base --is-ancestor "origin/${RELEASE_BRANCH}" master; then
+            echo "master already contains ${RELEASE_BRANCH}"
+          else
+            git merge --no-ff --no-edit "origin/${RELEASE_BRANCH}"
+            git push origin master
+          fi
+          RELEASE_SHA="$(git rev-parse HEAD)"
+
+          if git rev-parse "${STABLE_TAG}" >/dev/null 2>&1; then
+            echo "::error::Tag ${STABLE_TAG} already exists"
+            exit 1
+          fi
+          git tag "${STABLE_TAG}" "${RELEASE_SHA}"
+          git push origin "${STABLE_TAG}"
+
+          production_deploy_run_id="$(wait_for_matching_run_id 'Deploy Full Stack to AWS' 'push' "master" 300)"
+          wait_for_run "${production_deploy_run_id}" 10800
+
+          run_and_wait_dispatch "e2e-deployed-core-regression.yml" "master" \
+            -f target_environment=production \
+            -f base_url="${PROD_FRONTEND_URL}" \
+            -f backend_base_url="${PROD_BACKEND_URL}" \
+            -f suite=full
+
+          git fetch origin develop master
+          git checkout -B develop origin/develop
+          if git merge-base --is-ancestor origin/master develop; then
+            echo "No merge-back needed: master is already in develop"
+          else
+            git merge --no-ff --no-edit origin/master
+            git push origin develop
+          fi
+
+          {
+            echo "## Release Orchestration Complete"
+            echo ""
+            echo "- Release branch: \`${RELEASE_BRANCH}\`"
+            echo "- Beta deploy tag: \`${BETA_TAG}\`"
+            echo "- Stable production tag: \`${STABLE_TAG}\`"
+            echo "- Merge-back target: \`develop\`"
+          } >> "${GITHUB_STEP_SUMMARY}"

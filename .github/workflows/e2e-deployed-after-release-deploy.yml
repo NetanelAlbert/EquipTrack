@@ -1,0 +1,27 @@
+name: E2E Deployed Full After Release Deploy
+
+on:
+  workflow_run:
+    workflows:
+      - Deploy Full Stack to AWS
+    types:
+      - completed
+
+jobs:
+  deployed-full-regression:
+    uses: ./.github/workflows/e2e-deployed-core-reusable.yml
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.event.workflow_run.head_branch, 'release/') &&
+      contains(github.event.workflow_run.display_title, '-beta.') &&
+      vars.E2E_RELEASE_FRONTEND_URL != '' &&
+      vars.E2E_RELEASE_BACKEND_URL != ''
+    with:
+      base_url: ${{ vars.E2E_RELEASE_FRONTEND_URL }}
+      backend_base_url: ${{ vars.E2E_RELEASE_BACKEND_URL }}
+      target_environment: release
+      checkout_ref: ${{ github.event.workflow_run.head_sha }}
+      artifact_suffix: deployed-full-after-release
+      summarize_label: deployed-after-release
+      suite: full
+    secrets: inherit

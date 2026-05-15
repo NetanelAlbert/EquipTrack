@@ -19,6 +19,14 @@ on:
         description: 'Backend API base URL (e.g. https://api.example.com)'
         required: true
         type: string
+      suite:
+        description: 'Deployed suite to run'
+        required: true
+        default: core
+        type: choice
+        options:
+          - core
+          - full
 
 jobs:
   deployed-core-regression:
@@ -30,4 +38,5 @@ jobs:
       checkout_ref: ${{ github.sha }}
       artifact_suffix: deployed-core-manual
       summarize_label: deployed
+      suite: ${{ github.event.inputs.suite }}
     secrets: inherit

@@ -28,4 +28,5 @@ jobs:
       checkout_ref: ${{ github.event.workflow_run.head_sha }}
       artifact_suffix: deployed-core-after-develop
       summarize_label: deployed-after-develop
+      suite: core
     secrets: inherit

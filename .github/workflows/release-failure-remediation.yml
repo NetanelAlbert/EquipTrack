@@ -1,0 +1,161 @@
+name: Release Failure Remediation
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_branch:
+        description: 'Release branch to fix (example: release/v1.2.3)'
+        required: true
+        type: string
+      release_version:
+        description: 'Release version under remediation (example: 1.2.3)'
+        required: true
+        type: string
+      failed_stage:
+        description: 'Failed stage identifier'
+        required: true
+        type: string
+      failure_run_url:
+        description: 'URL for the failed workflow run'
+        required: true
+        type: string
+      attempt:
+        description: 'Current remediation attempt number'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  remediate:
+    name: Trigger Cursor fix and auto-merge
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Create Cursor remediation issue
+        id: issue
+        env:
+          RELEASE_BRANCH: ${{ inputs.release_branch }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+          FAILED_STAGE: ${{ inputs.failed_stage }}
+          FAILURE_RUN_URL: ${{ inputs.failure_run_url }}
+          ATTEMPT: ${{ inputs.attempt }}
+        run: |
+          set -euo pipefail
+          gh label create cursor-auto-fix --color 5319e7 --description "Cursor generated release remediation PRs" >/dev/null 2>&1 || true
+          gh label create release-automation --color 1d76db --description "Release pipeline automation artifacts" >/dev/null 2>&1 || true
+
+          marker="release-fix-${RELEASE_VERSION}-attempt-${ATTEMPT}"
+          issue_title="[Cursor Auto Fix] ${marker}"
+          issue_body="$(cat <<EOF
+          Automated remediation request for release pipeline failure.
+
+          - Marker: \`${marker}\`
+          - Release branch: \`${RELEASE_BRANCH}\`
+          - Release version: \`${RELEASE_VERSION}\`
+          - Failed stage: \`${FAILED_STAGE}\`
+          - Failed run: ${FAILURE_RUN_URL}
+
+          Required action for Cursor web agent:
+          1. Create a fix branch from \`${RELEASE_BRANCH}\`.
+          2. Implement the smallest safe fix.
+          3. Open a PR targeting \`${RELEASE_BRANCH}\`.
+          4. Add label \`cursor-auto-fix\`.
+          5. Include marker \`${marker}\` in PR body.
+          EOF
+          )"
+
+          issue_url="$(gh issue create \
+            --title "${issue_title}" \
+            --body "${issue_body}" \
+            --label "cursor-auto-fix" \
+            --label "release-automation" \
+            --json url \
+            --jq '.url')"
+
+          echo "marker=${marker}" >> "${GITHUB_OUTPUT}"
+          echo "issue_url=${issue_url}" >> "${GITHUB_OUTPUT}"
+
+      - name: Wait for Cursor fix PR
+        id: pr
+        env:
+          RELEASE_BRANCH: ${{ inputs.release_branch }}
+          MARKER: ${{ steps.issue.outputs.marker }}
+        run: |
+          set -euo pipefail
+          timeout_seconds=3600
+          elapsed=0
+          interval=20
+          pr_number=""
+
+          while [ "${elapsed}" -lt "${timeout_seconds}" ]; do
+            pr_number="$(gh pr list \
+              --state open \
+              --base "${RELEASE_BRANCH}" \
+              --label "cursor-auto-fix" \
+              --json number,body \
+              --jq ".[] | select((.body // \"\") | contains(\"${MARKER}\")) | .number" \
+              | head -n 1 || true)"
+
+            if [ -n "${pr_number}" ]; then
+              echo "pr_number=${pr_number}" >> "${GITHUB_OUTPUT}"
+              exit 0
+            fi
+
+            sleep "${interval}"
+            elapsed=$((elapsed + interval))
+          done
+
+          echo "::error::Timed out waiting for Cursor auto-fix PR for marker ${MARKER}"
+          exit 1
+
+      - name: Enable auto-merge (checks + approval enforced)
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          ATTEMPT: ${{ inputs.attempt }}
+          FAILED_STAGE: ${{ inputs.failed_stage }}
+        run: |
+          set -euo pipefail
+          gh pr comment "${PR_NUMBER}" --body "Release remediation attempt ${ATTEMPT} for stage \`${FAILED_STAGE}\`: enabling auto-merge after required checks and approval."
+          gh pr merge "${PR_NUMBER}" --auto --squash --delete-branch
+
+      - name: Wait for PR to merge
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+        run: |
+          set -euo pipefail
+          timeout_seconds=5400
+          elapsed=0
+          interval=20
+
+          while [ "${elapsed}" -lt "${timeout_seconds}" ]; do
+            state="$(gh pr view "${PR_NUMBER}" --json state --jq '.state')"
+            merged="$(gh pr view "${PR_NUMBER}" --json mergedAt --jq '.mergedAt')"
+            if [ "${state}" = "MERGED" ] || [ "${merged}" != "null" ]; then
+              echo "PR ${PR_NUMBER} merged"
+              exit 0
+            fi
+            if [ "${state}" = "CLOSED" ] && [ "${merged}" = "null" ]; then
+              echo "::error::PR ${PR_NUMBER} closed without merge"
+              exit 1
+            fi
+            sleep "${interval}"
+            elapsed=$((elapsed + interval))
+          done
+
+          echo "::error::Timed out waiting for PR ${PR_NUMBER} merge"
+          exit 1
+
+      - name: Summary
+        run: |
+          {
+            echo "## Remediation complete"
+            echo ""
+            echo "- Marker: \`${{ steps.issue.outputs.marker }}\`"
+            echo "- Issue: ${{ steps.issue.outputs.issue_url }}"
+            echo "- PR: #${{ steps.pr.outputs.pr_number }}"
+          } >> "${GITHUB_STEP_SUMMARY}"

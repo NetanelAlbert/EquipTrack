@@ -2,6 +2,15 @@ name: E2E LocalStack Full Regression
 
 on:
   workflow_dispatch:
+    inputs:
+      run_backend_e2e:
+        description: 'Run backend-e2e contract tests before Playwright'
+        required: false
+        default: true
+        type: boolean
+  push:
+    branches:
+      - 'release/*'
   schedule:
     - cron: '0 3 * * *' # Nightly at 03:00 UTC
 
@@ -31,6 +40,13 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Run lint and unit tests
+        run: npx nx run-many -t lint,test --all --nxBail
+
+      - name: Run backend e2e contract tests
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_backend_e2e == 'true' }}
+        run: npx nx run backend-e2e:e2e
 
       - name: Install Playwright browser dependencies
         run: npx playwright install --with-deps chromium

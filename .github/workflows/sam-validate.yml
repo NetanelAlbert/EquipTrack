@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - develop
+      - 'release/*'
 
 env:
   SAM_CLI_TELEMETRY: '0'

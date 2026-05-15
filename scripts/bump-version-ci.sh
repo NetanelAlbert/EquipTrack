@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Bump package.json version for CI based on GITHUB_REF (master = patch, develop = pre-release).
+# Bump package.json version for CI based on GITHUB_REF:
+# - master -> stable patch
+# - develop -> alpha prerelease
+# - release/* -> beta prerelease
 # Updates frontend environment version strings. New version is read from package.json after this exits.
 set -euo pipefail
 
@@ -11,6 +14,14 @@ case "$ref" in
     npm version patch --no-git-tag-version >/dev/null
     ;;
   refs/heads/develop)
+    current=$(node -p "require('./package.json').version")
+    if [[ "$current" == *-* ]]; then
+      npm version prerelease --preid=alpha --no-git-tag-version >/dev/null
+    else
+      npm version prepatch --preid=alpha --no-git-tag-version >/dev/null
+    fi
+    ;;
+  refs/heads/release/*)
     current=$(node -p "require('./package.json').version")
     if [[ "$current" == *-* ]]; then
       npm version prerelease --preid=beta --no-git-tag-version >/dev/null
