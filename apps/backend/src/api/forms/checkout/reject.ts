@@ -9,6 +9,7 @@ import { FormsAdapter } from '../../../db/tables/forms.adapter';
 import {
   badRequest,
   internalServerError,
+  isErrorResponse,
   jwtPayloadRequired,
   organizationIdRequired,
   userIdRequired,
@@ -68,8 +69,8 @@ export const handler = async (
     return { status: true, updatedForm };
   } catch (error) {
     console.error('Error rejecting form:', error);
-    if (error && typeof error === 'object' && 'statusCode' in error) {
-      throw error; // Re-throw bad request errors
+    if (isErrorResponse(error)) {
+      throw error;
     }
     throw internalServerError('Failed to reject form');
   }

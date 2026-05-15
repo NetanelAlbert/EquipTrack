@@ -225,6 +225,24 @@ Resources:
           E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
           E2E_AUTH_SECRET: !Ref E2eAuthSecret
 
+  LambdagetItemReportHistory:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'getItemReportHistory'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
   LambdagetItemsToReport:
     Type: AWS::Serverless::Function
     Properties:
@@ -706,6 +724,18 @@ Resources:
               responses:
                 default:
                   description: Default response
+          /api/organizations/{organizationId}/reports/item-history:
+            post:
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetItemReportHistory.Arn
+              responses:
+                default:
+                  description: Default response
           /api/organizations/{organizationId}/reports/items-to-report:
             get:
               x-amazon-apigateway-integration:
@@ -824,6 +854,13 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref LambdagetInventory
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
+  LambdaInvokegetItemReportHistory:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdagetItemReportHistory
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
