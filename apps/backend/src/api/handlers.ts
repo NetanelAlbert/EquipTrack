@@ -25,6 +25,7 @@ import {
   APIGatewayProxyEventPathParameters,
 } from 'aws-lambda';
 import { handler as getItemsToReportHandler } from './warehouse/reports/get-items-to-report';
+import { handler as getItemReportHistoryHandler } from './warehouse/reports/get-item-history';
 
 // Handler signatures
 export type HandlerFunction<Req, Res> = (
@@ -77,4 +78,5 @@ export const handlers: HandlersDefinition = {
   getReportsByDates: getReportsByDatesHandler,
   publishPartialReport: publishPartialReportHandler,
   getItemsToReport: getItemsToReportHandler,
+  getItemReportHistory: getItemReportHistoryHandler,
 };

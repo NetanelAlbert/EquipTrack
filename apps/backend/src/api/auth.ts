@@ -7,7 +7,7 @@ import {
   UserInOrganization,
 } from '@equip-track/shared';
 import { APIGatewayProxyEvent } from 'aws-lambda';
-import { badRequest, forbidden, unauthorized } from './responses';
+import { badRequest, forbidden, isErrorResponse, unauthorized } from './responses';
 import { JwtService } from '../services/jwt.service';
 
 const jwtService = new JwtService();
@@ -67,8 +67,7 @@ async function validateAndExtractJwt(
 
     return payload;
   } catch (error) {
-    // If it's already an unauthorized error, rethrow it
-    if (error && typeof error === 'object' && 'statusCode' in error) {
+    if (isErrorResponse(error)) {
       throw error;
     }
 

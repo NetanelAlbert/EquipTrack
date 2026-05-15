@@ -1,7 +1,12 @@
 import { AddInventory, ErrorKeys, ORGANIZATION_ID_PATH_PARAM } from '@equip-track/shared';
 import { InventoryAdapter } from '../../../db';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { badRequest, customError, ErrorResponse } from '../../responses';
+import {
+  customError,
+  internalServerError,
+  isErrorResponse,
+  organizationIdRequired,
+} from '../../responses';
 import { WAREHOUSE_SUFFIX } from '../../../db/constants';
 import { validateInventoryItems } from '../../validate';
 
@@ -13,7 +18,7 @@ export const handler = async (
 ) => {
   const organizationId = pathParams[ORGANIZATION_ID_PATH_PARAM];
   if (!organizationId) {
-    throw badRequest('Organization ID is required');
+    throw organizationIdRequired;
   }
 
   // Validate items
@@ -100,10 +105,10 @@ export const handler = async (
     return { status: true };
   } catch (error) {
     console.error('Error adding inventory:', error);
-    if (error && typeof error === 'object' && 'statusCode' in error) {
-      throw error as ErrorResponse;
+    if (isErrorResponse(error)) {
+      throw error;
     }
-    throw badRequest(
+    throw internalServerError(
       `Failed to add inventory: ${
         error instanceof Error ? error.message : 'Unknown error'
       }`

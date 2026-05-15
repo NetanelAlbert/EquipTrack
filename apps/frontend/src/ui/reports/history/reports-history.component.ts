@@ -93,6 +93,7 @@ export class ReportsHistoryComponent {
 
   filterUserId = signal<string | 'all'>('all');
   filterDepartmentId = signal<string | 'all'>('all');
+  filterReporterId = signal<string | 'all'>('all');
 
   multiSort = viewChild(MatMultiSort);
   historyDataSource?: ReportsMultiSortDataSource<HistoryDisplayRow>;
@@ -120,6 +121,18 @@ export class ReportsHistoryComponent {
     () => this.userStore.currentOrganization()?.departments ?? []
   );
 
+  reporterOptions = computed(() => {
+    const reporters = new Set<string>();
+    for (const row of this.mergedRows()) {
+      if (!row.isNotReported && row.reportedBy) {
+        reporters.add(row.reportedBy);
+      }
+    }
+    return Array.from(reporters).sort((a, b) =>
+      this.getReporterName(a).localeCompare(this.getReporterName(b))
+    );
+  });
+
   expectedKeys = computed(() =>
     flattenExpectedInventoryKeys(this.reportsStore.itemsToReport())
   );
@@ -140,6 +153,7 @@ export class ReportsHistoryComponent {
     let rows = this.mergedRows();
     const uid = this.filterUserId();
     const did = this.filterDepartmentId();
+    const rid = this.filterReporterId();
 
     if (uid !== 'all') {
       rows = rows.filter(
@@ -153,6 +167,12 @@ export class ReportsHistoryComponent {
         const subId = this.resolveSubDepartmentIdForRow(r);
         return deptId === did || subId === did;
       });
+    }
+
+    if (rid !== 'all') {
+      rows = rows.filter(
+        (r: HistoryDisplayRow) => !r.isNotReported && r.reportedBy === rid
+      );
     }
 
     return rows;
@@ -283,6 +303,7 @@ export class ReportsHistoryComponent {
   private resetFilters(): void {
     this.filterUserId.set('all');
     this.filterDepartmentId.set('all');
+    this.filterReporterId.set('all');
   }
 
   goToDate(date: Date) {
@@ -311,6 +332,10 @@ export class ReportsHistoryComponent {
       return this.translate.instant('reports.warehouse-items');
     }
     return this.organizationStore.getUserName(holderId) || holderId;
+  }
+
+  getReporterName(reporterId: string): string {
+    return this.organizationStore.getUserName(reporterId) || reporterId;
   }
 
   resolveHolderForRowKey(row: HistoryDisplayRow): string {

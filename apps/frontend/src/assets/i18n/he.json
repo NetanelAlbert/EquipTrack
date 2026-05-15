@@ -326,8 +326,10 @@
     "batchPublish": "פרסם נבחרים",
     "filterByHolder": "סנן לפי מחזיק",
     "filterByDepartment": "סנן לפי מחלקה",
+    "filterByReporter": "סנן לפי מדווח",
     "filterAllHolders": "כל המחזיקים",
     "filterAllDepartments": "כל המחלקות",
+    "filterAllReporters": "כל המדווחים",
     "columnProduct": "מוצר",
     "columnStatus": "סטטוס",
     "columnHolder": "מחזיק",
@@ -348,6 +350,18 @@
     "items-published": "דוחות מרובים עודכנו בהצלחה",
     "my-items": "הפריטים שלי",
     "warehouse-items": "פריטי מחסן"
+  },
+  "trace": {
+    "title": "מעקב מוצר",
+    "selectProduct": "בחר מוצר",
+    "selectUpi": "בחר צ׳",
+    "search": "חיפוש",
+    "noReports": "לא נמצאו דוחות",
+    "noReportsDescription": "לא נמצאה היסטוריית דוחות עבור הפריט שנבחר.",
+    "reportHistory": "היסטוריית דוחות",
+    "reportsFound": "דוחות נמצאו",
+    "columnDate": "תאריך",
+    "columnTime": "זמן דיווח"
   },
   "errors": {
     "not-allowed": {

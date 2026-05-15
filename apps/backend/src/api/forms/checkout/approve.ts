@@ -8,6 +8,7 @@ import { S3Service } from '../../../services/s3.service';
 import {
   badRequest,
   internalServerError,
+  isErrorResponse,
   jwtPayloadRequired,
   organizationIdRequired,
   userIdRequired,
@@ -118,8 +119,7 @@ export const handler = async (
   } catch (error) {
     console.error('Error approving form:', error);
 
-    // Re-throw badRequest errors to maintain proper error responses
-    if (error && typeof error === 'object' && 'statusCode' in error) {
+    if (isErrorResponse(error)) {
       throw error;
     }
 
