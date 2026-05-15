@@ -11,7 +11,9 @@ services:
       - PERSISTENCE=1
     volumes:
       - localstack-data:/var/lib/localstack
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Do not mount docker.sock: LocalStack can use the host daemon and pull extra
+      # images (often from Docker Hub), hitting anonymous rate limits in CI.
+      # SERVICES are dynamodb,s3,secretsmanager only — no container-backed emulators.
     healthcheck:
       test: ['CMD', 'bash', '-c', 'curl -fsS http://localhost:4566/_localstack/health > /dev/null']
       interval: 5s
