@@ -8,7 +8,9 @@ import { TranslateModule } from '@ngx-translate/core';
 import { FormsTabContentComponent } from './forms-tab-content/forms-tab-content.component';
 import { FormQueryParams } from '../../utils/forms.medels';
 import { ActivatedRoute } from '@angular/router';
-import { FormStatus, FormType } from '@equip-track/shared';
+import { FormStatus, FormType, UserRole } from '@equip-track/shared';
+import { UserStore } from '../../store/user.store';
+import { OrganizationService } from '../../services/organization.service';
 
 const formTypeToTabIndex: Record<FormType, number> = {
   [FormType.CheckOut]: 0,
@@ -22,8 +24,8 @@ const formTypeToTabIndex: Record<FormType, number> = {
     MatTabsModule,
     MatProgressSpinnerModule,
     TranslateModule,
-    FormsTabContentComponent
-],
+    FormsTabContentComponent,
+  ],
   templateUrl: './forms.component.html',
   styleUrl: './forms.component.scss',
 })
@@ -32,6 +34,8 @@ export class FormsComponent implements OnInit {
 
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly userStore = inject(UserStore);
+  private readonly organizationService = inject(OrganizationService);
 
   readonly formsStore = inject(FormsStore);
   readonly checkOutQueryParams = computed(() =>
@@ -45,10 +49,20 @@ export class FormsComponent implements OnInit {
       : undefined
   );
 
+  readonly showUserFilters = computed(() => {
+    const role = this.userStore.currentRole();
+    return role === UserRole.Admin || role === UserRole.WarehouseManager;
+  });
+
   selectedTabIndex = formTypeToTabIndex[FormType.CheckOut];
 
   ngOnInit(): void {
     this.formsStore.fetchForms();
+
+    if (this.showUserFilters()) {
+      this.organizationService.getUsers();
+    }
+
     this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       if (
         params['formType'] &&
