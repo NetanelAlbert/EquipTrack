@@ -25,13 +25,34 @@ interface GoogleCredentialResponse {
   select_by: string; // How the user signed in
 }
 
-let googleSignInInitialized = false;
-let activeCredentialHandler: ((r: GoogleCredentialResponse) => void) | null = null;
+/** Symbol used as a key on `window` so the flag survives HMR module re-evaluation. */
+const GIS_INIT_FLAG = '__et_gis_initialized__';
 
-/** Resets module-level GIS state. Call only from tests. */
+type WindowWithGis = Window & {
+  [GIS_INIT_FLAG]?: boolean;
+  __et_gis_handler__?: ((r: GoogleCredentialResponse) => void) | null;
+};
+
+function isGisInitialized(): boolean {
+  return !!(window as WindowWithGis)[GIS_INIT_FLAG];
+}
+
+function markGisInitialized(): void {
+  (window as WindowWithGis)[GIS_INIT_FLAG] = true;
+}
+
+function getActiveHandler(): ((r: GoogleCredentialResponse) => void) | null | undefined {
+  return (window as WindowWithGis).__et_gis_handler__;
+}
+
+function setActiveHandler(fn: ((r: GoogleCredentialResponse) => void) | null): void {
+  (window as WindowWithGis).__et_gis_handler__ = fn;
+}
+
+/** Resets window-level GIS state. Call only from tests. */
 export function resetGoogleSignInStateForTesting(): void {
-  googleSignInInitialized = false;
-  activeCredentialHandler = null;
+  (window as WindowWithGis)[GIS_INIT_FLAG] = false;
+  (window as WindowWithGis).__et_gis_handler__ = null;
 }
 
 @Component({
@@ -106,13 +127,13 @@ export class GoogleSignInComponent implements AfterViewInit, OnDestroy {
         throw new Error('Google library not loaded');
       }
 
-      activeCredentialHandler = (response) => this.handleCredentialResponse(response);
+      setActiveHandler((response) => this.handleCredentialResponse(response));
 
-      if (!googleSignInInitialized) {
-        googleSignInInitialized = true;
+      if (!isGisInitialized()) {
+        markGisInitialized();
         window.google.accounts.id.initialize({
           client_id: environment.googleClientId,
-          callback: (response: GoogleCredentialResponse) => activeCredentialHandler?.(response),
+          callback: (response: GoogleCredentialResponse) => getActiveHandler()?.(response),
           auto_select: false,
           cancel_on_tap_outside: true,
           context: 'signin',
@@ -210,6 +231,6 @@ export class GoogleSignInComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    activeCredentialHandler = null;
+    setActiveHandler(null);
   }
 }
