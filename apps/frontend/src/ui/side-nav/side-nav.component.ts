@@ -12,11 +12,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatSidenavModule } from '@angular/material/sidenav';
-import { Router, RouterModule } from '@angular/router';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { UserStore } from '../../store';
 import { NavItem, navItems } from './nav-items';
 import { TopBarComponent } from '../top-bar/top-bar.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-side-nav',
@@ -42,10 +44,8 @@ export class SideNavComponent implements OnInit {
   isExpanded = signal<boolean>(false);
   isMobile = signal<boolean>(false);
 
-  // Authentication state from UserStore
   currentRole = this.userStore.currentRole;
 
-  // Filtered navigation items based on user role
   navItems = computed(() => {
     const currentRole = this.currentRole();
     if (!currentRole) return [];
@@ -56,8 +56,19 @@ export class SideNavComponent implements OnInit {
     });
   });
 
-  // For template compatibility
   filteredNavItems = this.navItems;
+
+  constructor() {
+    this.router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed()
+      )
+      .subscribe(() => {
+        this.currentUrl.set(this.router.url);
+        this.closeSidenav();
+      });
+  }
 
   ngOnInit(): void {
     this.currentUrl.set(this.router.url);
@@ -69,30 +80,18 @@ export class SideNavComponent implements OnInit {
     this.checkMobile();
   }
 
-  /**
-   * Check if the screen size is mobile
-   */
   private checkMobile(): void {
     this.isMobile.set(window.innerWidth <= 960);
   }
 
-  /**
-   * Get sidenav mode based on screen size
-   */
   getSidenavMode(): 'side' | 'over' {
     return this.isMobile() ? 'over' : 'side';
   }
 
-  /**
-   * Handle sidenav opened change event
-   */
   onOpenedChange(opened: boolean): void {
     this.isExpanded.set(opened);
   }
 
-  /**
-   * Toggle expanded state
-   */
   toggleExpanded(): void {
     this.isExpanded.update((expanded) => !expanded);
   }
@@ -104,11 +103,11 @@ export class SideNavComponent implements OnInit {
   }
 
   onNavItemClick(): void {
-    // Update current URL when navigation item is clicked
-    this.currentUrl.set(this.router.url);
-    
-    // Close sidebar on mobile when navigation item is clicked
-    if (this.isMobile() && this.isExpanded()) {
+    this.closeSidenav();
+  }
+
+  private closeSidenav(): void {
+    if (this.isExpanded()) {
       this.isExpanded.set(false);
     }
   }

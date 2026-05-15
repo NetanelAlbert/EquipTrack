@@ -136,7 +136,11 @@
     },
     "filter": {
       "status": "סינון לפי סטטוס",
-      "all": "כל הסטטוסים"
+      "all": "כל הסטטוסים",
+      "department": "סינון לפי מחלקה",
+      "allDepartments": "כל המחלקות",
+      "user": "סינון לפי משתמש",
+      "allUsers": "כל המשתמשים"
     },
     "sort": {
       "label": "מיון לפי תאריך",
@@ -202,6 +206,8 @@
       "sortByProductClick": "לחץ למיון עמודות המשתמשים לפי מוצר זה",
       "product": "מוצר",
       "upiProduct": "למוצר זה יש מזהים ייחודיים (צ׳)",
+      "filterByDepartment": "סינון לפי מחלקה",
+      "allDepartments": "כל המחלקות",
       "noInventory": "אין נתוני מלאי",
       "noInventoryDescription": "אין נתוני מלאי זמינים עבור המשתמשים שנבחרו."
     },
@@ -320,8 +326,10 @@
     "batchPublish": "פרסם נבחרים",
     "filterByHolder": "סנן לפי מחזיק",
     "filterByDepartment": "סנן לפי מחלקה",
+    "filterByReporter": "סנן לפי מדווח",
     "filterAllHolders": "כל המחזיקים",
     "filterAllDepartments": "כל המחלקות",
+    "filterAllReporters": "כל המדווחים",
     "columnProduct": "מוצר",
     "columnStatus": "סטטוס",
     "columnHolder": "מחזיק",
@@ -342,6 +350,18 @@
     "items-published": "דוחות מרובים עודכנו בהצלחה",
     "my-items": "הפריטים שלי",
     "warehouse-items": "פריטי מחסן"
+  },
+  "trace": {
+    "title": "מעקב מוצר",
+    "selectProduct": "בחר מוצר",
+    "selectUpi": "בחר צ׳",
+    "search": "חיפוש",
+    "noReports": "לא נמצאו דוחות",
+    "noReportsDescription": "לא נמצאה היסטוריית דוחות עבור הפריט שנבחר.",
+    "reportHistory": "היסטוריית דוחות",
+    "reportsFound": "דוחות נמצאו",
+    "columnDate": "תאריך",
+    "columnTime": "זמן דיווח"
   },
   "errors": {
     "not-allowed": {
@@ -385,6 +405,7 @@
     "inventory": {
       "fetch-failed": "טעינת המלאי נכשלה. נסה שוב.",
       "add-failed": "הוספת פריטי מלאי נכשלה. נסה שוב.",
+      "duplicate-upi": "לא ניתן להוסיף מלאי: קודי צ׳ כבר קיימים במחסן.",
       "remove-failed": "הסרת פריטי מלאי נכשלה. נסה שוב.",
       "update-failed": "עדכון המלאי נכשל. נסה שוב."
     },

@@ -24,6 +24,23 @@
       </div>
     </div>
 
+    @if (departmentFilterOptions().length > 0) {
+      <div class="department-filter" data-testid="inventory-by-users-department-filter">
+        <mat-form-field appearance="outline" class="filter-field">
+          <mat-label>{{ 'inventory.table.filterByDepartment' | translate }}</mat-label>
+          <mat-select [ngModel]="filterDepartmentId()" (ngModelChange)="filterDepartmentId.set($event)">
+            <mat-option value="all">{{ 'inventory.table.allDepartments' | translate }}</mat-option>
+            @for (d of departmentFilterOptions(); track d.id) {
+              <mat-option [value]="d.id">{{ d.name }}</mat-option>
+              @for (sd of d.subDepartments ?? []; track sd.id) {
+                <mat-option [value]="sd.id">{{ d.name }} — {{ sd.name }}</mat-option>
+              }
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    }
+
     <div class="user-selection">
       <div class="add-user-section">
         <label class="user-select-label" for="inventory-by-users-add-user-input">{{

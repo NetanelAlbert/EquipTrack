@@ -1,13 +1,19 @@
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import {
   GetItemsToReportRequestResponse,
-  getUserIDsOfSameSubDepartment,
   InventoryItem,
   JwtPayload,
   UserRole,
 } from '@equip-track/shared';
-import { UsersAndOrganizationsAdapter } from '../../../db';
 import { InventoryAdapter } from '../../../db/tables/inventory.adapter';
+import {
+  badRequest,
+  internalServerError,
+  isErrorResponse,
+  jwtPayloadRequired,
+  organizationIdRequired,
+} from '../../responses';
+import { getCustomerDepartmentScope } from './customer-department-scope';
 
 export async function handler(
   _req: unknown,
@@ -16,21 +22,21 @@ export async function handler(
 ): Promise<GetItemsToReportRequestResponse> {
   const userId = jwtPayload?.sub;
   if (!userId) {
-    throw new Error(`User ID is required, got payload: ${JSON.stringify(jwtPayload)}`);
+    throw jwtPayloadRequired;
   }
 
   const organizationId = pathParams?.organizationId;
   if (!organizationId) {
-    throw new Error('Organization ID is required');
+    throw organizationIdRequired;
   }
 
   try {
     const inventoryAdapter = new InventoryAdapter();
     const upiItems = await inventoryAdapter.getOrganizationUpiItems(organizationId);
 
-    const userRole = jwtPayload?.orgIdToRole[organizationId];
+    const userRole = jwtPayload?.orgIdToRole?.[organizationId];
     if (!userRole) {
-      throw new Error(`User role is required, got payload: ${JSON.stringify(jwtPayload)}`);
+      throw badRequest('User role not found for this organization');
     }
 
     if (
@@ -44,24 +50,18 @@ export async function handler(
       };
     }
 
-    const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();    
-    const users = await usersAndOrganizationsAdapter.getUsersByOrganization(organizationId);
-    
-    const user = users.find((u) => u.user.id === userId);
-    if (!user) {
-      throw new Error(`User ${userId} not found in organization ${organizationId}`);
-    }
+    const allowedUserIds = await getCustomerDepartmentScope(userId, organizationId);
 
-    const userIdsWithSameDepartment = getUserIDsOfSameSubDepartment(users, user);
-    
     const filteredItemsByHolder: Record<string, InventoryItem[]> = {};
-    userIdsWithSameDepartment.forEach((uid) => {
+    for (const uid of allowedUserIds) {
       const items = upiItems.get(uid);
       if (items) {
         filteredItemsByHolder[uid] = items;
       }
-    });
-    filteredItemsByHolder[userId] = upiItems.get(userId) ?? [];
+    }
+    if (!filteredItemsByHolder[userId]) {
+      filteredItemsByHolder[userId] = upiItems.get(userId) ?? [];
+    }
 
     return {
       status: true,
@@ -69,6 +69,9 @@ export async function handler(
     };
   } catch (error) {
     console.error('Error getting items to report:', error);
-    throw new Error('Failed to get items to report');
+    if (isErrorResponse(error)) {
+      throw error;
+    }
+    throw internalServerError('Failed to get items to report');
   }
 }

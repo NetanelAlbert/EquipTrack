@@ -164,7 +164,7 @@ function emitLambdaFunctions(handlerKeys) {
         '    Type: AWS::Serverless::Function',
         '    Properties:',
         '      Handler: index.handler',
-        '      Runtime: nodejs20.x',
+        '      Runtime: nodejs22.x',
         '      Timeout: 30',
         '      MemorySize: 256',
         '      CodeUri:',

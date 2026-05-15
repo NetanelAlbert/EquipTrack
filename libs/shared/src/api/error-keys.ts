@@ -37,6 +37,7 @@ export enum ErrorKeys {
   // Inventory errors
   INVENTORY_FETCH_FAILED = 'errors.inventory.fetch-failed',
   INVENTORY_ADD_FAILED = 'errors.inventory.add-failed',
+  INVENTORY_DUPLICATE_UPI = 'errors.inventory.duplicate-upi',
   INVENTORY_REMOVE_FAILED = 'errors.inventory.remove-failed',
   INVENTORY_UPDATE_FAILED = 'errors.inventory.update-failed',
 
