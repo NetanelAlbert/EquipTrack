@@ -233,7 +233,7 @@ The **E2E Deployed Core Regression** workflow can also be triggered manually (`w
 
 ### Nightly full regression
 
-The **E2E LocalStack Full Regression** workflow runs the complete Playwright suite against LocalStack every night at **03:00 UTC**.
+The **E2E LocalStack Full Regression** workflow is scheduled every night at **03:00 UTC**. It runs the complete Playwright suite against LocalStack only when `develop` has new commits or the package version changed since the last **successful** run; otherwise the workflow exits after a quick check. Manual runs (`workflow_dispatch`) always execute the full suite.
 
 ### Workflow summary
 
