@@ -259,4 +259,14 @@ export const endpointMetas = {
     Reports.GetItemReportHistoryRequest,
     Reports.GetItemReportHistoryResponse
   >,
+  getItemOwnershipHistory: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/inventory/item-ownership-history`,
+    method: 'POST',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    requestType: {} as Reports.GetItemOwnershipHistoryRequest,
+    responseType: {} as Reports.GetItemOwnershipHistoryResponse,
+  } as EndpointMeta<
+    Reports.GetItemOwnershipHistoryRequest,
+    Reports.GetItemOwnershipHistoryResponse
+  >,
 };

@@ -362,7 +362,20 @@
     "reportHistory": "Report History",
     "reportsFound": "reports found",
     "columnDate": "Date",
-    "columnTime": "Report Time"
+    "columnTime": "Report Time",
+    "ownershipHistory": "Ownership history",
+    "eventsFound": "events",
+    "columnPreviousHolder": "Previous holder",
+    "columnNewHolder": "New holder",
+    "columnOwnershipDate": "Date",
+    "columnFormType": "Form type",
+    "columnFormId": "Form",
+    "noOwnershipHistory": "No ownership history",
+    "noOwnershipHistoryDescription": "No holder changes have been recorded for this item yet.",
+    "formType": {
+      "check-in": "Check-in",
+      "check-out": "Check-out"
+    }
   },
   "errors": {
     "not-allowed": {
@@ -409,6 +422,9 @@
       "duplicate-upi": "Cannot add inventory: one or more UPI codes already exist in the warehouse.",
       "remove-failed": "Failed to remove inventory items. Please try again.",
       "update-failed": "Failed to update inventory. Please try again."
+    },
+    "trace": {
+      "ownership-fetch-failed": "Failed to load ownership history. Please try again."
     },
     "reports": {
       "fetch-failed": "Failed to load reports. Please try again.",
