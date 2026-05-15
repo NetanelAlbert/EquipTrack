@@ -387,6 +387,21 @@ export class UsersAndOrganizationsAdapter {
     return this.getUser(result.Item as UserDb);
   }
 
+  async getUserInOrganization(
+    userId: string,
+    organizationId: string
+  ): Promise<UserInOrganization | undefined> {
+    const command = new GetCommand({
+      TableName: this.tableName,
+      Key: this.getUserInOrganizationKey(userId, organizationId),
+    });
+    const result = await this.docClient.send(command);
+    if (!result.Item) {
+      return undefined;
+    }
+    return this.getUserInOrganizations(result.Item as UserInOrganizationDb);
+  }
+
   /**
    * Create a new organization
    */

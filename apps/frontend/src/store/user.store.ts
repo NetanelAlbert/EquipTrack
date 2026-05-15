@@ -15,6 +15,7 @@ import { computed, inject } from '@angular/core';
 import { STORAGE_KEYS } from '../utils/consts';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../services/api.service';
+import { AuthStore } from './auth.store';
 import { ApiStatus } from './stores.models';
 
 interface UserStoreState {
@@ -124,6 +125,7 @@ export const UserStore = signalStore(
   }),
   withMethods((store) => {
     const apiService = inject(ApiService);
+    const authStore = inject(AuthStore);
 
     const updateState = (newState: Partial<UserStoreState>) => {
       patchState(store, newState);
@@ -236,6 +238,15 @@ export const UserStore = signalStore(
 
           if (!startResponse.status) {
             throw new Error('Failed to load start data');
+          }
+
+          if (startResponse.refreshedToken) {
+            try {
+              localStorage.setItem(STORAGE_KEYS.TOKEN, startResponse.refreshedToken);
+              authStore.setToken(startResponse.refreshedToken);
+            } catch (tokenError) {
+              console.error('Failed to store refreshed token:', tokenError);
+            }
           }
 
           updateState({

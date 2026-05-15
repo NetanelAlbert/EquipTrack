@@ -19,6 +19,7 @@
       data-testid="forms-checkout-content"
       [forms]="formsStore.checkOutForms()" 
       emptyStateMessage="forms.empty-check-out"
+      [showUserFilters]="showUserFilters()"
       [statusFilter]="checkOutQueryParams()?.searchStatus || 'pending'"
       [searchTerm]="checkOutQueryParams()?.searchTerm || ''">
     </app-forms-tab-content>
@@ -33,6 +34,7 @@
       data-testid="forms-checkin-content"
       [forms]="formsStore.checkInForms()" 
       emptyStateMessage="forms.empty-check-in"
+      [showUserFilters]="showUserFilters()"
       [statusFilter]="checkInQueryParams()?.searchStatus || 'pending'"
       [searchTerm]="checkInQueryParams()?.searchTerm || ''">
     </app-forms-tab-content>

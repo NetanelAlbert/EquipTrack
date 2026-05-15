@@ -10,6 +10,7 @@ export interface StartResponse extends BasicResponse {
   user: User;
   userInOrganizations: UserInOrganization[];
   organizations: Organization[];
+  refreshedToken?: string;
 }
 
 export interface ApproveForm {

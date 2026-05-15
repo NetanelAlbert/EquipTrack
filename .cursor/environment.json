@@ -1,0 +1,16 @@
+{
+  "$schema": "https://www.cursor.com/schemas/environment.schema.json",
+  "name": "EquipTrack (Docker + LocalStack)",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "install": "npm ci",
+  "start": "sudo service docker start && npm run e2e:local:stack:up && npm run e2e:local:setup",
+  "ports": [
+    {
+      "name": "LocalStack (AWS emulator)",
+      "port": 4566
+    }
+  ]
+}

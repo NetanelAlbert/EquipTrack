@@ -1,0 +1,18 @@
+@if (user()?.user; as u) {
+  <div class="user-display">
+    <span class="user-name">{{ u.name }}</span>
+    @if (departmentInfo(); as info) {
+      <span class="department-info">
+        @if (info.mainDepartment) {
+          <span class="main-department">{{ info.mainDepartment }}</span>
+        }
+        @if (info.subDepartment) {
+          <span class="sub-department">/ {{ info.subDepartment }}</span>
+        }
+        @if (info.roleDescription) {
+          <span class="role-description">({{ info.roleDescription }})</span>
+        }
+      </span>
+    }
+  </div>
+}

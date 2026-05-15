@@ -1,4 +1,4 @@
-@import '../../../styles/mixins.scss';
+@use '../../../styles/mixins' as *;
 
 .edit-products-container {
   max-width: 1200px;

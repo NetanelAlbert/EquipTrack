@@ -64,6 +64,10 @@
       
     }
   },
+  "user-select": {
+    "no-results": "No matching users",
+    "type-to-search": "Type to search"
+  },
   "navigation": {
     "dashboard": "Dashboard",
     "inventory": "Inventory",
@@ -133,7 +137,11 @@
     },
     "filter": {
       "status": "Filter by Status",
-      "all": "All Statuses"
+      "all": "All Statuses",
+      "department": "Filter by Department",
+      "allDepartments": "All Departments",
+      "user": "Filter by User",
+      "allUsers": "All Users"
     },
     "sort": {
       "label": "Sort by Date",
@@ -199,6 +207,8 @@
       "sortByProductClick": "Click to sort user columns by this product",
       "product": "Product",
       "upiProduct": "This product has unique identifiers (UPI)",
+      "filterByDepartment": "Filter by Department",
+      "allDepartments": "All Departments",
       "noInventory": "No Inventory Data",
       "noInventoryDescription": "There is no inventory data available for the selected users."
     },
@@ -303,20 +313,56 @@
     "sortBy": "Sort By",
     "sortByLocation": "Location",
     "sortByProduct": "Product",
+    "sortByUser": "Holder",
+    "sortByDepartment": "Department",
+    "sortPriority": "Unpublished items",
+    "sortDefaultOrder": "Same order as sort field",
+    "sortUnpublishedFirst": "Show unpublished first",
     "selectDate": "Select Date",
     "items": "items",
+    "reportedTotalCount": "{{reported}} reported · {{total}} total",
+    "exportCsv": "Export CSV",
+    "exportPdf": "Export PDF",
+    "multiSortHint": "Click column headers to sort. Click again for more columns (order shown by number).",
+    "batchPublish": "Publish selected",
+    "filterByHolder": "Filter by holder",
+    "filterByDepartment": "Filter by department",
+    "filterByReporter": "Filter by reporter",
+    "filterAllHolders": "All holders",
+    "filterAllDepartments": "All departments",
+    "filterAllReporters": "All reporters",
+    "columnProduct": "Product",
+    "columnStatus": "Status",
+    "columnHolder": "Holder",
+    "columnDepartment": "Department",
+    "columnReporter": "Reported by",
+    "columnReportTime": "Reported at",
+    "notReportedStatus": "Not reported",
     "upiLabel": "UPI",
     "reported": "Reported",
     "notReported": "Not Reported",
     "lastLocation": "Last Location",
     "useLastLocation": "Use Last Location",
     "enterLocation": "Enter Location",
+    "columnLocation": "Location",
     "noReportForDate": "No Report Available",
     "noReportForDateDescription": "No report has been generated for the selected date.",
     "item-published": "Item report updated successfully",
     "items-published": "Multiple item reports published successfully",
     "my-items": "My Items",
     "warehouse-items": "Warehouse Items"
+  },
+  "trace": {
+    "title": "Trace Product",
+    "selectProduct": "Select Product",
+    "selectUpi": "Select UPI",
+    "search": "Search",
+    "noReports": "No Reports Found",
+    "noReportsDescription": "No report history was found for the selected item.",
+    "reportHistory": "Report History",
+    "reportsFound": "reports found",
+    "columnDate": "Date",
+    "columnTime": "Report Time"
   },
   "errors": {
     "not-allowed": {
@@ -360,6 +406,7 @@
     "inventory": {
       "fetch-failed": "Failed to load inventory. Please try again.",
       "add-failed": "Failed to add inventory items. Please try again.",
+      "duplicate-upi": "Cannot add inventory: one or more UPI codes already exist in the warehouse.",
       "remove-failed": "Failed to remove inventory items. Please try again.",
       "update-failed": "Failed to update inventory. Please try again."
     },
@@ -367,7 +414,8 @@
       "fetch-failed": "Failed to load reports. Please try again.",
       "generate-failed": "Failed to generate report. Please try again.",
       "publish-failed": "Failed to publish report. Please try again.",
-      "fetch-items-to-report-failed": "Failed to fetch items to report. Please try again."
+      "fetch-items-to-report-failed": "Failed to fetch items to report. Please try again.",
+      "pdf-font-load-failed": "Could not load fonts for PDF export. Please try again."
     },
     "users": {
       "fetch-failed": "Failed to load users. Please try again.",
@@ -484,7 +532,8 @@
       "roles": {
         "admin": "Administrator",
         "warehouse-manager": "Warehouse Manager",
-        "customer": "Customer"
+        "customer": "Customer",
+        "inspector": "Inspector"
       },
       "states": {
         "active": "Active",

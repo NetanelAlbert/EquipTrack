@@ -6,7 +6,14 @@ import {
 } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
-import { badRequest, internalServerError } from '../../responses';
+import {
+  badRequest,
+  internalServerError,
+  isErrorResponse,
+  jwtPayloadRequired,
+  organizationIdRequired,
+  userIdRequired,
+} from '../../responses';
 
 export const handler = async (
   req: RejectForm,
@@ -16,7 +23,7 @@ export const handler = async (
   try {
     const organizationId = pathParams?.organizationId;
     if (!organizationId) {
-      throw badRequest('Organization ID is required');
+      throw organizationIdRequired;
     }
 
     if (!req.formID || !req.reason) {
@@ -24,11 +31,11 @@ export const handler = async (
     }
 
     if (!jwtPayload) {
-      throw badRequest('User authentication required');
+      throw jwtPayloadRequired;
     }
 
     if (!req.userId) {
-      throw badRequest('User ID is required');
+      throw userIdRequired;
     }
 
     const formsAdapter = new FormsAdapter();
@@ -56,8 +63,8 @@ export const handler = async (
     return { status: true, updatedForm };
   } catch (error) {
     console.error('Error rejecting form:', error);
-    if (error && typeof error === 'object' && 'statusCode' in error) {
-      throw error; // Re-throw bad request errors
+    if (isErrorResponse(error)) {
+      throw error;
     }
     throw internalServerError('Failed to reject form');
   }

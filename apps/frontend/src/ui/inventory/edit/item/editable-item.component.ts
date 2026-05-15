@@ -1,15 +1,19 @@
 import {
+  AfterViewInit,
   Component,
   computed,
   effect,
+  ElementRef,
   EventEmitter,
   HostBinding,
   inject,
   input,
   OnInit,
   Output,
+  QueryList,
   signal,
   Signal,
+  ViewChildren,
   WritableSignal,
 } from '@angular/core';
 
@@ -63,13 +67,15 @@ import { toObservable } from '@angular/core/rxjs-interop';
   templateUrl: './editable-item.component.html',
   styleUrl: './editable-item.component.scss',
 })
-export class EditableItemComponent implements OnInit {
+export class EditableItemComponent implements OnInit, AfterViewInit {
   /** Max UPI fields per line item — avoids freezing the UI on huge quantities. */
   static readonly MAX_UPI_QUANTITY = 100;
 
   private readonly maxUpiQuantityValidator = Validators.max(
     EditableItemComponent.MAX_UPI_QUANTITY
   );
+
+  @ViewChildren('upiInput') upiInputs!: QueryList<ElementRef<HTMLInputElement>>;
 
   fb = inject(FormBuilder);
   organizationStore = inject(OrganizationStore);
@@ -111,8 +117,22 @@ export class EditableItemComponent implements OnInit {
     return product?.id ? `${product.name} (${product.id})` : '';
   }
 
+  private pendingFocusIndex: number | null = null;
+
   ngOnInit(): void {
     this.productId.set(this.productIdControl().value);
+  }
+
+  ngAfterViewInit(): void {
+    this.upiInputs.changes.pipe(untilDestroyed(this)).subscribe(() => {
+      if (this.pendingFocusIndex !== null) {
+        const input = this.upiInputs.get(this.pendingFocusIndex);
+        if (input) {
+          input.nativeElement.focus();
+        }
+        this.pendingFocusIndex = null;
+      }
+    });
   }
 
   productIdControl: Signal<FormControl<string | null>> = computed(
@@ -230,6 +250,7 @@ export class EditableItemComponent implements OnInit {
           ) {
             upisControl.removeAt(upisControl.length - 1, { emitEvent: false });
           }
+          this.updateUpisValidations(0);
           quantityControl.setValue(
             EditableItemComponent.MAX_UPI_QUANTITY,
             { emitEvent: false }
@@ -264,7 +285,7 @@ export class EditableItemComponent implements OnInit {
     );
     if (index !== -1) {
       this.upisControl().removeAt(index, { emitEvent: false });
-      //
+      this.updateUpisValidations(0);
       return true;
     }
     return false;
@@ -272,7 +293,7 @@ export class EditableItemComponent implements OnInit {
 
   private updateUpisValidations(fromIndex: number) {
     for (let i = fromIndex; i < this.upisControl().length; i++) {
-      this.setUPIValidations(this.upisControl().at(i), i);
+      this.setUPIValidations(this.upisControl().at(i));
     }
   }
 
@@ -295,42 +316,76 @@ export class EditableItemComponent implements OnInit {
       });
   }
 
-  private watchDuplicate(firstIndex: number, duplicateIndex: number) {
-    const firstControl = this.upisControl().at(firstIndex);
-    const duplicateControl = this.upisControl().at(duplicateIndex);
+  private watchDuplicate(
+    upisArray: FormArray<FormControl<string | null>>,
+    firstIndex: number,
+    duplicateIndex: number
+  ) {
+    const firstControl = upisArray.at(firstIndex);
+    const duplicateControl = upisArray.at(duplicateIndex);
 
     firstControl.valueChanges.pipe(first()).subscribe(() => {
       duplicateControl?.updateValueAndValidity();
     });
   }
 
-  private createUpiDuplicateValidator(index: number): ValidatorFn {
+  /**
+   * Resolves the control's index at validation time so duplicate checks stay
+   * correct after UPI rows are removed (stale closure indices caused false positives).
+   */
+  private createUpiDuplicateValidator(): ValidatorFn {
     return (control: AbstractControl) => {
       const value = control.value;
       if (!value) return null;
-      const otherMatchIndex = this.upisControl().controls.findIndex(
+      const parent = control.parent;
+      if (!(parent instanceof FormArray)) {
+        return null;
+      }
+      const upisArray = parent as FormArray<FormControl<string | null>>;
+      const index = upisArray.controls.findIndex((c) => c === control);
+      if (index === -1) {
+        return null;
+      }
+      const otherMatchIndex = upisArray.controls.findIndex(
         (upi, i) => i !== index && upi.value === value
       );
       if (otherMatchIndex !== -1) {
-        this.watchDuplicate(otherMatchIndex, index);
+        this.watchDuplicate(upisArray, otherMatchIndex, index);
         return { duplicate: true };
       }
       return null;
     };
   }
 
-  private setUPIValidations(
-    control: FormControl<string | null>,
-    index: number
-  ) {
+  private setUPIValidations(control: FormControl<string | null>) {
     control.clearValidators();
     if (this.isUPI()) {
       control.addValidators([
         Validators.required,
-        this.createUpiDuplicateValidator(index),
+        this.createUpiDuplicateValidator(),
       ]);
     }
     control.updateValueAndValidity();
+  }
+
+  /** Moves focus to the next UPI field on Enter, adding a new one if on the last field. */
+  onUpiEnter(upiIndex: number): void {
+    const nextInput = this.upiInputs.get(upiIndex + 1);
+    if (nextInput) {
+      nextInput.nativeElement.focus();
+    } else {
+      this.addUpi();
+    }
+  }
+
+  /** Removes a UPI row and reapplies duplicate validators with correct indices. */
+  removeUpiAt(upiIndex: number): void {
+    const upis = this.upisControl();
+    if (upiIndex < 0 || upiIndex >= upis.length) {
+      return;
+    }
+    upis.removeAt(upiIndex);
+    this.updateUpisValidations(0);
   }
 
   protected addUpi(emitEvent = true) {
@@ -341,9 +396,12 @@ export class EditableItemComponent implements OnInit {
       return -1;
     }
     const control = new FormControl('');
-    const newIndex = this.upisControl().length;
-    this.setUPIValidations(control, newIndex);
     this.upisControl().push(control, { emitEvent });
+    this.setUPIValidations(control);
+    const newIndex = this.upisControl().length - 1;
+    if (emitEvent) {
+      this.pendingFocusIndex = newIndex;
+    }
     return newIndex;
   }
 

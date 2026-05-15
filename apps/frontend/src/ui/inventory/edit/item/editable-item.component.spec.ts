@@ -81,4 +81,51 @@ describe('EditableItemComponent', () => {
 
     expect(component.upisControl().length).toBe(len);
   });
+
+  it('should focus the new UPI input after clicking add', () => {
+    component.productIdControl().setValue('upi-prod');
+    fixture.detectChanges();
+
+    component.quantityControl().setValue(1);
+    fixture.detectChanges();
+
+    fixture.autoDetectChanges();
+
+    const addBtn = fixture.debugElement.query(
+      By.css('[data-testid="editable-item-add-upi"]')
+    );
+    addBtn.nativeElement.click();
+
+    const upiInputs = fixture.debugElement.queryAll(
+      By.css('[data-testid^="editable-item-upi-input-"]')
+    );
+    const lastInput = upiInputs[upiInputs.length - 1].nativeElement;
+    expect(document.activeElement).toBe(lastInput);
+  });
+
+  // Regression: issue #106 — deleting first UPI must not leave stale duplicate validators
+  it('should stay valid after deleting the first UPI when values were unique', () => {
+    component.productIdControl().setValue('upi-prod');
+    fixture.detectChanges();
+
+    component.quantityControl().setValue(2);
+    fixture.detectChanges();
+
+    const upis = component.upisControl();
+    upis.at(0)?.setValue('1');
+    upis.at(1)?.setValue('2');
+    fixture.detectChanges();
+
+    expect(upis.at(0)?.errors).toBeNull();
+    expect(upis.at(1)?.errors).toBeNull();
+
+    component.removeUpiAt(0);
+    fixture.detectChanges();
+
+    expect(component.quantityControl().value).toBe(1);
+    expect(upis.length).toBe(1);
+    expect(upis.at(0)?.value).toBe('2');
+    expect(upis.at(0)?.errors).toBeNull();
+    expect(component.control().valid).toBe(true);
+  });
 });

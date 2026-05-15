@@ -1,4 +1,4 @@
-@if (formsStore.addFormStatus.isLoading()) {
+@if (formsStore.addFormStatus().isLoading) {
   <div
     class="checkout-spinner-overlay"
     data-testid="create-form-loading-overlay"
@@ -23,16 +23,41 @@
       <p>{{ createFormConfig().explanationKey | translate }}</p>
     </div>
 
-    <mat-form-field>
-      <mat-label>{{ 'create-form.select-user' | translate }}</mat-label>
-      <mat-select formControlName="userID" data-testid="create-form-user-select">
-        @for (user of users(); track user.user.id) {
-          <mat-option [value]="user.user.id" [attr.data-testid]="'create-form-user-option-' + user.user.id">
-            <app-user-display [user]="user" />
-          </mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
+    <div class="user-select-wrapper">
+      <label class="user-select-label" for="create-form-user-select-input">{{
+        'create-form.select-user' | translate
+      }}</label>
+      <ng-select
+        [inputAttrs]="{ id: 'create-form-user-select-input' }"
+        [attr.data-testid]="'create-form-user-select'"
+        appendTo="body"
+        formControlName="userID"
+        [items]="users()"
+        bindLabel="user.name"
+        bindValue="user.id"
+        [searchable]="true"
+        [clearable]="true"
+        [searchFn]="userSelectSearchFn"
+        [placeholder]="'create-form.select-user' | translate"
+        [notFoundText]="'user-select.no-results' | translate"
+        [typeToSearchText]="'user-select.type-to-search' | translate"
+        appearance="outline"
+      >
+        <ng-template ng-label-tmp let-item="item">
+          <app-user-display [user]="item" />
+        </ng-template>
+        <ng-template ng-option-tmp let-item="item">
+          @if (item?.user) {
+            <div
+              [attr.data-testid]="'create-form-user-option-' + item.user.id"
+              class="create-form-user-option-row"
+            >
+              <app-user-display [user]="item" />
+            </div>
+          }
+        </ng-template>
+      </ng-select>
+    </div>
 
     <mat-form-field>
       <mat-label>{{ 'create-form.form-description' | translate }}</mat-label>

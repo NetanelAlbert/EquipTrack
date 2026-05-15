@@ -3,12 +3,15 @@ import {
   UserInOrganization,
   Organization,
   JwtPayload,
+  UserRole,
 } from '@equip-track/shared';
 import { UsersAndOrganizationsAdapter } from '../db';
+import { JwtService } from '../services/jwt.service';
 import { badRequest, resourceNotFound } from './responses';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 
 const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
+const jwtService = new JwtService();
 
 export const handler = async (
   _req: unknown,
@@ -32,7 +35,13 @@ export const handler = async (
   );
   validateUserInOrganizations(userInOrganizations, organizations);
 
-  return { status: true, user, userInOrganizations, organizations };
+  let refreshedToken: string | undefined;
+  const dbOrgIdToRole = buildOrgIdToRole(userInOrganizations);
+  if (hasPermissionsChanged(jwtPayload.orgIdToRole, dbOrgIdToRole)) {
+    refreshedToken = await jwtService.generateToken(userId, dbOrgIdToRole);
+  }
+
+  return { status: true, user, userInOrganizations, organizations, refreshedToken };
 };
 
 async function getOrganizations(
@@ -55,4 +64,30 @@ function validateUserInOrganizations(
       );
     }
   });
+}
+
+export function buildOrgIdToRole(
+  userInOrganizations: UserInOrganization[]
+): Record<string, UserRole> {
+  return userInOrganizations.reduce(
+    (acc, org) => {
+      acc[org.organizationId] = org.role;
+      return acc;
+    },
+    {} as Record<string, UserRole>
+  );
+}
+
+export function hasPermissionsChanged(
+  jwtOrgIdToRole: Record<string, UserRole>,
+  dbOrgIdToRole: Record<string, UserRole>
+): boolean {
+  const jwtKeys = Object.keys(jwtOrgIdToRole).sort();
+  const dbKeys = Object.keys(dbOrgIdToRole).sort();
+  if (jwtKeys.length !== dbKeys.length) return true;
+  for (let i = 0; i < jwtKeys.length; i++) {
+    if (jwtKeys[i] !== dbKeys[i]) return true;
+    if (jwtOrgIdToRole[jwtKeys[i]] !== dbOrgIdToRole[dbKeys[i]]) return true;
+  }
+  return false;
 }

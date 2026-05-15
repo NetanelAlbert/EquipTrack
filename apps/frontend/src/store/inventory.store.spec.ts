@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
+import type { InventoryItem } from '@equip-track/shared';
 import { InventoryStore } from './inventory.store';
 import { ApiService } from '../services/api.service';
 import { NotificationService } from '../services/notification.service';
@@ -10,6 +11,14 @@ import { OrganizationStore } from './organization.store';
 describe('InventoryStore', () => {
   let store: InstanceType<typeof InventoryStore>;
   let executeSpy: jest.Mock;
+  let addInventoryExecute: jest.Mock;
+  let removeInventoryExecute: jest.Mock;
+  let getInventoryExecute: jest.Mock;
+  let notificationService: {
+    showSuccess: jest.Mock;
+    showError: jest.Mock;
+    handleApiError: jest.Mock;
+  };
 
   beforeEach(() => {
     executeSpy = jest.fn().mockReturnValue(
@@ -19,6 +28,17 @@ describe('InventoryStore', () => {
         products: [],
       })
     );
+    addInventoryExecute = jest.fn().mockReturnValue(of({ status: true }));
+    removeInventoryExecute = jest.fn().mockReturnValue(of({ status: true }));
+    getInventoryExecute = jest.fn().mockReturnValue(
+      of({ status: true, totalItems: [] })
+    );
+
+    notificationService = {
+      showError: jest.fn(),
+      handleApiError: jest.fn(),
+      showSuccess: jest.fn(),
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -27,19 +47,15 @@ describe('InventoryStore', () => {
           useValue: {
             endpoints: {
               getUserInventory: { execute: executeSpy },
-              getInventory: { execute: jest.fn() },
-              addInventory: { execute: jest.fn() },
-              removeInventory: { execute: jest.fn() },
+              getInventory: { execute: getInventoryExecute },
+              addInventory: { execute: addInventoryExecute },
+              removeInventory: { execute: removeInventoryExecute },
             },
           },
         },
         {
           provide: NotificationService,
-          useValue: {
-            showError: jest.fn(),
-            handleApiError: jest.fn(),
-            showSuccess: jest.fn(),
-          },
+          useValue: notificationService,
         },
         {
           provide: UserStore,
@@ -79,6 +95,84 @@ describe('InventoryStore', () => {
     await store.ensureUserInventoryLoaded('user-once');
 
     expect(executeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('ensureUserInventoryLoaded forceRefresh bypasses cache', async () => {
+    await store.ensureUserInventoryLoaded('user-refresh');
+    await store.ensureUserInventoryLoaded('user-refresh', {
+      forceRefresh: true,
+    });
+
+    expect(executeSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('ensureUserInventoryLoaded dedupes concurrent forceRefresh calls for same user', async () => {
+    await store.ensureUserInventoryLoaded('user-refresh-dedupe');
+
+    await Promise.all([
+      store.ensureUserInventoryLoaded('user-refresh-dedupe', {
+        forceRefresh: true,
+      }),
+      store.ensureUserInventoryLoaded('user-refresh-dedupe', {
+        forceRefresh: true,
+      }),
+    ]);
+
+    expect(executeSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('addInventory passes item count to success notification for i18n interpolation', async () => {
+    const items: InventoryItem[] = [
+      { productId: 'a', quantity: 1 },
+      { productId: 'b', quantity: 2 },
+    ];
+
+    await store.addInventory(items);
+
+    expect(notificationService.showSuccess).toHaveBeenCalledWith(
+      'inventory.add.success',
+      'Inventory items added successfully',
+      { count: 2 }
+    );
+  });
+
+  it('removeInventory passes item count to success notification for i18n interpolation', async () => {
+    const items: InventoryItem[] = [{ productId: 'a', quantity: 1 }];
+
+    await store.removeInventory(items);
+
+    expect(notificationService.showSuccess).toHaveBeenCalledWith(
+      'inventory.remove.success',
+      'Inventory items removed successfully',
+      { count: 1 }
+    );
+  });
+
+  it('addInventory extracts errorMessage from HttpErrorResponse body on duplicate UPI', async () => {
+    const httpError = {
+      status: 400,
+      message: 'Http failure response for http://localhost:3000/api/…: 400 Bad Request',
+      error: {
+        status: false,
+        error: 'Duplicate UPI',
+        errorMessage: 'UPI already exists for product prod-1: UPI-001',
+        errorKey: 'errors.inventory.duplicate-upi',
+      },
+    };
+    addInventoryExecute.mockReturnValue(throwError(() => httpError));
+
+    const result = await store.addInventory([
+      { productId: 'prod-1', quantity: 1, upis: ['UPI-001'] },
+    ]);
+
+    expect(result).toBe(false);
+    expect(store.addInventoryStatus().error).toBe(
+      'UPI already exists for product prod-1: UPI-001'
+    );
+    expect(notificationService.handleApiError).toHaveBeenCalledWith(
+      httpError,
+      'errors.inventory.add-failed'
+    );
   });
 
   it('ensureUserInventoryLoaded retries after a failed fetch', async () => {

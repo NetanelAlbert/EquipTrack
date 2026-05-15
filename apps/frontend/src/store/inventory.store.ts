@@ -263,15 +263,22 @@ export const InventoryStore = signalStore(
       },
 
       /**
-       * Fetches per-holder inventory once per org (and dedupes concurrent calls). Safe to call from effects/computeds.
+       * Fetches per-holder inventory once per org (and dedupes concurrent calls).
+       * Set `forceRefresh` to bypass cache checks and fetch latest data.
        */
-      ensureUserInventoryLoaded(userId: string | undefined): Promise<void> {
+      ensureUserInventoryLoaded(
+        userId: string | undefined,
+        options?: { forceRefresh?: boolean }
+      ): Promise<void> {
         if (!userId) {
           return Promise.resolve();
         }
         ensureInventoryCacheMatchesOrganization();
         const inv = store.inventory();
-        if (Object.prototype.hasOwnProperty.call(inv, userId)) {
+        if (
+          !options?.forceRefresh &&
+          Object.prototype.hasOwnProperty.call(inv, userId)
+        ) {
           return Promise.resolve();
         }
         let inFlight = userInventoryFetchesInFlight.get(userId);
@@ -323,7 +330,8 @@ export const InventoryStore = signalStore(
           });
           notificationService.showSuccess(
             'inventory.add.success',
-            'Inventory items added successfully'
+            'Inventory items added successfully',
+            { count: items.length }
           );
 
           // Refresh inventory after successful add
@@ -336,8 +344,16 @@ export const InventoryStore = signalStore(
             error,
             'errors.inventory.add-failed'
           );
-          const errorMessage =
-            error instanceof Error ? error.message : 'Failed to add inventory';
+          let errorMessage = 'Failed to add inventory';
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          }
+          if (error && typeof error === 'object' && 'error' in error) {
+            const body = (error as { error: unknown }).error;
+            if (body && typeof body === 'object' && 'errorMessage' in body) {
+              errorMessage = String((body as { errorMessage: unknown }).errorMessage);
+            }
+          }
           updateState({
             addInventoryStatus: { isLoading: false, error: errorMessage },
           });
@@ -384,7 +400,8 @@ export const InventoryStore = signalStore(
           });
           notificationService.showSuccess(
             'inventory.remove.success',
-            'Inventory items removed successfully'
+            'Inventory items removed successfully',
+            { count: items.length }
           );
 
           // Refresh inventory after successful remove

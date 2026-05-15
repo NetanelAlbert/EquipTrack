@@ -1,5 +1,5 @@
-@import '../../../shared.scss';
-@import '../../../styles/mixins.scss';
+@use '../../../shared';
+@use '../../../styles/mixins' as *;
 
 .add-inventory-container {
   padding: 16px;

@@ -3,6 +3,7 @@ import { AuthService } from '../services/auth.service';
 import { UserStore } from '../store/user.store';
 import { AuthStore } from '../store';
 import { OrganizationService } from '../services/organization.service';
+import { UserRole } from '@equip-track/shared';
 
 @Injectable({ providedIn: 'root' })
 export class AppInitService {
@@ -29,8 +30,7 @@ export class AppInitService {
 
   private async listenToOrganizationSelection(): Promise<void> {
     effect(async () => {
-      const organizationId = this.userStore.selectedOrganizationId();
-      if (organizationId && this.authStore.isAuthenticated()) {
+      if (this.userStore.currentOrganization() && this.authStore.isAuthenticated()) {
         setTimeout(async () => {
           this.organizationService.fetchProducts();
           this.organizationService.getUsers();

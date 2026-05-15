@@ -47,7 +47,12 @@ export const endpointMetas = {
   getUsers: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/users`,
     method: 'GET',
-    allowedRoles: [],
+    allowedRoles: [
+      UserRole.Admin,
+      UserRole.WarehouseManager,
+      UserRole.Customer,
+      UserRole.Inspector,
+    ],
     responseType: {} as Admin.GetUsersResponse,
   } as EndpointMeta<undefined, Admin.GetUsersResponse>,
   setUser: {
@@ -75,6 +80,7 @@ export const endpointMetas = {
       UserRole.Admin,
       UserRole.Customer,
       UserRole.WarehouseManager,
+      UserRole.Inspector,
     ],
     responseType: {} as BasicUser.StartResponse,
   } as EndpointMeta<undefined, BasicUser.StartResponse>,
@@ -86,6 +92,7 @@ export const endpointMetas = {
       UserRole.WarehouseManager,
       UserRole.Admin,
       UserRole.Customer,
+      UserRole.Inspector,
     ],
     responseType: {} as Wharehouse.GetProductsResponse,
   } as EndpointMeta<undefined, Wharehouse.GetProductsResponse>,
@@ -212,6 +219,7 @@ export const endpointMetas = {
       UserRole.WarehouseManager,
       UserRole.Admin,
       UserRole.Customer,
+      UserRole.Inspector,
     ],
     requestType: {} as Reports.GetReportsByDatesRequest,
     responseType: {} as Reports.GetReportsByDatesResponse,
@@ -233,7 +241,22 @@ export const endpointMetas = {
   getItemsToReport: {
     path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports/items-to-report`,
     method: 'GET',
-    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    allowedRoles: [
+      UserRole.WarehouseManager,
+      UserRole.Admin,
+      UserRole.Customer,
+      UserRole.Inspector,
+    ],
     responseType: {} as Reports.GetItemsToReportRequestResponse,
   } as EndpointMeta<undefined, Reports.GetItemsToReportRequestResponse>,
+  getItemReportHistory: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports/item-history`,
+    method: 'POST',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    requestType: {} as Reports.GetItemReportHistoryRequest,
+    responseType: {} as Reports.GetItemReportHistoryResponse,
+  } as EndpointMeta<
+    Reports.GetItemReportHistoryRequest,
+    Reports.GetItemReportHistoryResponse
+  >,
 };

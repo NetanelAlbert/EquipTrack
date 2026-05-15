@@ -34,7 +34,12 @@ export const navItems: NavItem[] = [
     icon: 'history',
     labelKey: 'navigation.reports-history',
     route: 'reports-history',
-    roles: [UserRole.WarehouseManager, UserRole.Admin, UserRole.Customer],
+    roles: [
+      UserRole.WarehouseManager,
+      UserRole.Admin,
+      UserRole.Customer,
+      UserRole.Inspector,
+    ],
     loadComponent: () =>
       import('../reports/history/reports-history.component').then(
         (m) => m.ReportsHistoryComponent
@@ -132,14 +137,17 @@ export const navItems: NavItem[] = [
     loadComponent: () =>
       import('../forms/forms.component').then((m) => m.FormsComponent),
   },
-  // TODO: Implement trace product and admin dashboard
-  // {
-  //   icon: 'track_changes',
-  //   labelKey: 'navigation.trace-product',
-  //   route: 'trace-product',
-  //   roles: [UserRole.WarehouseManager, UserRole.Admin],
-  //   // loadComponent omitted - will use DummyComponent (eager loaded)
-  // },
+  {
+    icon: 'track_changes',
+    labelKey: 'navigation.trace-product',
+    route: 'trace-product',
+    roles: [UserRole.WarehouseManager, UserRole.Admin],
+    loadComponent: () =>
+      import('../trace-item/trace-item.component').then(
+        (m) => m.TraceItemComponent
+      ),
+  },
+  // TODO: Implement admin dashboard
   // {
   //   icon: 'admin_panel_settings',
   //   labelKey: 'navigation.admin-dashboard',

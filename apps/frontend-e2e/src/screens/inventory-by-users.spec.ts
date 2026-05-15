@@ -59,10 +59,12 @@ test.describe('inventory-by-users screen', () => {
       'inventory-by-users-add-user-select'
     );
     await addUserSelect.click();
+    const filterInput = addUserSelect.locator('input[type="text"]');
+    await filterInput.fill('customer');
     await page
-      .locator('mat-option')
-      .filter({ hasText: /E2E Customer/i })
-      .first()
+      .getByTestId(
+        `inventory-by-users-add-user-option-${E2E_CUSTOMER_USER_ID}`
+      )
       .click();
 
     await expect(
@@ -100,8 +102,9 @@ test.describe('inventory-by-users screen', () => {
 
     await page.getByTestId('inventory-by-users-reset-warehouse').click();
 
-    const resetChipCount = await chips.locator('mat-chip-row').count();
-    expect(resetChipCount).toBe(1);
+    await expect(chips.locator('mat-chip-row')).toHaveCount(1, {
+      timeout: 10000,
+    });
     await expect(
       page.getByTestId('inventory-user-chip-WAREHOUSE')
     ).toBeVisible();
