@@ -18,6 +18,7 @@ describe('FormsStore', () => {
   let store: InstanceType<typeof FormsStore>;
   let getPresignedUrlExecute: jest.Mock;
   let fetchFormsExecute: jest.Mock;
+  let createFormExecute: jest.Mock;
   let notificationService: {
     showSuccess: jest.Mock;
     showError: jest.Mock;
@@ -41,12 +42,18 @@ describe('FormsStore', () => {
     fetchFormsExecute = jest.fn().mockReturnValue(
       of({ status: true, forms: [mockForm] })
     );
+    createFormExecute = jest.fn().mockReturnValue(
+      of({ status: true, form: mockForm })
+    );
 
     notificationService = {
       showSuccess: jest.fn(),
       showError: jest.fn(),
       handleApiError: jest.fn(),
     };
+
+    (globalThis as unknown as Record<string, unknown>).__EQUIP_TRACK_E2E__ =
+      true;
 
     TestBed.configureTestingModule({
       providers: [
@@ -57,7 +64,7 @@ describe('FormsStore', () => {
               getAllForms: { execute: fetchFormsExecute },
               getUserForms: { execute: fetchFormsExecute },
               getPresignedUrl: { execute: getPresignedUrlExecute },
-              createForm: { execute: jest.fn() },
+              createForm: { execute: createFormExecute },
               approveForm: { execute: jest.fn() },
               rejectForm: { execute: jest.fn() },
             },
@@ -71,7 +78,7 @@ describe('FormsStore', () => {
           provide: UserStore,
           useValue: {
             currentRole: signal(UserRole.Admin),
-            user: signal({ id: 'user-1' }),
+            user: signal({ id: 'user-1', name: 'Test User' }),
             selectedOrganizationId: signal('org-1'),
           },
         },
@@ -89,6 +96,12 @@ describe('FormsStore', () => {
     store = TestBed.inject(FormsStore);
   });
 
+  afterEach(() => {
+    delete (globalThis as unknown as Record<string, unknown>)[
+      '__EQUIP_TRACK_E2E__'
+    ];
+  });
+
   describe('getPresignedUrl', () => {
     it('should not mutate the presignedUrls state object when removing expired entry', async () => {
       await store.fetchForms();
@@ -104,7 +117,6 @@ describe('FormsStore', () => {
 
       expect(store.forms().length).toBe(1);
 
-      // Call getPresignedUrl - it should NOT mutate the original state object
       const url = await store.getPresignedUrl('form-1', 'user-1', 'org-1');
 
       expect(url).toBe('https://new-url?X-Amz-Expires=300');
@@ -122,12 +134,10 @@ describe('FormsStore', () => {
         })
       );
 
-      // First call - should hit the API
       const url1 = await store.getPresignedUrl('form-1', 'user-1', 'org-1');
       expect(url1).toBe('https://fresh-url?X-Amz-Expires=300');
       expect(getPresignedUrlExecute).toHaveBeenCalledTimes(1);
 
-      // Second call - should use cache
       const url2 = await store.getPresignedUrl('form-1', 'user-1', 'org-1');
       expect(url2).toBe('https://fresh-url?X-Amz-Expires=300');
       expect(getPresignedUrlExecute).toHaveBeenCalledTimes(1);
@@ -138,5 +148,98 @@ describe('FormsStore', () => {
         store.getPresignedUrl('nonexistent', 'user-1', 'org-1')
       ).rejects.toThrow('Form not found');
     });
+  });
+
+  it('addForm shows check-out success message for check-out forms', async () => {
+    await store.addForm(FormType.CheckOut, [], 'user-1', 'test');
+
+    expect(notificationService.showSuccess).toHaveBeenCalledWith(
+      'forms.check-out-submitted',
+      'Check-out request submitted successfully'
+    );
+  });
+
+  it('addForm shows check-in success message for check-in forms', async () => {
+    const checkInForm = { ...mockForm, type: FormType.CheckIn };
+    createFormExecute.mockReturnValue(
+      of({ status: true, form: checkInForm })
+    );
+
+    await store.addForm(FormType.CheckIn, [], 'user-1', 'test');
+
+    expect(notificationService.showSuccess).toHaveBeenCalledWith(
+      'forms.check-in-submitted',
+      'Check-in request submitted successfully'
+    );
+  });
+
+  it('addForm shows error notification when API returns status false', async () => {
+    createFormExecute.mockReturnValue(
+      of({
+        status: false,
+        errorMessage: 'Something went wrong',
+        errorKey: 'errors.forms.submit-failed',
+      })
+    );
+
+    const result = await store.addForm(
+      FormType.CheckOut,
+      [],
+      'user-1',
+      'test'
+    );
+
+    expect(result).toBe(false);
+    expect(notificationService.showError).toHaveBeenCalledWith(
+      'errors.forms.submit-failed',
+      'Something went wrong'
+    );
+  });
+
+  it('addForm throws when no organization is selected', async () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: ApiService,
+          useValue: {
+            endpoints: {
+              createForm: { execute: createFormExecute },
+              getAllForms: { execute: jest.fn() },
+              getUserForms: { execute: jest.fn() },
+              approveForm: { execute: jest.fn() },
+              rejectForm: { execute: jest.fn() },
+              getPresignedUrl: { execute: jest.fn() },
+            },
+          },
+        },
+        {
+          provide: NotificationService,
+          useValue: notificationService,
+        },
+        {
+          provide: UserStore,
+          useValue: {
+            selectedOrganizationId: signal(''),
+            currentRole: signal(UserRole.Admin),
+            user: signal({ id: 'user-1', name: 'Test User' }),
+          },
+        },
+        {
+          provide: Router,
+          useValue: { navigate: jest.fn() },
+        },
+        {
+          provide: TranslateService,
+          useValue: { instant: jest.fn((key: string) => key) },
+        },
+      ],
+    });
+
+    const noOrgStore = TestBed.inject(FormsStore);
+
+    await expect(
+      noOrgStore.addForm(FormType.CheckOut, [], 'user-1', 'test')
+    ).rejects.toThrow('No organization selected');
   });
 });

@@ -249,4 +249,14 @@ export const endpointMetas = {
     ],
     responseType: {} as Reports.GetItemsToReportRequestResponse,
   } as EndpointMeta<undefined, Reports.GetItemsToReportRequestResponse>,
+  getItemReportHistory: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/reports/item-history`,
+    method: 'POST',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    requestType: {} as Reports.GetItemReportHistoryRequest,
+    responseType: {} as Reports.GetItemReportHistoryResponse,
+  } as EndpointMeta<
+    Reports.GetItemReportHistoryRequest,
+    Reports.GetItemReportHistoryResponse
+  >,
 };

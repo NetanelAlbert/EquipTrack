@@ -220,7 +220,7 @@ export const FormsStore = signalStore(
           );
 
           if (!response.status) {
-            console.log('Error creating checkout form:', response);
+            console.log('Error creating form:', response);
             notificationService.showError(
               response.errorKey || 'errors.forms.submit-failed',
               response.errorMessage
@@ -229,16 +229,21 @@ export const FormsStore = signalStore(
               addFormStatus: {
                 isLoading: false,
                 error:
-                  response.errorMessage || 'Failed to submit check-out form',
+                  response.errorMessage || 'Failed to submit form',
               },
             });
             return false;
           }
 
-          notificationService.showSuccess(
-            'forms.check-out-submitted',
-            'Check-out request submitted successfully'
-          );
+          const successKey =
+            formType === FormType.CheckIn
+              ? 'forms.check-in-submitted'
+              : 'forms.check-out-submitted';
+          const successFallback =
+            formType === FormType.CheckIn
+              ? 'Check-in request submitted successfully'
+              : 'Check-out request submitted successfully';
+          notificationService.showSuccess(successKey, successFallback);
           updateState({
             addFormStatus: { isLoading: false, error: undefined },
             forms: [response.form, ...state.forms()],
@@ -268,7 +273,7 @@ export const FormsStore = signalStore(
           }
           return true;
         } catch (error) {
-          console.error('Error creating checkout form:', error);
+          console.error('Error creating form:', error);
           notificationService.handleApiError(
             error,
             'errors.forms.submit-failed'
@@ -276,7 +281,7 @@ export const FormsStore = signalStore(
           const errorMessage =
             error instanceof Error
               ? error.message
-              : 'Failed to submit check-out form';
+              : 'Failed to submit form';
           updateState({
             addFormStatus: { isLoading: false, error: errorMessage },
           });

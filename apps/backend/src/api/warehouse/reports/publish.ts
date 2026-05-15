@@ -11,6 +11,13 @@ import { ReportsAdapter } from '../../../db/tables/reports.adapter';
 import { InventoryAdapter } from '../../../db/tables/inventory.adapter';
 import { UsersAndOrganizationsAdapter } from '../../../db/tables/users-and-organizations.adapter';
 import { buildOwnerAndDepartmentFields } from './report-item-metadata';
+import {
+  badRequest,
+  internalServerError,
+  isErrorResponse,
+  jwtPayloadRequired,
+  organizationIdRequired,
+} from '../../responses';
 
 export async function handler(
   req: PublishPartialReportRequest,
@@ -19,24 +26,23 @@ export async function handler(
 ): Promise<PublishPartialReportResponse> {
   const organizationId = pathParams?.organizationId;
   if (!organizationId) {
-    throw new Error('Organization ID is required');
+    throw organizationIdRequired;
   }
 
   if (!req.items || !Array.isArray(req.items) || req.items.length === 0) {
-    throw new Error('Items array is required and must not be empty');
+    throw badRequest('Items array is required and must not be empty');
   }
 
-  // Validate items
   for (const item of req.items) {
     if (!item.productId || !item.upi || !item.location) {
-      throw new Error(
+      throw badRequest(
         'All item fields (productId, upi, location) are required'
       );
     }
   }
 
   if (!jwtPayload) {
-    throw new Error('JWT payload is required');
+    throw jwtPayloadRequired;
   }
 
   const userId = jwtPayload.sub;
@@ -81,6 +87,9 @@ export async function handler(
     };
   } catch (error) {
     console.error('Error publishing partial report:', error);
-    throw new Error('Failed to publish partial report');
+    if (isErrorResponse(error)) {
+      throw error;
+    }
+    throw internalServerError('Failed to publish partial report');
   }
 }

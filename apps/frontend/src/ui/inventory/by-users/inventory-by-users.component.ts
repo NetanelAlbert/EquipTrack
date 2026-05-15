@@ -15,12 +15,15 @@ import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { InventoryStore } from '../../../store/inventory.store';
 import { OrganizationStore } from '../../../store/organization.store';
 import { OrganizationService } from '../../../services/organization.service';
 import {
+  Department,
   InventoryItem,
   Product,
   UserAndUserInOrganization,
@@ -63,10 +66,12 @@ interface ProductColumnSort {
     MatChipsModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
+    MatFormFieldModule,
+    MatSelectModule,
     FormsModule,
     TranslateModule,
-    UserDisplayComponent
-],
+    UserDisplayComponent,
+  ],
   templateUrl: './inventory-by-users.component.html',
   styleUrls: ['./inventory-by-users.component.scss'],
 })
@@ -86,6 +91,13 @@ export class InventoryByUsersComponent implements OnInit {
     userMatchesSelectSearch(term, item, (id) =>
       this.userStore.getDepartmentName(id) ?? ''
     );
+
+  // Department filter
+  filterDepartmentId = signal<string | 'all'>('all');
+
+  departmentFilterOptions: Signal<Department[]> = computed(
+    () => this.userStore.currentOrganization()?.departments ?? []
+  );
 
   // Selected user IDs for columns
   selectedUserIds = signal<string[]>(['WAREHOUSE']);
@@ -210,6 +222,19 @@ export class InventoryByUsersComponent implements OnInit {
     return ['product', ...this.userColumns().map((col) => col.userId)];
   });
 
+  usersFilteredByDepartment: Signal<UserAndUserInOrganization[]> = computed(
+    () => {
+      const users = this.organizationStore.users();
+      const did = this.filterDepartmentId();
+      if (did === 'all') return users;
+      return users.filter((u) => {
+        const dept = u.userInOrganization.department;
+        if (!dept) return false;
+        return dept.id === did || dept.subDepartmentId === did;
+      });
+    }
+  );
+
   isLoadingUsers = computed(
     () => this.organizationStore.getUsersStatus().isLoading
   );
@@ -224,8 +249,7 @@ export class InventoryByUsersComponent implements OnInit {
   availableUsersForSelection: Signal<UserAndUserInOrganization[]> = computed(
     () => {
       const selectedUsers = this.selectedUserIds();
-      return this.organizationStore
-        .users()
+      return this.usersFilteredByDepartment()
         .filter((u) => !selectedUsers.includes(u.user.id));
     }
   );
@@ -311,11 +335,11 @@ export class InventoryByUsersComponent implements OnInit {
     this.selectedUserIds.set(currentUsers.filter((id) => id !== userId));
   }
 
-  // Show all users
+  // Show all users (respects department filter)
   showAllUsers() {
     const allUserIds = [
       'WAREHOUSE',
-      ...this.organizationStore.users().map((u) => u.user.id),
+      ...this.usersFilteredByDepartment().map((u) => u.user.id),
     ];
     this.selectedUserIds.set(allUserIds);
   }
