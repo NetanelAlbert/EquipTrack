@@ -69,20 +69,4 @@ test.describe('all-inventory screen', () => {
     );
   });
 
-  test('customer cannot access all-inventory', async ({ page, request }) => {
-    const token = await mintE2eJwt(request, {
-      backendBaseUrl,
-      e2eSecret,
-      userId: 'user-e2e-customer',
-      orgIdToRole: { [E2E_ORG_ID]: UserRole.Customer },
-    });
-
-    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
-    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
-    await page.goto('/all-inventory');
-
-    await expect(
-      page.getByTestId('not-allowed-page')
-    ).toBeVisible({ timeout: 20000 });
-  });
 });

@@ -1,107 +1,22 @@
-import { test, expect, APIRequestContext } from '@playwright/test';
-import { FormType, InventoryItem, UserRole } from '@equip-track/shared';
+import { test, expect } from '@playwright/test';
+import { FormType, UserRole } from '@equip-track/shared';
 import { mintE2eJwt } from './helpers/e2e-auth';
+import {
+  getUserInventory,
+  createForm,
+  approveForm,
+  itemByProductId,
+  E2E_ORG_ID,
+  E2E_CUSTOMER_USER_ID,
+  E2E_BULK_PRODUCT_ID,
+  E2E_UPI_PRODUCT_ID,
+} from './helpers/e2e-api';
 
 const backendBaseUrl =
   process.env['BACKEND_BASE_URL'] || 'http://localhost:3000';
 const e2eSecret = process.env['E2E_AUTH_SECRET'] || 'e2e-local-secret';
-const organizationId = 'org-e2e-main';
-const customerUserId = 'user-e2e-customer';
+
 const warehouseUserId = 'WAREHOUSE';
-const bulkProductId = 'prod-bulk-helmet';
-const upiProductId = 'prod-upi-laptop';
-
-interface GetInventoryResponse {
-  status: boolean;
-  items: InventoryItem[];
-}
-
-interface CreateFormResponse {
-  status: boolean;
-  form: {
-    formID: string;
-    userID: string;
-  };
-}
-
-async function getUserInventory(
-  request: APIRequestContext,
-  token: string,
-  userId: string
-): Promise<InventoryItem[]> {
-  const response = await request.get(
-    `${backendBaseUrl}/api/organizations/${organizationId}/inventory/user/${userId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-  expect(response.ok()).toBeTruthy();
-  const payload = (await response.json()) as GetInventoryResponse;
-  expect(payload.status).toBeTruthy();
-  return payload.items;
-}
-
-function itemByProductId(items: InventoryItem[], productId: string): InventoryItem {
-  const item = items.find((inventoryItem) => inventoryItem.productId === productId);
-  if (!item) {
-    throw new Error(`Missing inventory item for product ${productId}`);
-  }
-  return item;
-}
-
-async function createForm(
-  request: APIRequestContext,
-  token: string,
-  formType: FormType,
-  items: InventoryItem[],
-  description: string
-): Promise<{ formID: string; userID: string }> {
-  const response = await request.post(
-    `${backendBaseUrl}/api/organizations/${organizationId}/forms/create`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      data: {
-        formType,
-        userId: customerUserId,
-        items,
-        description,
-      },
-    }
-  );
-  expect(response.ok()).toBeTruthy();
-  const payload = (await response.json()) as CreateFormResponse;
-  expect(payload.status).toBeTruthy();
-  return payload.form;
-}
-
-async function approveForm(
-  request: APIRequestContext,
-  token: string,
-  formID: string,
-  userId: string
-): Promise<void> {
-  const response = await request.post(
-    `${backendBaseUrl}/api/organizations/${organizationId}/forms/approve`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      data: {
-        formID,
-        userId,
-        signature:
-          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-      },
-    }
-  );
-  expect(response.ok()).toBeTruthy();
-  const payload = (await response.json()) as { status: boolean };
-  expect(payload.status).toBeTruthy();
-}
 
 test.describe('core regression inventory transfer flow', () => {
   test('checkout and checkin (bulk + UPI) update warehouse and user quantities', async ({
@@ -112,86 +27,60 @@ test.describe('core regression inventory transfer flow', () => {
       e2eSecret,
       userId: 'user-e2e-admin',
       orgIdToRole: {
-        [organizationId]: UserRole.Admin,
+        [E2E_ORG_ID]: UserRole.Admin,
       },
     });
 
     const initialWarehouseInventory = await getUserInventory(
       request,
       adminToken,
+      E2E_ORG_ID,
       warehouseUserId
     );
     const initialCustomerInventory = await getUserInventory(
       request,
       adminToken,
-      customerUserId
+      E2E_ORG_ID,
+      E2E_CUSTOMER_USER_ID
     );
 
-    const initialWarehouseBulk = itemByProductId(
-      initialWarehouseInventory,
-      bulkProductId
-    );
-    const initialCustomerBulk = itemByProductId(
-      initialCustomerInventory,
-      bulkProductId
-    );
-    const initialWarehouseUpi = itemByProductId(
-      initialWarehouseInventory,
-      upiProductId
-    );
-    const initialCustomerUpi = itemByProductId(initialCustomerInventory, upiProductId);
+    const initialWarehouseBulk = itemByProductId(initialWarehouseInventory, E2E_BULK_PRODUCT_ID);
+    const initialCustomerBulk = itemByProductId(initialCustomerInventory, E2E_BULK_PRODUCT_ID);
+    const initialWarehouseUpi = itemByProductId(initialWarehouseInventory, E2E_UPI_PRODUCT_ID);
+    const initialCustomerUpi = itemByProductId(initialCustomerInventory, E2E_UPI_PRODUCT_ID);
 
     const transferredUpi = initialWarehouseUpi.upis?.[0];
     expect(transferredUpi).toBeTruthy();
     const transferQuantity = 2;
-    const transferItems: InventoryItem[] = [
-      {
-        productId: bulkProductId,
-        quantity: transferQuantity,
-      },
-      {
-        productId: upiProductId,
-        quantity: 1,
-        upis: [transferredUpi as string],
-      },
-    ];
 
-    const checkoutForm = await createForm(
-      request,
-      adminToken,
-      FormType.CheckOut,
-      transferItems,
-      'e2e checkout regression'
-    );
-    await approveForm(request, adminToken, checkoutForm.formID, checkoutForm.userID);
+    const checkoutForm = await createForm(request, adminToken, E2E_ORG_ID, {
+      formType: FormType.CheckOut,
+      userId: E2E_CUSTOMER_USER_ID,
+      items: [
+        { productId: E2E_BULK_PRODUCT_ID, quantity: transferQuantity },
+        { productId: E2E_UPI_PRODUCT_ID, quantity: 1, upis: [transferredUpi as string] },
+      ],
+      description: 'e2e checkout regression',
+    });
+    await approveForm(request, adminToken, E2E_ORG_ID, checkoutForm.formID, checkoutForm.userID);
 
     const postCheckoutWarehouseInventory = await getUserInventory(
       request,
       adminToken,
+      E2E_ORG_ID,
       warehouseUserId
     );
     const postCheckoutCustomerInventory = await getUserInventory(
       request,
       adminToken,
-      customerUserId
+      E2E_ORG_ID,
+      E2E_CUSTOMER_USER_ID
     );
 
-    const postCheckoutWarehouseBulk = itemByProductId(
-      postCheckoutWarehouseInventory,
-      bulkProductId
-    );
-    const postCheckoutCustomerBulk = itemByProductId(
-      postCheckoutCustomerInventory,
-      bulkProductId
-    );
-    const postCheckoutWarehouseUpi = itemByProductId(
-      postCheckoutWarehouseInventory,
-      upiProductId
-    );
-    const postCheckoutCustomerUpi = itemByProductId(
-      postCheckoutCustomerInventory,
-      upiProductId
-    );
+    const postCheckoutWarehouseBulk = itemByProductId(postCheckoutWarehouseInventory, E2E_BULK_PRODUCT_ID);
+    const postCheckoutCustomerBulk = itemByProductId(postCheckoutCustomerInventory, E2E_BULK_PRODUCT_ID);
+    const postCheckoutWarehouseUpi = itemByProductId(postCheckoutWarehouseInventory, E2E_UPI_PRODUCT_ID);
+    const postCheckoutCustomerUpi = itemByProductId(postCheckoutCustomerInventory, E2E_UPI_PRODUCT_ID);
 
     expect(postCheckoutWarehouseBulk.quantity).toBe(
       initialWarehouseBulk.quantity - transferQuantity
@@ -202,30 +91,34 @@ test.describe('core regression inventory transfer flow', () => {
     expect(postCheckoutWarehouseUpi.upis || []).not.toContain(transferredUpi);
     expect(postCheckoutCustomerUpi.upis || []).toContain(transferredUpi);
 
-    const checkinForm = await createForm(
-      request,
-      adminToken,
-      FormType.CheckIn,
-      transferItems,
-      'e2e checkin regression'
-    );
-    await approveForm(request, adminToken, checkinForm.formID, checkinForm.userID);
+    const checkinForm = await createForm(request, adminToken, E2E_ORG_ID, {
+      formType: FormType.CheckIn,
+      userId: E2E_CUSTOMER_USER_ID,
+      items: [
+        { productId: E2E_BULK_PRODUCT_ID, quantity: transferQuantity },
+        { productId: E2E_UPI_PRODUCT_ID, quantity: 1, upis: [transferredUpi as string] },
+      ],
+      description: 'e2e checkin regression',
+    });
+    await approveForm(request, adminToken, E2E_ORG_ID, checkinForm.formID, checkinForm.userID);
 
     const finalWarehouseInventory = await getUserInventory(
       request,
       adminToken,
+      E2E_ORG_ID,
       warehouseUserId
     );
     const finalCustomerInventory = await getUserInventory(
       request,
       adminToken,
-      customerUserId
+      E2E_ORG_ID,
+      E2E_CUSTOMER_USER_ID
     );
 
-    const finalWarehouseBulk = itemByProductId(finalWarehouseInventory, bulkProductId);
-    const finalCustomerBulk = itemByProductId(finalCustomerInventory, bulkProductId);
-    const finalWarehouseUpi = itemByProductId(finalWarehouseInventory, upiProductId);
-    const finalCustomerUpi = itemByProductId(finalCustomerInventory, upiProductId);
+    const finalWarehouseBulk = itemByProductId(finalWarehouseInventory, E2E_BULK_PRODUCT_ID);
+    const finalCustomerBulk = itemByProductId(finalCustomerInventory, E2E_BULK_PRODUCT_ID);
+    const finalWarehouseUpi = itemByProductId(finalWarehouseInventory, E2E_UPI_PRODUCT_ID);
+    const finalCustomerUpi = itemByProductId(finalCustomerInventory, E2E_UPI_PRODUCT_ID);
 
     expect(finalWarehouseBulk.quantity).toBe(initialWarehouseBulk.quantity);
     expect(finalCustomerBulk.quantity).toBe(initialCustomerBulk.quantity);
@@ -246,12 +139,12 @@ test.describe('inspector role api access', () => {
       e2eSecret,
       userId: 'user-e2e-inspector',
       orgIdToRole: {
-        [organizationId]: UserRole.Inspector,
+        [E2E_ORG_ID]: UserRole.Inspector,
       },
     });
 
     const reportHistoryResponse = await request.post(
-      `${backendBaseUrl}/api/organizations/${organizationId}/reports/by-dates`,
+      `${backendBaseUrl}/api/organizations/${E2E_ORG_ID}/reports/by-dates`,
       {
         headers: {
           Authorization: `Bearer ${inspectorToken}`,
@@ -270,7 +163,7 @@ test.describe('inspector role api access', () => {
     expect(reportHistoryPayload.reportsByDate).toBeDefined();
 
     const inventoryResponse = await request.get(
-      `${backendBaseUrl}/api/organizations/${organizationId}/inventory`,
+      `${backendBaseUrl}/api/organizations/${E2E_ORG_ID}/inventory`,
       {
         headers: {
           Authorization: `Bearer ${inspectorToken}`,

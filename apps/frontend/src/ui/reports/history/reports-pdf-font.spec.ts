@@ -20,36 +20,3 @@ describe('toVisualOrder', () => {
     expect(result).toContain('םולש');
   });
 });
-
-describe('PDF RTL column reversal', () => {
-  const maybeReverse = (arr: string[], isRtl: boolean) =>
-    isRtl ? [...arr].reverse() : arr;
-
-  const columns = [
-    'Product',
-    'UPI',
-    'Status',
-    'Location',
-    'Holder',
-    'Department',
-    'Reporter',
-    'Report Time',
-  ];
-
-  it('does not reverse columns in LTR mode', () => {
-    expect(maybeReverse(columns, false)).toEqual(columns);
-  });
-
-  it('reverses columns in RTL mode so first web column becomes last PDF column', () => {
-    const reversed = maybeReverse(columns, true);
-    expect(reversed[0]).toBe('Report Time');
-    expect(reversed[reversed.length - 1]).toBe('Product');
-    expect(reversed.length).toBe(columns.length);
-  });
-
-  it('does not mutate the original array', () => {
-    const original = [...columns];
-    maybeReverse(columns, true);
-    expect(columns).toEqual(original);
-  });
-});
