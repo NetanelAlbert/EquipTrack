@@ -475,7 +475,6 @@ export const FormsStore = signalStore(
           return presignedUrls[form.formID].url;
         }
         console.log('presignedUrls', presignedUrls);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { [form.formID]: _expired, ...remainingUrls } = presignedUrls;
 
         updateState({

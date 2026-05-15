@@ -3,7 +3,6 @@ import { AuthService } from '../services/auth.service';
 import { UserStore } from '../store/user.store';
 import { AuthStore } from '../store';
 import { OrganizationService } from '../services/organization.service';
-import { UserRole } from '@equip-track/shared';
 
 @Injectable({ providedIn: 'root' })
 export class AppInitService {
