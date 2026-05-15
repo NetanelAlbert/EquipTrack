@@ -6,7 +6,7 @@ import {
 } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateModule } from '@ngx-translate/core';
-import { GoogleSignInComponent } from './google-sign-in.component';
+import { GoogleSignInComponent, resetGoogleSignInStateForTesting } from './google-sign-in.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('GoogleSignInComponent', () => {
@@ -25,6 +25,7 @@ describe('GoogleSignInComponent', () => {
   };
 
   beforeEach(async () => {
+    resetGoogleSignInStateForTesting();
     mockSnackBar = jest.fn();
 
     mockGoogleApi = {
@@ -156,6 +157,7 @@ describe('GoogleSignInComponent', () => {
       );
       jest.spyOn(console, 'error').mockImplementation(() => undefined);
 
+      resetGoogleSignInStateForTesting();
       mockGoogleApi.accounts.id.initialize.mockImplementationOnce(() => {
         throw new Error('Test error');
       });

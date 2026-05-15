@@ -3,6 +3,7 @@ import {
   ElementRef,
   ViewChild,
   AfterViewInit,
+  OnDestroy,
   inject,
   output,
   input,
@@ -24,6 +25,15 @@ interface GoogleCredentialResponse {
   select_by: string; // How the user signed in
 }
 
+let googleSignInInitialized = false;
+let activeCredentialHandler: ((r: GoogleCredentialResponse) => void) | null = null;
+
+/** Resets module-level GIS state. Call only from tests. */
+export function resetGoogleSignInStateForTesting(): void {
+  googleSignInInitialized = false;
+  activeCredentialHandler = null;
+}
+
 @Component({
   selector: 'app-google-sign-in',
   standalone: true,
@@ -36,7 +46,7 @@ interface GoogleCredentialResponse {
   templateUrl: './google-sign-in.component.html',
   styleUrl: './google-sign-in.component.scss',
 })
-export class GoogleSignInComponent implements AfterViewInit {
+export class GoogleSignInComponent implements AfterViewInit, OnDestroy {
   @ViewChild('googleButtonContainer', { static: true })
   googleButtonContainer!: ElementRef<HTMLElement>;
 
@@ -96,19 +106,20 @@ export class GoogleSignInComponent implements AfterViewInit {
         throw new Error('Google library not loaded');
       }
 
-      // Initialize Google Identity Services with COOP-compatible settings
-      window.google.accounts.id.initialize({
-        client_id: environment.googleClientId,
-        callback: (response: GoogleCredentialResponse) => {
-          this.handleCredentialResponse(response);
-        },
-        auto_select: false,
-        cancel_on_tap_outside: true,
-        context: 'signin',
-        // Add COOP-compatible settings
-        use_fedcm_for_prompt: false,
-        itp_support: false,
-      });
+      activeCredentialHandler = (response) => this.handleCredentialResponse(response);
+
+      if (!googleSignInInitialized) {
+        googleSignInInitialized = true;
+        window.google.accounts.id.initialize({
+          client_id: environment.googleClientId,
+          callback: (response: GoogleCredentialResponse) => activeCredentialHandler?.(response),
+          auto_select: false,
+          cancel_on_tap_outside: true,
+          context: 'signin',
+          use_fedcm_for_prompt: false,
+          itp_support: false,
+        });
+      }
 
       // Render the Google Sign-In button
       window.google.accounts.id.renderButton(
@@ -196,5 +207,9 @@ export class GoogleSignInComponent implements AfterViewInit {
    */
   private showSuccess(message: string): void {
     this.notificationService.showSuccess('auth.success', message);
+  }
+
+  ngOnDestroy(): void {
+    activeCredentialHandler = null;
   }
 }
