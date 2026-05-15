@@ -167,7 +167,8 @@ function generateReport(lang) {
   // ── table (R2L off → toVisualOrder handles Hebrew cell text) ──
   const fix = isRtl ? toVisualOrder : (s) => s;
 
-  const head = [[
+  const maybeReverse = (arr) => (isRtl ? [...arr].reverse() : arr);
+  const head = [maybeReverse([
     t.columnProduct,
     t.upiLabel,
     t.columnStatus,
@@ -175,11 +176,11 @@ function generateReport(lang) {
     t.columnHolder,
     t.columnDepartment,
     t.columnReporter,
-  ].map(fix)];
+  ].map(fix))];
 
   const rows = mockRows(t);
   const body = rows.map((r) =>
-    [
+    maybeReverse([
       r.product,
       r.upi,
       r.reported ? t.reported : t.notReportedStatus,
@@ -187,7 +188,7 @@ function generateReport(lang) {
       r.holder,
       r.department,
       r.reported ? r.reporter : '',
-    ].map(fix)
+    ].map(fix))
   );
 
   autoTable(doc, {
