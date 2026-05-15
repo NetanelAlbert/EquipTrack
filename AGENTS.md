@@ -127,6 +127,8 @@ Group tests by the **module / screen / API surface they cover**, not by ad-hoc t
 | E2E (UI) | `apps/frontend-e2e/src/screens/<route>.spec.ts` | screen (matches the route / `nav-link-<route>` test id) |
 | E2E (cross-cutting) | `apps/frontend-e2e/src/<topic>.spec.ts` (root) | core regression / RBAC matrix / multi-screen journeys only |
 
+> **Exception — `create-form.spec.ts`** lives at `apps/frontend-e2e/src/create-form.spec.ts` (root) rather than under `screens/` because it must run in both the `e2e-local-core` and `e2e-local-full` Nx targets. New screen-level tests for the create-form page belong in this file, not in a new `screens/create-form.spec.ts`.
+
 Rules of thumb:
 
 - A screen-level concern (e.g. "all-inventory loads", "search filters items") belongs in `screens/<that-screen>.spec.ts`, never in a root-level spec.

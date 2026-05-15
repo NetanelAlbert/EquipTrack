@@ -66,7 +66,6 @@ apps/
   frontend/        Angular application
   frontend-e2e/    Playwright end-to-end tests
   backend/         Node.js Lambda handlers
-  backend-e2e/     (removed — was a generic Nx scaffold with no meaningful tests)
 libs/
   shared/          Shared types and API surface definitions
 infra/
