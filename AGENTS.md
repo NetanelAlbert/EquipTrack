@@ -91,7 +91,7 @@ See `apps/frontend-e2e/src/helpers/e2e-auth.ts` for the canonical Playwright imp
 - **Frontend** (port 4200): `npm run frontend:serve:e2e-local` — writes runtime config and starts Angular dev server pointing at `localhost:3000`.
 - **Both together**: Start in separate terminals; the backend must be running before the frontend makes API calls.
 - **Lint**: `npx nx run-many --target=lint --all`
-- **Unit tests**: `npx nx run-many --target=test --all --exclude=frontend-e2e,backend-e2e`
+- **Unit tests**: `npx nx run-many --target=test --all --exclude=frontend-e2e`
 - **E2E tests**: `npm run e2e:local:test` (provisions LocalStack, installs Chromium, runs Playwright core regression). Chromium + system deps are pre-installed by the update script; to run the core regression alone: `E2E_SKIP_LOCAL_E2E_ENSURE=true PLAYWRIGHT_HTML_OPEN=never npx nx run frontend-e2e:e2e-local-core`.
 - **Pre-commit hook** runs `npm run precommit` (lint + test affected + validate translations).
 
@@ -113,9 +113,62 @@ See `apps/frontend-e2e/src/helpers/e2e-auth.ts` for the canonical Playwright imp
 
 ## Tests
 
-- When changes affect behavior, contracts, or user flows, **add or update automated tests** as appropriate.
-- Cover **unit tests** for logic, services, and components where the project already uses them.
-- Cover **end-to-end (e2e) tests** when the change touches integration across apps, APIs, or critical user journeys and e2e coverage exists or is clearly warranted.
+When changes affect behavior, contracts, or user flows, **add or update automated tests** as appropriate. Cover **unit tests** for logic, services, and components where the project already uses them. Cover **end-to-end (e2e) tests** when the change touches integration across apps, APIs, or critical user journeys.
+
+### Where each test lives
+
+Group tests by the **module / screen / API surface they cover**, not by ad-hoc topic. One file per unit, named after that unit, co-located with it. Do not create top-level "smoke" or "example" specs.
+
+| Layer | Location | One spec per |
+|-------|----------|--------------|
+| Frontend unit | `apps/frontend/src/**/<name>.spec.ts` (co-located with the source) | component / service / store / util |
+| Backend unit | `apps/backend/src/**/<name>.spec.ts` (co-located with the source) | handler / adapter / service / helper |
+| Shared lib | `libs/shared/src/**/<name>.spec.ts` (co-located) | exported function / module |
+| E2E (UI) | `apps/frontend-e2e/src/screens/<route>.spec.ts` | screen (matches the route / `nav-link-<route>` test id) |
+| E2E (cross-cutting) | `apps/frontend-e2e/src/<topic>.spec.ts` (root) | core regression / RBAC matrix / multi-screen journeys only |
+
+Rules of thumb:
+
+- A screen-level concern (e.g. "all-inventory loads", "search filters items") belongs in `screens/<that-screen>.spec.ts`, never in a root-level spec.
+- A cross-cutting concern (e.g. "customer is redirected to `/not-allowed`" across multiple routes, or "inventory transfer end-to-end") belongs in the single canonical root spec for that concern. Do not assert the same RBAC redirect in three different per-screen specs.
+- Pure helper / utility logic belongs in a `*.spec.ts` next to the source, not embedded in a component or e2e spec.
+
+### Helpers — single source of truth
+
+There are three canonical e2e helper modules. Always **import** from them; never re-implement these in a spec.
+
+| File | Owns |
+|------|------|
+| `apps/frontend-e2e/src/helpers/e2e-auth.ts` | `mintE2eJwt`, `authenticateWithE2eToken` — minting JWTs via `/api/auth/e2e-login` |
+| `apps/frontend-e2e/src/helpers/e2e-navigation.ts` | `bootstrapAuthenticatedSession`, `ensureOrganizationIsSelected`, `ensureInspectorLandsOnReportsHistory`, `clickSideNavRoute`, `openCreateFormPage`, `waitForTestId`, `fillInventoryRow`, `approveLatestPendingForm` — all browser session / nav / shared UI gestures |
+| `apps/frontend-e2e/src/helpers/e2e-api.ts` | `E2E_ORG_ID` / `E2E_*_USER_ID` / `E2E_*_PRODUCT_ID` constants, `getUserInventory`, `getTotalInventory`, `addInventory`, `removeInventory`, `createForm`, `approveForm`, `rejectForm`, `getProducts`, `getUsers`, `itemByProductId` — all REST helpers and shared constants |
+
+When you need a new shared gesture (e.g. a new dialog interaction, a new REST call used by ≥2 specs, a new "navigate-and-wait" pattern), **add it to the appropriate helper module and export it** — do not paste a copy into a spec. If a needed helper does not exist yet, add it before writing the test.
+
+Do not pin literals that are already exported. Examples:
+
+- ❌ Hardcoding `'org-e2e-main'` / `'user-e2e-admin'` / `'prod-bulk-helmet'` in a spec → ✅ import `E2E_ORG_ID` / `E2E_ADMIN_USER_ID` / `E2E_BULK_PRODUCT_ID` from `e2e-api.ts`.
+- ❌ Hardcoding the Google OAuth client ID in a unit spec → ✅ import `environment.googleClientId`.
+
+For Angular unit tests, the standard `TestBed` quartet (`NoopAnimationsModule`, `TranslateModule.forRoot()`, `provideHttpClient()`, `provideHttpClientTesting()`) is acceptable boilerplate today, but if you introduce a new shared test fixture (custom `MAT_DIALOG_DATA`, a fake store, etc.), put it in a sibling `*.testing.ts` file so other specs can reuse it.
+
+### How to write an organized spec
+
+For each new spec (or substantial change to an existing one), check this list before writing or merging:
+
+1. **Does a spec for this unit already exist?** If yes, add the new case there. Do **not** create a parallel spec file.
+2. **Am I copying code I could import?** If you are about to paste a `bootstrapAuthenticatedSession`, `mintE2eJwt`, `getUserInventory`, or similar function into a spec — stop and `import` it instead. If the canonical version doesn't fit, **extend the helper** rather than forking it.
+3. **Am I asserting something already asserted elsewhere?** RBAC redirects, login flows, org selection, and seeded-data sanity checks each live in exactly one canonical spec. Add to it, don't duplicate it.
+4. **Is the test wired to a runner?** New e2e specs under `apps/frontend-e2e/src/screens/` are picked up by `e2e-local-full` automatically. New root-level e2e specs (cross-cutting / core regression) must be added explicitly to the `e2e-local-core` and `e2e-local-full` command in `apps/frontend-e2e/project.json`, otherwise they will never run.
+5. **Does the test exercise real code?** Do not write tests that define a helper inline and then assert against that inline helper — that tests test-code, not production code.
+6. **Is the wait correct?** Prefer `expect.poll`, `page.waitForResponse`, or `expect(locator).toHaveX(...)` over `page.waitForTimeout(N)` in e2e specs.
+
+### Before committing
+
+- ✅ `npx nx run-many --target=test --all --exclude=frontend-e2e` (or at minimum the affected projects via `nx affected`).
+- ✅ `npx nx run frontend-e2e:e2e-local-core` for changes that touch UI behavior, e2e helpers, or any spec under `apps/frontend-e2e/`.
+- If you touched any e2e helper (`apps/frontend-e2e/src/helpers/*.ts`), also run `npx nx run frontend-e2e:e2e-local-full` because every screen spec depends on those helpers.
+- Reset LocalStack state if the full suite previously ran and consumed mutable seed data: `npm run e2e:local:stack:reset && npm run e2e:local:prepare`, then restart the backend so it re-reads JWT keys from Secrets Manager.
 
 ## UI changes — screenshots required
 
