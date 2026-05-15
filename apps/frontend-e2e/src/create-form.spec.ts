@@ -192,16 +192,10 @@ test.describe('create-form page', () => {
 
   // ─── Submit / journey tests (from screens/create-form) ────────────────────
 
-  test('create checkin form via UI', async ({ page, request }, testInfo) => {
+  test('create checkin form via UI', async ({ page }, testInfo) => {
     testInfo.setTimeout(120_000);
-    const token = await mintE2eJwt(request, {
-      backendBaseUrl,
-      e2eSecret,
-      userId: 'user-e2e-admin',
-      orgIdToRole: { [E2E_ORG_ID]: UserRole.Admin },
-    });
 
-    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+    await bootstrapAuthenticatedSession(page, adminToken, E2E_ORG_ID);
     await ensureOrganizationIsSelected(page, E2E_ORG_ID);
     const usersForCreateForm = page.waitForResponse(
       (r) =>
@@ -254,18 +248,8 @@ test.describe('create-form page', () => {
     await createResponse;
   });
 
-  test('form type toggle switches inventory context', async ({
-    page,
-    request,
-  }) => {
-    const token = await mintE2eJwt(request, {
-      backendBaseUrl,
-      e2eSecret,
-      userId: 'user-e2e-admin',
-      orgIdToRole: { [E2E_ORG_ID]: UserRole.Admin },
-    });
-
-    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+  test('form type toggle switches inventory context', async ({ page }) => {
+    await bootstrapAuthenticatedSession(page, adminToken, E2E_ORG_ID);
     await ensureOrganizationIsSelected(page, E2E_ORG_ID);
     const usersForCreateForm = page.waitForResponse(
       (r) =>
@@ -288,18 +272,8 @@ test.describe('create-form page', () => {
     await expect(page.getByTestId('create-form-page')).toBeVisible();
   });
 
-  test('add predefined form items from accordion', async ({
-    page,
-    request,
-  }) => {
-    const token = await mintE2eJwt(request, {
-      backendBaseUrl,
-      e2eSecret,
-      userId: 'user-e2e-admin',
-      orgIdToRole: { [E2E_ORG_ID]: UserRole.Admin },
-    });
-
-    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+  test('add predefined form items from accordion', async ({ page }) => {
+    await bootstrapAuthenticatedSession(page, adminToken, E2E_ORG_ID);
     await ensureOrganizationIsSelected(page, E2E_ORG_ID);
     const usersForCreateForm = page.waitForResponse(
       (r) =>

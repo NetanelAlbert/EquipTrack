@@ -1,4 +1,4 @@
-import { APIRequestContext, Page, expect, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { UserRole } from '@equip-track/shared';
 import { mintE2eJwt } from './helpers/e2e-auth';
 import {
