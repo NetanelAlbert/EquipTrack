@@ -3,7 +3,11 @@ import {
   ORGANIZATION_ID_PATH_PARAM,
 } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
-import { badRequest } from '../../responses';
+import {
+  internalServerError,
+  isErrorResponse,
+  organizationIdRequired,
+} from '../../responses';
 import { UsersAndOrganizationsAdapter } from '../../../db';
 
 const usersAndOrganizationsAdapter = new UsersAndOrganizationsAdapter();
@@ -15,7 +19,7 @@ export const handler = async (
   const organizationId = pathParams[ORGANIZATION_ID_PATH_PARAM];
 
   if (!organizationId) {
-    throw badRequest('Organization ID is required');
+    throw organizationIdRequired;
   }
 
   try {
@@ -35,6 +39,9 @@ export const handler = async (
     };
   } catch (error) {
     console.error('Error getting users:', error);
-    throw new Error('Failed to get users');
+    if (isErrorResponse(error)) {
+      throw error;
+    }
+    throw internalServerError('Failed to get users');
   }
 };

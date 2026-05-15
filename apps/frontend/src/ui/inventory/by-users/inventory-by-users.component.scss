@@ -59,6 +59,15 @@
     }
   }
 
+  .department-filter {
+    margin-bottom: 16px;
+
+    .filter-field {
+      width: 300px;
+      max-width: 100%;
+    }
+  }
+
   .user-selection {
     display: flex;
     justify-content: space-between;

@@ -12,6 +12,7 @@ import { randomUUID } from 'crypto';
 import {
   customError,
   internalServerError,
+  isErrorResponse,
   jwtPayloadRequired,
   organizationIdRequired,
   userIdRequired,
@@ -79,7 +80,10 @@ export const handler = async (
 
     return { status: true, form };
   } catch (error) {
-    console.error('Error creating checkout form:', error);
-    throw internalServerError('Failed to create checkout form');
+    console.error('Error creating form:', error);
+    if (isErrorResponse(error)) {
+      throw error;
+    }
+    throw internalServerError('Failed to create form');
   }
 };

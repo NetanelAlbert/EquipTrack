@@ -64,6 +64,15 @@
               }
             </mat-select>
           </mat-form-field>
+          <mat-form-field appearance="outline" class="filter-field" data-testid="reports-history-reporter-filter">
+            <mat-label>{{ 'reports.filterByReporter' | translate }}</mat-label>
+            <mat-select [ngModel]="filterReporterId()" (ngModelChange)="filterReporterId.set($event)">
+              <mat-option value="all">{{ 'reports.filterAllReporters' | translate }}</mat-option>
+              @for (rid of reporterOptions(); track rid) {
+                <mat-option [value]="rid">{{ getReporterName(rid) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
         </div>
       }
 
