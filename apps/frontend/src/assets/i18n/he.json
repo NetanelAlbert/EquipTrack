@@ -361,7 +361,20 @@
     "reportHistory": "היסטוריית דוחות",
     "reportsFound": "דוחות נמצאו",
     "columnDate": "תאריך",
-    "columnTime": "זמן דיווח"
+    "columnTime": "זמן דיווח",
+    "ownershipHistory": "היסטוריית בעלות",
+    "eventsFound": "אירועים",
+    "columnPreviousHolder": "מחזיק קודם",
+    "columnNewHolder": "מחזיק חדש",
+    "columnOwnershipDate": "תאריך",
+    "columnFormType": "סוג טופס",
+    "columnFormId": "טופס",
+    "noOwnershipHistory": "אין היסטוריית בעלות",
+    "noOwnershipHistoryDescription": "עדיין לא נרשמו שינויי מחזיק עבור פריט זה.",
+    "formType": {
+      "check-in": "החזרה",
+      "check-out": "השאלה"
+    }
   },
   "errors": {
     "not-allowed": {
@@ -408,6 +421,9 @@
       "duplicate-upi": "לא ניתן להוסיף מלאי: קודי צ׳ כבר קיימים במחסן.",
       "remove-failed": "הסרת פריטי מלאי נכשלה. נסה שוב.",
       "update-failed": "עדכון המלאי נכשל. נסה שוב."
+    },
+    "trace": {
+      "ownership-fetch-failed": "טעינת היסטוריית הבעלות נכשלה. נסה שוב."
     },
     "reports": {
       "fetch-failed": "טעינת הדוחות נכשלה. נסה שוב.",

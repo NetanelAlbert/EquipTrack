@@ -14,7 +14,7 @@ interface MockInventoryAdapter {
   getUserInventory: jest.Mock<Promise<InventoryItem[]>, [string, string]>;
   updateUniqueInventoryItemHolder: jest.Mock<
     Promise<void>,
-    [string, string, string, string]
+    [string, string, string, string, unknown?]
   >;
   deleteBulkInventoryItem: jest.Mock<Promise<void>, [string, string, string]>;
   updateInventoryItemQuantity: jest.Mock<
@@ -156,5 +156,41 @@ describe('InventoryTransferService', () => {
       2
     );
     expect(mockInventoryAdapter.updateInventoryItemQuantity).not.toHaveBeenCalled();
+  });
+
+  it('records ownership history when transferring unique items on checkout', async () => {
+    const organizationId = 'org-1';
+    const form = buildForm({
+      userID: 'user-1',
+      formID: 'form-checkout-1',
+      type: FormType.CheckOut,
+      items: [{ productId: 'prod-u', quantity: 1, upis: ['UPI-1'] }],
+    });
+
+    const warehouseInventory: InventoryItem[] = [
+      { productId: 'prod-u', quantity: 1, upis: ['UPI-1'] },
+    ];
+
+    mockInventoryAdapter.getUserInventory
+      .mockResolvedValueOnce(warehouseInventory)
+      .mockResolvedValueOnce(warehouseInventory)
+      .mockResolvedValueOnce([]);
+
+    await service.transferInventoryItems(form, organizationId);
+
+    expect(
+      mockInventoryAdapter.updateUniqueInventoryItemHolder
+    ).toHaveBeenCalledWith(
+      'prod-u',
+      'UPI-1',
+      organizationId,
+      'user-1',
+      expect.objectContaining({
+        previousHolderId: WAREHOUSE_SUFFIX,
+        newHolderId: 'user-1',
+        formId: 'form-checkout-1',
+        formType: FormType.CheckOut,
+      })
+    );
   });
 });

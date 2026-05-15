@@ -26,6 +26,7 @@ import {
 } from 'aws-lambda';
 import { handler as getItemsToReportHandler } from './warehouse/reports/get-items-to-report';
 import { handler as getItemReportHistoryHandler } from './warehouse/reports/get-item-history';
+import { handler as getItemOwnershipHistoryHandler } from './warehouse/inventory/get-ownership-history';
 
 // Handler signatures
 export type HandlerFunction<Req, Res> = (
@@ -65,6 +66,7 @@ export const handlers: HandlersDefinition = {
   removeInventory: removeInventoryHandler,
   getInventory: getInventoryHandler,
   getUserInventory: getUserInventoryHandler,
+  getItemOwnershipHistory: getItemOwnershipHistoryHandler,
 
   // Forms
   getUserForms: getUserFormsHandler,

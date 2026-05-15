@@ -14,14 +14,51 @@ env:
   NX_NO_CLOUD: 'true'
 
 jobs:
+  decide:
+    name: Check for changes on develop
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run_tests: ${{ steps.decide.outputs.run_tests }}
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v6
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Restore last successful run state
+        uses: actions/cache/restore@v4
+        with:
+          path: .ci/e2e-localstack-full-state
+          key: e2e-localstack-full-develop-state
+
+      - name: Decide whether to run tests
+        id: decide
+        run: bash scripts/e2e-localstack-full-should-run.sh
+
+  skip-notice:
+    name: Skipped (no changes on develop)
+    needs: decide
+    if: needs.decide.outputs.run_tests != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip full regression
+        run: |
+          echo "Skipping Playwright full regression — develop and version unchanged since the last successful run."
+
   e2e-full-regression:
     name: Full regression (LocalStack + Playwright)
+    needs: decide
+    if: needs.decide.outputs.run_tests == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
     steps:
-      - name: Checkout code
+      - name: Checkout develop
         uses: actions/checkout@v6
+        with:
+          ref: develop
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -45,6 +82,17 @@ jobs:
           E2E_SKIP_LOCAL_E2E_ENSURE: 'true'
         run: |
           npx nx run frontend-e2e:e2e-local-full
+
+      - name: Save last successful develop state
+        if: success()
+        run: bash scripts/e2e-localstack-full-save-state.sh
+
+      - name: Cache last successful develop state
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: .ci/e2e-localstack-full-state
+          key: e2e-localstack-full-develop-state
 
       - name: Upload Playwright report
         if: always()

@@ -4,6 +4,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TranslateModule } from '@ngx-translate/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { FormCardComponent } from './form-card.component';
 import { FormsStore } from '../../../store/forms.store';
@@ -12,8 +13,8 @@ import {
   FormStatus,
   FormType,
   InventoryForm,
+  InventoryItem,
 } from '@equip-track/shared';
-import { provideRouter } from '@angular/router';
 
 function makeMockForm(overrides: Partial<InventoryForm> = {}): InventoryForm {
   return {
@@ -37,6 +38,38 @@ describe('FormCardComponent', () => {
   let mockDialog: { open: jest.Mock };
   let mockFormsStore: { approveForm: jest.Mock; rejectForm: jest.Mock };
   let mockNotification: { handleApiError: jest.Mock; showSuccess: jest.Mock };
+  let routerSpy: { navigate: jest.Mock };
+
+  const mockItems: InventoryItem[] = [
+    { productId: 'prod-1', quantity: 2 },
+    { productId: 'prod-2', quantity: 1, upis: ['UPI-001'] },
+  ];
+
+  const mockCheckOutForm: InventoryForm = {
+    formID: 'form-checkout-1',
+    userID: 'user-123',
+    organizationID: 'org-1',
+    status: FormStatus.Pending,
+    type: FormType.CheckOut,
+    items: mockItems,
+    createdAtTimestamp: Date.now(),
+    lastUpdated: Date.now(),
+    description: 'Test checkout form',
+    createdByUserId: 'user-admin',
+  };
+
+  const mockCheckInForm: InventoryForm = {
+    formID: 'form-checkin-1',
+    userID: 'user-456',
+    organizationID: 'org-1',
+    status: FormStatus.Approved,
+    type: FormType.CheckIn,
+    items: mockItems,
+    createdAtTimestamp: Date.now(),
+    lastUpdated: Date.now(),
+    description: 'Test checkin form',
+    createdByUserId: 'user-admin',
+  };
 
   beforeEach(async () => {
     dialogClosedSubject = new Subject<string | undefined>();
@@ -58,6 +91,8 @@ describe('FormCardComponent', () => {
       showSuccess: jest.fn(),
     };
 
+    routerSpy = { navigate: jest.fn() };
+
     await TestBed.configureTestingModule({
       imports: [
         FormCardComponent,
@@ -67,17 +102,15 @@ describe('FormCardComponent', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideRouter([]),
         { provide: MatDialog, useValue: mockDialog },
         { provide: FormsStore, useValue: mockFormsStore },
         { provide: NotificationService, useValue: mockNotification },
+        { provide: Router, useValue: routerSpy },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(FormCardComponent);
     component = fixture.componentInstance;
-    component.form = makeMockForm();
-    fixture.detectChanges();
   });
 
   afterEach(() => {
@@ -85,10 +118,17 @@ describe('FormCardComponent', () => {
   });
 
   it('should create', () => {
+    component.form = mockCheckOutForm;
+    fixture.detectChanges();
     expect(component).toBeTruthy();
   });
 
   describe('onApprove', () => {
+    beforeEach(() => {
+      component.form = makeMockForm();
+      fixture.detectChanges();
+    });
+
     it('should call approveForm when dialog returns a signature', fakeAsync(() => {
       component.onApprove();
 
@@ -142,6 +182,11 @@ describe('FormCardComponent', () => {
   });
 
   describe('onReject', () => {
+    beforeEach(() => {
+      component.form = makeMockForm();
+      fixture.detectChanges();
+    });
+
     it('should call rejectForm when dialog returns a reason', fakeAsync(() => {
       component.onReject();
 
@@ -192,5 +237,65 @@ describe('FormCardComponent', () => {
 
       expect(mockFormsStore.rejectForm).not.toHaveBeenCalled();
     }));
+  });
+
+  describe('onCloneForm', () => {
+    it('should navigate with formType, userId, and items for checkout form', () => {
+      component.form = mockCheckOutForm;
+      fixture.detectChanges();
+
+      component.onCloneForm();
+
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/create-form'], {
+        queryParams: {
+          formType: FormType.CheckOut,
+          userId: 'user-123',
+          items: JSON.stringify(mockItems),
+        },
+      });
+    });
+
+    it('should navigate with formType, userId, and items for checkin form', () => {
+      component.form = mockCheckInForm;
+      fixture.detectChanges();
+
+      component.onCloneForm();
+
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/create-form'], {
+        queryParams: {
+          formType: FormType.CheckIn,
+          userId: 'user-456',
+          items: JSON.stringify(mockItems),
+        },
+      });
+    });
+
+    it('should preserve the original form userId in clone params', () => {
+      component.form = mockCheckOutForm;
+      fixture.detectChanges();
+
+      component.onCloneForm();
+
+      const navigateCall = routerSpy.navigate.mock.calls[0];
+      const queryParams = navigateCall[1].queryParams;
+      expect(queryParams.userId).toBe(mockCheckOutForm.userID);
+    });
+  });
+
+  describe('onCheckIn', () => {
+    it('should navigate with CheckIn formType, userId, and items', () => {
+      component.form = mockCheckOutForm;
+      fixture.detectChanges();
+
+      component.onCheckIn();
+
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/create-form'], {
+        queryParams: {
+          formType: FormType.CheckIn,
+          userId: 'user-123',
+          items: JSON.stringify(mockItems),
+        },
+      });
+    });
   });
 });
