@@ -58,8 +58,8 @@ function textHebrewLabelThenLtrFromRight(
   }
 }
 
-/** Form content inner right edge (inside the main frame). */
-const FORM_INNER_RIGHT = 193;
+/** Form content inner right edge (inside the main frame; aligns with table x = 195). */
+const FORM_INNER_RIGHT = 194;
 
 /**
  * Hebrew section titles — anchored to the right (RTL block alignment).
@@ -68,9 +68,9 @@ function textSectionTitleRtl(doc: jsPDF, logicalText: string, y: number): void {
   doc.text(v(logicalText), FORM_INNER_RIGHT, y, { align: 'right' });
 }
 
-/** LTR column widths (mm) for the equipment table: מס → … → הערות (logical order). */
+/** Column widths (mm), logical order מס → … → הערות; sum must be 180 (table width). */
 const FORM_TABLE_COL_WIDTHS: readonly number[] = [
-  15, 40, 25, 35, 25, 35, 5,
+  14, 38, 24, 32, 24, 32, 16,
 ];
 
 const FORM_TABLE_LEFT = 15;
