@@ -10,14 +10,17 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { FormsModule } from '@angular/forms';
 import {
-  InventoryForm,
+  CheckoutReturnTier,
   FormStatus,
+  getCheckoutReturnTier,
+  InventoryForm,
   UserAndUserInOrganization,
 } from '@equip-track/shared';
 import { OrganizationStore } from '../../../store/organization.store';
 import { UserStore } from '../../../store/user.store';
 
 type StatusFilterOptions = 'all' | 'pending' | 'approved' | 'rejected';
+type ReturnStatusFilterOptions = 'all' | CheckoutReturnTier;
 type SortOptions = 'newest' | 'oldest';
 
 export interface DepartmentFilterOption {
@@ -53,6 +56,8 @@ export class FormsTabContentComponent {
 
   searchTerm = model<string>('');
   statusFilter = model<StatusFilterOptions>('pending');
+  /** Only applies to approved check-out rows; pending/rejected are excluded unless set to All. */
+  returnStatusFilter = model<ReturnStatusFilterOptions>('all');
   sortBy = model<SortOptions>('newest');
   filterDepartmentId = model<string>('all');
   filterUserId = model<string>('all');
@@ -125,6 +130,13 @@ export class FormsTabContentComponent {
       });
     }
 
+    const returnFilter = this.returnStatusFilter();
+    if (returnFilter !== 'all') {
+      filteredForms = filteredForms.filter(
+        (form) => getCheckoutReturnTier(form) === returnFilter
+      );
+    }
+
     if (this.showUserFilters()) {
       const userId = this.filterUserId();
       if (userId !== 'all') {
@@ -162,6 +174,7 @@ export class FormsTabContentComponent {
   clearFilters(): void {
     this.searchTerm.set('');
     this.statusFilter.set('all');
+    this.returnStatusFilter.set('all');
     this.sortBy.set('newest');
     this.filterDepartmentId.set('all');
     this.filterUserId.set('all');

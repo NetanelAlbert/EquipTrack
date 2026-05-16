@@ -157,6 +157,8 @@
     "filter": {
       "status": "Filter by Status",
       "all": "All Statuses",
+      "returnStatus": "Filter by returning status",
+      "allReturnStatuses": "All returning statuses",
       "department": "Filter by Department",
       "allDepartments": "All Departments",
       "user": "Filter by User",

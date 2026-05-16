@@ -102,3 +102,23 @@ export function isFullyReturned(form: InventoryForm): boolean {
 export function hasRecordedReturns(form: InventoryForm): boolean {
   return (form.checkInEvents?.length ?? 0) > 0;
 }
+
+/** Return-progress tier for filtering; only meaningful for approved check-out forms. */
+export type CheckoutReturnTier = 'not-returned' | 'partially-returned' | 'fully-returned';
+
+/**
+ * Classifies an approved check-out form’s return progress for list filters.
+ * Non–check-out or non-approved forms yield `undefined` (never match a tier filter).
+ */
+export function getCheckoutReturnTier(form: InventoryForm): CheckoutReturnTier | undefined {
+  if (form.status !== FormStatus.Approved || form.type !== FormType.CheckOut) {
+    return undefined;
+  }
+  if (isFullyReturned(form)) {
+    return 'fully-returned';
+  }
+  if (hasRecordedReturns(form)) {
+    return 'partially-returned';
+  }
+  return 'not-returned';
+}

@@ -156,6 +156,8 @@
     "filter": {
       "status": "סינון לפי סטטוס",
       "all": "כל הסטטוסים",
+      "returnStatus": "סינון לפי סטטוס החזרה",
+      "allReturnStatuses": "כל סטטוסי ההחזרה",
       "department": "סינון לפי מחלקה",
       "allDepartments": "כל המחלקות",
       "user": "סינון לפי משתמש",

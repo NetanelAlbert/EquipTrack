@@ -27,7 +27,7 @@ EquipTrack is an internal application designed to monitor the supply and locatio
 
 Returns are recorded as events on the original approved check-out form rather than as a separate form type:
 
-1. The warehouse manager opens the **Forms** screen and finds an approved check-out form.
+1. The warehouse manager opens the **Forms** screen and finds an approved check-out form (optionally filter by approval status and by **returning status**: not returned, partially returned, or fully returned).
 2. The card shows a **return status** badge (not returned until the first return event, then partially returned or fully returned), **outstanding items** (original items minus already-returned quantities/UPIs), and **return history** (past check-in events with date, approver, items, and a PDF print link).
 3. The manager clicks **Check in items**, selects the items to return (constrained to outstanding items), and draws their signature in the dialog.
 4. On submit, inventory transfers from the user back to the warehouse, the event is appended to the form, and a PDF is generated and stored in S3.

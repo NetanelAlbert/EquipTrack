@@ -3,6 +3,7 @@ import {
   FormType,
   InventoryForm,
   getOutstandingItems,
+  getCheckoutReturnTier,
   hasRecordedReturns,
   isFullyReturned,
 } from './forms';
@@ -176,6 +177,71 @@ describe('isFullyReturned', () => {
   it('returns true for form with no items', () => {
     const form = makeForm({ items: [] });
     expect(isFullyReturned(form)).toBe(true);
+  });
+});
+
+describe('getCheckoutReturnTier', () => {
+  it('returns undefined for pending or rejected forms', () => {
+    expect(
+      getCheckoutReturnTier(
+        makeForm({ status: FormStatus.Pending, items: [{ productId: 'b', quantity: 1 }] })
+      )
+    ).toBeUndefined();
+    expect(
+      getCheckoutReturnTier(
+        makeForm({ status: FormStatus.Rejected, items: [{ productId: 'b', quantity: 1 }] })
+      )
+    ).toBeUndefined();
+  });
+
+  it('returns not-returned for approved checkout with items and no check-in events', () => {
+    expect(
+      getCheckoutReturnTier(
+        makeForm({
+          items: [{ productId: 'bulk-1', quantity: 2 }],
+        })
+      )
+    ).toBe('not-returned');
+  });
+
+  it('returns partially-returned when events exist but items remain', () => {
+    expect(
+      getCheckoutReturnTier(
+        makeForm({
+          items: [{ productId: 'bulk-1', quantity: 5 }],
+          checkInEvents: [
+            {
+              checkInEventId: 'cie-1',
+              items: [{ productId: 'bulk-1', quantity: 2 }],
+              createdAtTimestamp: 1,
+              createdByUserId: 'wm-1',
+            },
+          ],
+        })
+      )
+    ).toBe('partially-returned');
+  });
+
+  it('returns fully-returned when all quantities are back', () => {
+    expect(
+      getCheckoutReturnTier(
+        makeForm({
+          items: [{ productId: 'bulk-1', quantity: 2 }],
+          checkInEvents: [
+            {
+              checkInEventId: 'cie-1',
+              items: [{ productId: 'bulk-1', quantity: 2 }],
+              createdAtTimestamp: 1,
+              createdByUserId: 'wm-1',
+            },
+          ],
+        })
+      )
+    ).toBe('fully-returned');
+  });
+
+  it('returns fully-returned for approved checkout with zero line items', () => {
+    expect(getCheckoutReturnTier(makeForm({ items: [] }))).toBe('fully-returned');
   });
 });
 
