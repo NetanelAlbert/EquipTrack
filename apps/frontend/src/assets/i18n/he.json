@@ -61,6 +61,8 @@
     "email-request-generated": "לקוח הדוא\"ל נפתח עם בקשת גישה",
     "email-request-failed": "יצירת בקשת גישה נכשלה",
     "navigation-failed": "הניווט נכשל. נסה שוב.",
+    "app-reloading": "מעדכן את האפליקציה…",
+    "app-reload-failed": "לא הצלחנו לרענן את האפליקציה אוטומטית. נא לרענן את הדף (Ctrl+Shift+R).",
     "confirm": "אישור",
     "unsaved-changes-warning": "יש לך שינויים שלא נשמרו. האם אתה בטוח שברצונך לעזוב את הדף?",
     "leave": "עזוב",

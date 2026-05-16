@@ -1,17 +1,19 @@
 import {
+  APP_INITIALIZER,
   ApplicationConfig,
+  ErrorHandler,
+  importProvidersFrom,
   inject,
   provideZoneChangeDetection,
 } from '@angular/core';
-import { provideRouter } from '@angular/router';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import {
   provideHttpClient,
   HttpClient,
   withInterceptors,
 } from '@angular/common/http';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MAT_SNACK_BAR_DEFAULT_OPTIONS } from '@angular/material/snack-bar';
-import { APP_INITIALIZER, importProvidersFrom } from '@angular/core';
+import { NavigationError, provideRouter, Router } from '@angular/router';
 
 import { appRoutes } from './app.routes';
 import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
@@ -19,6 +21,8 @@ import { errorInterceptor } from '../services/error-interceptor.service';
 import { RuntimeConfigService } from '../services/runtime-config.service';
 import { VersionedTranslateHttpLoader } from './versioned-translate-http-loader';
 import { AppInitService } from './app.init.service';
+import { ChunkLoadErrorHandler } from './chunk-load-error.handler';
+import { filter } from 'rxjs/operators';
 
 export function translateLoaderFactory(http: HttpClient) {
   return new VersionedTranslateHttpLoader(http);
@@ -31,12 +35,23 @@ export function translateLoaderFactory(http: HttpClient) {
 export function appBootstrapInitializer() {
   const runtimeConfig = inject(RuntimeConfigService);
   const appInitService = inject(AppInitService);
-  return () => runtimeConfig.load().then(() => appInitService.initialize());
+  const router = inject(Router);
+  const errorHandler = inject(ErrorHandler);
+  return () =>
+    runtimeConfig.load().then(async () => {
+      await appInitService.initialize();
+      router.events
+        .pipe(
+          filter((e): e is NavigationError => e instanceof NavigationError)
+        )
+        .subscribe((e) => errorHandler.handleError(e.error));
+    });
 }
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
+    { provide: ErrorHandler, useClass: ChunkLoadErrorHandler },
     provideRouter(appRoutes),
     provideAnimationsAsync(),
     provideHttpClient(withInterceptors([errorInterceptor])),

@@ -61,6 +61,8 @@
     "email-request-generated": "Email client opened with access request",
     "email-request-failed": "Failed to generate access request",
     "navigation-failed": "Navigation failed. Please try again.",
+    "app-reloading": "Updating the app…",
+    "app-reload-failed": "We couldn't refresh the app automatically. Please reload the page (Ctrl+Shift+R).",
     "confirm": "Confirm",
     "unsaved-changes-warning": "You have unsaved changes. Are you sure you want to leave this page?",
     "leave": "Leave",
