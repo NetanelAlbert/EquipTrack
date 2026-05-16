@@ -5,6 +5,7 @@ const {
   BatchWriteCommand,
   QueryCommand,
 } = require('@aws-sdk/lib-dynamodb');
+const { hashPreviewPassword } = require('./lib/preview-password-hash');
 
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 const STAGE = process.env.STAGE || 'local';
@@ -150,6 +151,17 @@ const E2E_SEED_USERS = [
 async function putStandardE2eOrganizationUsers(docClient) {
   const organizationId = E2E_ORGANIZATION_ID;
 
+  const previewSeedPassword = process.env.PREVIEW_SEED_PASSWORD;
+  const featurePreviewPasswordHash =
+    typeof previewSeedPassword === 'string' && previewSeedPassword.length > 0
+      ? hashPreviewPassword(previewSeedPassword)
+      : undefined;
+  if (featurePreviewPasswordHash) {
+    console.log(
+      '[seed-e2e-data] PREVIEW_SEED_PASSWORD set — storing featurePreviewPasswordHash on seeded users'
+    );
+  }
+
   const organization = {
     id: organizationId,
     name: 'EquipTrack E2E Organization',
@@ -178,6 +190,9 @@ async function putStandardE2eOrganizationUsers(docClient) {
       PK: `${USER_PREFIX}${user.id}`,
       SK: METADATA_SK,
       dbItemType: 'USER',
+      ...(featurePreviewPasswordHash && {
+        featurePreviewPasswordHash,
+      }),
     });
 
     await putItem(docClient, USERS_AND_ORGANIZATIONS_TABLE_NAME, {

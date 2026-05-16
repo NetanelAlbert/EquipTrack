@@ -94,6 +94,7 @@ See `apps/frontend-e2e/src/helpers/e2e-auth.ts` for the canonical Playwright imp
 - **Unit tests**: `npx nx run-many --target=test --all --exclude=frontend-e2e`
 - **E2E tests**: `npm run e2e:local:test` (provisions LocalStack, installs Chromium, runs Playwright core regression). Chromium + system deps are pre-installed by the update script; to run the core regression alone: `E2E_SKIP_LOCAL_E2E_ENSURE=true PLAYWRIGHT_HTML_OPEN=never npx nx run frontend-e2e:e2e-local-core`.
 - **Pre-commit hook** runs `npm run precommit` (lint + test affected + validate translations).
+- **Self-contained preview stack** (LocalStack + backend + nginx, with seeded email/password login): `npm run preview:compose:up` → open `http://127.0.0.1:8080`. See [`docs/local-preview.md`](docs/local-preview.md) for credentials and troubleshooting.
 
 ### Gotchas
 
