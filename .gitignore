@@ -47,6 +47,7 @@ Thumbs.db
 .github/instructions/nx.instructions.md
 
 .env
+.env.preview
 
 # SAM CLI local build
 .aws-sam/
