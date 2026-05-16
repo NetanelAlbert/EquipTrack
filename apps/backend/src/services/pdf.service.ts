@@ -80,6 +80,35 @@ const FORM_TABLE_COL_WIDTHS: readonly number[] = [14, 34, 52, 18, 62];
 const FORM_TABLE_LEFT = 15;
 const FORM_TABLE_RIGHT = 195;
 
+/** Header row height (mm); must match legacy fixed row used for section title spacing. */
+const FORM_TABLE_HEADER_ROW_HEIGHT_MM = 8;
+/** Minimum height for an empty filler row (mm). */
+const FORM_TABLE_MIN_DATA_ROW_HEIGHT_MM = 8;
+/** Vertical offset from row top (mm) to first line baseline — tuned for 8 pt table text. */
+const FORM_TABLE_CELL_FIRST_BASELINE_OFFSET_MM = 5;
+/** Space below last line baseline to bottom border (descenders + margin). */
+const FORM_TABLE_CELL_BOTTOM_BELOW_LAST_BASELINE_MM = 3;
+/** Must match `lineHeightFactor` passed to `doc.text` for wrapped table cells. */
+const FORM_TABLE_TEXT_LINE_HEIGHT_FACTOR = 1.2;
+/** One blank row height between table block and approval section (matches prior layout). */
+const FORM_TABLE_GAP_BEFORE_APPROVAL_MM = 8;
+
+function ptToMm(pt: number): number {
+  return pt * (25.4 / 72);
+}
+
+function wrappedTableLineStepMm(doc: jsPDF): number {
+  return ptToMm(doc.getFontSize() * FORM_TABLE_TEXT_LINE_HEIGHT_FACTOR);
+}
+
+function rowHeightFromWrappedLineCount(doc: jsPDF, lineCount: number): number {
+  return (
+    FORM_TABLE_CELL_FIRST_BASELINE_OFFSET_MM +
+    (lineCount - 1) * wrappedTableLineStepMm(doc) +
+    FORM_TABLE_CELL_BOTTOM_BELOW_LAST_BASELINE_MM
+  );
+}
+
 /** Column bounds with RTL visual order: index 0 = מס (rightmost), 4 = מס סידורי (leftmost). */
 function getFormTableRtlColumnBounds(): { left: number; right: number }[] {
   let x = FORM_TABLE_RIGHT;
@@ -124,27 +153,83 @@ function formTableCellAt(
   return c;
 }
 
-function textInFormTableCell(
+/** Split cell text to wrapped lines (visual order for Hebrew when `visual` is true). */
+function formTableCellLines(
   doc: jsPDF,
-  cell: { left: number; right: number },
-  y: number,
   text: string,
+  cell: { left: number; right: number },
   opts?: { visual?: boolean }
-): void {
-  if (text === '') {
-    return;
-  }
+): string[] {
   const pad = 1.5;
   const innerW = cell.right - cell.left - 2 * pad;
-  if (innerW <= 0) {
-    return;
+  if (innerW <= 0 || text === '') {
+    return [];
   }
   const useVisual = opts?.visual !== false;
   const line = useVisual ? v(text) : text;
-  doc.text(line, cell.right - pad, y, {
+  return doc.splitTextToSize(line, innerW);
+}
+
+/** Draw pre-split lines, right-aligned in an RTL table cell; `rowTopMm` is the row's top Y. */
+function drawFormTableWrappedCell(
+  doc: jsPDF,
+  cell: { left: number; right: number },
+  rowTopMm: number,
+  lines: string[]
+): void {
+  if (lines.length === 0) {
+    return;
+  }
+  const pad = 1.5;
+  const firstBaseline = rowTopMm + FORM_TABLE_CELL_FIRST_BASELINE_OFFSET_MM;
+  doc.text(lines, cell.right - pad, firstBaseline, {
     align: 'right',
-    maxWidth: innerW,
+    lineHeightFactor: FORM_TABLE_TEXT_LINE_HEIGHT_FACTOR,
   });
+}
+
+function planFormEquipmentTable(
+  doc: jsPDF,
+  items: readonly InventoryItem[],
+  productNamesById: Readonly<Record<string, string>>,
+  maxRows: number
+): {
+  colBounds: { left: number; right: number }[];
+  rowHeights: number[];
+  cellLinesGrid: string[][][];
+} {
+  const colBounds = getFormTableRtlColumnBounds();
+  const rowHeights: number[] = [];
+  const cellLinesGrid: string[][][] = [];
+  for (let index = 0; index < maxRows; index++) {
+    if (index < items.length) {
+      const item = items[index];
+      const linesPerCol: string[][] = [
+        formTableCellLines(doc, String(index + 1), formTableCellAt(colBounds, 0), {
+          visual: false,
+        }),
+        formTableCellLines(doc, item.productId.substring(0, 20), formTableCellAt(colBounds, 1)),
+        formTableCellLines(
+          doc,
+          productNameForPdf(item.productId, productNamesById),
+          formTableCellAt(colBounds, 2)
+        ),
+        formTableCellLines(doc, String(item.quantity), formTableCellAt(colBounds, 3), {
+          visual: false,
+        }),
+        formTableCellLines(doc, serialColumnForPdf(item), formTableCellAt(colBounds, 4), {
+          visual: false,
+        }),
+      ];
+      const maxLines = Math.max(1, ...linesPerCol.map((l) => l.length));
+      rowHeights.push(rowHeightFromWrappedLineCount(doc, maxLines));
+      cellLinesGrid.push(linesPerCol);
+    } else {
+      rowHeights.push(FORM_TABLE_MIN_DATA_ROW_HEIGHT_MM);
+      cellLinesGrid.push([[], [], [], [], []]);
+    }
+  }
+  return { colBounds, rowHeights, cellLinesGrid };
 }
 
 /**
@@ -334,87 +419,55 @@ export class PdfService {
     doc.setFontSize(10);
     textSectionTitleRtl(doc, 'רשימת ציוד:', 115);
 
-    // Table headers — columns RTL (מס on the right); cell text right-aligned
+    // Table headers — columns RTL (מס on the right); cell text right-aligned; rows sized for wrapped UPI/product text
     const tableStartY = 120;
-    const rowHeight = 8;
-    const colBounds = getFormTableRtlColumnBounds();
-    const tableHeaders = [
-      'מס',
-      'קוד פריט',
-      'תיאור',
-      'כמות',
-      'מס סידורי',
-    ];
+    const maxRows = 5;
+    const tableHeaders = ['מס', 'קוד פריט', 'תיאור', 'כמות', 'מס סידורי'];
 
-    // Draw table borders and headers
-    doc.rect(FORM_TABLE_LEFT, tableStartY, 180, rowHeight); // Header row
+    doc.setFont(PDF_FONT_FAMILY, 'normal');
+    doc.setFontSize(8);
+    const tablePlan = planFormEquipmentTable(doc, form.items, productNamesById, maxRows);
+    const { colBounds, rowHeights, cellLinesGrid } = tablePlan;
+    const headerRowH = FORM_TABLE_HEADER_ROW_HEIGHT_MM;
+    const totalBodyHeight = rowHeights.reduce((a, b) => a + b, 0);
+    const tableBottomY = tableStartY + headerRowH + totalBodyHeight;
+
+    doc.setFont(PDF_FONT_FAMILY, 'bold');
+    doc.rect(FORM_TABLE_LEFT, tableStartY, 180, headerRowH);
 
     for (const lineX of getFormTableInnerVerticalLineXs()) {
-      doc.line(lineX, tableStartY, lineX, tableStartY + rowHeight * 6);
+      doc.line(lineX, tableStartY, lineX, tableBottomY);
     }
 
     doc.setFontSize(8);
     tableHeaders.forEach((h, i) => {
-      textInFormTableCell(doc, formTableCellAt(colBounds, i), tableStartY + 5, h);
+      const lines = formTableCellLines(doc, h, formTableCellAt(colBounds, i));
+      drawFormTableWrappedCell(doc, formTableCellAt(colBounds, i), tableStartY, lines);
     });
 
-    // Table rows for items
-    form.items.forEach((item, index) => {
-      const rowY = tableStartY + rowHeight * (index + 1);
-
-      // Draw row border
-      doc.rect(FORM_TABLE_LEFT, rowY, 180, rowHeight);
-
-      // Fill row data (column index matches tableHeaders)
+    let rowTop = tableStartY + headerRowH;
+    for (let index = 0; index < maxRows; index++) {
+      const rowH = rowHeights[index] ?? FORM_TABLE_MIN_DATA_ROW_HEIGHT_MM;
+      doc.rect(FORM_TABLE_LEFT, rowTop, 180, rowH);
       doc.setFont(PDF_FONT_FAMILY, 'normal');
-      textInFormTableCell(
-        doc,
-        formTableCellAt(colBounds, 0),
-        rowY + 5,
-        (index + 1).toString(),
-        {
-          visual: false,
+      if (index < form.items.length) {
+        const linesPerCol = cellLinesGrid[index];
+        if (linesPerCol) {
+          for (let c = 0; c < 5; c++) {
+            drawFormTableWrappedCell(
+              doc,
+              formTableCellAt(colBounds, c),
+              rowTop,
+              linesPerCol[c] ?? []
+            );
+          }
         }
-      );
-      textInFormTableCell(
-        doc,
-        formTableCellAt(colBounds, 1),
-        rowY + 5,
-        item.productId.substring(0, 20)
-      );
-      textInFormTableCell(
-        doc,
-        formTableCellAt(colBounds, 2),
-        rowY + 5,
-        productNameForPdf(item.productId, productNamesById)
-      );
-      textInFormTableCell(
-        doc,
-        formTableCellAt(colBounds, 3),
-        rowY + 5,
-        item.quantity.toString(),
-        {
-          visual: false,
-        }
-      );
-      textInFormTableCell(
-        doc,
-        formTableCellAt(colBounds, 4),
-        rowY + 5,
-        serialColumnForPdf(item),
-        { visual: false }
-      );
-    });
-
-    // Fill remaining empty rows (up to 5 total)
-    const maxRows = 5;
-    for (let i = form.items.length; i < maxRows; i++) {
-      const rowY = tableStartY + rowHeight * (i + 1);
-      doc.rect(FORM_TABLE_LEFT, rowY, 180, rowHeight);
+      }
+      rowTop += rowH;
     }
 
     // Approval Section
-    const approvalY = tableStartY + rowHeight * (maxRows + 2);
+    const approvalY = tableBottomY + FORM_TABLE_GAP_BEFORE_APPROVAL_MM;
     doc.rect(15, approvalY, 180, 40);
 
     doc.setFont(PDF_FONT_FAMILY, 'bold');
@@ -577,77 +630,53 @@ export class PdfService {
     textSectionTitleRtl(doc, 'רשימת ציוד המוחזר:', 128);
 
     const tableStartY = 133;
-    const rowHeight = 8;
-    const colBounds = getFormTableRtlColumnBounds();
-    const tableHeaders = [
-      'מס',
-      'קוד פריט',
-      'תיאור',
-      'כמות',
-      'מס סידורי',
-    ];
+    const maxRows = 5;
+    const tableHeaders = ['מס', 'קוד פריט', 'תיאור', 'כמות', 'מס סידורי'];
 
-    doc.rect(FORM_TABLE_LEFT, tableStartY, 180, rowHeight);
+    doc.setFont(PDF_FONT_FAMILY, 'normal');
+    doc.setFontSize(8);
+    const tablePlan = planFormEquipmentTable(doc, event.items, productNamesById, maxRows);
+    const { colBounds, rowHeights, cellLinesGrid } = tablePlan;
+    const headerRowH = FORM_TABLE_HEADER_ROW_HEIGHT_MM;
+    const totalBodyHeight = rowHeights.reduce((a, b) => a + b, 0);
+    const tableBottomY = tableStartY + headerRowH + totalBodyHeight;
+
+    doc.setFont(PDF_FONT_FAMILY, 'bold');
+    doc.rect(FORM_TABLE_LEFT, tableStartY, 180, headerRowH);
+
     for (const lineX of getFormTableInnerVerticalLineXs()) {
-      doc.line(lineX, tableStartY, lineX, tableStartY + rowHeight * 6);
+      doc.line(lineX, tableStartY, lineX, tableBottomY);
     }
 
     doc.setFontSize(8);
     tableHeaders.forEach((h, i) => {
-      textInFormTableCell(doc, formTableCellAt(colBounds, i), tableStartY + 5, h);
+      const lines = formTableCellLines(doc, h, formTableCellAt(colBounds, i));
+      drawFormTableWrappedCell(doc, formTableCellAt(colBounds, i), tableStartY, lines);
     });
 
-    event.items.forEach((item, index) => {
-      const rowY = tableStartY + rowHeight * (index + 1);
-      doc.rect(FORM_TABLE_LEFT, rowY, 180, rowHeight);
+    let rowTop = tableStartY + headerRowH;
+    for (let index = 0; index < maxRows; index++) {
+      const rowH = rowHeights[index] ?? FORM_TABLE_MIN_DATA_ROW_HEIGHT_MM;
+      doc.rect(FORM_TABLE_LEFT, rowTop, 180, rowH);
       doc.setFont(PDF_FONT_FAMILY, 'normal');
-      textInFormTableCell(
-        doc,
-        formTableCellAt(colBounds, 0),
-        rowY + 5,
-        (index + 1).toString(),
-        {
-          visual: false,
+      if (index < event.items.length) {
+        const linesPerCol = cellLinesGrid[index];
+        if (linesPerCol) {
+          for (let c = 0; c < 5; c++) {
+            drawFormTableWrappedCell(
+              doc,
+              formTableCellAt(colBounds, c),
+              rowTop,
+              linesPerCol[c] ?? []
+            );
+          }
         }
-      );
-      textInFormTableCell(
-        doc,
-        formTableCellAt(colBounds, 1),
-        rowY + 5,
-        item.productId.substring(0, 20)
-      );
-      textInFormTableCell(
-        doc,
-        formTableCellAt(colBounds, 2),
-        rowY + 5,
-        productNameForPdf(item.productId, productNamesById)
-      );
-      textInFormTableCell(
-        doc,
-        formTableCellAt(colBounds, 3),
-        rowY + 5,
-        item.quantity.toString(),
-        {
-          visual: false,
-        }
-      );
-      textInFormTableCell(
-        doc,
-        formTableCellAt(colBounds, 4),
-        rowY + 5,
-        serialColumnForPdf(item),
-        { visual: false }
-      );
-    });
-
-    const maxRows = 5;
-    for (let i = event.items.length; i < maxRows; i++) {
-      const rowY = tableStartY + rowHeight * (i + 1);
-      doc.rect(FORM_TABLE_LEFT, rowY, 180, rowHeight);
+      }
+      rowTop += rowH;
     }
 
     // Approval section
-    const approvalY = tableStartY + rowHeight * (maxRows + 2);
+    const approvalY = tableBottomY + FORM_TABLE_GAP_BEFORE_APPROVAL_MM;
     doc.rect(15, approvalY, 180, 30);
     doc.setFont(PDF_FONT_FAMILY, 'bold');
     doc.setFontSize(10);
