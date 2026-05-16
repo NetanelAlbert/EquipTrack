@@ -184,7 +184,11 @@ function emitLambdaFunctions(handlerKeys) {
 }
 
 function generateTemplate() {
-  const endpointMetas = loadEndpointMetas();
+  const allEndpointMetas = loadEndpointMetas();
+  // localOnly endpoints are served only by the local HTTP server (preview/E2E stacks) — skip SAM.
+  const endpointMetas = Object.fromEntries(
+    Object.entries(allEndpointMetas).filter(([, meta]) => !meta.localOnly)
+  );
   const handlerKeys = Object.keys(endpointMetas);
   const pathsByKey = buildPathsByKey(endpointMetas);
   const pathsYaml = emitDefinitionPaths(pathsByKey);

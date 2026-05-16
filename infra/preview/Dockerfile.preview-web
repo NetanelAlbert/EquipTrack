@@ -1,0 +1,15 @@
+# Nginx serving Angular build + reverse-proxy /api → backend (local preview stack)
+FROM node:20-bookworm AS builder
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+# same-origin: browser hits /api/* on the same host as the SPA
+RUN RUNTIME_API_URL=same-origin FEATURE_PREVIEW_LOGIN_ENABLED=true \
+    node scripts/write-runtime-config.js same-origin \
+  && npx nx run frontend:build:production
+
+FROM nginx:1.27-alpine
+COPY --from=builder /app/dist/apps/frontend/browser /usr/share/nginx/html
+COPY infra/preview/nginx-preview.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80

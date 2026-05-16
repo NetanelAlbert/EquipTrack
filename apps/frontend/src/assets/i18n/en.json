@@ -28,7 +28,15 @@
     "try-again": "Try Again",
     "try-again-detailed": "Try signing in again",
     "error": "Authentication Error",
-    "success": "Authentication Successful"
+    "success": "Authentication Successful",
+    "feature-preview-intro": "Preview environment: sign in with the shared credentials provided by your team.",
+    "feature-preview-email": "Email",
+    "feature-preview-password": "Password",
+    "feature-preview-submit": "Sign in",
+    "feature-preview-email-required": "Email is required",
+    "feature-preview-email-invalid": "Enter a valid email address",
+    "feature-preview-password-required": "Password is required",
+    "feature-preview-form-aria": "Preview sign-in with email and password"
   },
   "common": {
     "close": "Close",

@@ -125,7 +125,14 @@ export class UsersAndOrganizationsAdapter {
 
   private getUser(userDB: UserDb): User {
     // Destructure to exclude database-specific fields and keep only User fields
-    const { PK, SK, dbItemType, googleSub, ...user } = userDB;
+    const {
+      PK: _PK,
+      SK: _SK,
+      dbItemType: _dbItemType,
+      googleSub: _googleSub,
+      featurePreviewPasswordHash: _featurePreviewPasswordHash,
+      ...user
+    } = userDB;
     return user;
   }
 
@@ -133,13 +140,13 @@ export class UsersAndOrganizationsAdapter {
     userInOrganizationsDB: UserInOrganizationDb
   ): UserInOrganization {
     // Destructure to exclude database-specific fields and keep only UserInOrganization fields
-    const { PK, SK, dbItemType, ...userInOrganization } = userInOrganizationsDB;
+    const { PK: _PK, SK: _SK, dbItemType: _dbItemType, ...userInOrganization } = userInOrganizationsDB;
     return userInOrganization;
   }
 
   private getOrganization(organizationDB: OrganizationDb): Organization {
     // Destructure to exclude database-specific fields and keep only Organization fields
-    const { PK, SK, dbItemType, ...organization } = organizationDB;
+    const { PK: _PK, SK: _SK, dbItemType: _dbItemType, ...organization } = organizationDB;
     return organization;
   }
 
@@ -419,6 +426,58 @@ export class UsersAndOrganizationsAdapter {
     });
 
     await this.docClient.send(command);
+  }
+
+  /**
+   * Same as {@link getUserByEmail} but exposes the preview password hash for auth (not part of {@link User}).
+   */
+  async getUserByEmailForFeaturePreview(
+    email: string
+  ): Promise<
+    | {
+        user: User;
+        userInOrganizations: UserInOrganization[];
+        featurePreviewPasswordHash: string | undefined;
+      }
+    | undefined
+  > {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const userQuery = new QueryCommand({
+      TableName: this.tableName,
+      IndexName: 'UsersByEmailIndex',
+      KeyConditionExpression: 'email = :email AND SK = :sk',
+      ExpressionAttributeValues: {
+        ':email': normalizedEmail,
+        ':sk': METADATA_SK,
+      },
+    });
+
+    const userResult = await this.docClient.send(userQuery);
+    const userItems = userResult.Items as UserDb[];
+
+    if (!userItems || userItems.length === 0) {
+      return undefined;
+    }
+
+    const userDb = userItems[0];
+    const featurePreviewPasswordHash = userDb.featurePreviewPasswordHash;
+    const user = this.getUser(userDb);
+
+    const orgQuery = new QueryCommand({
+      TableName: this.tableName,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :orgPrefix)',
+      ExpressionAttributeValues: {
+        ':pk': userDb.PK,
+        ':orgPrefix': ORG_PREFIX,
+      },
+    });
+
+    const orgResult = await this.docClient.send(orgQuery);
+    const orgItems = (orgResult.Items as UserInOrganizationDb[]) ?? [];
+    const userInOrganizations = orgItems.map(this.getUserInOrganizations);
+
+    return { user, userInOrganizations, featurePreviewPasswordHash };
   }
 
   /**
