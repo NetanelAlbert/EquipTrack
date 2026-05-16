@@ -169,7 +169,15 @@
                   {{ 'trace.columnFormId' | translate }}
                 </th>
                 <td mat-cell *matCellDef="let row">
-                  {{ row.formId }}
+                  <a
+                    class="trace-form-link"
+                    [routerLink]="['/forms']"
+                    [queryParams]="ownershipFormListQueryParams(row.formId)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid="trace-ownership-form-link">
+                    {{ 'trace.viewFormLink' | translate }}
+                  </a>
                   @if (row.checkInEventId) {
                     <span class="check-in-event-id" [title]="'trace.checkInEventId' | translate">
                       · {{ row.checkInEventId }}

@@ -2,10 +2,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { provideRouter } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
+import { FormStatus, FormType } from '@equip-track/shared';
 import { TraceItemComponent } from './trace-item.component';
 import { ApiService } from '../../services/api.service';
 import { NotificationService } from '../../services/notification.service';
@@ -62,6 +64,7 @@ describe('TraceItemComponent', () => {
         TranslateModule.forRoot(),
       ],
       providers: [
+        provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: MatSnackBar, useValue: { open: jest.fn() } },
@@ -136,5 +139,14 @@ describe('TraceItemComponent', () => {
     expect(component.ownershipEventTypeKey('check-in')).toBe(
       'trace.eventType.check-in'
     );
+  });
+
+  it('ownershipFormListQueryParams matches forms deep-link shape for approved check-outs', () => {
+    const formId = 'form-uuid-123';
+    expect(component.ownershipFormListQueryParams(formId)).toEqual({
+      formType: FormType.CheckOut,
+      searchStatus: FormStatus.Approved,
+      searchTerm: formId,
+    });
   });
 });

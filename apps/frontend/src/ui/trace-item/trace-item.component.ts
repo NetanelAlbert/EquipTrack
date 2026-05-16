@@ -20,12 +20,16 @@ import { OrganizationStore, UserStore, InventoryStore } from '../../store';
 import { ApiService } from '../../services/api.service';
 import { NotificationService } from '../../services/notification.service';
 import {
+  FormStatus,
+  FormType,
   ItemReport,
   ORGANIZATION_ID_PATH_PARAM,
   OwnershipEvent,
   Product,
   UI_DATE_TIME_FORMAT,
 } from '@equip-track/shared';
+import { RouterLink } from '@angular/router';
+import { FormQueryParams } from '../../utils/forms.medels';
 
 @Component({
   selector: 'app-trace-item',
@@ -33,6 +37,7 @@ import {
   imports: [
     CommonModule,
     FormsModule,
+    RouterLink,
     MatFormFieldModule,
     MatSelectModule,
     MatButtonModule,
@@ -235,5 +240,14 @@ export class TraceItemComponent {
 
   ownershipEventTypeKey(eventType: OwnershipEvent['eventType']): string {
     return `trace.eventType.${eventType}`;
+  }
+
+  /** Deep link to checkout forms list with filters matching this ownership row's form. */
+  ownershipFormListQueryParams(formId: string): FormQueryParams {
+    return {
+      formType: FormType.CheckOut,
+      searchStatus: FormStatus.Approved,
+      searchTerm: formId,
+    };
   }
 }

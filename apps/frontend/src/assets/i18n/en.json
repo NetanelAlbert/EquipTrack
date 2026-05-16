@@ -384,6 +384,7 @@
     "columnOwnershipDate": "Date",
     "columnEventType": "Event type",
     "columnFormId": "Form",
+    "viewFormLink": "View form",
     "checkInEventId": "Return event ID",
     "noOwnershipHistory": "No ownership history",
     "noOwnershipHistoryDescription": "No holder changes have been recorded for this item yet.",
