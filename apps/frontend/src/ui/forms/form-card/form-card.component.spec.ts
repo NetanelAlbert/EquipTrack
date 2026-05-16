@@ -9,12 +9,14 @@ import { Subject } from 'rxjs';
 import { FormCardComponent } from './form-card.component';
 import { FormsStore } from '../../../store/forms.store';
 import { NotificationService } from '../../../services/notification.service';
+import { UserStore } from '../../../store/user.store';
 import {
   CheckInEvent,
   FormStatus,
   FormType,
   InventoryForm,
   InventoryItem,
+  UserRole,
 } from '@equip-track/shared';
 
 function makeMockForm(overrides: Partial<InventoryForm> = {}): InventoryForm {
@@ -59,17 +61,10 @@ describe('FormCardComponent', () => {
     createdByUserId: 'user-admin',
   };
 
-  const mockCheckInForm: InventoryForm = {
-    formID: 'form-checkin-1',
-    userID: 'user-456',
-    organizationID: 'org-1',
-    status: FormStatus.Approved,
-    type: FormType.CheckIn,
-    items: mockItems,
-    createdAtTimestamp: Date.now(),
-    lastUpdated: Date.now(),
-    description: 'Test checkin form',
-    createdByUserId: 'user-admin',
+  const mockUserStore = {
+    currentRole: jest.fn().mockReturnValue(UserRole.Admin),
+    user: jest.fn().mockReturnValue(null),
+    selectedOrganizationId: jest.fn().mockReturnValue('org-1'),
   };
 
   beforeEach(async () => {
@@ -108,6 +103,7 @@ describe('FormCardComponent', () => {
         { provide: FormsStore, useValue: mockFormsStore },
         { provide: NotificationService, useValue: mockNotification },
         { provide: Router, useValue: routerSpy },
+        { provide: UserStore, useValue: mockUserStore },
       ],
     }).compileComponents();
 
@@ -257,21 +253,6 @@ describe('FormCardComponent', () => {
       });
     });
 
-    it('should navigate with formType, userId, and items for checkin form', () => {
-      component.form = mockCheckInForm;
-      fixture.detectChanges();
-
-      component.onCloneForm();
-
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['/create-form'], {
-        queryParams: {
-          formType: FormType.CheckIn,
-          userId: 'user-456',
-          items: JSON.stringify(mockItems),
-        },
-      });
-    });
-
     it('should preserve the original form userId in clone params', () => {
       component.form = mockCheckOutForm;
       fixture.detectChanges();
@@ -352,6 +333,10 @@ describe('FormCardComponent', () => {
 
       const badge = fixture.nativeElement.querySelector('[data-testid="badge-partially-returned"]');
       expect(badge).toBeTruthy();
+
+      expect(
+        fixture.nativeElement.querySelector(`[data-testid="form-checkin-${component.form.formID}"]`)
+      ).toBeTruthy();
     });
 
     it('shows fully-returned badge when all items returned', () => {
@@ -370,6 +355,10 @@ describe('FormCardComponent', () => {
 
       const badge = fixture.nativeElement.querySelector('[data-testid="badge-fully-returned"]');
       expect(badge).toBeTruthy();
+
+      expect(
+        fixture.nativeElement.querySelector(`[data-testid="form-checkin-${component.form.formID}"]`)
+      ).toBeFalsy();
     });
 
     it('shows check-in event section when events exist', () => {

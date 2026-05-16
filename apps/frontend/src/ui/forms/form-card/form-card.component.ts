@@ -70,7 +70,8 @@ export class FormCardComponent {
     return (
       this.isAdminOrWarehouseManager &&
       this.form.status === FormStatus.Approved &&
-      this.form.type === FormType.CheckOut
+      this.form.type === FormType.CheckOut &&
+      !this.isFormFullyReturned
     );
   }
 
