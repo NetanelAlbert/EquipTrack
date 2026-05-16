@@ -223,6 +223,8 @@
       "addUser": "הוסף משתמש",
       "showAllUsers": "הצג את כל המשתמשים",
       "resetToWarehouse": "איפוס למחסן",
+      "reloadData": "טעינת נתונים מחדש",
+      "reloadDataTooltip": "משיכת המלאי העדכני ביותר לכל המשתמשים שנבחרו ולמחסן, בלי לשנות את הבחירה",
       "clearColumnSort": "נקה מיון עמודות",
       "sortByProductClick": "לחץ למיון עמודות המשתמשים לפי מוצר זה",
       "product": "מוצר",

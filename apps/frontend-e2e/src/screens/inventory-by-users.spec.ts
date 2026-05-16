@@ -72,6 +72,55 @@ test.describe('inventory-by-users screen', () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
+  test('reload data keeps selected users and table visible', async ({
+    page,
+    request,
+  }) => {
+    const token = await mintE2eJwt(request, {
+      backendBaseUrl,
+      e2eSecret,
+      userId: 'user-e2e-admin',
+      orgIdToRole: { [E2E_ORG_ID]: UserRole.Admin },
+    });
+
+    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+    await clickSideNavRoute(page, 'inventory-by-users');
+    await waitForTestId(page, 'inventory-by-users-page');
+    await expect(
+      page.getByTestId('inventory-by-users-table')
+    ).toBeVisible({ timeout: 20000 });
+
+    const addUserSelect = page.getByTestId(
+      'inventory-by-users-add-user-select'
+    );
+    await addUserSelect.click();
+    const filterInput = addUserSelect.locator('input[type="text"]');
+    await filterInput.fill('customer');
+    await page
+      .getByTestId(
+        `inventory-by-users-add-user-option-${E2E_CUSTOMER_USER_ID}`
+      )
+      .click();
+
+    const chips = page.getByTestId('inventory-by-users-selected-users');
+    await expect(chips.locator('mat-chip-row')).toHaveCount(2, {
+      timeout: 10000,
+    });
+
+    await page.getByTestId('inventory-by-users-reload-data').click();
+
+    await expect.poll(async () => chips.locator('mat-chip-row').count()).toBe(
+      2
+    );
+    await expect(
+      page.getByTestId(`inventory-user-chip-${E2E_CUSTOMER_USER_ID}`)
+    ).toBeVisible();
+    await expect(
+      page.getByTestId('inventory-by-users-table')
+    ).toBeVisible();
+  });
+
   test('show-all adds all users and reset returns to warehouse only', async ({
     page,
     request,

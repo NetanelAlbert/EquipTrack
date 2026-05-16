@@ -4,6 +4,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TranslateModule } from '@ngx-translate/core';
 import { InventoryByUsersComponent } from './inventory-by-users.component';
+import { InventoryStore } from '../../../store/inventory.store';
 import { OrganizationService } from '../../../services/organization.service';
 import {
   UserAndUserInOrganization,
@@ -243,6 +244,51 @@ describe('InventoryByUsersComponent', () => {
       expect(ids).toContain('WAREHOUSE');
       expect(ids).toContain('user-a');
       expect(ids).not.toContain('user-b');
+    });
+  });
+
+  describe('reloadSelectedUsersInventory', () => {
+    it('should call ensureUserInventoryLoaded with forceRefresh for each selected user', async () => {
+      const inventoryStore = TestBed.inject(InventoryStore);
+      const spy = jest
+        .spyOn(inventoryStore, 'ensureUserInventoryLoaded')
+        .mockResolvedValue(undefined);
+
+      component.selectedUserIds.set(['WAREHOUSE', 'user-a', 'user-b']);
+      await component.reloadSelectedUsersInventory();
+
+      expect(spy).toHaveBeenCalledWith('WAREHOUSE', { forceRefresh: true });
+      expect(spy).toHaveBeenCalledWith('user-a', { forceRefresh: true });
+      expect(spy).toHaveBeenCalledWith('user-b', { forceRefresh: true });
+    });
+
+    it('should disable reload while reloadInventoryInProgress is true', async () => {
+      const inventoryStore = TestBed.inject(InventoryStore);
+      let resolveFirst: (() => void) | undefined;
+      const first = new Promise<void>((resolve) => {
+        resolveFirst = resolve;
+      });
+      const spy = jest
+        .spyOn(inventoryStore, 'ensureUserInventoryLoaded')
+        .mockImplementation((_userId, options) => {
+          if (options?.forceRefresh) {
+            return first;
+          }
+          return Promise.resolve();
+        });
+
+      component.selectedUserIds.set(['WAREHOUSE']);
+      const reloadPromise = component.reloadSelectedUsersInventory();
+
+      expect(component.reloadInventoryInProgress()).toBe(true);
+      expect(component.reloadInventoryDisabled()).toBe(true);
+
+      resolveFirst?.();
+      await reloadPromise;
+
+      expect(component.reloadInventoryInProgress()).toBe(false);
+      expect(component.reloadInventoryDisabled()).toBe(false);
+      spy.mockRestore();
     });
   });
 });

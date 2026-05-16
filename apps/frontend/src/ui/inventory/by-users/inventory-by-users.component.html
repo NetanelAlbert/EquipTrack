@@ -82,6 +82,20 @@
 
       <div class="action-buttons">
         <button
+          mat-stroked-button
+          color="primary"
+          type="button"
+          data-testid="inventory-by-users-reload-data"
+          [disabled]="reloadInventoryDisabled()"
+          [matTooltip]="'inventory.table.reloadDataTooltip' | translate"
+          matTooltipPosition="above"
+          (click)="reloadSelectedUsersInventory()"
+        >
+          <mat-icon>refresh</mat-icon>
+          {{ 'inventory.table.reloadData' | translate }}
+        </button>
+
+        <button
           mat-button 
           color="primary"
           data-testid="inventory-by-users-show-all"
