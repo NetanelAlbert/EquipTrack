@@ -30,7 +30,12 @@ The environment start script seeds the following E2E fixture data into LocalStac
 
 **Products & inventory** (`Inventory` table): Safety Helmet (`prod-bulk-helmet`, bulk: 20 warehouse / 3 customer), Laptop (`prod-upi-laptop`, UPI items `LAP-WH-001`–`003` in warehouse, `LAP-CUST-001` with customer).
 
-**Forms** (`Forms` table): sample pending-checkout, approved-checkout, rejected-check-in forms, plus a predefined kit form.
+**Forms** (`Forms` table): three check-out forms seeded:
+- `form-e2e-pending-checkout` (`status: pending`, description `e2e-seed-pending-checkout`)
+- `form-e2e-approved-checkout` (`status: approved`, description `e2e-seed-approved-checkout`)
+- `form-e2e-approved-checkout-partial-return` (`status: approved`, description `e2e-seed-approved-checkout-partial-return`) — has one embedded `CheckInEvent` returning 1 of 3 helmets; demonstrates the partial-return UI.
+
+Plus a predefined kit form (`predefined-e2e-kit`).
 
 **Reports** (`EquipTrackReport` table): two report rows for today (Asia/Jerusalem timezone).
 
