@@ -23,6 +23,11 @@ describe('PdfService', () => {
     'prod-upi-laptop': 'מחשב נייד',
   };
 
+  const laptopUpis = Array.from(
+    { length: 10 },
+    (_, i) => `LAP-WH-${String(i + 1).padStart(3, '0')}`
+  );
+
   const baseForm: InventoryForm = {
     userID: 'user-1',
     formID: 'form-abc',
@@ -31,8 +36,8 @@ describe('PdfService', () => {
       { productId: 'prod-bulk-helmet', quantity: 2 },
       {
         productId: 'prod-upi-laptop',
-        quantity: 3,
-        upis: ['LAP-WH-001', 'LAP-WH-002', 'LAP-WH-003'],
+        quantity: 10,
+        upis: laptopUpis,
       },
     ],
     type: FormType.CheckOut,
@@ -76,7 +81,11 @@ describe('PdfService', () => {
       checkInEventId: 'cie-1',
       items: [
         { productId: 'prod-bulk-helmet', quantity: 1 },
-        { productId: 'prod-upi-laptop', quantity: 3, upis: ['LAP-WH-001', 'LAP-WH-002', 'LAP-WH-003'] },
+        {
+          productId: 'prod-upi-laptop',
+          quantity: 10,
+          upis: laptopUpis,
+        },
       ],
       createdAtTimestamp: Date.now(),
       createdByUserId: 'wm-1',
