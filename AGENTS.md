@@ -107,6 +107,7 @@ See `apps/frontend-e2e/src/helpers/e2e-auth.ts` for the canonical Playwright imp
 - The `e2e-login` endpoint requires the secret via the `x-e2e-secret` **header** (not in the request body). Playwright E2E helpers handle this automatically; see `apps/frontend-e2e/src/helpers/e2e-auth.ts`.
 - The frontend defaults to **Hebrew (RTL)** localization. This is intentional. E2E automated tests force English via `localStorage['equip-track-language'] = 'en'`.
 - **Google login will not work** in the Cloud Agent VM. Always use the E2E token flow described above.
+- **SAM template must be regenerated** whenever you add, remove, or rename a backend HTTP handler (a file under `apps/backend/src/handlers/`). Run `npm run generate:sam` and commit the updated `infra/sam/template.yaml`. The CI job "Generate and validate SAM template" will fail if the committed template is out of sync with the handler files.
 
 ## README
 
@@ -176,6 +177,7 @@ For each new spec (or substantial change to an existing one), check this list be
 - ✅ `npx nx run frontend-e2e:e2e-local-core` for changes that touch UI behavior, e2e helpers, or any spec under `apps/frontend-e2e/`.
 - If you touched any e2e helper (`apps/frontend-e2e/src/helpers/*.ts`), also run `npx nx run frontend-e2e:e2e-local-full` because every screen spec depends on those helpers.
 - Reset LocalStack state if the full suite previously ran and consumed mutable seed data: `npm run e2e:local:stack:reset && npm run e2e:local:prepare`, then restart the backend so it re-reads JWT keys from Secrets Manager.
+- **When removing tests or refactoring specs**, always audit the import block at the top of each modified spec file and remove any imports that are no longer referenced. The `frontend-e2e` lint target treats unused variables as errors (`@typescript-eslint/no-unused-vars`), so stale imports will fail CI.
 
 ## UI changes — screenshots required
 
