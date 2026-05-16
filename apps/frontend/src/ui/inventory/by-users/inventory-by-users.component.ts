@@ -268,6 +268,16 @@ export class InventoryByUsersComponent implements OnInit {
       !this.hasUsers()
   );
 
+  /** True while a manual reload of all selected columns is in flight. */
+  reloadInventoryInProgress = signal(false);
+
+  reloadInventoryDisabled = computed(
+    () =>
+      this.reloadInventoryInProgress() ||
+      this.isLoadingInitialWarehouseInventory() ||
+      this.selectedUserIds().length === 0
+  );
+
   constructor() {
     effect(() => {
       const selectedUsers = this.selectedUserIds();
@@ -347,6 +357,26 @@ export class InventoryByUsersComponent implements OnInit {
   // Reset to warehouse only
   resetToWarehouse() {
     this.selectedUserIds.set(['WAREHOUSE']);
+  }
+
+  /** Refetches inventory for every selected column (warehouse and users) without changing selection. */
+  async reloadSelectedUsersInventory(): Promise<void> {
+    if (this.reloadInventoryInProgress()) {
+      return;
+    }
+    this.reloadInventoryInProgress.set(true);
+    try {
+      const ids = this.selectedUserIds();
+      await Promise.all(
+        ids.map((userId) =>
+          this.inventoryStore.ensureUserInventoryLoaded(userId, {
+            forceRefresh: true,
+          })
+        )
+      );
+    } finally {
+      this.reloadInventoryInProgress.set(false);
+    }
   }
 
   // Get UPI tooltip for a cell

@@ -224,6 +224,8 @@
       "addUser": "Add User",
       "showAllUsers": "Show All Users",
       "resetToWarehouse": "Reset to Warehouse",
+      "reloadData": "Reload data",
+      "reloadDataTooltip": "Fetch the latest inventory for all selected users and warehouse without changing your selection",
       "clearColumnSort": "Clear Column Sort",
       "sortByProductClick": "Click to sort user columns by this product",
       "product": "Product",
