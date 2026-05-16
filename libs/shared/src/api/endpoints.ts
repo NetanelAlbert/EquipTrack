@@ -20,6 +20,8 @@ export interface EndpointMeta<
   allowedOtherUsers?: UserRole[];
   requestType?: Req;
   responseType?: Res;
+  /** When true the endpoint is served only by the local HTTP server (preview / E2E stacks) and must not be included in the SAM template. */
+  localOnly?: true;
 }
 
 export const ORGANIZATION_ID_PATH_PARAM = 'organizationId';
@@ -46,6 +48,7 @@ export const endpointMetas = {
     path: `/api/auth/feature-preview-password`,
     method: 'POST',
     allowedRoles: [],
+    localOnly: true,
     requestType: {} as Auth.FeaturePreviewPasswordRequest,
     responseType: {} as Auth.FeaturePreviewPasswordResponse,
   } as EndpointMeta<
