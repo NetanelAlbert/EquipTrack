@@ -194,6 +194,53 @@ export async function fillInventoryRow(
 }
 
 /**
+ * Click the "Check in items" button on an approved check-out form card and complete
+ * the check-in dialog by drawing a signature and submitting.
+ * Waits for the POST /check-in request to succeed.
+ */
+export async function recordCheckInViaDialog(
+  page: Page,
+  description: string
+): Promise<void> {
+  const formCard = page
+    .locator('[data-testid^="form-card-"]')
+    .filter({ hasText: description })
+    .first();
+  await expect(formCard).toBeVisible({ timeout: 20000 });
+
+  await formCard.locator('[data-testid^="form-checkin-"]').click();
+
+  // Dialog should open
+  await expect(page.getByTestId('check-in-dialog-content')).toBeVisible({ timeout: 10000 });
+
+  // Add inventory row defaults are pre-filled with outstanding items.
+  // If not, add one row with the first available item.
+  const addItemBtn = page.getByTestId('editable-inventory-add-item');
+  if ((await addItemBtn.count()) > 0 && (await page.getByTestId('editable-item-row').count()) === 0) {
+    await addItemBtn.click();
+  }
+
+  // Draw signature
+  const signatureCanvas = page.getByTestId('check-in-signature-pad').locator('canvas').first();
+  await expect(signatureCanvas).toBeVisible({ timeout: 10000 });
+  const box = await signatureCanvas.boundingBox();
+  if (!box) throw new Error('Cannot draw check-in signature: no bounding box');
+  await page.mouse.move(box.x + 30, box.y + 30);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 160, box.y + 80);
+  await page.mouse.up();
+
+  const checkInRequest = page.waitForResponse(
+    (r) => r.request().method() === 'POST' && r.url().includes('/check-in') && r.ok(),
+    { timeout: 30000 }
+  );
+  const submitBtn = page.getByTestId('editable-inventory-submit');
+  await expect(submitBtn).toBeEnabled({ timeout: 10000 });
+  await submitBtn.click();
+  await checkInRequest;
+}
+
+/**
  * Approve the latest pending form matching the given description.
  * Draws a mouse signature and clicks the approve button inside the signature dialog.
  */

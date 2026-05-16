@@ -41,15 +41,15 @@ describe('FormsComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should set query params when all required params are provided', () => {
+  it('should set checkOutQueryParams when all required params are provided', () => {
     queryParamsSubject.next({
-      formType: FormType.CheckIn,
+      formType: FormType.CheckOut,
       searchStatus: FormStatus.Pending,
       searchTerm: 'test',
     });
 
-    expect(component.checkInQueryParams()).toEqual({
-      formType: FormType.CheckIn,
+    expect(component.checkOutQueryParams()).toEqual({
+      formType: FormType.CheckOut,
       searchStatus: FormStatus.Pending,
       searchTerm: 'test',
     });
@@ -57,14 +57,13 @@ describe('FormsComponent', () => {
 
   it('should clear query params when required params are missing', () => {
     queryParamsSubject.next({
-      formType: FormType.CheckIn,
+      formType: FormType.CheckOut,
       searchStatus: FormStatus.Pending,
       searchTerm: 'test',
     });
 
     queryParamsSubject.next({});
 
-    expect(component.checkInQueryParams()).toBeUndefined();
     expect(component.checkOutQueryParams()).toBeUndefined();
   });
 

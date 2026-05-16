@@ -71,6 +71,49 @@ export class S3Service {
 
 
   /**
+   * Uploads a check-in event PDF to S3.
+   * Key: {stage}/{organizationId}/{userId}/check-in/{formId}/{checkInEventId}.pdf
+   */
+  async uploadCheckInEventPDF(
+    buffer: Buffer,
+    organizationId: string,
+    userId: string,
+    formId: string,
+    checkInEventId: string
+  ): Promise<string> {
+    const stage = process.env.STAGE || 'dev';
+    const key = `${stage}/${organizationId}/${userId}/check-in/${formId}/${checkInEventId}.pdf`;
+
+    const command = new PutObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+      Body: buffer,
+      ContentType: 'application/pdf',
+      ContentDisposition: `attachment; filename="${checkInEventId}.pdf"`,
+      Metadata: {
+        organizationId,
+        formId,
+        checkInEventId,
+        stage,
+        uploadedAt: new Date().toISOString(),
+      },
+    });
+
+    try {
+      await this.client.send(command);
+      const region = process.env.AWS_REGION || 'us-east-1';
+      return `https://${this.bucketName}.s3.${region}.amazonaws.com/${key}`;
+    } catch (error) {
+      console.error('Error uploading check-in event PDF to S3:', error);
+      throw new Error(
+        `Failed to upload check-in event PDF to S3: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
+      );
+    }
+  }
+
+  /**
    * Generates a pre-signed URL for accessing the PDF
    * @param url S3 URL of the file
    * @param expiresIn Expiration time in seconds (default: 3600 seconds - 1 hour)

@@ -4,10 +4,17 @@ import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
 import { InventoryListComponent } from '../../inventory/list/inventory-list.component';
-import { InventoryForm } from '@equip-track/shared';
+import {
+  CheckInEvent,
+  getOutstandingItems,
+  hasRecordedReturns,
+  isFullyReturned,
+  InventoryForm,
+} from '@equip-track/shared';
 import { MatDialog } from '@angular/material/dialog';
 import { RejectFormDialogComponent } from '../reject-form-dialog/reject-form-dialog.component';
 import { SignatureDialogComponent } from '../signature-dialog/signature-dialog.component';
+import { CheckInDialogComponent, CheckInDialogResult } from '../check-in-dialog/check-in-dialog.component';
 import { UserStore } from '../../../store/user.store';
 import { FormsStore } from '../../../store/forms.store';
 import { UserRole, FormStatus, FormType } from '@equip-track/shared';
@@ -39,6 +46,7 @@ export class FormCardComponent {
   @Input({ required: true }) form!: InventoryForm;
 
   readonly isPrintPdfLoading = signal(false);
+  readonly checkInEventLoadingId = signal<string | null>(null);
 
   dateTimeFormat = UI_DATE_TIME_FORMAT;
   organizationStore = inject(OrganizationStore);
@@ -46,10 +54,23 @@ export class FormCardComponent {
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
   private readonly userStore = inject(UserStore);
-  private readonly formsStore = inject(FormsStore);
+  readonly formsStore = inject(FormsStore);
   private readonly clipboard = inject(Clipboard);
   private readonly notificationService = inject(NotificationService);
   private readonly router = inject(Router);
+
+  get outstandingItems() {
+    return getOutstandingItems(this.form);
+  }
+
+  get isFormFullyReturned() {
+    return isFullyReturned(this.form);
+  }
+
+  /** At least one return event recorded (distinguishes “not returned” from “partially returned”). */
+  get hasReturnHistory() {
+    return hasRecordedReturns(this.form);
+  }
 
   get isAdminOrWarehouseManager(): boolean {
     const role = this.userStore.currentRole();
@@ -60,7 +81,8 @@ export class FormCardComponent {
     return (
       this.isAdminOrWarehouseManager &&
       this.form.status === FormStatus.Approved &&
-      this.form.type === FormType.CheckOut
+      this.form.type === FormType.CheckOut &&
+      !this.isFormFullyReturned
     );
   }
 
@@ -119,13 +141,29 @@ export class FormCardComponent {
   }
 
   onCheckIn() {
-    this.router.navigate(['/create-form'], {
-      queryParams: {
-        formType: FormType.CheckIn,
-        userId: this.form.userID,
-        items: JSON.stringify(this.form.items),
-      },
+    const dialogRef = this.dialog.open(CheckInDialogComponent, {
+      data: { form: this.form },
+      maxWidth: '650px',
     });
+
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(async (result: CheckInDialogResult | undefined) => {
+        if (result) {
+          try {
+            await this.formsStore.checkInForm(
+              this.form.formID,
+              this.form.userID,
+              result.items,
+              result.signature
+            );
+          } catch (error) {
+            console.error('Failed to record check-in:', error);
+            this.notificationService.handleApiError(error, 'errors.forms.check-in-failed');
+          }
+        }
+      });
   }
 
   get userName(): string {
@@ -170,5 +208,20 @@ export class FormCardComponent {
         items: JSON.stringify(this.form.items),
       },
     });
+  }
+
+  async onPrintCheckInEventPdf(event: CheckInEvent): Promise<void> {
+    this.checkInEventLoadingId.set(event.checkInEventId);
+    try {
+      const url = await this.formsStore.getCheckInEventPresignedUrl(
+        this.form.formID,
+        event.checkInEventId,
+        this.form.userID,
+        this.userStore.selectedOrganizationId()
+      );
+      if (url) window.open(url, '_blank');
+    } finally {
+      this.checkInEventLoadingId.set(null);
+    }
   }
 }

@@ -16,12 +16,22 @@ EquipTrack is an internal application designed to monitor the supply and locatio
 2. Track the inventory.
 3. Generate a check-out form for specific equipment for a specific user and obtain their signature.
 4. Use pre-defined check-out forms.
-5. Check in items returned by users.
+5. Record partial or full check-ins (returns) directly on an approved check-out form — see which items are still outstanding and print a PDF for each return event.
 6. Notify users with daily reports.
 7. Generate reports on equipment status.
 8. Look up a specific item to see who checked it out.
-9. View the check-out history of an item.
+9. View the check-out history and return events of an item.
 10. View the report history of an item.
+
+### Check-in (return) flow
+
+Returns are recorded as events on the original approved check-out form rather than as a separate form type:
+
+1. The warehouse manager opens the **Forms** screen and finds an approved check-out form (optionally filter by approval status and by **returning status**: not returned, partially returned, or fully returned).
+2. The card shows a **return status** badge (not returned until the first return event, then partially returned or fully returned), **outstanding items** (original items minus already-returned quantities/UPIs), and **return history** (past check-in events with date, approver, items, and a PDF print link).
+3. The manager clicks **Check in items**, selects the items to return (constrained to outstanding items), and draws their signature in the dialog.
+4. On submit, inventory transfers from the user back to the warehouse, the event is appended to the form, and a PDF is generated and stored in S3.
+5. When all items are returned, the form is marked as **fully returned**.
 
 ### From the admin perspective
 

@@ -130,14 +130,25 @@
     "view-pdf": "צפייה ב-PDF",
     "approve": "אשר",
     "reject": "דחה",
-    "check-in": "החזרה",
     "check-out": "לקיחה",
-    "empty-check-in": "אין טפסי החזרה זמינים.",
     "empty-check-out": "אין טפסי לקיחה זמינים.",
-    "check-in-submitted": "בקשת ההחזרה נשלחה בהצלחה",
     "check-out-submitted": "בקשת הלקיחה נשלחה בהצלחה",
     "form-approved": "הטופס אושר בהצלחה",
     "form-rejected": "הטופס נדחה בהצלחה",
+    "check-in-recorded": "ההחזרה נרשמה בהצלחה",
+    "outstanding-items": "פריטים לא מוחזרים",
+    "fully-returned": "הוחזר במלואו",
+    "partially-returned": "הוחזר חלקית",
+    "not-returned": "טרם הוחזר",
+    "returned-events": "היסטוריית החזרות",
+    "check-in-items": "רשום החזרה",
+    "check-in-dialog": {
+      "title": "רשום החזרה",
+      "subtitle": "בחר פריטים להחזיר מהפריטים שטרם הוחזרו",
+      "items-label": "פריטים להחזרה",
+      "submit": "רשום החזרה",
+      "cancel": "ביטול"
+    },
     "form-invalid": "הטופס אינו תקין. בדוק את הקלט ונסה שוב.",
     "search": {
       "placeholder": "חיפוש בפרטי הטפסים"
@@ -145,6 +156,8 @@
     "filter": {
       "status": "סינון לפי סטטוס",
       "all": "כל הסטטוסים",
+      "returnStatus": "סינון לפי סטטוס החזרה",
+      "allReturnStatuses": "כל סטטוסי ההחזרה",
       "department": "סינון לפי מחלקה",
       "allDepartments": "כל המחלקות",
       "user": "סינון לפי משתמש",
@@ -245,7 +258,6 @@
     "button": {
       "add-item": "הוסף פריט",
       "save": "שמור",
-      "create-check-in": "צור החזרה",
       "create-checkout": "צור לקיחה",
       "remove-items": "הסר פריטים",
       "add-items": "שמור פריטים חדשים"
@@ -299,16 +311,10 @@
     "items": "פריטים",
     "success": "הלקיחה הושלמה בהצלחה",
     "error": "הלקיחה נכשלה. נסה שוב.",
-    "type": {
-      "check-in": "החזרה",
-      "check-out": "לקיחה"
-    },
     "explanation": {
-      "check-in": "החזרת פריטים למחסן",
       "check-out": "לקיחת פריטים מהמחסן"
     },
     "submit-button": {
-      "check-in": "החזרה",
       "check-out": "לקיחה"
     },
     "add-all-items-tooltip": "הוסף את כל הפריטים מטופס זה",
@@ -375,11 +381,12 @@
     "columnPreviousHolder": "מחזיק קודם",
     "columnNewHolder": "מחזיק חדש",
     "columnOwnershipDate": "תאריך",
-    "columnFormType": "סוג טופס",
+    "columnEventType": "סוג אירוע",
     "columnFormId": "טופס",
+    "checkInEventId": "מזהה אירוע החזרה",
     "noOwnershipHistory": "אין היסטוריית בעלות",
     "noOwnershipHistoryDescription": "עדיין לא נרשמו שינויי מחזיק עבור פריט זה.",
-    "formType": {
+    "eventType": {
       "check-in": "החזרה",
       "check-out": "השאלה"
     }
@@ -421,7 +428,9 @@
       "fetch-failed": "טעינת הטפסים נכשלה. נסה שוב.",
       "submit-failed": "שליחת הטופס נכשלה. נסה שוב.",
       "approve-failed": "אישור הטופס נכשל. נסה שוב.",
-      "reject-failed": "דחיית הטופס נכשלה. נסה שוב."
+      "reject-failed": "דחיית הטופס נכשלה. נסה שוב.",
+      "check-in-failed": "רישום ההחזרה נכשל. נסה שוב.",
+      "signature-required": "נדרשת חתימה לפני השליחה."
     },
     "inventory": {
       "fetch-failed": "טעינת המלאי נכשלה. נסה שוב.",

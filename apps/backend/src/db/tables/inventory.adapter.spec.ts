@@ -1,6 +1,5 @@
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { InventoryAdapter } from './inventory.adapter';
-import { FormType } from '@equip-track/shared';
 
 const mockSend = jest.fn();
 
@@ -42,7 +41,7 @@ describe('InventoryAdapter', () => {
         newHolderId: 'user-1',
         timestamp: 1_700_000_000_000,
         formId: 'form-1',
-        formType: FormType.CheckOut as 'check-out',
+        eventType: 'check-out' as const,
       };
 
       await adapter.updateUniqueInventoryItemHolder(

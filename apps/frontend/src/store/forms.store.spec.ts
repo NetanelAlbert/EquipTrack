@@ -10,6 +10,7 @@ import {
   FormType,
   InventoryForm,
   UserRole,
+  CheckInEvent,
 } from '@equip-track/shared';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
@@ -19,6 +20,7 @@ describe('FormsStore', () => {
   let getPresignedUrlExecute: jest.Mock;
   let fetchFormsExecute: jest.Mock;
   let createFormExecute: jest.Mock;
+  let checkInFormExecute: jest.Mock;
   let notificationService: {
     showSuccess: jest.Mock;
     showError: jest.Mock;
@@ -45,6 +47,7 @@ describe('FormsStore', () => {
     createFormExecute = jest.fn().mockReturnValue(
       of({ status: true, form: mockForm })
     );
+    checkInFormExecute = jest.fn();
 
     notificationService = {
       showSuccess: jest.fn(),
@@ -67,6 +70,8 @@ describe('FormsStore', () => {
               createForm: { execute: createFormExecute },
               approveForm: { execute: jest.fn() },
               rejectForm: { execute: jest.fn() },
+              checkInForm: { execute: checkInFormExecute },
+              getCheckInEventPresignedUrl: { execute: jest.fn() },
             },
           },
         },
@@ -159,20 +164,6 @@ describe('FormsStore', () => {
     );
   });
 
-  it('addForm shows check-in success message for check-in forms', async () => {
-    const checkInForm = { ...mockForm, type: FormType.CheckIn };
-    createFormExecute.mockReturnValue(
-      of({ status: true, form: checkInForm })
-    );
-
-    await store.addForm(FormType.CheckIn, [], 'user-1', 'test');
-
-    expect(notificationService.showSuccess).toHaveBeenCalledWith(
-      'forms.check-in-submitted',
-      'Check-in request submitted successfully'
-    );
-  });
-
   it('addForm shows error notification when API returns status false', async () => {
     createFormExecute.mockReturnValue(
       of({
@@ -196,6 +187,67 @@ describe('FormsStore', () => {
     );
   });
 
+  describe('checkInForm', () => {
+    const approvedForm: InventoryForm = {
+      ...mockForm,
+      status: FormStatus.Approved,
+      items: [{ productId: 'bulk-1', quantity: 5 }],
+    };
+    const mockEvent: CheckInEvent = {
+      checkInEventId: 'cie-1',
+      items: [{ productId: 'bulk-1', quantity: 2 }],
+      createdAtTimestamp: Date.now(),
+      createdByUserId: 'wm-1',
+    };
+    const updatedFormWithEvent: InventoryForm = {
+      ...approvedForm,
+      checkInEvents: [mockEvent],
+    };
+
+    beforeEach(async () => {
+      fetchFormsExecute.mockReturnValue(
+        of({ status: true, forms: [approvedForm] })
+      );
+      await store.fetchForms();
+    });
+
+    it('updates the form in the store on success', async () => {
+      checkInFormExecute.mockReturnValue(
+        of({ status: true, updatedForm: updatedFormWithEvent, event: mockEvent })
+      );
+
+      const event = await store.checkInForm(
+        'form-1',
+        'user-1',
+        [{ productId: 'bulk-1', quantity: 2 }],
+        'data:image/png;base64,sig'
+      );
+
+      expect(event).toEqual(mockEvent);
+      const storedForm = store.forms().find((f) => f.formID === 'form-1');
+      expect(storedForm?.checkInEvents).toHaveLength(1);
+      expect(notificationService.showSuccess).toHaveBeenCalledWith(
+        'forms.check-in-recorded',
+        expect.any(String)
+      );
+    });
+
+    it('shows error notification when API returns status false', async () => {
+      checkInFormExecute.mockReturnValue(
+        of({
+          status: false,
+          errorMessage: 'Check-in failed',
+          errorKey: 'errors.forms.check-in-failed',
+        })
+      );
+
+      await expect(
+        store.checkInForm('form-1', 'user-1', [], 'sig')
+      ).rejects.toThrow();
+      expect(notificationService.showError).toHaveBeenCalled();
+    });
+  });
+
   it('addForm throws when no organization is selected', async () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -210,6 +262,8 @@ describe('FormsStore', () => {
               approveForm: { execute: jest.fn() },
               rejectForm: { execute: jest.fn() },
               getPresignedUrl: { execute: jest.fn() },
+              checkInForm: { execute: jest.fn() },
+              getCheckInEventPresignedUrl: { execute: jest.fn() },
             },
           },
         },

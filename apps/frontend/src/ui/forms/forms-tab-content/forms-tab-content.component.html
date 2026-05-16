@@ -28,6 +28,21 @@
       </mat-select>
     </mat-form-field>
 
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'forms.filter.returnStatus' | translate }}</mat-label>
+      <mat-select
+        [ngModel]="returnStatusFilter()"
+        (ngModelChange)="returnStatusFilter.set($event)"
+        name="returnStatusFilter"
+        data-testid="forms-return-status-filter"
+      >
+        <mat-option value="all">{{ 'forms.filter.allReturnStatuses' | translate }}</mat-option>
+        <mat-option value="not-returned">{{ 'forms.not-returned' | translate }}</mat-option>
+        <mat-option value="partially-returned">{{ 'forms.partially-returned' | translate }}</mat-option>
+        <mat-option value="fully-returned">{{ 'forms.fully-returned' | translate }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
     @if (showUserFilters()) {
       <mat-form-field appearance="outline">
         <mat-label>{{ 'forms.filter.department' | translate }}</mat-label>

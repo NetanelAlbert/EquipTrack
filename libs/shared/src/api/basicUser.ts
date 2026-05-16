@@ -1,5 +1,7 @@
 import {
+  CheckInEvent,
   InventoryForm,
+  InventoryItem,
   Organization,
   User,
   UserInOrganization,
@@ -35,4 +37,16 @@ export interface RejectFormResponse extends BasicResponse {
 
 export interface GetPresignedUrlResponse extends BasicResponse {
   presignedUrl: string;
+}
+
+export interface RecordCheckIn {
+  /** Subset of the check-out form's items to return in this event. */
+  items: InventoryItem[];
+  /** Warehouse-side approver signature (data URL). */
+  signature: string;
+}
+
+export interface RecordCheckInResponse extends BasicResponse {
+  updatedForm: InventoryForm;
+  event: CheckInEvent;
 }

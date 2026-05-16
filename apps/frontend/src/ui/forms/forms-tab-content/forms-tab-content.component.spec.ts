@@ -205,6 +205,7 @@ describe('FormsTabContentComponent', () => {
     component.searchTerm.set('test');
     component.statusFilter.set('approved');
     component.sortBy.set('oldest');
+    component.returnStatusFilter.set('fully-returned');
     component.filterDepartmentId.set('dept-a');
     component.filterUserId.set('user1');
 
@@ -212,6 +213,7 @@ describe('FormsTabContentComponent', () => {
 
     expect(component.searchTerm()).toBe('');
     expect(component.statusFilter()).toBe('all');
+    expect(component.returnStatusFilter()).toBe('all');
     expect(component.sortBy()).toBe('newest');
     expect(component.filterDepartmentId()).toBe('all');
     expect(component.filterUserId()).toBe('all');
@@ -312,6 +314,107 @@ describe('FormsTabContentComponent', () => {
 
       const filtered = component.filteredForms();
       expect(filtered.length).toBe(3);
+    });
+  });
+
+  describe('return status filter', () => {
+    const baseTime = Date.now();
+    const returnStatusForms: InventoryForm[] = [
+      {
+        formID: 'not-ret',
+        userID: 'user1',
+        organizationID: 'org1',
+        status: FormStatus.Approved,
+        type: FormType.CheckOut,
+        items: [{ productId: 'b', quantity: 2 }],
+        createdAtTimestamp: baseTime,
+        lastUpdated: baseTime,
+        description: 'not returned',
+      },
+      {
+        formID: 'part-ret',
+        userID: 'user2',
+        organizationID: 'org1',
+        status: FormStatus.Approved,
+        type: FormType.CheckOut,
+        items: [{ productId: 'b', quantity: 3 }],
+        checkInEvents: [
+          {
+            checkInEventId: 'cie1',
+            items: [{ productId: 'b', quantity: 1 }],
+            createdAtTimestamp: baseTime,
+            createdByUserId: 'wm',
+          },
+        ],
+        createdAtTimestamp: baseTime - 1000,
+        lastUpdated: baseTime,
+        description: 'partial',
+      },
+      {
+        formID: 'full-ret',
+        userID: 'user3',
+        organizationID: 'org1',
+        status: FormStatus.Approved,
+        type: FormType.CheckOut,
+        items: [{ productId: 'b', quantity: 1 }],
+        checkInEvents: [
+          {
+            checkInEventId: 'cie2',
+            items: [{ productId: 'b', quantity: 1 }],
+            createdAtTimestamp: baseTime,
+            createdByUserId: 'wm',
+          },
+        ],
+        createdAtTimestamp: baseTime - 2000,
+        lastUpdated: baseTime,
+        description: 'full',
+      },
+      {
+        formID: 'pending-x',
+        userID: 'user1',
+        organizationID: 'org1',
+        status: FormStatus.Pending,
+        type: FormType.CheckOut,
+        items: [{ productId: 'b', quantity: 1 }],
+        createdAtTimestamp: baseTime,
+        lastUpdated: baseTime,
+        description: 'pending',
+      },
+    ];
+
+    beforeEach(() => {
+      fixture.componentRef.setInput('forms', returnStatusForms);
+      component.statusFilter.set('all');
+      component.returnStatusFilter.set('all');
+      component.searchTerm.set('');
+      fixture.detectChanges();
+    });
+
+    it('shows all forms when return filter is all', () => {
+      expect(component.filteredForms().map((f) => f.formID).sort()).toEqual(
+        ['full-ret', 'not-ret', 'part-ret', 'pending-x'].sort()
+      );
+    });
+
+    it('filters to not-returned tier', () => {
+      component.returnStatusFilter.set('not-returned');
+      expect(component.filteredForms().map((f) => f.formID)).toEqual(['not-ret']);
+    });
+
+    it('filters to partially-returned tier', () => {
+      component.returnStatusFilter.set('partially-returned');
+      expect(component.filteredForms().map((f) => f.formID)).toEqual(['part-ret']);
+    });
+
+    it('filters to fully-returned tier', () => {
+      component.returnStatusFilter.set('fully-returned');
+      expect(component.filteredForms().map((f) => f.formID)).toEqual(['full-ret']);
+    });
+
+    it('combines with approval status filter', () => {
+      component.statusFilter.set('approved');
+      component.returnStatusFilter.set('not-returned');
+      expect(component.filteredForms().map((f) => f.formID)).toEqual(['not-ret']);
     });
   });
 });

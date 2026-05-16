@@ -28,6 +28,8 @@ import {
 import { handler as getItemsToReportHandler } from './warehouse/reports/get-items-to-report';
 import { handler as getItemReportHistoryHandler } from './warehouse/reports/get-item-history';
 import { handler as getItemOwnershipHistoryHandler } from './warehouse/inventory/get-ownership-history';
+import { handler as checkInFormHandler } from './forms/check-in/record';
+import { handler as getCheckInEventPresignedUrlHandler } from './forms/check-in/get-presign';
 
 // Handler signatures
 export type HandlerFunction<Req, Res> = (
@@ -77,6 +79,8 @@ export const handlers: HandlersDefinition = {
   approveForm: approveFormHandler,
   rejectForm: rejectFormHandler,
   getPresignedUrl: getPresignedUrlHandler,
+  checkInForm: checkInFormHandler,
+  getCheckInEventPresignedUrl: getCheckInEventPresignedUrlHandler,
 
   // Reports
   getReportsByDates: getReportsByDatesHandler,

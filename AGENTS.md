@@ -30,7 +30,12 @@ The environment start script seeds the following E2E fixture data into LocalStac
 
 **Products & inventory** (`Inventory` table): Safety Helmet (`prod-bulk-helmet`, bulk: 20 warehouse / 3 customer), Laptop (`prod-upi-laptop`, UPI items `LAP-WH-001`–`003` in warehouse, `LAP-CUST-001` with customer).
 
-**Forms** (`Forms` table): sample pending-checkout, approved-checkout, rejected-check-in forms, plus a predefined kit form.
+**Forms** (`Forms` table): three check-out forms seeded:
+- `form-e2e-pending-checkout` (`status: pending`, description `e2e-seed-pending-checkout`)
+- `form-e2e-approved-checkout` (`status: approved`, description `e2e-seed-approved-checkout`)
+- `form-e2e-approved-checkout-partial-return` (`status: approved`, description `e2e-seed-approved-checkout-partial-return`) — has one embedded `CheckInEvent` returning 1 of 3 helmets; demonstrates the partial-return UI.
+
+Plus a predefined kit form (`predefined-e2e-kit`).
 
 **Reports** (`EquipTrackReport` table): two report rows for today (Asia/Jerusalem timezone).
 
@@ -103,6 +108,7 @@ See `apps/frontend-e2e/src/helpers/e2e-auth.ts` for the canonical Playwright imp
 - The `e2e-login` endpoint requires the secret via the `x-e2e-secret` **header** (not in the request body). Playwright E2E helpers handle this automatically; see `apps/frontend-e2e/src/helpers/e2e-auth.ts`.
 - The frontend defaults to **Hebrew (RTL)** localization. This is intentional. E2E automated tests force English via `localStorage['equip-track-language'] = 'en'`.
 - **Google login will not work** in the Cloud Agent VM. Always use the E2E token flow described above.
+- **SAM template must be regenerated** whenever you add, remove, or rename a backend HTTP handler (a file under `apps/backend/src/handlers/`). Run `npm run generate:sam` and commit the updated `infra/sam/template.yaml`. The CI job "Generate and validate SAM template" will fail if the committed template is out of sync with the handler files.
 
 ## README
 
@@ -172,6 +178,7 @@ For each new spec (or substantial change to an existing one), check this list be
 - ✅ `npx nx run frontend-e2e:e2e-local-core` for changes that touch UI behavior, e2e helpers, or any spec under `apps/frontend-e2e/`.
 - If you touched any e2e helper (`apps/frontend-e2e/src/helpers/*.ts`), also run `npx nx run frontend-e2e:e2e-local-full` because every screen spec depends on those helpers.
 - Reset LocalStack state if the full suite previously ran and consumed mutable seed data: `npm run e2e:local:stack:reset && npm run e2e:local:prepare`, then restart the backend so it re-reads JWT keys from Secrets Manager.
+- **When removing tests or refactoring specs**, always audit the import block at the top of each modified spec file and remove any imports that are no longer referenced. The `frontend-e2e` lint target treats unused variables as errors (`@typescript-eslint/no-unused-vars`), so stale imports will fail CI.
 
 ## UI changes — screenshots required
 

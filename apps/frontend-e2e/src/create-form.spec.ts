@@ -7,13 +7,10 @@ import {
   ensureOrganizationIsSelected,
   clickSideNavRoute,
   openCreateFormPage,
-  fillInventoryRow,
   waitForTestId,
 } from './helpers/e2e-navigation';
 import {
   E2E_ORG_ID,
-  E2E_CUSTOMER_USER_ID,
-  E2E_BULK_PRODUCT_ID,
 } from './helpers/e2e-api';
 
 const backendBaseUrl =
@@ -122,26 +119,18 @@ test.describe('create-form page', () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test('form type radio buttons switch between check-out and check-in', async ({
+  test('shows only check-out explanation text (no form-type radio)', async ({
     page,
   }) => {
     test.setTimeout(90_000);
 
     await navigateToCreateForm(page, adminToken);
 
-    const checkoutRadio = page.getByTestId('form-type-checkout');
-    const checkinRadio = page.getByTestId('form-type-checkin');
-
-    await expect(checkoutRadio).toBeVisible();
-    await expect(checkinRadio).toBeVisible();
+    // The form-type radio buttons are gone; only check-out remains
+    await expect(page.getByTestId('form-type-checkout')).toHaveCount(0);
+    await expect(page.getByTestId('form-type-checkin')).toHaveCount(0);
 
     const explanation = page.locator('.explanation p');
-    await expect(explanation).toContainText('Check out');
-
-    await checkinRadio.click();
-    await expect(explanation).toContainText('Check in');
-
-    await checkoutRadio.click();
     await expect(explanation).toContainText('Check out');
   });
 
@@ -188,88 +177,6 @@ test.describe('create-form page', () => {
     const customerCount = await customerOptions.count();
     expect(customerCount).toBeGreaterThan(0);
     expect(customerCount).toBeLessThanOrEqual(allCount);
-  });
-
-  // ─── Submit / journey tests (from screens/create-form) ────────────────────
-
-  test('create checkin form via UI', async ({ page }, testInfo) => {
-    testInfo.setTimeout(120_000);
-
-    await bootstrapAuthenticatedSession(page, adminToken, E2E_ORG_ID);
-    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
-    const usersForCreateForm = page.waitForResponse(
-      (r) =>
-        r.request().method() === 'GET' &&
-        r.url().includes(`/organizations/${E2E_ORG_ID}/users`) &&
-        r.ok(),
-      { timeout: 30000 }
-    );
-    await clickSideNavRoute(page, 'create-form');
-    await waitForTestId(page, 'create-form-page');
-    await usersForCreateForm;
-
-    await page.getByTestId('form-type-checkin').click();
-    await expect(page.getByTestId('create-form-loading-overlay')).toHaveCount(
-      0,
-      { timeout: 5000 }
-    );
-
-    const userSelect = page.getByTestId('create-form-user-select');
-    await userSelect.click();
-    const filterInput = userSelect.locator('input[type="text"]');
-    await filterInput.fill('customer');
-    const customerInv = page.waitForResponse(
-      (r) =>
-        r.request().method() === 'GET' &&
-        r.url().includes(`/inventory/user/${E2E_CUSTOMER_USER_ID}`) &&
-        r.ok(),
-      { timeout: 30000 }
-    );
-    await filterInput.press('ArrowDown');
-    await filterInput.press('Enter');
-    await customerInv;
-
-    const description = `e2e checkin ${Date.now()}`;
-    await page.getByTestId('create-form-description-input').fill(description);
-
-    await fillInventoryRow(page, 0, E2E_BULK_PRODUCT_ID, 1);
-
-    const submitBtn = page.getByTestId('editable-inventory-submit');
-    await expect(submitBtn).toBeEnabled({ timeout: 30000 });
-
-    const createResponse = page.waitForResponse(
-      (r) =>
-        r.request().method() === 'POST' &&
-        r.url().includes('/forms/create') &&
-        r.ok(),
-      { timeout: 30000 }
-    );
-    await submitBtn.click();
-    await createResponse;
-  });
-
-  test('form type toggle switches inventory context', async ({ page }) => {
-    await bootstrapAuthenticatedSession(page, adminToken, E2E_ORG_ID);
-    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
-    const usersForCreateForm = page.waitForResponse(
-      (r) =>
-        r.request().method() === 'GET' &&
-        r.url().includes(`/organizations/${E2E_ORG_ID}/users`) &&
-        r.ok(),
-      { timeout: 30000 }
-    );
-    await clickSideNavRoute(page, 'create-form');
-    await waitForTestId(page, 'create-form-page');
-    await usersForCreateForm;
-
-    await expect(page.getByTestId('form-type-checkout')).toBeVisible();
-    await expect(page.getByTestId('form-type-checkin')).toBeVisible();
-
-    await page.getByTestId('form-type-checkout').click();
-    await expect(page.getByTestId('create-form-page')).toBeVisible();
-
-    await page.getByTestId('form-type-checkin').click();
-    await expect(page.getByTestId('create-form-page')).toBeVisible();
   });
 
   test('add predefined form items from accordion', async ({ page }) => {

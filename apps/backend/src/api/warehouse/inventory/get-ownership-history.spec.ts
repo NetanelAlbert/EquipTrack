@@ -19,14 +19,15 @@ describe('get-ownership-history handler', () => {
       newHolderId: 'user-a',
       timestamp: 100,
       formId: 'f1',
-      formType: 'check-out' as const,
+      eventType: 'check-out' as const,
     };
     const newer = {
       previousHolderId: 'user-a',
       newHolderId: 'WAREHOUSE',
       timestamp: 200,
-      formId: 'f2',
-      formType: 'check-in' as const,
+      formId: 'f1',
+      eventType: 'check-in' as const,
+      checkInEventId: 'cie-1',
     };
     mockGetUniqueInventoryItem.mockResolvedValue({
       ownershipHistory: [older, newer],

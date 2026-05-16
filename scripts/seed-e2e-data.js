@@ -309,7 +309,7 @@ async function seedE2eData() {
         newHolderId: 'user-e2e-customer',
         timestamp: Date.now() - 86_400_000,
         formId: 'form-e2e-approved-checkout',
-        formType: 'check-out',
+        eventType: 'check-out',
       },
     ],
   });
@@ -350,19 +350,26 @@ async function seedE2eData() {
       approvedByUserId: adminUserId,
     },
     {
-      formID: 'form-e2e-rejected-checkin',
+      formID: 'form-e2e-approved-checkout-partial-return',
       userID: customerUserId,
       organizationID: organizationId,
-      type: 'check-in',
-      status: 'rejected',
-      items: formItems,
-      description: 'e2e-seed-rejected-checkin',
+      type: 'check-out',
+      status: 'approved',
+      items: [{ productId: 'prod-bulk-helmet', quantity: 3 }],
+      description: 'e2e-seed-approved-checkout-partial-return',
       createdAtTimestamp: now - 120000,
       lastUpdated: now - 110000,
       createdByUserId: adminUserId,
-      rejectionReason: 'wrong items',
-      rejectionAtTimestamp: now - 110000,
-      rejectionByUserId: adminUserId,
+      approvedAtTimestamp: now - 110000,
+      approvedByUserId: adminUserId,
+      checkInEvents: [
+        {
+          checkInEventId: 'cie-e2e-partial-return-001',
+          items: [{ productId: 'prod-bulk-helmet', quantity: 1 }],
+          createdAtTimestamp: now - 100000,
+          createdByUserId: adminUserId,
+        },
+      ],
     },
   ];
 

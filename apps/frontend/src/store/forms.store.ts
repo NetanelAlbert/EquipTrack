@@ -6,6 +6,8 @@ import {
   withState,
 } from '@ngrx/signals';
 import {
+  CheckInEvent,
+  CHECK_IN_EVENT_ID_PATH_PARAM,
   FormStatus,
   FormType,
   InventoryForm,
@@ -34,6 +36,8 @@ interface PresignedUrl {
 interface FormsState {
   forms: InventoryForm[];
   presignedUrls: Record<string, PresignedUrl>;
+  /** Cache for check-in event presigned URLs, keyed by checkInEventId. */
+  checkInEventPresignedUrls: Record<string, PresignedUrl>;
 
   // API status for operations using ApiStatus
   fetchFormsStatus: ApiStatus;
@@ -41,11 +45,13 @@ interface FormsState {
   approveFormStatus: ApiStatus;
   rejectFormStatus: ApiStatus;
   getPresignedUrlStatus: ApiStatus;
+  checkInFormStatus: ApiStatus;
 }
 
 const emptyState: FormsState = {
   forms: [],
   presignedUrls: {},
+  checkInEventPresignedUrls: {},
   fetchFormsStatus: {
     isLoading: false,
     error: undefined,
@@ -66,6 +72,10 @@ const emptyState: FormsState = {
     isLoading: false,
     error: undefined,
   },
+  checkInFormStatus: {
+    isLoading: false,
+    error: undefined,
+  },
 };
 
 export const FormsStore = signalStore(
@@ -73,11 +83,6 @@ export const FormsStore = signalStore(
   withState(emptyState),
   withComputed((state) => {
     return {
-      checkInForms: computed(() =>
-        state
-          .forms()
-          .filter((form: InventoryForm) => form.type === FormType.CheckIn)
-      ),
       checkOutForms: computed(() =>
         state
           .forms()
@@ -90,7 +95,8 @@ export const FormsStore = signalStore(
           state.addFormStatus().isLoading ||
           state.approveFormStatus().isLoading ||
           state.rejectFormStatus().isLoading ||
-          state.getPresignedUrlStatus().isLoading
+          state.getPresignedUrlStatus().isLoading ||
+          state.checkInFormStatus().isLoading
       ),
     };
   }),
@@ -208,7 +214,6 @@ export const FormsStore = signalStore(
           const response = await firstValueFrom(
             apiService.endpoints.createForm.execute(
               {
-                formType,
                 userId,
                 items,
                 description,
@@ -235,15 +240,10 @@ export const FormsStore = signalStore(
             return false;
           }
 
-          const successKey =
-            formType === FormType.CheckIn
-              ? 'forms.check-in-submitted'
-              : 'forms.check-out-submitted';
-          const successFallback =
-            formType === FormType.CheckIn
-              ? 'Check-in request submitted successfully'
-              : 'Check-out request submitted successfully';
-          notificationService.showSuccess(successKey, successFallback);
+          notificationService.showSuccess(
+            'forms.check-out-submitted',
+            'Check-out request submitted successfully'
+          );
           updateState({
             addFormStatus: { isLoading: false, error: undefined },
             forms: [response.form, ...state.forms()],
@@ -263,13 +263,11 @@ export const FormsStore = signalStore(
               );
           if (shouldNavigate) {
             const queryParams: FormQueryParams = {
-              formType: formType,
+              formType: FormType.CheckOut,
               searchStatus: FormStatus.Pending,
               searchTerm: response.form.formID,
             };
-            router.navigate(['/forms'], {
-              queryParams,
-            });
+            router.navigate(['/forms'], { queryParams });
           }
           return true;
         } catch (error) {
@@ -458,6 +456,134 @@ export const FormsStore = signalStore(
             error: undefined,
           },
         });
+      },
+
+      async checkInForm(
+        formId: string,
+        formUserId: string,
+        items: InventoryItem[],
+        signature: string
+      ): Promise<CheckInEvent> {
+        const organizationId = userStore.selectedOrganizationId();
+        if (!organizationId) throw new Error('No organization selected');
+
+        updateState({ checkInFormStatus: { isLoading: true, error: undefined } });
+
+        try {
+          const response = await firstValueFrom(
+            apiService.endpoints.checkInForm.execute(
+              { items, signature },
+              {
+                [ORGANIZATION_ID_PATH_PARAM]: organizationId,
+                [FORM_ID_PATH_PARAM]: formId,
+                [USER_ID_PATH_PARAM]: formUserId,
+              }
+            )
+          );
+
+          if (!response.status) {
+            notificationService.showError(
+              response.errorKey || 'errors.forms.check-in-failed',
+              response.errorMessage
+            );
+            updateState({
+              checkInFormStatus: {
+                isLoading: false,
+                error: response.errorMessage || 'Failed to record check-in',
+              },
+            });
+            throw new Error(response.errorMessage || 'Failed to record check-in');
+          }
+
+          patchState(state, {
+            forms: state.forms().map((form) =>
+              form.formID === formId ? response.updatedForm : form
+            ),
+          });
+
+          notificationService.showSuccess(
+            'forms.check-in-recorded',
+            'Check-in recorded successfully'
+          );
+          updateState({ checkInFormStatus: { isLoading: false, error: undefined } });
+          return response.event;
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Failed to record check-in';
+          updateState({
+            checkInFormStatus: { isLoading: false, error: errorMessage },
+          });
+          throw error;
+        }
+      },
+
+      clearCheckInFormError() {
+        updateState({
+          checkInFormStatus: { ...state.checkInFormStatus(), error: undefined },
+        });
+      },
+
+      async getCheckInEventPresignedUrl(
+        formId: string,
+        checkInEventId: string,
+        formUserId: string,
+        organizationId: string
+      ): Promise<string> {
+        const cached = state.checkInEventPresignedUrls()[checkInEventId];
+        if (cached?.ttl > Date.now()) return cached.url;
+
+        const { [checkInEventId]: _expired, ...remainingUrls } =
+          state.checkInEventPresignedUrls();
+
+        updateState({
+          getPresignedUrlStatus: { isLoading: true, error: undefined },
+          checkInEventPresignedUrls: remainingUrls,
+        });
+
+        try {
+          const result = await firstValueFrom(
+            apiService.endpoints.getCheckInEventPresignedUrl.execute(undefined, {
+              [ORGANIZATION_ID_PATH_PARAM]: organizationId,
+              [USER_ID_PATH_PARAM]: formUserId,
+              [FORM_ID_PATH_PARAM]: formId,
+              [CHECK_IN_EVENT_ID_PATH_PARAM]: checkInEventId,
+            })
+          );
+
+          if (result.status) {
+            const expiresSeconds = getPresignedUrlTTL(result.presignedUrl) || 60;
+            updateState({
+              getPresignedUrlStatus: { isLoading: false, error: undefined },
+              checkInEventPresignedUrls: {
+                ...remainingUrls,
+                [checkInEventId]: {
+                  url: result.presignedUrl,
+                  ttl: Date.now() + expiresSeconds * 1000,
+                },
+              },
+            });
+            return result.presignedUrl;
+          } else {
+            notificationService.handleApiError(result.errorKey, result.errorMessage);
+            updateState({
+              getPresignedUrlStatus: {
+                isLoading: false,
+                error: result.errorMessage || '',
+              },
+            });
+            throw new Error(result.errorMessage || '');
+          }
+        } catch (error: unknown) {
+          console.error('Error getting check-in event presigned url', error);
+          notificationService.handleApiError(error, 'errors.presigned-url.get-failed');
+          updateState({
+            getPresignedUrlStatus: {
+              isLoading: false,
+              error: error instanceof Error ? error.message : 'Failed',
+            },
+          });
+          throw error;
+        }
       },
 
       async getPresignedUrl(

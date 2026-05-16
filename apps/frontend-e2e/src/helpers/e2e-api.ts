@@ -152,6 +152,33 @@ export async function rejectForm(
   expect(payload.status).toBeTruthy();
 }
 
+interface CheckInFormResponse {
+  status: boolean;
+  updatedForm: { formID: string; checkInEvents?: unknown[] };
+  event: { checkInEventId: string };
+}
+
+export async function checkInForm(
+  request: APIRequestContext,
+  token: string,
+  orgId: string,
+  formID: string,
+  userId: string,
+  items: InventoryItem[]
+): Promise<string> {
+  const response = await request.post(
+    orgUrl(orgId, `forms/${formID}/user/${userId}/check-in`),
+    {
+      headers: authHeaders(token),
+      data: { items, signature: STUB_SIGNATURE },
+    }
+  );
+  expect(response.ok()).toBeTruthy();
+  const body = (await response.json()) as CheckInFormResponse;
+  expect(body.status).toBeTruthy();
+  return body.event.checkInEventId;
+}
+
 // ─── Products ────────────────────────────────────────────
 
 interface Product {

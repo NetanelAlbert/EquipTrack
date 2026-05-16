@@ -34,6 +34,61 @@
     </p>
   }
   <inventory-list [inventoryItems]="form.items"></inventory-list>
+
+  @if (form.status === 'approved' && form.type === 'check-out') {
+    <div class="return-status" [attr.data-testid]="'return-status-' + form.formID">
+      @if (isFormFullyReturned) {
+        <span class="return-badge fully-returned" data-testid="badge-fully-returned">
+          {{ 'forms.fully-returned' | translate }}
+        </span>
+      } @else if (hasReturnHistory) {
+        <span class="return-badge partially-returned" data-testid="badge-partially-returned">
+          {{ 'forms.partially-returned' | translate }}
+        </span>
+      } @else {
+        <span class="return-badge not-returned" data-testid="badge-not-returned">
+          {{ 'forms.not-returned' | translate }}
+        </span>
+      }
+    </div>
+
+    @if (outstandingItems.length > 0) {
+      <div class="outstanding-section" [attr.data-testid]="'outstanding-' + form.formID">
+        <h4>{{ 'forms.outstanding-items' | translate }}</h4>
+        <inventory-list [inventoryItems]="outstandingItems"></inventory-list>
+      </div>
+    }
+
+    @if ((form.checkInEvents ?? []).length > 0) {
+      <div class="events-section" [attr.data-testid]="'check-in-events-' + form.formID">
+        <h4>{{ 'forms.returned-events' | translate }}</h4>
+        @for (event of form.checkInEvents ?? []; track event.checkInEventId) {
+          <div class="event-row" [attr.data-testid]="'check-in-event-' + event.checkInEventId">
+            <span>{{ event.createdAtTimestamp | date: dateTimeFormat }}</span>
+            <span>{{ organizationStore.getUserName(event.createdByUserId) }}</span>
+            <inventory-list [inventoryItems]="event.items"></inventory-list>
+            @if (event.pdfUri) {
+              <button
+                mat-raised-button
+                class="icon-button"
+                [attr.data-testid]="'print-event-' + event.checkInEventId"
+                [disabled]="checkInEventLoadingId() === event.checkInEventId"
+                (click)="onPrintCheckInEventPdf(event)"
+                [matTooltip]="'forms.view-pdf' | translate"
+              >
+                @if (checkInEventLoadingId() === event.checkInEventId) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                } @else {
+                  <mat-icon>print</mat-icon>
+                }
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
+  }
+
   <div class="actions">
     @if (form.status === 'pending') {
       <button
@@ -61,7 +116,7 @@
         [attr.data-testid]="'form-checkin-' + form.formID"
         (click)="onCheckIn()"
       >
-        {{ 'forms.check-in' | translate }}
+        {{ 'forms.check-in-items' | translate }}
       </button>
     }
 
