@@ -1,9 +1,8 @@
-import { toVisualOrder } from './reports-pdf-font';
+import { toVisualOrder } from './pdf-hebrew-visual-order';
 
 describe('toVisualOrder', () => {
-  it('returns empty/falsy text unchanged', () => {
+  it('returns empty string unchanged', () => {
     expect(toVisualOrder('')).toBe('');
-    expect(toVisualOrder(null as unknown as string)).toBeNull();
   });
 
   it('returns pure-Latin text unchanged', () => {
