@@ -11,6 +11,19 @@ export enum FormType {
   CheckOut = 'check-out',
 }
 
+/** A single check-in (return) event recorded against an approved check-out form. */
+export interface CheckInEvent {
+  /** Unique identifier for this event within the form. */
+  checkInEventId: string;
+  /** Subset of the check-out form's items returned in this event. */
+  items: InventoryItem[];
+  createdAtTimestamp: number;
+  /** ID of the warehouse manager / admin who recorded the return. */
+  createdByUserId: string;
+  /** S3 presigned-URL key for the check-in event PDF. */
+  pdfUri?: string;
+}
+
 /** DynamoDB table */
 export interface InventoryForm {
   userID: string; // partition key
@@ -29,6 +42,10 @@ export interface InventoryForm {
   lastUpdated: number;
   description?: string;
   createdByUserId?: string;
+  /** Recorded check-in (return) events against this check-out form. */
+  checkInEvents?: CheckInEvent[];
+  /** Set when all originally checked-out items have been returned. */
+  fullyReturnedAtTimestamp?: number;
 }
 
 /** DynamoDB table */
@@ -37,4 +54,44 @@ export interface PredefinedForm {
   formID: string; // sort key
   description: string;
   items: InventoryItem[];
+}
+
+/**
+ * Returns the items from a check-out form that have not yet been returned via check-in events.
+ * For bulk products the outstanding quantity is the original quantity minus all returned quantities.
+ * For UPI products the outstanding UPIs are the originals minus any UPIs already returned.
+ */
+export function getOutstandingItems(form: InventoryForm): InventoryItem[] {
+  const events = form.checkInEvents ?? [];
+
+  const result: InventoryItem[] = [];
+
+  for (const original of form.items) {
+    const returnedForProduct = events.flatMap(
+      (ev) => ev.items.filter((i) => i.productId === original.productId)
+    );
+
+    if (original.upis && original.upis.length > 0) {
+      const returnedUpis = new Set(
+        returnedForProduct.flatMap((i) => i.upis ?? [])
+      );
+      const outstandingUpis = original.upis.filter((u) => !returnedUpis.has(u));
+      if (outstandingUpis.length > 0) {
+        result.push({ productId: original.productId, quantity: outstandingUpis.length, upis: outstandingUpis });
+      }
+    } else {
+      const returnedQty = returnedForProduct.reduce((sum, i) => sum + i.quantity, 0);
+      const outstanding = original.quantity - returnedQty;
+      if (outstanding > 0) {
+        result.push({ productId: original.productId, quantity: outstanding });
+      }
+    }
+  }
+
+  return result;
+}
+
+/** Returns true when every item on the check-out form has been returned. */
+export function isFullyReturned(form: InventoryForm): boolean {
+  return getOutstandingItems(form).length === 0;
 }

@@ -90,7 +90,7 @@ export class TraceItemComponent {
     'previousHolder',
     'newHolder',
     'timestamp',
-    'formType',
+    'eventType',
     'formId',
   ];
 
@@ -233,7 +233,7 @@ export class TraceItemComponent {
     return parsed.toLocaleString();
   }
 
-  ownershipFormTypeKey(formType: OwnershipEvent['formType']): string {
-    return `trace.formType.${formType}`;
+  ownershipEventTypeKey(eventType: OwnershipEvent['eventType']): string {
+    return `trace.eventType.${eventType}`;
   }
 }

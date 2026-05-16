@@ -87,7 +87,7 @@ describe('TraceItemComponent', () => {
       'previousHolder',
       'newHolder',
       'timestamp',
-      'formType',
+      'eventType',
       'formId',
     ]);
   });
@@ -98,7 +98,7 @@ describe('TraceItemComponent', () => {
       newHolderId: 'user-1',
       timestamp: 1_700_000_000_000,
       formId: 'form-1',
-      formType: 'check-out' as const,
+      eventType: 'check-out' as const,
     };
     executeReport.mockReturnValue(
       of({
@@ -129,9 +129,12 @@ describe('TraceItemComponent', () => {
     expect(component.reports().length).toBe(1);
   });
 
-  it('maps ownership form type to translation keys', () => {
-    expect(component.ownershipFormTypeKey('check-out')).toBe(
-      'trace.formType.check-out'
+  it('maps ownership event type to translation keys', () => {
+    expect(component.ownershipEventTypeKey('check-out')).toBe(
+      'trace.eventType.check-out'
+    );
+    expect(component.ownershipEventTypeKey('check-in')).toBe(
+      'trace.eventType.check-in'
     );
   });
 });

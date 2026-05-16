@@ -368,11 +368,12 @@
     "columnPreviousHolder": "Previous holder",
     "columnNewHolder": "New holder",
     "columnOwnershipDate": "Date",
-    "columnFormType": "Form type",
+    "columnEventType": "Event type",
     "columnFormId": "Form",
+    "checkInEventId": "Return event ID",
     "noOwnershipHistory": "No ownership history",
     "noOwnershipHistoryDescription": "No holder changes have been recorded for this item yet.",
-    "formType": {
+    "eventType": {
       "check-in": "Check-in",
       "check-out": "Check-out"
     }

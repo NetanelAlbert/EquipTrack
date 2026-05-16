@@ -294,7 +294,7 @@ async function seedE2eData() {
         newHolderId: 'user-e2e-customer',
         timestamp: Date.now() - 86_400_000,
         formId: 'form-e2e-approved-checkout',
-        formType: 'check-out',
+        eventType: 'check-out',
       },
     ],
   });

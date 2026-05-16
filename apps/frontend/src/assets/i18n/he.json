@@ -367,11 +367,12 @@
     "columnPreviousHolder": "מחזיק קודם",
     "columnNewHolder": "מחזיק חדש",
     "columnOwnershipDate": "תאריך",
-    "columnFormType": "סוג טופס",
+    "columnEventType": "סוג אירוע",
     "columnFormId": "טופס",
+    "checkInEventId": "מזהה אירוע החזרה",
     "noOwnershipHistory": "אין היסטוריית בעלות",
     "noOwnershipHistoryDescription": "עדיין לא נרשמו שינויי מחזיק עבור פריט זה.",
-    "formType": {
+    "eventType": {
       "check-in": "החזרה",
       "check-out": "השאלה"
     }

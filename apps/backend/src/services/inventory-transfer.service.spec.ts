@@ -189,7 +189,7 @@ describe('InventoryTransferService', () => {
         previousHolderId: WAREHOUSE_SUFFIX,
         newHolderId: 'user-1',
         formId: 'form-checkout-1',
-        formType: FormType.CheckOut,
+        eventType: 'check-out',
       })
     );
   });

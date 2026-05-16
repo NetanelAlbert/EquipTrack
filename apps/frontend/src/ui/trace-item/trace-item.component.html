@@ -155,12 +155,12 @@
                 <td mat-cell *matCellDef="let row">{{ formatOwnershipTimestamp(row) }}</td>
               </ng-container>
 
-              <ng-container matColumnDef="formType">
+              <ng-container matColumnDef="eventType">
                 <th mat-header-cell *matHeaderCellDef>
-                  {{ 'trace.columnFormType' | translate }}
+                  {{ 'trace.columnEventType' | translate }}
                 </th>
                 <td mat-cell *matCellDef="let row">
-                  {{ ownershipFormTypeKey(row.formType) | translate }}
+                  {{ ownershipEventTypeKey(row.eventType) | translate }}
                 </td>
               </ng-container>
 
@@ -168,7 +168,14 @@
                 <th mat-header-cell *matHeaderCellDef>
                   {{ 'trace.columnFormId' | translate }}
                 </th>
-                <td mat-cell *matCellDef="let row">{{ row.formId }}</td>
+                <td mat-cell *matCellDef="let row">
+                  {{ row.formId }}
+                  @if (row.checkInEventId) {
+                    <span class="check-in-event-id" [title]="'trace.checkInEventId' | translate">
+                      · {{ row.checkInEventId }}
+                    </span>
+                  }
+                </td>
               </ng-container>
 
               <tr mat-header-row *matHeaderRowDef="ownershipDisplayedColumns"></tr>

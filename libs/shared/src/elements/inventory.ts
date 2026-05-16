@@ -10,6 +10,10 @@ export interface OwnershipEvent {
     newHolderId: string;
     /** Epoch milliseconds */
     timestamp: number;
+    /** Always the parent check-out form's id. */
     formId: string;
-    formType: 'check-in' | 'check-out';
+    /** Kind of transfer: original check-out or a subsequent check-in (return) event. */
+    eventType: 'check-out' | 'check-in';
+    /** Identifies the specific CheckInEvent on the form. Only set when eventType === 'check-in'. */
+    checkInEventId?: string;
 }

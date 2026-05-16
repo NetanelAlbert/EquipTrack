@@ -143,7 +143,7 @@ export class InventoryTransferService {
           destinationHolderId,
           sourceHolderId,
           form.formID,
-          form.type
+          form.type === FormType.CheckOut ? 'check-out' : 'check-in'
         );
       } else {
         // Handle bulk items - pass inventories and get updated versions
@@ -168,7 +168,7 @@ export class InventoryTransferService {
     destinationHolderId: string,
     sourceHolderId: string,
     formId: string,
-    formType: InventoryForm['type']
+    eventType: 'check-out' | 'check-in'
   ): Promise<void> {
     if (!item.upis || item.upis.length === 0) {
       throw new Error('UPIs required for unique item transfer');
@@ -179,7 +179,7 @@ export class InventoryTransferService {
       newHolderId: destinationHolderId,
       timestamp: Date.now(),
       formId,
-      formType,
+      eventType,
     };
 
     // Update holder information for each UPI
