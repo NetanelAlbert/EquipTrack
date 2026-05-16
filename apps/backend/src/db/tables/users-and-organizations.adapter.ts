@@ -125,7 +125,6 @@ export class UsersAndOrganizationsAdapter {
 
   private getUser(userDB: UserDb): User {
     // Destructure to exclude database-specific fields and keep only User fields
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { PK, SK, dbItemType, googleSub, ...user } = userDB;
     return user;
   }
@@ -134,14 +133,12 @@ export class UsersAndOrganizationsAdapter {
     userInOrganizationsDB: UserInOrganizationDb
   ): UserInOrganization {
     // Destructure to exclude database-specific fields and keep only UserInOrganization fields
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { PK, SK, dbItemType, ...userInOrganization } = userInOrganizationsDB;
     return userInOrganization;
   }
 
   private getOrganization(organizationDB: OrganizationDb): Organization {
     // Destructure to exclude database-specific fields and keep only Organization fields
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { PK, SK, dbItemType, ...organization } = organizationDB;
     return organization;
   }
