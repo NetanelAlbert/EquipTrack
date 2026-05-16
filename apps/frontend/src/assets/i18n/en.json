@@ -131,6 +131,19 @@
     "check-out-submitted": "Check-out request submitted successfully",
     "form-approved": "Form approved successfully",
     "form-rejected": "Form rejected successfully",
+    "check-in-recorded": "Check-in recorded successfully",
+    "outstanding-items": "Outstanding items",
+    "fully-returned": "Fully returned",
+    "partially-returned": "Partially returned",
+    "returned-events": "Return history",
+    "check-in-items": "Check in items",
+    "check-in-dialog": {
+      "title": "Record Check-in",
+      "subtitle": "Select items to return from outstanding inventory",
+      "items-label": "Items to return",
+      "submit": "Record Check-in",
+      "cancel": "Cancel"
+    },
     "form-invalid": "Form is invalid. Please check your input and try again.",
     "search": {
       "placeholder": "Search forms details"
@@ -415,7 +428,8 @@
       "fetch-failed": "Failed to load forms. Please try again.",
       "submit-failed": "Failed to submit form. Please try again.",
       "approve-failed": "Failed to approve form. Please try again.",
-      "reject-failed": "Failed to reject form. Please try again."
+      "reject-failed": "Failed to reject form. Please try again.",
+      "check-in-failed": "Failed to record check-in. Please try again."
     },
     "inventory": {
       "fetch-failed": "Failed to load inventory. Please try again.",

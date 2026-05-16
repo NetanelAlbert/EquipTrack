@@ -130,6 +130,19 @@
     "check-out-submitted": "בקשת הלקיחה נשלחה בהצלחה",
     "form-approved": "הטופס אושר בהצלחה",
     "form-rejected": "הטופס נדחה בהצלחה",
+    "check-in-recorded": "ההחזרה נרשמה בהצלחה",
+    "outstanding-items": "פריטים לא מוחזרים",
+    "fully-returned": "הוחזר במלואו",
+    "partially-returned": "הוחזר חלקית",
+    "returned-events": "היסטוריית החזרות",
+    "check-in-items": "רשום החזרה",
+    "check-in-dialog": {
+      "title": "רשום החזרה",
+      "subtitle": "בחר פריטים להחזיר מהפריטים שטרם הוחזרו",
+      "items-label": "פריטים להחזרה",
+      "submit": "רשום החזרה",
+      "cancel": "ביטול"
+    },
     "form-invalid": "הטופס אינו תקין. בדוק את הקלט ונסה שוב.",
     "search": {
       "placeholder": "חיפוש בפרטי הטפסים"
@@ -414,7 +427,8 @@
       "fetch-failed": "טעינת הטפסים נכשלה. נסה שוב.",
       "submit-failed": "שליחת הטופס נכשלה. נסה שוב.",
       "approve-failed": "אישור הטופס נכשל. נסה שוב.",
-      "reject-failed": "דחיית הטופס נכשלה. נסה שוב."
+      "reject-failed": "דחיית הטופס נכשלה. נסה שוב.",
+      "check-in-failed": "רישום ההחזרה נכשל. נסה שוב."
     },
     "inventory": {
       "fetch-failed": "טעינת המלאי נכשלה. נסה שוב.",
