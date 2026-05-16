@@ -31,8 +31,8 @@ describe('PdfService', () => {
       { productId: 'prod-bulk-helmet', quantity: 2 },
       {
         productId: 'prod-upi-laptop',
-        quantity: 1,
-        upis: ['LAP-WH-001'],
+        quantity: 3,
+        upis: ['LAP-WH-001', 'LAP-WH-002', 'LAP-WH-003'],
       },
     ],
     type: FormType.CheckOut,
@@ -76,7 +76,7 @@ describe('PdfService', () => {
       checkInEventId: 'cie-1',
       items: [
         { productId: 'prod-bulk-helmet', quantity: 1 },
-        { productId: 'prod-upi-laptop', quantity: 1, upis: ['LAP-WH-001'] },
+        { productId: 'prod-upi-laptop', quantity: 3, upis: ['LAP-WH-001', 'LAP-WH-002', 'LAP-WH-003'] },
       ],
       createdAtTimestamp: Date.now(),
       createdByUserId: 'wm-1',
