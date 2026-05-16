@@ -25,6 +25,12 @@ jest.mock('../../../services/inventory-transfer.service', () => ({
   })),
 }));
 
+jest.mock('../../../services/pdf-product-names', () => ({
+  loadProductDisplayNamesForPdf: jest
+    .fn()
+    .mockResolvedValue({ 'bulk-1': 'Bulk Widget' }),
+}));
+
 jest.mock('../../../services/pdf.service', () => ({
   PdfService: { generateCheckInEventPdf: jest.fn().mockReturnValue(Buffer.from('pdf')) },
 }));

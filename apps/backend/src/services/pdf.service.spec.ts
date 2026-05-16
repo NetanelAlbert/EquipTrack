@@ -1,5 +1,12 @@
 import * as fs from 'fs';
-import { CheckInEvent, FormStatus, FormType, InventoryForm, User, UserState } from '@equip-track/shared';
+import {
+  CheckInEvent,
+  FormStatus,
+  FormType,
+  InventoryForm,
+  User,
+  UserState,
+} from '@equip-track/shared';
 import { PdfService } from './pdf.service';
 
 describe('PdfService', () => {
@@ -11,11 +18,23 @@ describe('PdfService', () => {
     state: UserState.Active,
   };
 
+  const productNames = {
+    'prod-bulk-helmet': 'קסדת בטיחות',
+    'prod-upi-laptop': 'מחשב נייד',
+  };
+
   const baseForm: InventoryForm = {
     userID: 'user-1',
     formID: 'form-abc',
     organizationID: 'org-1',
-    items: [{ productId: 'prod-bulk-helmet', quantity: 2 }],
+    items: [
+      { productId: 'prod-bulk-helmet', quantity: 2 },
+      {
+        productId: 'prod-upi-laptop',
+        quantity: 1,
+        upis: ['LAP-WH-001'],
+      },
+    ],
     type: FormType.CheckOut,
     status: FormStatus.Pending,
     createdAtTimestamp: Date.now(),
@@ -23,7 +42,12 @@ describe('PdfService', () => {
   };
 
   it('embeds NotoSansHebrew and produces a valid PDF buffer', () => {
-    const buf = PdfService.generateFormPDF(baseForm, minimalUser, '');
+    const buf = PdfService.generateFormPDF(
+      baseForm,
+      minimalUser,
+      '',
+      productNames
+    );
     expect(buf.subarray(0, 4).toString('utf8')).toBe('%PDF');
     const latin1 = buf.toString('latin1');
     expect(latin1).toContain('NotoSansHebrew');
@@ -31,10 +55,18 @@ describe('PdfService', () => {
   });
 
   it('embeds Unicode Hebrew glyph data in the PDF (not empty Helvetica labels)', () => {
-    const buf = PdfService.generateFormPDF(baseForm, minimalUser, '');
-    // UTF-16BE Hebrew syllables use high byte 0x05 (Unicode block U+0590–U+05FF)
+    const buf = PdfService.generateFormPDF(
+      baseForm,
+      minimalUser,
+      '',
+      productNames
+    );
     const hasHebrewUtf16Be = buf.some(
-      (b, i) => b === 0x05 && i + 1 < buf.length && buf[i + 1] >= 0x90 && buf[i + 1] <= 0xff
+      (b, i) =>
+        b === 0x05 &&
+        i + 1 < buf.length &&
+        buf[i + 1] >= 0x90 &&
+        buf[i + 1] <= 0xff
     );
     expect(hasHebrewUtf16Be).toBe(true);
   });
@@ -42,7 +74,10 @@ describe('PdfService', () => {
   it('generateCheckInEventPdf also registers the Hebrew font', () => {
     const event: CheckInEvent = {
       checkInEventId: 'cie-1',
-      items: [{ productId: 'p1', quantity: 1 }],
+      items: [
+        { productId: 'prod-bulk-helmet', quantity: 1 },
+        { productId: 'prod-upi-laptop', quantity: 1, upis: ['LAP-WH-001'] },
+      ],
       createdAtTimestamp: Date.now(),
       createdByUserId: 'wm-1',
     };
@@ -50,7 +85,8 @@ describe('PdfService', () => {
       baseForm,
       event,
       minimalUser,
-      ''
+      '',
+      productNames
     );
     expect(buf.toString('latin1')).toContain('NotoSansHebrew');
   });
@@ -67,7 +103,8 @@ describe('PdfService', () => {
         rejectionReason: 'דוגמה לסיבת דחייה',
       },
       { ...minimalUser, name: 'בדיקת עברית למסמך' },
-      ''
+      '',
+      productNames
     );
     fs.writeFileSync(out, new Uint8Array(buf));
   });

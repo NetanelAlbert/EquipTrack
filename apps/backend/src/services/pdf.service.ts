@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { jsPDF } from 'jspdf';
-import { CheckInEvent, InventoryForm, User, toVisualOrder } from '@equip-track/shared';
+import { CheckInEvent, InventoryForm, InventoryItem, User, toVisualOrder } from '@equip-track/shared';
 
 const PDF_FONT_VFS_NAME = 'NotoSansHebrew-Regular.ttf';
 const PDF_FONT_FAMILY = 'NotoSansHebrew';
@@ -71,15 +71,16 @@ function textSectionTitleRtl(doc: jsPDF, logicalText: string, y: number): void {
   doc.text(v(logicalText), FORM_INNER_RIGHT, y, { align: 'right' });
 }
 
-/** Column widths (mm), logical order מס → … → הערות; sum must be 180 (table width). */
-const FORM_TABLE_COL_WIDTHS: readonly number[] = [
-  14, 38, 24, 32, 24, 32, 16,
-];
+/**
+ * Column widths (mm), logical order מס → קוד פריט → תיאור → כמות → מס סידורי (UPI);
+ * sum must be 180. מצב / הערות removed as unused.
+ */
+const FORM_TABLE_COL_WIDTHS: readonly number[] = [14, 34, 52, 18, 62];
 
 const FORM_TABLE_LEFT = 15;
 const FORM_TABLE_RIGHT = 195;
 
-/** Column bounds with RTL visual order: index 0 = מס (rightmost), 6 = הערות (leftmost). */
+/** Column bounds with RTL visual order: index 0 = מס (rightmost), 4 = מס סידורי (leftmost). */
 function getFormTableRtlColumnBounds(): { left: number; right: number }[] {
   let x = FORM_TABLE_RIGHT;
   const bounds: { left: number; right: number }[] = [];
@@ -94,6 +95,22 @@ function getFormTableRtlColumnBounds(): { left: number; right: number }[] {
 function getFormTableInnerVerticalLineXs(): number[] {
   const bounds = getFormTableRtlColumnBounds();
   return bounds.slice(0, -1).map((b) => b.left);
+}
+
+function productNameForPdf(
+  productId: string,
+  productNamesById: Readonly<Record<string, string>>
+): string {
+  const n = productNamesById[productId];
+  return n?.trim() ? n : productId;
+}
+
+/** UPI list for unique items; empty for bulk-only lines (cell left blank). */
+function serialColumnForPdf(item: InventoryItem): string {
+  if (item.upis && item.upis.length > 0) {
+    return item.upis.join(', ');
+  }
+  return '';
 }
 
 function formTableCellAt(
@@ -293,7 +310,8 @@ export class PdfService {
   static generateFormPDF(
     form: InventoryForm,
     userData: User,
-    signature: string
+    signature: string,
+    productNamesById: Readonly<Record<string, string>> = {}
   ): Buffer {
     const doc = new jsPDF();
     registerHebrewPdfFont(doc);
@@ -326,8 +344,6 @@ export class PdfService {
       'תיאור',
       'כמות',
       'מס סידורי',
-      'מצב',
-      'הערות',
     ];
 
     // Draw table borders and headers
@@ -364,7 +380,13 @@ export class PdfService {
         doc,
         formTableCellAt(colBounds, 1),
         rowY + 5,
-        item.productId.substring(0, 15)
+        item.productId.substring(0, 20)
+      );
+      textInFormTableCell(
+        doc,
+        formTableCellAt(colBounds, 2),
+        rowY + 5,
+        productNameForPdf(item.productId, productNamesById)
       );
       textInFormTableCell(
         doc,
@@ -379,7 +401,8 @@ export class PdfService {
         doc,
         formTableCellAt(colBounds, 4),
         rowY + 5,
-        item.upis ? item.upis.join(',').substring(0, 10) : ''
+        serialColumnForPdf(item),
+        { visual: false }
       );
     });
 
@@ -521,7 +544,8 @@ export class PdfService {
     form: InventoryForm,
     event: CheckInEvent,
     userData: User,
-    signature: string
+    signature: string,
+    productNamesById: Readonly<Record<string, string>> = {}
   ): Buffer {
     const doc = new jsPDF();
     registerHebrewPdfFont(doc);
@@ -561,8 +585,6 @@ export class PdfService {
       'תיאור',
       'כמות',
       'מס סידורי',
-      'מצב',
-      'הערות',
     ];
 
     doc.rect(FORM_TABLE_LEFT, tableStartY, 180, rowHeight);
@@ -592,7 +614,13 @@ export class PdfService {
         doc,
         formTableCellAt(colBounds, 1),
         rowY + 5,
-        item.productId.substring(0, 15)
+        item.productId.substring(0, 20)
+      );
+      textInFormTableCell(
+        doc,
+        formTableCellAt(colBounds, 2),
+        rowY + 5,
+        productNameForPdf(item.productId, productNamesById)
       );
       textInFormTableCell(
         doc,
@@ -607,7 +635,8 @@ export class PdfService {
         doc,
         formTableCellAt(colBounds, 4),
         rowY + 5,
-        item.upis ? item.upis.join(',').substring(0, 10) : ''
+        serialColumnForPdf(item),
+        { visual: false }
       );
     });
 
