@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
 import { InventoryListComponent } from '../../inventory/list/inventory-list.component';
-import { InventoryForm } from '@equip-track/shared';
+import { CheckInEvent, getOutstandingItems, isFullyReturned, InventoryForm } from '@equip-track/shared';
 import { MatDialog } from '@angular/material/dialog';
 import { RejectFormDialogComponent } from '../reject-form-dialog/reject-form-dialog.component';
 import { SignatureDialogComponent } from '../signature-dialog/signature-dialog.component';
@@ -39,6 +39,7 @@ export class FormCardComponent {
   @Input({ required: true }) form!: InventoryForm;
 
   readonly isPrintPdfLoading = signal(false);
+  readonly checkInEventLoadingId = signal<string | null>(null);
 
   dateTimeFormat = UI_DATE_TIME_FORMAT;
   organizationStore = inject(OrganizationStore);
@@ -46,10 +47,18 @@ export class FormCardComponent {
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
   private readonly userStore = inject(UserStore);
-  private readonly formsStore = inject(FormsStore);
+  readonly formsStore = inject(FormsStore);
   private readonly clipboard = inject(Clipboard);
   private readonly notificationService = inject(NotificationService);
   private readonly router = inject(Router);
+
+  get outstandingItems() {
+    return getOutstandingItems(this.form);
+  }
+
+  get isFormFullyReturned() {
+    return isFullyReturned(this.form);
+  }
 
   get isAdminOrWarehouseManager(): boolean {
     const role = this.userStore.currentRole();
@@ -170,5 +179,20 @@ export class FormCardComponent {
         items: JSON.stringify(this.form.items),
       },
     });
+  }
+
+  async onPrintCheckInEventPdf(event: CheckInEvent): Promise<void> {
+    this.checkInEventLoadingId.set(event.checkInEventId);
+    try {
+      const url = await this.formsStore.getCheckInEventPresignedUrl(
+        this.form.formID,
+        event.checkInEventId,
+        this.form.userID,
+        this.userStore.selectedOrganizationId()
+      );
+      if (url) window.open(url, '_blank');
+    } finally {
+      this.checkInEventLoadingId.set(null);
+    }
   }
 }

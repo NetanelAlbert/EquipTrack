@@ -10,6 +10,7 @@ import { FormCardComponent } from './form-card.component';
 import { FormsStore } from '../../../store/forms.store';
 import { NotificationService } from '../../../services/notification.service';
 import {
+  CheckInEvent,
   FormStatus,
   FormType,
   InventoryForm,
@@ -36,7 +37,7 @@ describe('FormCardComponent', () => {
   let fixture: ComponentFixture<FormCardComponent>;
   let dialogClosedSubject: Subject<string | undefined>;
   let mockDialog: { open: jest.Mock };
-  let mockFormsStore: { approveForm: jest.Mock; rejectForm: jest.Mock };
+  let mockFormsStore: { approveForm: jest.Mock; rejectForm: jest.Mock; getCheckInEventPresignedUrl: jest.Mock };
   let mockNotification: { handleApiError: jest.Mock; showSuccess: jest.Mock };
   let routerSpy: { navigate: jest.Mock };
 
@@ -84,6 +85,7 @@ describe('FormCardComponent', () => {
     mockFormsStore = {
       approveForm: jest.fn().mockResolvedValue(undefined),
       rejectForm: jest.fn().mockResolvedValue(undefined),
+      getCheckInEventPresignedUrl: jest.fn().mockResolvedValue('https://example.com/event.pdf'),
     };
 
     mockNotification = {
@@ -296,6 +298,87 @@ describe('FormCardComponent', () => {
           items: JSON.stringify(mockItems),
         },
       });
+    });
+  });
+
+  describe('outstanding items and check-in events display', () => {
+    const approvedFormWithEvents: InventoryForm = {
+      formID: 'form-approved-1',
+      userID: 'user-1',
+      organizationID: 'org-1',
+      status: FormStatus.Approved,
+      type: FormType.CheckOut,
+      items: [{ productId: 'bulk-1', quantity: 5 }],
+      createdAtTimestamp: Date.now(),
+      lastUpdated: Date.now(),
+      description: 'Approved form',
+      checkInEvents: [
+        {
+          checkInEventId: 'cie-1',
+          items: [{ productId: 'bulk-1', quantity: 2 }],
+          createdAtTimestamp: Date.now(),
+          createdByUserId: 'wm-1',
+          pdfUri: 'https://s3.example.com/cie-1.pdf',
+        } as CheckInEvent,
+      ],
+    };
+
+    it('shows partially-returned badge for approved form with outstanding items', () => {
+      component.form = approvedFormWithEvents;
+      fixture.detectChanges();
+
+      const badge = fixture.nativeElement.querySelector('[data-testid="badge-partially-returned"]');
+      expect(badge).toBeTruthy();
+    });
+
+    it('shows fully-returned badge when all items returned', () => {
+      component.form = {
+        ...approvedFormWithEvents,
+        checkInEvents: [
+          {
+            checkInEventId: 'cie-full',
+            items: [{ productId: 'bulk-1', quantity: 5 }],
+            createdAtTimestamp: Date.now(),
+            createdByUserId: 'wm-1',
+          },
+        ],
+      };
+      fixture.detectChanges();
+
+      const badge = fixture.nativeElement.querySelector('[data-testid="badge-fully-returned"]');
+      expect(badge).toBeTruthy();
+    });
+
+    it('shows check-in event section when events exist', () => {
+      component.form = approvedFormWithEvents;
+      fixture.detectChanges();
+
+      const eventsSection = fixture.nativeElement.querySelector(
+        '[data-testid="check-in-events-form-approved-1"]'
+      );
+      expect(eventsSection).toBeTruthy();
+    });
+
+    it('shows outstanding items section when items are outstanding', () => {
+      component.form = approvedFormWithEvents;
+      fixture.detectChanges();
+
+      const outstandingSection = fixture.nativeElement.querySelector(
+        '[data-testid="outstanding-form-approved-1"]'
+      );
+      expect(outstandingSection).toBeTruthy();
+    });
+
+    it('outstandingItems getter returns remaining items after check-in events', () => {
+      component.form = approvedFormWithEvents;
+      fixture.detectChanges();
+
+      expect(component.outstandingItems).toEqual([{ productId: 'bulk-1', quantity: 3 }]);
+    });
+
+    it('isFormFullyReturned returns false when items remain', () => {
+      component.form = approvedFormWithEvents;
+      expect(component.isFormFullyReturned).toBe(false);
     });
   });
 });
