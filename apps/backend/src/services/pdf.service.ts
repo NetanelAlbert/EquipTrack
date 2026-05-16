@@ -36,25 +36,95 @@ function registerHebrewPdfFont(doc: jsPDF): void {
   doc.setFont(PDF_FONT_FAMILY, 'normal');
 }
 
-/**
- * Renders a Hebrew label (with {@link v}) then LTR content (locale dates, ISO
- * timestamps) without merging into {@link v}, which would scramble digit order.
- */
-function textHebrewLabelThenLtr(
+/** Renders a Hebrew label (with {@link v}) plus LTR tail, flush to `rightX`. */
+function textHebrewLabelThenLtrFromRight(
   doc: jsPDF,
   hebrewLabelLogical: string,
   ltrRest: string,
-  x: number,
+  rightX: number,
   y: number,
   gapPt = 2
 ): void {
-  const prefix = v(hebrewLabelLogical);
-  doc.text(prefix, x, y);
-  if (!ltrRest) {
+  const label = v(hebrewLabelLogical);
+  const ltr = ltrRest ?? '';
+  const wLabel = doc.getTextWidth(label);
+  const wLtr = ltr ? doc.getTextWidth(ltr) : 0;
+  const total = wLabel + (ltr ? gapPt + wLtr : 0);
+  let x = rightX - total;
+  doc.text(label, x, y);
+  if (ltr) {
+    x += wLabel + gapPt;
+    doc.text(ltr, x, y);
+  }
+}
+
+/** Form content inner right edge (inside the main frame). */
+const FORM_INNER_RIGHT = 193;
+
+/**
+ * Hebrew section titles — anchored to the right (RTL block alignment).
+ */
+function textSectionTitleRtl(doc: jsPDF, logicalText: string, y: number): void {
+  doc.text(v(logicalText), FORM_INNER_RIGHT, y, { align: 'right' });
+}
+
+/** LTR column widths (mm) for the equipment table: מס → … → הערות (logical order). */
+const FORM_TABLE_COL_WIDTHS: readonly number[] = [
+  15, 40, 25, 35, 25, 35, 5,
+];
+
+const FORM_TABLE_LEFT = 15;
+const FORM_TABLE_RIGHT = 195;
+
+/** Column bounds with RTL visual order: index 0 = מס (rightmost), 6 = הערות (leftmost). */
+function getFormTableRtlColumnBounds(): { left: number; right: number }[] {
+  let x = FORM_TABLE_RIGHT;
+  const bounds: { left: number; right: number }[] = [];
+  for (const w of FORM_TABLE_COL_WIDTHS) {
+    bounds.push({ left: x - w, right: x });
+    x -= w;
+  }
+  return bounds;
+}
+
+/** Vertical divider x positions between RTL table columns (excludes outer rect stroke). */
+function getFormTableInnerVerticalLineXs(): number[] {
+  const bounds = getFormTableRtlColumnBounds();
+  return bounds.slice(0, -1).map((b) => b.left);
+}
+
+function formTableCellAt(
+  bounds: { left: number; right: number }[],
+  index: number
+): { left: number; right: number } {
+  const c = bounds.at(index);
+  if (!c) {
+    throw new Error(`form table: column index ${index} out of range`);
+  }
+  return c;
+}
+
+function textInFormTableCell(
+  doc: jsPDF,
+  cell: { left: number; right: number },
+  y: number,
+  text: string,
+  opts?: { visual?: boolean }
+): void {
+  if (text === '') {
     return;
   }
-  const w = doc.getTextWidth(prefix);
-  doc.text(ltrRest, x + w + gapPt, y);
+  const pad = 1.5;
+  const innerW = cell.right - cell.left - 2 * pad;
+  if (innerW <= 0) {
+    return;
+  }
+  const useVisual = opts?.visual !== false;
+  const line = useVisual ? v(text) : text;
+  doc.text(line, cell.right - pad, y, {
+    align: 'right',
+    maxWidth: innerW,
+  });
 }
 
 export class PdfService {
@@ -101,21 +171,21 @@ export class PdfService {
     doc.rect(15, 40, 180, 15);
     doc.setFontSize(10);
     doc.setFont(PDF_FONT_FAMILY, 'bold');
-    doc.text(v('סוג הטופס:'), 20, 50);
+    textSectionTitleRtl(doc, 'סוג הטופס:', 50);
 
-    // Checkboxes for form type — always check-out (הוצאה)
-    doc.rect(45, 46, 4, 4);
-    doc.rect(85, 46, 4, 4);
-    doc.text('X', 46.5, 49.5);
+    // Checkboxes — visual order RTL (read from right): title on the right, then options toward the left
+    doc.rect(155, 46, 4, 4); // החזרה
+    doc.rect(120, 46, 4, 4); // הוצאה
+    doc.text('X', 121.5, 49.5);
 
     doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.text(v('הוצאה'), 52, 50);
-    doc.text(v('החזרה'), 92, 50);
+    doc.text(v('החזרה'), 130, 50);
+    doc.text(v('הוצאה'), 95, 50);
 
     // Personal Details Section
     doc.rect(15, 60, 180, 40);
     doc.setFont(PDF_FONT_FAMILY, 'bold');
-    doc.text(v('פרטים אישיים:'), 20, 70);
+    textSectionTitleRtl(doc, 'פרטים אישיים:', 70);
 
     doc.setFont(PDF_FONT_FAMILY, 'normal');
     doc.setFontSize(9);
@@ -143,63 +213,80 @@ export class PdfService {
     // Equipment Table Section
     doc.setFont(PDF_FONT_FAMILY, 'bold');
     doc.setFontSize(10);
-    doc.text(v('רשימת ציוד:'), 20, 115);
+    textSectionTitleRtl(doc, 'רשימת ציוד:', 115);
 
-    // Table headers
+    // Table headers — columns RTL (מס on the right); cell text right-aligned
     const tableStartY = 120;
     const rowHeight = 8;
-    const colStarts = [15, 30, 70, 95, 130, 155, 190];
+    const colBounds = getFormTableRtlColumnBounds();
+    const tableHeaders = [
+      'מס',
+      'קוד פריט',
+      'תיאור',
+      'כמות',
+      'מס סידורי',
+      'מצב',
+      'הערות',
+    ];
 
     // Draw table borders and headers
-    doc.rect(15, tableStartY, 180, rowHeight); // Header row
+    doc.rect(FORM_TABLE_LEFT, tableStartY, 180, rowHeight); // Header row
 
-    // Vertical lines for columns
-    for (let i = 0; i < colStarts.length; i++) {
-      doc.line(
-        colStarts[i],
-        tableStartY,
-        colStarts[i],
-        tableStartY + rowHeight * 6
-      );
+    for (const lineX of getFormTableInnerVerticalLineXs()) {
+      doc.line(lineX, tableStartY, lineX, tableStartY + rowHeight * 6);
     }
 
-    // Header text
     doc.setFontSize(8);
-    doc.text(v('מס'), 17, tableStartY + 5);
-    doc.text(v('קוד פריט'), 32, tableStartY + 5);
-    doc.text(v('תיאור'), 72, tableStartY + 5);
-    doc.text(v('כמות'), 97, tableStartY + 5);
-    doc.text(v('מס סידורי'), 132, tableStartY + 5);
-    doc.text(v('מצב'), 157, tableStartY + 5);
-    doc.text(v('הערות'), 192, tableStartY + 5);
+    tableHeaders.forEach((h, i) => {
+      textInFormTableCell(doc, formTableCellAt(colBounds, i), tableStartY + 5, h);
+    });
 
     // Table rows for items
     form.items.forEach((item, index) => {
       const rowY = tableStartY + rowHeight * (index + 1);
 
       // Draw row border
-      doc.rect(15, rowY, 180, rowHeight);
+      doc.rect(FORM_TABLE_LEFT, rowY, 180, rowHeight);
 
-      // Fill row data
+      // Fill row data (column index matches tableHeaders)
       doc.setFont(PDF_FONT_FAMILY, 'normal');
-      doc.text((index + 1).toString(), 17, rowY + 5);
-      doc.text(v(item.productId.substring(0, 15)), 32, rowY + 5);
-      doc.text('', 72, rowY + 5); // Description - empty for now
-      doc.text(item.quantity.toString(), 97, rowY + 5);
-      doc.text(
-        v(item.upis ? item.upis.join(',').substring(0, 10) : ''),
-        132,
-        rowY + 5
+      textInFormTableCell(
+        doc,
+        formTableCellAt(colBounds, 0),
+        rowY + 5,
+        (index + 1).toString(),
+        {
+          visual: false,
+        }
       );
-      doc.text('', 157, rowY + 5); // Condition - empty
-      doc.text('', 192, rowY + 5); // Remarks - empty
+      textInFormTableCell(
+        doc,
+        formTableCellAt(colBounds, 1),
+        rowY + 5,
+        item.productId.substring(0, 15)
+      );
+      textInFormTableCell(
+        doc,
+        formTableCellAt(colBounds, 3),
+        rowY + 5,
+        item.quantity.toString(),
+        {
+          visual: false,
+        }
+      );
+      textInFormTableCell(
+        doc,
+        formTableCellAt(colBounds, 4),
+        rowY + 5,
+        item.upis ? item.upis.join(',').substring(0, 10) : ''
+      );
     });
 
     // Fill remaining empty rows (up to 5 total)
     const maxRows = 5;
     for (let i = form.items.length; i < maxRows; i++) {
       const rowY = tableStartY + rowHeight * (i + 1);
-      doc.rect(15, rowY, 180, rowHeight);
+      doc.rect(FORM_TABLE_LEFT, rowY, 180, rowHeight);
     }
 
     // Approval Section
@@ -208,7 +295,7 @@ export class PdfService {
 
     doc.setFont(PDF_FONT_FAMILY, 'bold');
     doc.setFontSize(10);
-    doc.text(v('אישורים:'), 20, approvalY + 10);
+    textSectionTitleRtl(doc, 'אישורים:', approvalY + 10);
 
     doc.setFont(PDF_FONT_FAMILY, 'normal');
     doc.setFontSize(9);
@@ -217,21 +304,31 @@ export class PdfService {
     if (form.approvedAtTimestamp && form.approvedByUserId) {
       doc.text(
         v(`מאושר על ידי: ${form.approvedByUserId}`),
-        20,
-        approvalY + 20
+        FORM_INNER_RIGHT,
+        approvalY + 20,
+        { align: 'right' }
       );
-      textHebrewLabelThenLtr(
+      textHebrewLabelThenLtrFromRight(
         doc,
         'תאריך אישור: ',
         new Date(form.approvedAtTimestamp).toLocaleDateString('he-IL'),
-        20,
+        FORM_INNER_RIGHT,
         approvalY + 30
       );
     } else if (form.rejectionReason) {
-      doc.text(v('סטטוס: נדחה'), 20, approvalY + 20);
-      doc.text(v(`סיבה: ${form.rejectionReason}`), 20, approvalY + 30);
+      doc.text(v('סטטוס: נדחה'), FORM_INNER_RIGHT, approvalY + 20, {
+        align: 'right',
+      });
+      doc.text(
+        v(`סיבה: ${form.rejectionReason}`),
+        FORM_INNER_RIGHT,
+        approvalY + 30,
+        { align: 'right' }
+      );
     } else {
-      doc.text(v('סטטוס: ממתין לאישור'), 20, approvalY + 20);
+      doc.text(v('סטטוס: ממתין לאישור'), FORM_INNER_RIGHT, approvalY + 20, {
+        align: 'right',
+      });
     }
 
     // Signatures Section
@@ -296,15 +393,15 @@ export class PdfService {
     // Footer
     doc.setFontSize(7);
     doc.setFont(PDF_FONT_FAMILY, 'normal');
-    textHebrewLabelThenLtr(
+    textHebrewLabelThenLtrFromRight(
       doc,
       'נוצר בתאריך: ',
       new Date().toLocaleString('he-IL'),
-      20,
+      FORM_INNER_RIGHT,
       280
     );
     doc.text(v(`מס טופס: ${form.formID}`), 105, 280, { align: 'center' });
-    doc.text(v('עמוד 1 מתוך 1'), 170, 280);
+    doc.text(v('עמוד 1 מתוך 1'), FORM_INNER_RIGHT, 280, { align: 'right' });
 
     // Return PDF as buffer
     return Buffer.from(doc.output('arraybuffer'));
@@ -346,29 +443,31 @@ export class PdfService {
     doc.text(v('מס טופס'), 147, 22);
     doc.text(event.checkInEventId.substring(0, 15), 147, 30);
 
-    // Form type — mark החזרה (return)
+    // Form type — mark החזרה (return); title and options RTL
     doc.rect(15, 40, 180, 15);
     doc.setFontSize(10);
     doc.setFont(PDF_FONT_FAMILY, 'bold');
-    doc.text(v('סוג הטופס:'), 20, 50);
+    textSectionTitleRtl(doc, 'סוג הטופס:', 50);
 
-    doc.rect(45, 46, 4, 4); // הוצאה checkbox
-    doc.rect(85, 46, 4, 4); // החזרה checkbox
-    doc.text('X', 86.5, 49.5); // mark החזרה
+    doc.rect(155, 46, 4, 4); // החזרה (right-hand option)
+    doc.rect(120, 46, 4, 4); // הוצאה
+    doc.text('X', 156.5, 49.5); // mark החזרה
     doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.text(v('הוצאה'), 52, 50);
-    doc.text(v('החזרה'), 92, 50);
+    doc.text(v('החזרה'), 130, 50);
+    doc.text(v('הוצאה'), 95, 50);
 
     // Source form reference
     doc.rect(15, 58, 180, 10);
     doc.setFontSize(9);
-    doc.text(v(`מס טופס מקור: ${form.formID}`), 17, 65);
+    doc.text(v(`מס טופס מקור: ${form.formID}`), FORM_INNER_RIGHT, 65, {
+      align: 'right',
+    });
 
     // Personal Details
     doc.rect(15, 72, 180, 40);
     doc.setFont(PDF_FONT_FAMILY, 'bold');
     doc.setFontSize(10);
-    doc.text(v('פרטים אישיים:'), 20, 82);
+    textSectionTitleRtl(doc, 'פרטים אישיים:', 82);
 
     doc.setFont(PDF_FONT_FAMILY, 'normal');
     doc.setFontSize(9);
@@ -388,50 +487,74 @@ export class PdfService {
     doc.line(120, 102, 180, 102);
     doc.text(v(userData.phone || ''), 122, 101);
 
-    // Equipment table
+    // Equipment table (same RTL columns as checkout PDF)
     doc.setFont(PDF_FONT_FAMILY, 'bold');
     doc.setFontSize(10);
-    doc.text(v('רשימת ציוד המוחזר:'), 20, 128);
+    textSectionTitleRtl(doc, 'רשימת ציוד המוחזר:', 128);
 
     const tableStartY = 133;
     const rowHeight = 8;
-    const colStarts = [15, 30, 70, 95, 130, 155, 190];
+    const colBounds = getFormTableRtlColumnBounds();
+    const tableHeaders = [
+      'מס',
+      'קוד פריט',
+      'תיאור',
+      'כמות',
+      'מס סידורי',
+      'מצב',
+      'הערות',
+    ];
 
-    doc.rect(15, tableStartY, 180, rowHeight);
-    for (let i = 0; i < colStarts.length; i++) {
-      doc.line(colStarts[i], tableStartY, colStarts[i], tableStartY + rowHeight * 6);
+    doc.rect(FORM_TABLE_LEFT, tableStartY, 180, rowHeight);
+    for (const lineX of getFormTableInnerVerticalLineXs()) {
+      doc.line(lineX, tableStartY, lineX, tableStartY + rowHeight * 6);
     }
 
     doc.setFontSize(8);
-    doc.text(v('מס'), 17, tableStartY + 5);
-    doc.text(v('קוד פריט'), 32, tableStartY + 5);
-    doc.text(v('תיאור'), 72, tableStartY + 5);
-    doc.text(v('כמות'), 97, tableStartY + 5);
-    doc.text(v('מס סידורי'), 132, tableStartY + 5);
-    doc.text(v('מצב'), 157, tableStartY + 5);
-    doc.text(v('הערות'), 192, tableStartY + 5);
+    tableHeaders.forEach((h, i) => {
+      textInFormTableCell(doc, formTableCellAt(colBounds, i), tableStartY + 5, h);
+    });
 
     event.items.forEach((item, index) => {
       const rowY = tableStartY + rowHeight * (index + 1);
-      doc.rect(15, rowY, 180, rowHeight);
+      doc.rect(FORM_TABLE_LEFT, rowY, 180, rowHeight);
       doc.setFont(PDF_FONT_FAMILY, 'normal');
-      doc.text((index + 1).toString(), 17, rowY + 5);
-      doc.text(v(item.productId.substring(0, 15)), 32, rowY + 5);
-      doc.text('', 72, rowY + 5);
-      doc.text(item.quantity.toString(), 97, rowY + 5);
-      doc.text(
-        v(item.upis ? item.upis.join(',').substring(0, 10) : ''),
-        132,
-        rowY + 5
+      textInFormTableCell(
+        doc,
+        formTableCellAt(colBounds, 0),
+        rowY + 5,
+        (index + 1).toString(),
+        {
+          visual: false,
+        }
       );
-      doc.text('', 157, rowY + 5);
-      doc.text('', 192, rowY + 5);
+      textInFormTableCell(
+        doc,
+        formTableCellAt(colBounds, 1),
+        rowY + 5,
+        item.productId.substring(0, 15)
+      );
+      textInFormTableCell(
+        doc,
+        formTableCellAt(colBounds, 3),
+        rowY + 5,
+        item.quantity.toString(),
+        {
+          visual: false,
+        }
+      );
+      textInFormTableCell(
+        doc,
+        formTableCellAt(colBounds, 4),
+        rowY + 5,
+        item.upis ? item.upis.join(',').substring(0, 10) : ''
+      );
     });
 
     const maxRows = 5;
     for (let i = event.items.length; i < maxRows; i++) {
       const rowY = tableStartY + rowHeight * (i + 1);
-      doc.rect(15, rowY, 180, rowHeight);
+      doc.rect(FORM_TABLE_LEFT, rowY, 180, rowHeight);
     }
 
     // Approval section
@@ -439,20 +562,21 @@ export class PdfService {
     doc.rect(15, approvalY, 180, 30);
     doc.setFont(PDF_FONT_FAMILY, 'bold');
     doc.setFontSize(10);
-    doc.text(v('אישורים:'), 20, approvalY + 10);
+    textSectionTitleRtl(doc, 'אישורים:', approvalY + 10);
     doc.setFont(PDF_FONT_FAMILY, 'normal');
     doc.setFontSize(9);
     doc.text(
       v(`מאושר על ידי: ${event.createdByUserId}`),
-      20,
-      approvalY + 20
+      FORM_INNER_RIGHT,
+      approvalY + 20,
+      { align: 'right' }
     );
-    textHebrewLabelThenLtr(
+    textHebrewLabelThenLtrFromRight(
       doc,
       'תאריך: ',
       new Date(event.createdAtTimestamp).toLocaleDateString('he-IL'),
-      100,
-      approvalY + 20
+      FORM_INNER_RIGHT,
+      approvalY + 28
     );
 
     // Signature
@@ -485,15 +609,15 @@ export class PdfService {
     // Footer
     doc.setFontSize(7);
     doc.setFont(PDF_FONT_FAMILY, 'normal');
-    textHebrewLabelThenLtr(
+    textHebrewLabelThenLtrFromRight(
       doc,
       'נוצר בתאריך: ',
       new Date().toLocaleString('he-IL'),
-      20,
+      FORM_INNER_RIGHT,
       280
     );
     doc.text(v(`מס אירוע: ${event.checkInEventId}`), 105, 280, { align: 'center' });
-    doc.text(v('עמוד 1 מתוך 1'), 170, 280);
+    doc.text(v('עמוד 1 מתוך 1'), FORM_INNER_RIGHT, 280, { align: 'right' });
 
     return Buffer.from(doc.output('arraybuffer'));
   }
