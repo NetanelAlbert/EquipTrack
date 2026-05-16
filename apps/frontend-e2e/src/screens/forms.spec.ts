@@ -19,7 +19,7 @@ const backendBaseUrl =
 const e2eSecret = process.env['E2E_AUTH_SECRET'] || 'e2e-local-secret';
 
 test.describe('forms screen', () => {
-  test('displays checkout and checkin tabs with forms', async ({
+  test('displays forms list with check-out forms', async ({
     page,
     request,
   }) => {
@@ -35,10 +35,41 @@ test.describe('forms screen', () => {
     await clickSideNavRoute(page, 'forms');
 
     await waitForTestId(page, 'forms-tab-group');
-    await expect(page.getByRole('tab', { name: /Check Out/i })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /Check In/i })).toBeVisible();
-
+    // Single tab group (check-out only); the check-in tab is gone
     await expect(page.getByTestId('forms-tab-content').first()).toBeVisible();
+  });
+
+  test('shows partially-returned badge on form with outstanding items', async ({
+    page,
+    request,
+  }) => {
+    const token = await mintE2eJwt(request, {
+      backendBaseUrl,
+      e2eSecret,
+      userId: 'user-e2e-admin',
+      orgIdToRole: { [E2E_ORG_ID]: UserRole.Admin },
+    });
+
+    await bootstrapAuthenticatedSession(page, token, E2E_ORG_ID);
+    await ensureOrganizationIsSelected(page, E2E_ORG_ID);
+    await clickSideNavRoute(page, 'forms');
+    await waitForTestId(page, 'forms-tab-group');
+
+    // Show all statuses
+    const statusFilter = page.getByTestId('forms-status-filter');
+    await statusFilter.click();
+    await page.locator('mat-option[value="all"]').click();
+
+    const searchInput = page.getByTestId('forms-search-input');
+    await searchInput.fill('e2e-seed-approved-checkout-partial-return');
+
+    const partialCard = page
+      .locator('[data-testid^="form-card-"]')
+      .filter({ hasText: 'e2e-seed-approved-checkout-partial-return' })
+      .first();
+    await expect(partialCard).toBeVisible({ timeout: 15000 });
+
+    await expect(partialCard.getByTestId('badge-partially-returned')).toBeVisible({ timeout: 10000 });
   });
 
   test('status filter shows forms by status', async ({ page, request }) => {
@@ -54,8 +85,7 @@ test.describe('forms screen', () => {
     await clickSideNavRoute(page, 'forms');
     await waitForTestId(page, 'forms-tab-group');
 
-    // Seed data includes approved check-out forms; default tab is check-in.
-    await page.getByRole('tab', { name: /Check Out/i }).click();
+    // Seed data includes approved check-out forms.
 
     const statusFilter = page.getByTestId('forms-status-filter');
     await statusFilter.click();

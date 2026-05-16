@@ -5,6 +5,7 @@ import {
   getUserInventory,
   createForm,
   approveForm,
+  checkInForm,
   itemByProductId,
   E2E_ORG_ID,
   E2E_CUSTOMER_USER_ID,
@@ -91,16 +92,11 @@ test.describe('core regression inventory transfer flow', () => {
     expect(postCheckoutWarehouseUpi.upis || []).not.toContain(transferredUpi);
     expect(postCheckoutCustomerUpi.upis || []).toContain(transferredUpi);
 
-    const checkinForm = await createForm(request, adminToken, E2E_ORG_ID, {
-      formType: FormType.CheckIn,
-      userId: E2E_CUSTOMER_USER_ID,
-      items: [
-        { productId: E2E_BULK_PRODUCT_ID, quantity: transferQuantity },
-        { productId: E2E_UPI_PRODUCT_ID, quantity: 1, upis: [transferredUpi as string] },
-      ],
-      description: 'e2e checkin regression',
-    });
-    await approveForm(request, adminToken, E2E_ORG_ID, checkinForm.formID, checkinForm.userID);
+    // Partial check-in: return both items via the new check-in event endpoint
+    await checkInForm(request, adminToken, E2E_ORG_ID, checkoutForm.formID, checkoutForm.userID, [
+      { productId: E2E_BULK_PRODUCT_ID, quantity: transferQuantity },
+      { productId: E2E_UPI_PRODUCT_ID, quantity: 1, upis: [transferredUpi as string] },
+    ]);
 
     const finalWarehouseInventory = await getUserInventory(
       request,
