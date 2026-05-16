@@ -10,9 +10,11 @@ import {
 } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
+import { InventoryAdapter } from '../../../db/tables/inventory.adapter';
 import { UsersAndOrganizationsAdapter } from '../../../db/tables/users-and-organizations.adapter';
 import { InventoryTransferService } from '../../../services/inventory-transfer.service';
 import { PdfService } from '../../../services/pdf.service';
+import { loadProductDisplayNamesForPdf } from '../../../services/pdf-product-names';
 import { S3Service } from '../../../services/s3.service';
 import {
   badRequest,
@@ -60,6 +62,7 @@ export const handler = async (
 
     const formsAdapter = new FormsAdapter();
     const usersAdapter = new UsersAndOrganizationsAdapter();
+    const inventoryAdapter = new InventoryAdapter();
     const inventoryTransferService = new InventoryTransferService();
     const s3Service = new S3Service();
 
@@ -113,7 +116,18 @@ export const handler = async (
 
     // Generate and upload PDF
     console.log(`Generating check-in event PDF for event ${checkInEventId}`);
-    const pdfBuffer = PdfService.generateCheckInEventPdf(form, event, user, req.signature);
+    const productNames = await loadProductDisplayNamesForPdf(
+      inventoryAdapter,
+      organizationId,
+      event.items.map((i) => i.productId)
+    );
+    const pdfBuffer = PdfService.generateCheckInEventPdf(
+      form,
+      event,
+      user,
+      req.signature,
+      productNames
+    );
     const pdfUri = await s3Service.uploadCheckInEventPDF(
       pdfBuffer,
       organizationId,

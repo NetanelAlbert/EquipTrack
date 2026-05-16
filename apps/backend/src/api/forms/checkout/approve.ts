@@ -2,8 +2,10 @@ import { BasicUser, FormStatus, JwtPayload } from '@equip-track/shared';
 import { APIGatewayProxyEventPathParameters } from 'aws-lambda';
 import { FormsAdapter } from '../../../db/tables/forms.adapter';
 import { UsersAndOrganizationsAdapter } from '../../../db/tables/users-and-organizations.adapter';
+import { InventoryAdapter } from '../../../db/tables/inventory.adapter';
 import { InventoryTransferService } from '../../../services/inventory-transfer.service';
 import { PdfService } from '../../../services/pdf.service';
+import { loadProductDisplayNamesForPdf } from '../../../services/pdf-product-names';
 import { S3Service } from '../../../services/s3.service';
 import {
   badRequest,
@@ -78,7 +80,18 @@ export const handler = async (
 
     // Step 3: Generate PDF
     console.log('Generating PDF...');
-    const pdfBuffer = PdfService.generateFormPDF(form, user, req.signature);
+    const inventoryAdapter = new InventoryAdapter();
+    const productNames = await loadProductDisplayNamesForPdf(
+      inventoryAdapter,
+      organizationId,
+      form.items.map((i) => i.productId)
+    );
+    const pdfBuffer = PdfService.generateFormPDF(
+      form,
+      user,
+      req.signature,
+      productNames
+    );
     console.log('PDF generated successfully');
 
     // Step 4: Upload PDF to S3

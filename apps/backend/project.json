@@ -16,7 +16,13 @@
         "bundle": true,
         "main": "apps/backend/src/main.ts",
         "tsConfig": "apps/backend/tsconfig.app.json",
-        "assets": ["apps/backend/src/assets"],
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/backend/src/assets",
+            "output": "assets"
+          }
+        ],
         "generatePackageJson": true,
         "esbuildOptions": {
           "sourcemap": true,
