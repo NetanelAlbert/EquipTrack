@@ -1,0 +1,22 @@
+.feature-preview-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.feature-preview-intro {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.submit-button {
+  align-self: flex-start;
+  margin-top: 0.25rem;
+}

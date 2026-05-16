@@ -32,6 +32,22 @@ export interface E2eAuthResponse extends BasicResponse {
 }
 
 /**
+ * Email/password login for preview environments only (LocalStack or dedicated preview stacks).
+ * Disabled unless FEATURE_PREVIEW_AUTH_ENABLED is set on the backend.
+ */
+export interface FeaturePreviewPasswordRequest {
+  email: string;
+  password: string;
+}
+
+/**
+ * Response for feature preview password authentication.
+ */
+export interface FeaturePreviewPasswordResponse extends BasicResponse {
+  jwt: string;
+}
+
+/**
  * JWT payload interface with user, organization, and role information
  */
 export interface JwtPayload {

@@ -2,7 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { GoogleAuthRequest, GoogleAuthResponse } from '@equip-track/shared';
+import {
+  GoogleAuthRequest,
+  GoogleAuthResponse,
+  FeaturePreviewPasswordRequest,
+  FeaturePreviewPasswordResponse,
+} from '@equip-track/shared';
 import { ApiService } from './api.service';
 import { AuthStore } from '../store/auth.store';
 import { UserStore } from '../store/user.store';
@@ -39,6 +44,50 @@ export class AuthService {
       console.error('Auth initialization failed:', error);
       return false;
     }
+  }
+
+  authenticateWithFeaturePreviewPassword(
+    email: string,
+    password: string
+  ): Observable<FeaturePreviewPasswordResponse> {
+    this.authStore.setAuthLoading();
+
+    const request: FeaturePreviewPasswordRequest = { email, password };
+
+    return this.apiService.endpoints.featurePreviewPasswordAuth
+      .execute(request, {}, false)
+      .pipe(
+        map((response) => {
+          if (response.status && response.jwt) {
+            this.storeToken(response.jwt);
+            this.authStore.setToken(response.jwt);
+            this.validateAndCacheToken(response.jwt);
+            this.authStore.setAuthSuccess();
+          } else {
+            this.authStore.setAuthError('Invalid authentication response');
+          }
+          return response;
+        }),
+        catchError((error) => {
+          console.error('Feature preview authentication failed:', error);
+
+          let errorMessage = 'Authentication failed';
+          if (error.status === 0) {
+            errorMessage = 'Network error. Please check your connection.';
+          } else if (error.status >= 500) {
+            errorMessage = 'Server error. Please try again later.';
+          } else if (error.status === 401 || error.status === 403) {
+            errorMessage =
+              'Authentication failed. Please verify your email and password.';
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+
+          this.authStore.setAuthError(errorMessage);
+          this.clearAuthenticationState();
+          throw error;
+        })
+      );
   }
 
   // Enhanced Google authentication with comprehensive error handling
