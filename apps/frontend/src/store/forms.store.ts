@@ -83,11 +83,6 @@ export const FormsStore = signalStore(
   withState(emptyState),
   withComputed((state) => {
     return {
-      checkInForms: computed(() =>
-        state
-          .forms()
-          .filter((form: InventoryForm) => form.type === FormType.CheckIn)
-      ),
       checkOutForms: computed(() =>
         state
           .forms()
@@ -219,7 +214,6 @@ export const FormsStore = signalStore(
           const response = await firstValueFrom(
             apiService.endpoints.createForm.execute(
               {
-                formType,
                 userId,
                 items,
                 description,
@@ -246,15 +240,10 @@ export const FormsStore = signalStore(
             return false;
           }
 
-          const successKey =
-            formType === FormType.CheckIn
-              ? 'forms.check-in-submitted'
-              : 'forms.check-out-submitted';
-          const successFallback =
-            formType === FormType.CheckIn
-              ? 'Check-in request submitted successfully'
-              : 'Check-out request submitted successfully';
-          notificationService.showSuccess(successKey, successFallback);
+          notificationService.showSuccess(
+            'forms.check-out-submitted',
+            'Check-out request submitted successfully'
+          );
           updateState({
             addFormStatus: { isLoading: false, error: undefined },
             forms: [response.form, ...state.forms()],
@@ -274,13 +263,11 @@ export const FormsStore = signalStore(
               );
           if (shouldNavigate) {
             const queryParams: FormQueryParams = {
-              formType: formType,
+              formType: FormType.CheckOut,
               searchStatus: FormStatus.Pending,
               searchTerm: response.form.formID,
             };
-            router.navigate(['/forms'], {
-              queryParams,
-            });
+            router.navigate(['/forms'], { queryParams });
           }
           return true;
         } catch (error) {

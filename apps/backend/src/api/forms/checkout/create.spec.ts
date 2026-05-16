@@ -11,7 +11,6 @@ jest.mock('../../../db/tables/forms.adapter', () => ({
 
 const validRequest = {
   userId: 'user-1',
-  formType: FormType.CheckOut,
   description: 'Test checkout',
   items: [{ productId: 'prod-1', quantity: 2 }],
 };
@@ -61,16 +60,6 @@ describe('create form handler', () => {
     ).rejects.toMatchObject({ statusCode: 400 });
   });
 
-  it('returns 400 for invalid form type', async () => {
-    await expect(
-      handler(
-        { ...validRequest, formType: 'invalid' as FormType },
-        { organizationId: 'org-1' },
-        validJwt
-      )
-    ).rejects.toMatchObject({ statusCode: 400 });
-  });
-
   it('returns 400 when items array is empty', async () => {
     await expect(
       handler(
@@ -92,17 +81,6 @@ describe('create form handler', () => {
     expect(result.form).toBeDefined();
     expect(result.form.type).toBe(FormType.CheckOut);
     expect(mockCreateForm).toHaveBeenCalledTimes(1);
-  });
-
-  it('returns success for valid check-in request', async () => {
-    const result = await handler(
-      { ...validRequest, formType: FormType.CheckIn },
-      { organizationId: 'org-1' },
-      validJwt
-    );
-
-    expect(result.status).toBe(true);
-    expect(result.form.type).toBe(FormType.CheckIn);
   });
 
   it('returns 500 when database fails', async () => {

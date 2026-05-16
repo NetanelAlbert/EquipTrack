@@ -121,39 +121,31 @@ describe('InventoryTransferService', () => {
     expect(mockInventoryAdapter.deleteBulkInventoryItem).not.toHaveBeenCalled();
   });
 
-  it('creates destination bulk inventory for check-in when destination product is absent', async () => {
+  it('creates new destination bulk inventory when product absent at warehouse', async () => {
     const organizationId = 'org-1';
     const form = buildForm({
-      userID: 'user-7',
-      type: FormType.CheckIn,
+      userID: 'user-2',
+      type: FormType.CheckOut,
       items: [{ productId: 'prod-c', quantity: 2 }],
     });
 
-    const sourceUserInventory: InventoryItem[] = [
-      { productId: 'prod-x', quantity: 1 },
+    const sourceWarehouseInventory: InventoryItem[] = [
       { productId: 'prod-c', quantity: 2 },
     ];
-    const destinationWarehouseInventory: InventoryItem[] = [
-      { productId: 'prod-z', quantity: 100 },
-    ];
+    const destinationUserInventory: InventoryItem[] = [];
 
     mockInventoryAdapter.getUserInventory
-      .mockResolvedValueOnce(sourceUserInventory) // Validation source holder
-      .mockResolvedValueOnce(sourceUserInventory) // Transfer source holder
-      .mockResolvedValueOnce(destinationWarehouseInventory); // Transfer destination holder
+      .mockResolvedValueOnce(sourceWarehouseInventory)
+      .mockResolvedValueOnce(sourceWarehouseInventory)
+      .mockResolvedValueOnce(destinationUserInventory);
 
     await service.transferInventoryItems(form, organizationId);
 
     expect(mockInventoryAdapter.deleteBulkInventoryItem).toHaveBeenCalledWith(
-      'prod-c',
-      organizationId,
-      'user-7'
+      'prod-c', organizationId, WAREHOUSE_SUFFIX
     );
     expect(mockInventoryAdapter.createBulkInventoryItem).toHaveBeenCalledWith(
-      'prod-c',
-      organizationId,
-      WAREHOUSE_SUFFIX,
-      2
+      'prod-c', organizationId, 'user-2', 2
     );
     expect(mockInventoryAdapter.updateInventoryItemQuantity).not.toHaveBeenCalled();
   });

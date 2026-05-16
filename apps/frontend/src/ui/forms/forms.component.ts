@@ -12,11 +12,6 @@ import { FormStatus, FormType, UserRole } from '@equip-track/shared';
 import { UserStore } from '../../store/user.store';
 import { OrganizationService } from '../../services/organization.service';
 
-const formTypeToTabIndex: Record<FormType, number> = {
-  [FormType.CheckOut]: 0,
-  [FormType.CheckIn]: 1,
-};
-
 @Component({
   selector: 'app-forms',
   standalone: true,
@@ -43,18 +38,13 @@ export class FormsComponent implements OnInit {
       ? this.queryParams()
       : undefined
   );
-  readonly checkInQueryParams = computed(() =>
-    this.queryParams()?.formType === FormType.CheckIn
-      ? this.queryParams()
-      : undefined
-  );
 
   readonly showUserFilters = computed(() => {
     const role = this.userStore.currentRole();
     return role === UserRole.Admin || role === UserRole.WarehouseManager;
   });
 
-  selectedTabIndex = formTypeToTabIndex[FormType.CheckOut];
+  selectedTabIndex = 0;
 
   ngOnInit(): void {
     this.formsStore.fetchForms();
@@ -69,10 +59,8 @@ export class FormsComponent implements OnInit {
         params['searchStatus'] &&
         params['searchTerm']
       ) {
-        const formType = params['formType'] as FormType;
-        this.selectedTabIndex = formTypeToTabIndex[formType];
         this.queryParams.set({
-          formType,
+          formType: FormType.CheckOut,
           searchStatus: params['searchStatus'] as FormStatus,
           searchTerm: params['searchTerm'],
         });

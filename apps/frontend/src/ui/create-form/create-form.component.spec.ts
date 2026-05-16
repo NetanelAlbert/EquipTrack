@@ -48,7 +48,6 @@ describe('CreateFormComponent', () => {
     const showErrorSpy = jest.spyOn(notificationService, 'showError');
 
     queryParamsSubject.next({
-      formType: 'CheckOut',
       items: 'not-valid-json{{{',
     });
     fixture.detectChanges();
@@ -67,7 +66,6 @@ describe('CreateFormComponent', () => {
     const addAllItemsSpy = jest.spyOn(component, 'addAllItems');
 
     queryParamsSubject.next({
-      formType: 'CheckOut',
       items: JSON.stringify(items),
       userId: 'user-1',
     });
@@ -82,7 +80,6 @@ describe('CreateFormComponent', () => {
     fixture.destroy();
 
     queryParamsSubject.next({
-      formType: 'CheckOut',
       items: JSON.stringify([{ productId: 'P1', quantity: 1 }]),
     });
 

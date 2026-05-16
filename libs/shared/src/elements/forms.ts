@@ -7,7 +7,6 @@ export enum FormStatus {
 }
 
 export enum FormType {
-  CheckIn = 'check-in',
   CheckOut = 'check-out',
 }
 

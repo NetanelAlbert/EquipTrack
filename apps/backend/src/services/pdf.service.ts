@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable-rtl';
-import { CheckInEvent, InventoryForm, User, FormType } from '@equip-track/shared';
+import { CheckInEvent, InventoryForm, User } from '@equip-track/shared';
 
 declare module 'jspdf' {
   interface jsPDF {
@@ -55,19 +55,10 @@ export class PdfService {
     doc.setFont('helvetica', 'bold');
     doc.text('סוג הטופס:', 20, 50);
 
-    const isCheckout = form.type === FormType.CheckOut;
-    const isCheckin = form.type === FormType.CheckIn;
-
-    // Checkboxes for form type
+    // Checkboxes for form type — always check-out (הוצאה)
     doc.rect(45, 46, 4, 4);
     doc.rect(85, 46, 4, 4);
-
-    if (isCheckout) {
-      doc.text('X', 46.5, 49.5);
-    }
-    if (isCheckin) {
-      doc.text('X', 86.5, 49.5);
-    }
+    doc.text('X', 46.5, 49.5);
 
     doc.setFont('helvetica', 'normal');
     doc.text('הוצאה', 52, 50);

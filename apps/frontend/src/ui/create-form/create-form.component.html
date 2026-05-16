@@ -12,15 +12,8 @@
 
   <form [formGroup]="form" data-testid="create-form-form">
 
-    <div class="form-type">
-      <mat-radio-group formControlName="formType" data-testid="form-type-group">
-        <mat-radio-button value="check-out" data-testid="form-type-checkout">{{ 'create-form.type.check-out' | translate }}</mat-radio-button>
-        <mat-radio-button value="check-in" data-testid="form-type-checkin">{{ 'create-form.type.check-in' | translate }}</mat-radio-button>
-      </mat-radio-group>
-    </div>
-
     <div class="explanation">
-      <p>{{ createFormConfig().explanationKey | translate }}</p>
+      <p>{{ 'create-form.explanation.check-out' | translate }}</p>
     </div>
 
     <div class="user-select-wrapper">
@@ -105,10 +98,10 @@
     <editable-inventory
       data-testid="create-form-editable-inventory"
       [itemsToAdd]="itemsToAdd()"
-      [limitItems]="createFormConfig().limitItems"
+      [limitItems]="limitItems()"
       (editedItems)="onItemsEdited()"
       (submitItems)="onSubmit($event)"
-      [submitButton]="submitButton()"
+      [submitButton]="submitButton"
     ></editable-inventory>
   </form>
 </div>

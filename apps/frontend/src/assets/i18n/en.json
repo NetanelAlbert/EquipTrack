@@ -123,11 +123,8 @@
     "view-pdf": "View PDF",
     "approve": "Approve",
     "reject": "Reject",
-    "check-in": "Check In",
     "check-out": "Check Out",
-    "empty-check-in": "No check-in forms available.",
     "empty-check-out": "No check-out forms available.",
-    "check-in-submitted": "Check-in request submitted successfully",
     "check-out-submitted": "Check-out request submitted successfully",
     "form-approved": "Form approved successfully",
     "form-rejected": "Form rejected successfully",
@@ -251,7 +248,6 @@
     "button": {
       "add-item": "Add Item",
       "save": "Save",
-      "create-check-in": "Create Check-in",
       "create-checkout": "Create Checkout",
       "remove-items": "Remove Items",
       "add-items": "Save new items"
@@ -305,16 +301,10 @@
     "items": "Items",
     "success": "Checkout completed successfully",
     "error": "Checkout failed. Please try again.",
-    "type": {
-      "check-in": "Check In",
-      "check-out": "Check Out"
-    },
     "explanation": {
-      "check-in": "Check in (return) items to the warehouse",
       "check-out": "Check out (take) items from the warehouse"
     },
     "submit-button": {
-      "check-in": "Check In",
       "check-out": "Check Out"
     },
     "add-all-items-tooltip": "Add all items from this form",

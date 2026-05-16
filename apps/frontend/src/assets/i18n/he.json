@@ -122,11 +122,8 @@
     "view-pdf": "צפייה ב-PDF",
     "approve": "אשר",
     "reject": "דחה",
-    "check-in": "החזרה",
     "check-out": "לקיחה",
-    "empty-check-in": "אין טפסי החזרה זמינים.",
     "empty-check-out": "אין טפסי לקיחה זמינים.",
-    "check-in-submitted": "בקשת ההחזרה נשלחה בהצלחה",
     "check-out-submitted": "בקשת הלקיחה נשלחה בהצלחה",
     "form-approved": "הטופס אושר בהצלחה",
     "form-rejected": "הטופס נדחה בהצלחה",
@@ -250,7 +247,6 @@
     "button": {
       "add-item": "הוסף פריט",
       "save": "שמור",
-      "create-check-in": "צור החזרה",
       "create-checkout": "צור לקיחה",
       "remove-items": "הסר פריטים",
       "add-items": "שמור פריטים חדשים"
@@ -304,16 +300,10 @@
     "items": "פריטים",
     "success": "הלקיחה הושלמה בהצלחה",
     "error": "הלקיחה נכשלה. נסה שוב.",
-    "type": {
-      "check-in": "החזרה",
-      "check-out": "לקיחה"
-    },
     "explanation": {
-      "check-in": "החזרת פריטים למחסן",
       "check-out": "לקיחת פריטים מהמחסן"
     },
     "submit-button": {
-      "check-in": "החזרה",
       "check-out": "לקיחה"
     },
     "add-all-items-tooltip": "הוסף את כל הפריטים מטופס זה",

@@ -164,20 +164,6 @@ describe('FormsStore', () => {
     );
   });
 
-  it('addForm shows check-in success message for check-in forms', async () => {
-    const checkInForm = { ...mockForm, type: FormType.CheckIn };
-    createFormExecute.mockReturnValue(
-      of({ status: true, form: checkInForm })
-    );
-
-    await store.addForm(FormType.CheckIn, [], 'user-1', 'test');
-
-    expect(notificationService.showSuccess).toHaveBeenCalledWith(
-      'forms.check-in-submitted',
-      'Check-in request submitted successfully'
-    );
-  });
-
   it('addForm shows error notification when API returns status false', async () => {
     createFormExecute.mockReturnValue(
       of({

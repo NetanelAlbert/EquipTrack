@@ -86,7 +86,7 @@ export const handler = async (
     const pdfUrl = await s3Service.uploadFormPDF(
       pdfBuffer,
       organizationId,
-      form.type,
+      'check-out',
       form.userID,
       form.formID
     );

@@ -47,15 +47,6 @@ export const handler = async (
       );
     }
 
-    if (![FormType.CheckIn, FormType.CheckOut].includes(req.formType)) {
-      throw customError(
-        ErrorKeys.BAD_REQUEST,
-        400,
-        'errors.api.invalid-form-type',
-        'Invalid form type'
-      );
-    }
-
     // Validate items
     validateInventoryItems(req.items);
 
@@ -68,7 +59,7 @@ export const handler = async (
       formID,
       organizationID: organizationId,
       items: req.items,
-      type: req.formType,
+      type: FormType.CheckOut,
       status: FormStatus.Pending,
       createdAtTimestamp: now,
       lastUpdated: now,

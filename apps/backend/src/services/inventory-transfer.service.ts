@@ -1,4 +1,4 @@
-import { CheckInEvent, InventoryForm, InventoryItem, FormType } from '@equip-track/shared';
+import { CheckInEvent, InventoryForm, InventoryItem } from '@equip-track/shared';
 import { InventoryAdapter } from '../db/tables/inventory.adapter';
 import { WAREHOUSE_SUFFIX } from '../db/constants';
 import { badRequest } from '../api/responses';
@@ -89,27 +89,16 @@ export class InventoryTransferService {
   }
 
   /**
-   * Determines source and destination holders based on form type
+   * Determines source and destination holders for a check-out form (warehouse → user).
    */
   private getTransferHolders(form: InventoryForm): {
     sourceHolderId: string;
     destinationHolderId: string;
   } {
-    if (form.type === FormType.CheckOut) {
-      // CHECK-OUT: warehouse → user
-      return {
-        sourceHolderId: WAREHOUSE_SUFFIX,
-        destinationHolderId: form.userID,
-      };
-    } else if (form.type === FormType.CheckIn) {
-      // CHECK-IN: user → warehouse
-      return {
-        sourceHolderId: form.userID,
-        destinationHolderId: WAREHOUSE_SUFFIX,
-      };
-    } else {
-      throw badRequest(`Invalid form type: ${form.type}`);
-    }
+    return {
+      sourceHolderId: WAREHOUSE_SUFFIX,
+      destinationHolderId: form.userID,
+    };
   }
 
   /**
@@ -195,7 +184,7 @@ export class InventoryTransferService {
           destinationHolderId,
           sourceHolderId,
           form.formID,
-          form.type === FormType.CheckOut ? 'check-out' : 'check-in'
+          'check-out'
         );
       } else {
         // Handle bulk items - pass inventories and get updated versions
