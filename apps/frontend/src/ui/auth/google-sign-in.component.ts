@@ -3,6 +3,7 @@ import {
   ElementRef,
   ViewChild,
   AfterViewInit,
+  OnDestroy,
   inject,
   output,
   input,
@@ -24,6 +25,36 @@ interface GoogleCredentialResponse {
   select_by: string; // How the user signed in
 }
 
+/** Symbol used as a key on `window` so the flag survives HMR module re-evaluation. */
+const GIS_INIT_FLAG = '__et_gis_initialized__';
+
+type WindowWithGis = Window & {
+  [GIS_INIT_FLAG]?: boolean;
+  __et_gis_handler__?: ((r: GoogleCredentialResponse) => void) | null;
+};
+
+function isGisInitialized(): boolean {
+  return !!(window as WindowWithGis)[GIS_INIT_FLAG];
+}
+
+function markGisInitialized(): void {
+  (window as WindowWithGis)[GIS_INIT_FLAG] = true;
+}
+
+function getActiveHandler(): ((r: GoogleCredentialResponse) => void) | null | undefined {
+  return (window as WindowWithGis).__et_gis_handler__;
+}
+
+function setActiveHandler(fn: ((r: GoogleCredentialResponse) => void) | null): void {
+  (window as WindowWithGis).__et_gis_handler__ = fn;
+}
+
+/** Resets window-level GIS state. Call only from tests. */
+export function resetGoogleSignInStateForTesting(): void {
+  (window as WindowWithGis)[GIS_INIT_FLAG] = false;
+  (window as WindowWithGis).__et_gis_handler__ = null;
+}
+
 @Component({
   selector: 'app-google-sign-in',
   standalone: true,
@@ -36,7 +67,7 @@ interface GoogleCredentialResponse {
   templateUrl: './google-sign-in.component.html',
   styleUrl: './google-sign-in.component.scss',
 })
-export class GoogleSignInComponent implements AfterViewInit {
+export class GoogleSignInComponent implements AfterViewInit, OnDestroy {
   @ViewChild('googleButtonContainer', { static: true })
   googleButtonContainer!: ElementRef<HTMLElement>;
 
@@ -96,19 +127,20 @@ export class GoogleSignInComponent implements AfterViewInit {
         throw new Error('Google library not loaded');
       }
 
-      // Initialize Google Identity Services with COOP-compatible settings
-      window.google.accounts.id.initialize({
-        client_id: environment.googleClientId,
-        callback: (response: GoogleCredentialResponse) => {
-          this.handleCredentialResponse(response);
-        },
-        auto_select: false,
-        cancel_on_tap_outside: true,
-        context: 'signin',
-        // Add COOP-compatible settings
-        use_fedcm_for_prompt: false,
-        itp_support: false,
-      });
+      setActiveHandler((response) => this.handleCredentialResponse(response));
+
+      if (!isGisInitialized()) {
+        markGisInitialized();
+        window.google.accounts.id.initialize({
+          client_id: environment.googleClientId,
+          callback: (response: GoogleCredentialResponse) => getActiveHandler()?.(response),
+          auto_select: false,
+          cancel_on_tap_outside: true,
+          context: 'signin',
+          use_fedcm_for_prompt: false,
+          itp_support: false,
+        });
+      }
 
       // Render the Google Sign-In button
       window.google.accounts.id.renderButton(
@@ -196,5 +228,9 @@ export class GoogleSignInComponent implements AfterViewInit {
    */
   private showSuccess(message: string): void {
     this.notificationService.showSuccess('auth.success', message);
+  }
+
+  ngOnDestroy(): void {
+    setActiveHandler(null);
   }
 }
