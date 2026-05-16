@@ -193,4 +193,78 @@ describe('InventoryTransferService', () => {
       })
     );
   });
+
+  describe('transferCheckInEvent', () => {
+    it('moves UPI items from user to warehouse with check-in ownership event', async () => {
+      const organizationId = 'org-1';
+      const form = buildForm({
+        userID: 'user-1',
+        formID: 'form-1',
+        type: FormType.CheckOut,
+        items: [{ productId: 'prod-u', quantity: 1, upis: ['UPI-A'] }],
+      });
+      const event = {
+        checkInEventId: 'cie-1',
+        items: [{ productId: 'prod-u', quantity: 1, upis: ['UPI-A'] }],
+        createdAtTimestamp: Date.now(),
+        createdByUserId: 'wm-1',
+      };
+      const userInventory: InventoryItem[] = [
+        { productId: 'prod-u', quantity: 1, upis: ['UPI-A'] },
+      ];
+      mockInventoryAdapter.getUserInventory
+        .mockResolvedValueOnce(userInventory)   // validation
+        .mockResolvedValueOnce(userInventory)   // source
+        .mockResolvedValueOnce([]);             // destination
+
+      await service.transferCheckInEvent(form, event, organizationId);
+
+      expect(
+        mockInventoryAdapter.updateUniqueInventoryItemHolder
+      ).toHaveBeenCalledWith(
+        'prod-u',
+        'UPI-A',
+        organizationId,
+        WAREHOUSE_SUFFIX,
+        expect.objectContaining({
+          previousHolderId: 'user-1',
+          newHolderId: WAREHOUSE_SUFFIX,
+          formId: 'form-1',
+          eventType: 'check-in',
+          checkInEventId: 'cie-1',
+        })
+      );
+    });
+
+    it('moves bulk items from user to warehouse', async () => {
+      const organizationId = 'org-1';
+      const form = buildForm({
+        userID: 'user-2',
+        formID: 'form-2',
+        type: FormType.CheckOut,
+        items: [{ productId: 'bulk-1', quantity: 5 }],
+      });
+      const event = {
+        checkInEventId: 'cie-2',
+        items: [{ productId: 'bulk-1', quantity: 3 }],
+        createdAtTimestamp: Date.now(),
+        createdByUserId: 'wm-1',
+      };
+      const userInventory: InventoryItem[] = [{ productId: 'bulk-1', quantity: 5 }];
+      const warehouseInventory: InventoryItem[] = [{ productId: 'bulk-1', quantity: 10 }];
+      mockInventoryAdapter.getUserInventory
+        .mockResolvedValueOnce(userInventory)
+        .mockResolvedValueOnce(userInventory)
+        .mockResolvedValueOnce(warehouseInventory);
+
+      await service.transferCheckInEvent(form, event, organizationId);
+
+      expect(mockInventoryAdapter.updateInventoryItemQuantity).toHaveBeenCalledWith(
+        'bulk-1', organizationId, 'user-2', 2
+      );
+      expect(mockInventoryAdapter.updateInventoryItemQuantity).toHaveBeenCalledWith(
+        'bulk-1', organizationId, WAREHOUSE_SUFFIX, 13
+      );
+    });
+  });
 });

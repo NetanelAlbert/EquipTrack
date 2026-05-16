@@ -1,4 +1,4 @@
-import { InventoryForm, InventoryItem, FormType } from '@equip-track/shared';
+import { CheckInEvent, InventoryForm, InventoryItem, FormType } from '@equip-track/shared';
 import { InventoryAdapter } from '../db/tables/inventory.adapter';
 import { WAREHOUSE_SUFFIX } from '../db/constants';
 import { badRequest } from '../api/responses';
@@ -33,6 +33,58 @@ export class InventoryTransferService {
         sourceHolderId,
         destinationHolderId
       );
+    });
+  }
+
+  /**
+   * Transfers items from a user back to the warehouse for a single check-in event.
+   * Must be called from within withInventoryLock (the caller is responsible for locking).
+   */
+  async transferCheckInEvent(
+    form: InventoryForm,
+    event: CheckInEvent,
+    organizationId: string
+  ): Promise<void> {
+    await this.inventoryAdapter.withInventoryLock(organizationId, async () => {
+      const sourceHolderId = form.userID;
+      const destinationHolderId = WAREHOUSE_SUFFIX;
+
+      await this.validateSourceHolderInventory(
+        event.items,
+        organizationId,
+        sourceHolderId
+      );
+
+      const sourceInventory = await this.inventoryAdapter.getUserInventory(
+        organizationId,
+        sourceHolderId
+      );
+      const destinationInventory = await this.inventoryAdapter.getUserInventory(
+        organizationId,
+        destinationHolderId
+      );
+
+      for (const item of event.items) {
+        if (item.upis && item.upis.length > 0) {
+          await this.transferUniqueItemsForCheckIn(
+            item,
+            organizationId,
+            sourceHolderId,
+            destinationHolderId,
+            form.formID,
+            event.checkInEventId
+          );
+        } else {
+          await this.transferBulkItems(
+            item,
+            organizationId,
+            sourceHolderId,
+            destinationHolderId,
+            sourceInventory.find((i) => i.productId === item.productId),
+            destinationInventory.find((i) => i.productId === item.productId)
+          );
+        }
+      }
     });
   }
 
@@ -183,6 +235,42 @@ export class InventoryTransferService {
     };
 
     // Update holder information for each UPI
+    for (const upi of item.upis) {
+      await this.inventoryAdapter.updateUniqueInventoryItemHolder(
+        item.productId,
+        upi,
+        organizationId,
+        destinationHolderId,
+        ownershipEvent
+      );
+    }
+  }
+
+  /**
+   * Transfers unique items back to the warehouse for a check-in event,
+   * recording a check-in ownership event with the specific checkInEventId.
+   */
+  private async transferUniqueItemsForCheckIn(
+    item: InventoryItem,
+    organizationId: string,
+    sourceHolderId: string,
+    destinationHolderId: string,
+    formId: string,
+    checkInEventId: string
+  ): Promise<void> {
+    if (!item.upis || item.upis.length === 0) {
+      throw new Error('UPIs required for unique item transfer');
+    }
+
+    const ownershipEvent = {
+      previousHolderId: sourceHolderId,
+      newHolderId: destinationHolderId,
+      timestamp: Date.now(),
+      formId,
+      eventType: 'check-in' as const,
+      checkInEventId,
+    };
+
     for (const upi of item.upis) {
       await this.inventoryAdapter.updateUniqueInventoryItemHolder(
         item.productId,

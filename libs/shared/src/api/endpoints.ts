@@ -25,6 +25,7 @@ export interface EndpointMeta<
 export const ORGANIZATION_ID_PATH_PARAM = 'organizationId';
 export const USER_ID_PATH_PARAM = 'userId';
 export const FORM_ID_PATH_PARAM = 'formId';
+export const CHECK_IN_EVENT_ID_PATH_PARAM = 'checkInEventId';
 
 export const endpointMetas = {
   // Authentication
@@ -208,6 +209,21 @@ export const endpointMetas = {
       UserRole.Admin,
       UserRole.Customer,
     ],
+    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
+    responseType: {} as BasicUser.GetPresignedUrlResponse,
+  } as EndpointMeta<undefined, BasicUser.GetPresignedUrlResponse>,
+  checkInForm: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/{${FORM_ID_PATH_PARAM}}/user/{${USER_ID_PATH_PARAM}}/check-in`,
+    method: 'POST',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
+    allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
+    requestType: {} as BasicUser.RecordCheckIn,
+    responseType: {} as BasicUser.RecordCheckInResponse,
+  } as EndpointMeta<BasicUser.RecordCheckIn, BasicUser.RecordCheckInResponse>,
+  getCheckInEventPresignedUrl: {
+    path: `/api/organizations/{${ORGANIZATION_ID_PATH_PARAM}}/forms/user/{${USER_ID_PATH_PARAM}}/{${FORM_ID_PATH_PARAM}}/check-in/{${CHECK_IN_EVENT_ID_PATH_PARAM}}/presigned-url`,
+    method: 'GET',
+    allowedRoles: [UserRole.WarehouseManager, UserRole.Admin],
     allowedOtherUsers: [UserRole.WarehouseManager, UserRole.Admin],
     responseType: {} as BasicUser.GetPresignedUrlResponse,
   } as EndpointMeta<undefined, BasicUser.GetPresignedUrlResponse>,

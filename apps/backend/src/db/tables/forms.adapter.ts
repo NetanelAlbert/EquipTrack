@@ -18,7 +18,7 @@ import {
   FORM_PREFIX,
   FORMS_BY_ORGANIZATION_INDEX,
 } from '../constants';
-import { InventoryForm, PredefinedForm } from '@equip-track/shared';
+import { CheckInEvent, FormStatus, InventoryForm, PredefinedForm } from '@equip-track/shared';
 import { getDynamoDbClientConfig } from '../../services/aws-client-config.service';
 
 export class FormsAdapter {
@@ -193,6 +193,73 @@ export class FormsAdapter {
         (error as { name: string }).name === 'ConditionalCheckFailedException'
       ) {
         throw new Error(`Form with ID ${formID} for user ${userId} not found`);
+      }
+      throw error;
+    }
+  }
+
+  async appendCheckInEvent(
+    formId: string,
+    userId: string,
+    organizationId: string,
+    event: CheckInEvent,
+    fullyReturned: boolean
+  ): Promise<InventoryForm> {
+    console.log('[FormsAdapter.appendCheckInEvent]', {
+      formId,
+      userId,
+      organizationId,
+      checkInEventId: event.checkInEventId,
+      fullyReturned,
+    });
+    const key = this.getFormKey(userId, organizationId, formId);
+    const now = Date.now();
+
+    const updateExpressions = [
+      'checkInEvents = list_append(if_not_exists(checkInEvents, :emptyList), :newEvent)',
+      '#lastUpdated = :now',
+    ];
+    const expressionAttributeValues: Record<string, unknown> = {
+      ':emptyList': [],
+      ':newEvent': [event],
+      ':now': now,
+      ':approvedStatus': FormStatus.Approved,
+    };
+    const expressionAttributeNames: Record<string, string> = {
+      '#lastUpdated': 'lastUpdated',
+      '#status': 'status',
+    };
+
+    if (fullyReturned) {
+      updateExpressions.push('fullyReturnedAtTimestamp = :now');
+    }
+
+    const command = new UpdateCommand({
+      TableName: this.tableName,
+      Key: key,
+      UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+      ConditionExpression: 'attribute_exists(PK) AND #status = :approvedStatus',
+      ExpressionAttributeValues: expressionAttributeValues,
+      ExpressionAttributeNames: expressionAttributeNames,
+      ReturnValues: 'ALL_NEW',
+    });
+
+    try {
+      const result = await this.docClient.send(command);
+      if (!result.Attributes) {
+        throw new Error(`Form ${formId} for user ${userId} not found`);
+      }
+      return this.getInventoryForm(result.Attributes);
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'name' in error &&
+        (error as { name: string }).name === 'ConditionalCheckFailedException'
+      ) {
+        throw new Error(
+          `Form ${formId} not found or is not in approved status`
+        );
       }
       throw error;
     }
