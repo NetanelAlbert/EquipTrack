@@ -41,9 +41,13 @@
         <span class="return-badge fully-returned" data-testid="badge-fully-returned">
           {{ 'forms.fully-returned' | translate }}
         </span>
-      } @else {
+      } @else if (hasReturnHistory) {
         <span class="return-badge partially-returned" data-testid="badge-partially-returned">
           {{ 'forms.partially-returned' | translate }}
+        </span>
+      } @else {
+        <span class="return-badge not-returned" data-testid="badge-not-returned">
+          {{ 'forms.not-returned' | translate }}
         </span>
       }
     </div>

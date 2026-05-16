@@ -3,6 +3,7 @@ import {
   FormType,
   InventoryForm,
   getOutstandingItems,
+  hasRecordedReturns,
   isFullyReturned,
 } from './forms';
 
@@ -175,5 +176,37 @@ describe('isFullyReturned', () => {
   it('returns true for form with no items', () => {
     const form = makeForm({ items: [] });
     expect(isFullyReturned(form)).toBe(true);
+  });
+});
+
+describe('hasRecordedReturns', () => {
+  it('returns false when there are no check-in events', () => {
+    const form = makeForm({
+      items: [{ productId: 'bulk-1', quantity: 2 }],
+    });
+    expect(hasRecordedReturns(form)).toBe(false);
+  });
+
+  it('returns false when checkInEvents is an empty array', () => {
+    const form = makeForm({
+      items: [{ productId: 'bulk-1', quantity: 2 }],
+      checkInEvents: [],
+    });
+    expect(hasRecordedReturns(form)).toBe(false);
+  });
+
+  it('returns true when at least one check-in event exists', () => {
+    const form = makeForm({
+      items: [{ productId: 'bulk-1', quantity: 5 }],
+      checkInEvents: [
+        {
+          checkInEventId: 'cie-1',
+          items: [{ productId: 'bulk-1', quantity: 1 }],
+          createdAtTimestamp: 1,
+          createdByUserId: 'wm-1',
+        },
+      ],
+    });
+    expect(hasRecordedReturns(form)).toBe(true);
   });
 });

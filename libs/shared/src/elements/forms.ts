@@ -94,3 +94,11 @@ export function getOutstandingItems(form: InventoryForm): InventoryItem[] {
 export function isFullyReturned(form: InventoryForm): boolean {
   return getOutstandingItems(form).length === 0;
 }
+
+/**
+ * True when at least one check-in (return) event exists on the form.
+ * Approved check-outs with none yet are treated as “not returned” in the UI, not partial.
+ */
+export function hasRecordedReturns(form: InventoryForm): boolean {
+  return (form.checkInEvents?.length ?? 0) > 0;
+}

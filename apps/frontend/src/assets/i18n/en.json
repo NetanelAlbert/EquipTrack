@@ -140,6 +140,7 @@
     "outstanding-items": "Outstanding items",
     "fully-returned": "Fully returned",
     "partially-returned": "Partially returned",
+    "not-returned": "Not returned",
     "returned-events": "Return history",
     "check-in-items": "Check in items",
     "check-in-dialog": {

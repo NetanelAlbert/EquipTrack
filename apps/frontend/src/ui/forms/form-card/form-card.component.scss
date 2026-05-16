@@ -55,6 +55,11 @@
       background-color: var(--color-warning-light, #fff8e1);
       color: var(--color-warning, #f57f17);
     }
+
+    &.not-returned {
+      background-color: var(--color-error-light, #ffebee);
+      color: var(--color-error, #c62828);
+    }
   }
 
   .outstanding-section,

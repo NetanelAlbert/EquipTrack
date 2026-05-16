@@ -139,6 +139,7 @@
     "outstanding-items": "פריטים לא מוחזרים",
     "fully-returned": "הוחזר במלואו",
     "partially-returned": "הוחזר חלקית",
+    "not-returned": "טרם הוחזר",
     "returned-events": "היסטוריית החזרות",
     "check-in-items": "רשום החזרה",
     "check-in-dialog": {

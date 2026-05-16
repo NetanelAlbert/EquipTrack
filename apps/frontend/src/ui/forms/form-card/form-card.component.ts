@@ -4,7 +4,13 @@ import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
 import { InventoryListComponent } from '../../inventory/list/inventory-list.component';
-import { CheckInEvent, getOutstandingItems, isFullyReturned, InventoryForm } from '@equip-track/shared';
+import {
+  CheckInEvent,
+  getOutstandingItems,
+  hasRecordedReturns,
+  isFullyReturned,
+  InventoryForm,
+} from '@equip-track/shared';
 import { MatDialog } from '@angular/material/dialog';
 import { RejectFormDialogComponent } from '../reject-form-dialog/reject-form-dialog.component';
 import { SignatureDialogComponent } from '../signature-dialog/signature-dialog.component';
@@ -59,6 +65,11 @@ export class FormCardComponent {
 
   get isFormFullyReturned() {
     return isFullyReturned(this.form);
+  }
+
+  /** At least one return event recorded (distinguishes “not returned” from “partially returned”). */
+  get hasReturnHistory() {
+    return hasRecordedReturns(this.form);
   }
 
   get isAdminOrWarehouseManager(): boolean {

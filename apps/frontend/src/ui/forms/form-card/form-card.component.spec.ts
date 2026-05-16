@@ -327,12 +327,44 @@ describe('FormCardComponent', () => {
       ],
     };
 
+    it('shows not-returned badge when approved and there are no check-in events yet', () => {
+      component.form = {
+        formID: 'form-approved-no-returns',
+        userID: 'user-1',
+        organizationID: 'org-1',
+        status: FormStatus.Approved,
+        type: FormType.CheckOut,
+        items: [{ productId: 'bulk-1', quantity: 5 }],
+        createdAtTimestamp: Date.now(),
+        lastUpdated: Date.now(),
+        description: 'No returns yet',
+      };
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="badge-not-returned"]')
+      ).toBeTruthy();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="badge-partially-returned"]')
+      ).toBeFalsy();
+
+      expect(component.hasReturnHistory).toBe(false);
+
+      expect(
+        fixture.nativeElement.querySelector(`[data-testid="form-checkin-${component.form.formID}"]`)
+      ).toBeTruthy();
+    });
+
     it('shows partially-returned badge for approved form with outstanding items', () => {
       component.form = approvedFormWithEvents;
       fixture.detectChanges();
 
       const badge = fixture.nativeElement.querySelector('[data-testid="badge-partially-returned"]');
       expect(badge).toBeTruthy();
+
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="badge-not-returned"]')
+      ).toBeFalsy();
 
       expect(
         fixture.nativeElement.querySelector(`[data-testid="form-checkin-${component.form.formID}"]`)
@@ -355,6 +387,14 @@ describe('FormCardComponent', () => {
 
       const badge = fixture.nativeElement.querySelector('[data-testid="badge-fully-returned"]');
       expect(badge).toBeTruthy();
+
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="badge-not-returned"]')
+      ).toBeFalsy();
+
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="badge-partially-returned"]')
+      ).toBeFalsy();
 
       expect(
         fixture.nativeElement.querySelector(`[data-testid="form-checkin-${component.form.formID}"]`)
