@@ -61,6 +61,9 @@ function textHebrewLabelThenLtrFromRight(
 /** Form content inner right edge (inside the main frame; aligns with table x = 195). */
 const FORM_INNER_RIGHT = 194;
 
+/** Left inset for footer page counter & similar. */
+const FORM_INNER_LEFT = 17;
+
 /**
  * Hebrew section titles — anchored to the right (RTL block alignment).
  */
@@ -127,6 +130,161 @@ function textInFormTableCell(
   });
 }
 
+/**
+ * Hebrew label on the right, underline to its left, value right-aligned in the blank (RTL field row).
+ */
+function drawLabeledFieldRtl(
+  doc: jsPDF,
+  labelLogical: string,
+  value: string,
+  boxLeft: number,
+  boxRight: number,
+  yBase: number,
+  opts?: { valueVisual?: boolean }
+): void {
+  const pad = 1;
+  const label = v(labelLogical);
+  const useV = opts?.valueVisual !== false;
+  const valText = useV ? v(value) : value;
+  doc.setFont(PDF_FONT_FAMILY, 'normal');
+  doc.text(label, boxRight - pad, yBase, { align: 'right' });
+  const labelW = doc.getTextWidth(label);
+  const lineEnd = boxRight - pad - labelW - 3;
+  doc.line(boxLeft, yBase, lineEnd, yBase);
+  doc.text(valText, lineEnd - 1.5, yBase - 1, {
+    align: 'right',
+    maxWidth: Math.max(0, lineEnd - boxLeft - 2),
+  });
+}
+
+/** Header strip: three boxes — left & right RTL inside cell; center title centered. */
+function drawForm1008Header(
+  doc: jsPDF,
+  formIdLine: string
+): void {
+  doc.setFontSize(14);
+  doc.setFont(PDF_FONT_FAMILY, 'bold');
+
+  doc.rect(15, 15, 50, 20);
+  doc.rect(75, 15, 60, 20);
+  doc.rect(145, 15, 50, 20);
+
+  const leftBoxRight = 64;
+  doc.setFontSize(10);
+  doc.setFont(PDF_FONT_FAMILY, 'normal');
+  doc.text(v('מודפס במ"פ'), leftBoxRight - 1, 22, { align: 'right' });
+  doc.text(v('תאריך'), leftBoxRight - 1, 30, { align: 'right' });
+
+  doc.setFontSize(12);
+  doc.setFont(PDF_FONT_FAMILY, 'bold');
+  doc.text(v('טופס הוצאה/החזרה'), 105, 22, { align: 'center' });
+  doc.text('Form 1008', 105, 30, { align: 'center' });
+
+  const rightBoxRight = 194;
+  doc.setFontSize(10);
+  doc.setFont(PDF_FONT_FAMILY, 'normal');
+  doc.text(v('מס טופס'), rightBoxRight - 1, 22, { align: 'right' });
+  doc.text(formIdLine, rightBoxRight - 1, 30, { align: 'right' });
+}
+
+/**
+ * סוג הטופס row: title on the right; options read RTL — primary option rightmost with its checkbox
+ * immediately to the left of its label (label flush right for each group).
+ */
+function drawFormTypeRow(
+  doc: jsPDF,
+  mode: 'checkout' | 'checkin'
+): void {
+  doc.setFont(PDF_FONT_FAMILY, 'bold');
+  doc.setFontSize(10);
+  const title = v('סוג הטופס:');
+  const titleW = doc.getTextWidth(title);
+  doc.text(title, FORM_INNER_RIGHT, 50, { align: 'right' });
+
+  doc.setFont(PDF_FONT_FAMILY, 'normal');
+  const gapAfterTitle = 8;
+  let anchor = FORM_INNER_RIGHT - titleW - gapAfterTitle;
+
+  const placeOption = (
+    labelLogical: string,
+    checked: boolean
+  ): void => {
+    doc.text(v(labelLogical), anchor, 50, { align: 'right' });
+    const lw = doc.getTextWidth(v(labelLogical));
+    const boxLeft = anchor - lw - 3 - 4;
+    doc.rect(boxLeft, 46, 4, 4);
+    if (checked) {
+      doc.text('X', boxLeft + 1.5, 49.5);
+    }
+    anchor = boxLeft - 10;
+  };
+
+  if (mode === 'checkout') {
+    placeOption('הוצאה', true);
+    placeOption('החזרה', false);
+  } else {
+    placeOption('החזרה', true);
+    placeOption('הוצאה', false);
+  }
+}
+
+/** Personal-details four fields mirrored for RTL (שם / יחידה on the right column). */
+function drawPersonalDetailsBlock(
+  doc: jsPDF,
+  userData: User,
+  titleY: number,
+  row1Y: number,
+  row2Y: number
+): void {
+  doc.setFont(PDF_FONT_FAMILY, 'bold');
+  doc.setFontSize(10);
+  textSectionTitleRtl(doc, 'פרטים אישיים:', titleY);
+
+  doc.setFont(PDF_FONT_FAMILY, 'normal');
+  doc.setFontSize(9);
+
+  const mid = 105;
+  const leftBlock = { left: FORM_INNER_LEFT, right: mid - 2 };
+  const rightBlock = { left: mid + 2, right: FORM_INNER_RIGHT };
+
+  drawLabeledFieldRtl(
+    doc,
+    'שם:',
+    userData.name || '',
+    rightBlock.left,
+    rightBlock.right,
+    row1Y
+  );
+  drawLabeledFieldRtl(
+    doc,
+    'מס אישי:',
+    userData.id || '',
+    leftBlock.left,
+    leftBlock.right,
+    row1Y,
+    { valueVisual: false }
+  );
+
+  drawLabeledFieldRtl(
+    doc,
+    'יחידה:',
+    userData.email || '',
+    rightBlock.left,
+    rightBlock.right,
+    row2Y,
+    { valueVisual: false }
+  );
+  drawLabeledFieldRtl(
+    doc,
+    'טלפון:',
+    userData.phone || '',
+    leftBlock.left,
+    leftBlock.right,
+    row2Y,
+    { valueVisual: false }
+  );
+}
+
 export class PdfService {
   /**
    * Generates a PDF for the 1008 form based on the provided form data and user information
@@ -140,75 +298,18 @@ export class PdfService {
     const doc = new jsPDF();
     registerHebrewPdfFont(doc);
 
-    // Header Section
-    doc.setFontSize(14);
-    doc.setFont(PDF_FONT_FAMILY, 'bold');
-
     // Top border
     doc.rect(10, 10, 190, 277);
 
-    // Header boxes
-    doc.rect(15, 15, 50, 20); // Left header box
-    doc.rect(75, 15, 60, 20); // Center header box
-    doc.rect(145, 15, 50, 20); // Right header box
-
-    // Header text
-    doc.setFontSize(10);
-    doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.text(v('מודפס במ"פ'), 17, 22);
-    doc.text(v('תאריך'), 17, 30);
-
-    doc.setFontSize(12);
-    doc.setFont(PDF_FONT_FAMILY, 'bold');
-    doc.text(v('טופס הוצאה/החזרה'), 85, 22);
-    doc.text('Form 1008', 85, 30);
-
-    doc.setFontSize(10);
-    doc.text(v('מס טופס'), 147, 22);
-    doc.text(form.formID.toString(), 147, 30);
+    drawForm1008Header(doc, form.formID.toString());
 
     // Form Type Section
     doc.rect(15, 40, 180, 15);
-    doc.setFontSize(10);
-    doc.setFont(PDF_FONT_FAMILY, 'bold');
-    textSectionTitleRtl(doc, 'סוג הטופס:', 50);
-
-    // Checkboxes — visual order RTL (read from right): title on the right, then options toward the left
-    doc.rect(155, 46, 4, 4); // החזרה
-    doc.rect(120, 46, 4, 4); // הוצאה
-    doc.text('X', 121.5, 49.5);
-
-    doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.text(v('החזרה'), 130, 50);
-    doc.text(v('הוצאה'), 95, 50);
+    drawFormTypeRow(doc, 'checkout');
 
     // Personal Details Section
     doc.rect(15, 60, 180, 40);
-    doc.setFont(PDF_FONT_FAMILY, 'bold');
-    textSectionTitleRtl(doc, 'פרטים אישיים:', 70);
-
-    doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.setFontSize(9);
-
-    // Name field
-    doc.text(v('שם:'), 20, 80);
-    doc.line(35, 80, 95, 80);
-    doc.text(v(userData.name || ''), 37, 79);
-
-    // ID field
-    doc.text(v('מס אישי:'), 100, 80);
-    doc.line(120, 80, 180, 80);
-    doc.text(v(userData.id || ''), 122, 79);
-
-    // Unit field
-    doc.text(v('יחידה:'), 20, 90);
-    doc.line(35, 90, 95, 90);
-    doc.text(v(userData.email || ''), 37, 89);
-
-    // Phone field
-    doc.text(v('טלפון:'), 100, 90);
-    doc.line(120, 90, 180, 90);
-    doc.text(v(userData.phone || ''), 122, 89);
+    drawPersonalDetailsBlock(doc, userData, 70, 80, 90);
 
     // Equipment Table Section
     doc.setFont(PDF_FONT_FAMILY, 'bold');
@@ -331,22 +432,28 @@ export class PdfService {
       });
     }
 
-    // Signatures Section
+    // Signatures: recipient (מקבל) on the right, commander (מפקד) on the left — RTL inside each box
     const sigY = approvalY + 50;
-    doc.rect(15, sigY, 85, 30); // Employee signature box
-    doc.rect(110, sigY, 85, 30); // Supervisor signature box
+    const leftBoxInnerRight = 98;
+    const rightBoxInnerRight = FORM_INNER_RIGHT;
+    doc.rect(15, sigY, 85, 30);
+    doc.rect(110, sigY, 85, 30);
 
     doc.setFont(PDF_FONT_FAMILY, 'bold');
-    doc.text(v('חתימת מקבל:'), 20, sigY + 10);
-    doc.text(v('חתימת מפקד:'), 115, sigY + 10);
+    doc.text(v('חתימת מקבל:'), rightBoxInnerRight, sigY + 10, { align: 'right' });
+    doc.text(v('חתימת מפקד:'), leftBoxInnerRight, sigY + 10, { align: 'right' });
 
     doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.text(v('תאריך:'), 20, sigY + 25);
-    doc.text(v('תאריך:'), 115, sigY + 25);
 
-    // Add current date (locale string is LTR digits; avoid v() so digit order stays correct)
     const currentDate = new Date().toLocaleDateString('he-IL');
-    doc.text(currentDate, 35, sigY + 25);
+    textHebrewLabelThenLtrFromRight(
+      doc,
+      'תאריך: ',
+      currentDate,
+      rightBoxInnerRight,
+      sigY + 25
+    );
+    textHebrewLabelThenLtrFromRight(doc, 'תאריך: ', '', leftBoxInnerRight, sigY + 25);
 
     // Add signature if provided
 
@@ -377,8 +484,7 @@ export class PdfService {
           // Convert format for jsPDF (it expects 'JPEG' not 'JPG')
           const pdfFormat = format === 'jpg' ? 'JPEG' : format.toUpperCase();
 
-          // Add the image using the parsed data
-          doc.addImage(base64Data, pdfFormat, 45, sigY + 12, 30, 10);
+          doc.addImage(base64Data, pdfFormat, 125, sigY + 12, 30, 10);
 
           console.log(`Successfully added ${imageFormat} signature to PDF`);
         }
@@ -390,9 +496,11 @@ export class PdfService {
       // doc.text('[Signature could not be rendered]', 45, sigY + 17);
     }
 
-    // Footer
+    // Footer: page left, form id center, generated-at right (no overlap)
     doc.setFontSize(7);
     doc.setFont(PDF_FONT_FAMILY, 'normal');
+    doc.text(v('עמוד 1 מתוך 1'), FORM_INNER_LEFT, 280, { align: 'left' });
+    doc.text(v(`מס טופס: ${form.formID}`), 105, 280, { align: 'center' });
     textHebrewLabelThenLtrFromRight(
       doc,
       'נוצר בתאריך: ',
@@ -400,8 +508,6 @@ export class PdfService {
       FORM_INNER_RIGHT,
       280
     );
-    doc.text(v(`מס טופס: ${form.formID}`), 105, 280, { align: 'center' });
-    doc.text(v('עמוד 1 מתוך 1'), FORM_INNER_RIGHT, 280, { align: 'right' });
 
     // Return PDF as buffer
     return Buffer.from(doc.output('arraybuffer'));
@@ -423,69 +529,23 @@ export class PdfService {
     // Top border
     doc.rect(10, 10, 190, 277);
 
-    // Header boxes
-    doc.rect(15, 15, 50, 20);
-    doc.rect(75, 15, 60, 20);
-    doc.rect(145, 15, 50, 20);
+    drawForm1008Header(doc, event.checkInEventId.substring(0, 15));
 
-    doc.setFontSize(10);
-    doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.text(v('מודפס במ"פ'), 17, 22);
-    doc.text(v('תאריך'), 17, 30);
-
-    doc.setFontSize(12);
-    doc.setFont(PDF_FONT_FAMILY, 'bold');
-    doc.text(v('טופס הוצאה/החזרה'), 85, 22);
-    doc.text('Form 1008', 85, 30);
-
-    doc.setFontSize(10);
-    doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.text(v('מס טופס'), 147, 22);
-    doc.text(event.checkInEventId.substring(0, 15), 147, 30);
-
-    // Form type — mark החזרה (return); title and options RTL
+    // Form type — mark החזרה (return)
     doc.rect(15, 40, 180, 15);
-    doc.setFontSize(10);
-    doc.setFont(PDF_FONT_FAMILY, 'bold');
-    textSectionTitleRtl(doc, 'סוג הטופס:', 50);
-
-    doc.rect(155, 46, 4, 4); // החזרה (right-hand option)
-    doc.rect(120, 46, 4, 4); // הוצאה
-    doc.text('X', 156.5, 49.5); // mark החזרה
-    doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.text(v('החזרה'), 130, 50);
-    doc.text(v('הוצאה'), 95, 50);
+    drawFormTypeRow(doc, 'checkin');
 
     // Source form reference
     doc.rect(15, 58, 180, 10);
     doc.setFontSize(9);
+    doc.setFont(PDF_FONT_FAMILY, 'normal');
     doc.text(v(`מס טופס מקור: ${form.formID}`), FORM_INNER_RIGHT, 65, {
       align: 'right',
     });
 
     // Personal Details
     doc.rect(15, 72, 180, 40);
-    doc.setFont(PDF_FONT_FAMILY, 'bold');
-    doc.setFontSize(10);
-    textSectionTitleRtl(doc, 'פרטים אישיים:', 82);
-
-    doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.setFontSize(9);
-    doc.text(v('שם:'), 20, 92);
-    doc.line(35, 92, 95, 92);
-    doc.text(v(userData.name || ''), 37, 91);
-
-    doc.text(v('מס אישי:'), 100, 92);
-    doc.line(120, 92, 180, 92);
-    doc.text(v(userData.id || ''), 122, 91);
-
-    doc.text(v('יחידה:'), 20, 102);
-    doc.line(35, 102, 95, 102);
-    doc.text(v(userData.email || ''), 37, 101);
-
-    doc.text(v('טלפון:'), 100, 102);
-    doc.line(120, 102, 180, 102);
-    doc.text(v(userData.phone || ''), 122, 101);
+    drawPersonalDetailsBlock(doc, userData, 82, 92, 102);
 
     // Equipment table (same RTL columns as checkout PDF)
     doc.setFont(PDF_FONT_FAMILY, 'bold');
@@ -579,17 +639,25 @@ export class PdfService {
       approvalY + 28
     );
 
-    // Signature
+    // Signature — מחזיר (right), מחסנאי (left)
     const sigY = approvalY + 40;
+    const leftBoxInnerRight = 98;
+    const rightBoxInnerRight = FORM_INNER_RIGHT;
     doc.rect(15, sigY, 85, 30);
     doc.rect(110, sigY, 85, 30);
     doc.setFont(PDF_FONT_FAMILY, 'bold');
-    doc.text(v('חתימת מחזיר:'), 20, sigY + 10);
-    doc.text(v('חתימת מחסנאי:'), 115, sigY + 10);
+    doc.text(v('חתימת מחזיר:'), rightBoxInnerRight, sigY + 10, { align: 'right' });
+    doc.text(v('חתימת מחסנאי:'), leftBoxInnerRight, sigY + 10, { align: 'right' });
     doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.text(v('תאריך:'), 20, sigY + 25);
-    doc.text(v('תאריך:'), 115, sigY + 25);
-    doc.text(new Date().toLocaleDateString('he-IL'), 35, sigY + 25);
+    const nowDate = new Date().toLocaleDateString('he-IL');
+    textHebrewLabelThenLtrFromRight(
+      doc,
+      'תאריך: ',
+      nowDate,
+      rightBoxInnerRight,
+      sigY + 25
+    );
+    textHebrewLabelThenLtrFromRight(doc, 'תאריך: ', '', leftBoxInnerRight, sigY + 25);
 
     try {
       const dataUrlMatch = signature.match(/^data:image\/([a-zA-Z]*);base64,(.*)$/);
@@ -599,7 +667,7 @@ export class PdfService {
         const format = imageFormat.toLowerCase();
         if (supportedFormats.includes(format)) {
           const pdfFormat = format === 'jpg' ? 'JPEG' : format.toUpperCase();
-          doc.addImage(base64Data, pdfFormat, 45, sigY + 12, 30, 10);
+          doc.addImage(base64Data, pdfFormat, 125, sigY + 12, 30, 10);
         }
       }
     } catch (error) {
@@ -609,6 +677,8 @@ export class PdfService {
     // Footer
     doc.setFontSize(7);
     doc.setFont(PDF_FONT_FAMILY, 'normal');
+    doc.text(v('עמוד 1 מתוך 1'), FORM_INNER_LEFT, 280, { align: 'left' });
+    doc.text(v(`מס אירוע: ${event.checkInEventId}`), 105, 280, { align: 'center' });
     textHebrewLabelThenLtrFromRight(
       doc,
       'נוצר בתאריך: ',
@@ -616,9 +686,8 @@ export class PdfService {
       FORM_INNER_RIGHT,
       280
     );
-    doc.text(v(`מס אירוע: ${event.checkInEventId}`), 105, 280, { align: 'center' });
-    doc.text(v('עמוד 1 מתוך 1'), FORM_INNER_RIGHT, 280, { align: 'right' });
 
     return Buffer.from(doc.output('arraybuffer'));
   }
 }
+
