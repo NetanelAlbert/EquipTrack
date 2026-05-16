@@ -14,7 +14,7 @@ export E2E_FORMS_BUCKET="${E2E_FORMS_BUCKET:-equip-track-forms}"
 echo "[preview-entrypoint] Waiting for LocalStack at ${AWS_ENDPOINT_URL}..."
 i=0
 while [ "$i" -lt 60 ]; do
-  if curl -fsS "${AWS_ENDPOINT_URL}/_localstack/health" >/dev/null 2>&1; then
+  if node -e "const u=new URL(process.env.AWS_ENDPOINT_URL+'/_localstack/health');require(u.protocol==='https:'?'https':'http').get(u,r=>process.exit(r.statusCode>=200&&r.statusCode<300?0:1)).on('error',()=>process.exit(1));" >/dev/null 2>&1; then
     break
   fi
   i=$((i + 1))
