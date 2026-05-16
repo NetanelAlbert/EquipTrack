@@ -7,12 +7,10 @@ import {
   ensureOrganizationIsSelected,
   clickSideNavRoute,
   openCreateFormPage,
-  fillInventoryRow,
   waitForTestId,
 } from './helpers/e2e-navigation';
 import {
   E2E_ORG_ID,
-  E2E_BULK_PRODUCT_ID,
 } from './helpers/e2e-api';
 
 const backendBaseUrl =

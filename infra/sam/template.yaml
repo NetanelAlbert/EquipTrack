@@ -135,6 +135,24 @@ Resources:
           E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
           E2E_AUTH_SECRET: !Ref E2eAuthSecret
 
+  LambdacheckInForm:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs22.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'checkInForm'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
   LambdacreateForm:
     Type: AWS::Serverless::Function
     Properties:
@@ -204,6 +222,24 @@ Resources:
         Variables:
           STAGE: !Ref Stage
           LAMBDA_HANDLER_KEY: 'getAllForms'
+          E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
+          E2E_AUTH_SECRET: !Ref E2eAuthSecret
+
+  LambdagetCheckInEventPresignedUrl:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs22.x
+      Timeout: 30
+      MemorySize: 256
+      CodeUri:
+        Bucket: !Ref LambdaCodeBucketName
+        Key: !Ref LambdaCodeS3Key
+      Role: !GetAtt EquipTrackLambdaRole.Arn
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+          LAMBDA_HANDLER_KEY: 'getCheckInEventPresignedUrl'
           E2E_AUTH_ENABLED: !Ref E2eAuthEnabled
           E2E_AUTH_SECRET: !Ref E2eAuthSecret
 
@@ -622,6 +658,18 @@ Resources:
               responses:
                 default:
                   description: Default response
+          /api/organizations/{organizationId}/forms/user/{userId}/{formId}/check-in/{checkInEventId}/presigned-url:
+            get:
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdagetCheckInEventPresignedUrl.Arn
+              responses:
+                default:
+                  description: Default response
           /api/organizations/{organizationId}/forms/user/{userId}/{formId}/presigned-url:
             get:
               x-amazon-apigateway-integration:
@@ -631,6 +679,18 @@ Resources:
                   Fn::Sub:
                     - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
                     - LambdaArn: !GetAtt LambdagetPresignedUrl.Arn
+              responses:
+                default:
+                  description: Default response
+          /api/organizations/{organizationId}/forms/{formId}/user/{userId}/check-in:
+            post:
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                uri:
+                  Fn::Sub:
+                    - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+                    - LambdaArn: !GetAtt LambdacheckInForm.Arn
               responses:
                 default:
                   description: Default response
@@ -852,6 +912,13 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
+  LambdaInvokecheckInForm:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdacheckInForm
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
   LambdaInvokecreateForm:
     Type: AWS::Lambda::Permission
     Properties:
@@ -877,6 +944,13 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref LambdagetAllForms
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
+  LambdaInvokegetCheckInEventPresignedUrl:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdagetCheckInEventPresignedUrl
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EquipTrackApi}/*/*'
