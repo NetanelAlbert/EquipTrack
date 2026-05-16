@@ -35,7 +35,7 @@ function makeMockForm(overrides: Partial<InventoryForm> = {}): InventoryForm {
 describe('FormCardComponent', () => {
   let component: FormCardComponent;
   let fixture: ComponentFixture<FormCardComponent>;
-  let dialogClosedSubject: Subject<string | undefined>;
+  let dialogClosedSubject: Subject<unknown>;
   let mockDialog: { open: jest.Mock };
   let mockFormsStore: { approveForm: jest.Mock; rejectForm: jest.Mock; getCheckInEventPresignedUrl: jest.Mock };
   let mockNotification: { handleApiError: jest.Mock; showSuccess: jest.Mock };
@@ -73,7 +73,7 @@ describe('FormCardComponent', () => {
   };
 
   beforeEach(async () => {
-    dialogClosedSubject = new Subject<string | undefined>();
+    dialogClosedSubject = new Subject<unknown>();
     const mockDialogRef = {
       afterClosed: () => dialogClosedSubject.asObservable(),
     } as unknown as MatDialogRef<unknown>;
@@ -285,20 +285,43 @@ describe('FormCardComponent', () => {
   });
 
   describe('onCheckIn', () => {
-    it('should navigate with CheckIn formType, userId, and items', () => {
-      component.form = mockCheckOutForm;
+    it('should open the CheckInDialog when check-in button is clicked', () => {
+      component.form = {
+        ...mockCheckOutForm,
+        status: FormStatus.Approved,
+        items: [{ productId: 'bulk-1', quantity: 5 }],
+      };
       fixture.detectChanges();
 
       component.onCheckIn();
 
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['/create-form'], {
-        queryParams: {
-          formType: FormType.CheckIn,
-          userId: 'user-123',
-          items: JSON.stringify(mockItems),
-        },
-      });
+      expect(mockDialog.open).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({
+          data: expect.objectContaining({ form: component.form }),
+        })
+      );
     });
+
+    it('calls formsStore.checkInForm when dialog closes with result', fakeAsync(() => {
+      const mockCheckInForm = jest.fn().mockResolvedValue({ checkInEventId: 'cie-1' });
+      (mockFormsStore as unknown as Record<string, unknown>)['checkInForm'] = mockCheckInForm;
+
+      component.form = { ...mockCheckOutForm, status: FormStatus.Approved };
+      fixture.detectChanges();
+
+      component.onCheckIn();
+      dialogClosedSubject.next({ items: [{ productId: 'bulk-1', quantity: 1 }], signature: 'sig' });
+      dialogClosedSubject.complete();
+      tick();
+
+      expect(mockCheckInForm).toHaveBeenCalledWith(
+        mockCheckOutForm.formID,
+        mockCheckOutForm.userID,
+        [{ productId: 'bulk-1', quantity: 1 }],
+        'sig'
+      );
+    }));
   });
 
   describe('outstanding items and check-in events display', () => {

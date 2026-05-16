@@ -8,6 +8,7 @@ import { CheckInEvent, getOutstandingItems, isFullyReturned, InventoryForm } fro
 import { MatDialog } from '@angular/material/dialog';
 import { RejectFormDialogComponent } from '../reject-form-dialog/reject-form-dialog.component';
 import { SignatureDialogComponent } from '../signature-dialog/signature-dialog.component';
+import { CheckInDialogComponent, CheckInDialogResult } from '../check-in-dialog/check-in-dialog.component';
 import { UserStore } from '../../../store/user.store';
 import { FormsStore } from '../../../store/forms.store';
 import { UserRole, FormStatus, FormType } from '@equip-track/shared';
@@ -128,13 +129,29 @@ export class FormCardComponent {
   }
 
   onCheckIn() {
-    this.router.navigate(['/create-form'], {
-      queryParams: {
-        formType: FormType.CheckIn,
-        userId: this.form.userID,
-        items: JSON.stringify(this.form.items),
-      },
+    const dialogRef = this.dialog.open(CheckInDialogComponent, {
+      data: { form: this.form },
+      maxWidth: '650px',
     });
+
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(async (result: CheckInDialogResult | undefined) => {
+        if (result) {
+          try {
+            await this.formsStore.checkInForm(
+              this.form.formID,
+              this.form.userID,
+              result.items,
+              result.signature
+            );
+          } catch (error) {
+            console.error('Failed to record check-in:', error);
+            this.notificationService.handleApiError(error, 'errors.forms.check-in-failed');
+          }
+        }
+      });
   }
 
   get userName(): string {

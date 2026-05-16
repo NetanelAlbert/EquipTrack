@@ -1,0 +1,30 @@
+<h2 mat-dialog-title data-testid="check-in-dialog-title">
+  {{ 'forms.check-in-dialog.title' | translate }}
+</h2>
+
+<mat-dialog-content class="check-in-content" data-testid="check-in-dialog-content">
+  <p class="subtitle">{{ 'forms.check-in-dialog.subtitle' | translate }}</p>
+
+  <editable-inventory
+    [limitItems]="outstandingItems"
+    [submitButton]="submitButton"
+    (submitItems)="onItemsSubmitted($event)"
+  ></editable-inventory>
+
+  <div class="signature-section">
+    <app-signature-pad
+      [width]="300"
+      [height]="160"
+      [backgroundColor]="'white'"
+      [penColor]="'black'"
+      (signatureChange)="onSignatureChange($event)"
+      data-testid="check-in-signature-pad"
+    ></app-signature-pad>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" data-testid="check-in-dialog-actions">
+  <button mat-button (click)="onCancel()" data-testid="check-in-cancel">
+    {{ 'forms.check-in-dialog.cancel' | translate }}
+  </button>
+</mat-dialog-actions>

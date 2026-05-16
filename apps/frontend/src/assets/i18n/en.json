@@ -429,7 +429,8 @@
       "submit-failed": "Failed to submit form. Please try again.",
       "approve-failed": "Failed to approve form. Please try again.",
       "reject-failed": "Failed to reject form. Please try again.",
-      "check-in-failed": "Failed to record check-in. Please try again."
+      "check-in-failed": "Failed to record check-in. Please try again.",
+      "signature-required": "Please provide a signature before submitting."
     },
     "inventory": {
       "fetch-failed": "Failed to load inventory. Please try again.",

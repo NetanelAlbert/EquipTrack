@@ -428,7 +428,8 @@
       "submit-failed": "שליחת הטופס נכשלה. נסה שוב.",
       "approve-failed": "אישור הטופס נכשל. נסה שוב.",
       "reject-failed": "דחיית הטופס נכשלה. נסה שוב.",
-      "check-in-failed": "רישום ההחזרה נכשל. נסה שוב."
+      "check-in-failed": "רישום ההחזרה נכשל. נסה שוב.",
+      "signature-required": "נדרשת חתימה לפני השליחה."
     },
     "inventory": {
       "fetch-failed": "טעינת המלאי נכשלה. נסה שוב.",
