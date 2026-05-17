@@ -14,7 +14,7 @@ export interface FormItemsViewOption {
   labelKey: string;
 }
 
-const DEFAULT_FORM_ITEMS_VIEW: FormItemsView = 'list';
+const DEFAULT_FORM_ITEMS_VIEW: FormItemsView = 'table';
 
 const FORM_ITEMS_VIEW_OPTIONS: readonly FormItemsViewOption[] = [
   { value: 'list', labelKey: 'settings.form-items-view.list' },

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -10,6 +11,10 @@ import { FormCardComponent } from './form-card.component';
 import { FormsStore } from '../../../store/forms.store';
 import { NotificationService } from '../../../services/notification.service';
 import { UserStore } from '../../../store/user.store';
+import {
+  UserPreferencesService,
+  type FormItemsView,
+} from '../../../services/user-preferences.service';
 import {
   CheckInEvent,
   FormStatus,
@@ -67,6 +72,14 @@ describe('FormCardComponent', () => {
     selectedOrganizationId: jest.fn().mockReturnValue('org-1'),
   };
 
+  const mockUserPreferences: Pick<
+    UserPreferencesService,
+    'formItemsView' | 'availableFormItemsViews'
+  > = {
+    formItemsView: signal<FormItemsView>('list'),
+    availableFormItemsViews: [],
+  };
+
   beforeEach(async () => {
     dialogClosedSubject = new Subject<unknown>();
     const mockDialogRef = {
@@ -104,6 +117,8 @@ describe('FormCardComponent', () => {
         { provide: NotificationService, useValue: mockNotification },
         { provide: Router, useValue: routerSpy },
         { provide: UserStore, useValue: mockUserStore },
+        // List layout asserts on sections that render only when not in table view.
+        { provide: UserPreferencesService, useValue: mockUserPreferences },
       ],
     }).compileComponents();
 
