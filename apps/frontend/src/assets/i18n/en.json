@@ -156,6 +156,7 @@
     "view-event-pdf": "View return PDF ({{date}})",
     "table": {
       "item-id": "Item ID",
+      "taken": "Taken",
       "event-header": "Return #{{index}}",
       "outstanding": "To be returned"
     },

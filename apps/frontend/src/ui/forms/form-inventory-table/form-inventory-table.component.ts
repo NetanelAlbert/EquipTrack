@@ -29,6 +29,8 @@ interface TableRow {
   productId: string;
   productName: string;
   hasUpi: boolean;
+  /** Original check-out quantities / UPIs (before any returns). */
+  takenCell: TableCell;
   /** Quantity / UPIs returned in each check-in event, in form order. */
   eventCells: TableCell[];
   /** Quantity / UPIs still outstanding (last column). */
@@ -128,10 +130,16 @@ export class FormInventoryTableComponent {
       upis: outstandingItem?.upis ?? [],
     };
 
+    const takenCell: TableCell = {
+      quantity: item.quantity,
+      upis: item.upis ?? [],
+    };
+
     return {
       productId: item.productId,
       productName: product?.name ?? item.productId,
       hasUpi,
+      takenCell,
       eventCells,
       outstandingCell,
     };

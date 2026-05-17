@@ -101,9 +101,13 @@ describe('FormInventoryTableComponent', () => {
     expect(bulkRow.hasUpi).toBe(false);
     expect(bulkRow.eventCells[0].quantity).toBe(2);
     expect(bulkRow.outstandingCell.quantity).toBe(3);
+    expect(bulkRow.takenCell.quantity).toBe(5);
+    expect(bulkRow.takenCell.upis.length).toBe(0);
 
     const upiRow = rows[1];
     expect(upiRow.hasUpi).toBe(true);
+    expect(upiRow.takenCell.quantity).toBe(2);
+    expect(upiRow.takenCell.upis).toEqual(['LAP-1', 'LAP-2']);
     expect(upiRow.eventCells[0].upis).toEqual(['LAP-1']);
     expect(upiRow.eventCells[0].quantity).toBe(1);
     expect(upiRow.outstandingCell.upis).toEqual(['LAP-2']);
@@ -145,12 +149,23 @@ describe('FormInventoryTableComponent', () => {
 
     expect(eventCell().textContent?.trim()).toBe('1');
     expect(outstandingCell().textContent?.trim()).toBe('1');
+    const takenCellEl: HTMLElement | null = fixture.nativeElement.querySelector(
+      '[data-testid="form-inventory-table-cell-upi-1-taken"]'
+    );
+    expect(takenCellEl).toBeTruthy();
+    expect(takenCellEl?.textContent?.trim()).toBe('2');
 
     component.toggleRow('upi-1', true);
     fixture.detectChanges();
 
     expect(eventCell().textContent).toContain('LAP-1');
     expect(outstandingCell().textContent).toContain('LAP-2');
+    const takenAfter = fixture.nativeElement.querySelector(
+      '[data-testid="form-inventory-table-cell-upi-1-taken"]'
+    ) as HTMLElement | null;
+    expect(takenAfter).toBeTruthy();
+    expect(takenAfter?.textContent).toContain('LAP-1');
+    expect(takenAfter?.textContent).toContain('LAP-2');
   });
 
   it('does not toggle non-UPI rows', () => {

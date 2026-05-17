@@ -155,6 +155,7 @@
     "view-event-pdf": "צפייה ב-PDF של החזרה ({{date}})",
     "table": {
       "item-id": "מזהה פריט",
+      "taken": "נלקח",
       "event-header": "החזרה #{{index}}",
       "outstanding": "להחזרה"
     },

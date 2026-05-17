@@ -14,6 +14,9 @@
         <th scope="col" class="col-product-id">
           {{ 'forms.table.item-id' | translate }}
         </th>
+        <th scope="col" class="col-taken">
+          {{ 'forms.table.taken' | translate }}
+        </th>
         @for (event of events; track event.checkInEventId; let i = $index) {
           <th
             scope="col"
@@ -64,17 +67,17 @@
           <td class="col-product-id">
             <span class="product-id">{{ row.productId }}</span>
           </td>
-          @for (cell of row.eventCells; track $index) {
-            <td
-              class="col-event"
-              [attr.data-testid]="
-                'form-inventory-table-cell-' + row.productId + '-event-' + $index
-              "
-            >
+          <td
+            class="col-taken"
+            [attr.data-testid]="
+              'form-inventory-table-cell-' + row.productId + '-taken'
+            "
+          >
+            <div class="cell-inner cell-inner-centered">
               @if (row.hasUpi && expanded) {
-                @if (cell.upis.length > 0) {
+                @if (row.takenCell.upis.length > 0) {
                   <ul class="upi-list">
-                    @for (upi of cell.upis; track upi) {
+                    @for (upi of row.takenCell.upis; track upi) {
                       <li class="upi-item-wrapper">
                         <button
                           type="button"
@@ -94,8 +97,44 @@
                   <span class="empty-cell" aria-hidden="true">—</span>
                 }
               } @else {
-                <span class="quantity">{{ cell.quantity }}</span>
+                <span class="quantity">{{ row.takenCell.quantity }}</span>
               }
+            </div>
+          </td>
+          @for (cell of row.eventCells; track $index) {
+            <td
+              class="col-event"
+              [attr.data-testid]="
+                'form-inventory-table-cell-' + row.productId + '-event-' + $index
+              "
+            >
+              <div class="cell-inner cell-inner-centered">
+                @if (row.hasUpi && expanded) {
+                  @if (cell.upis.length > 0) {
+                    <ul class="upi-list">
+                      @for (upi of cell.upis; track upi) {
+                        <li class="upi-item-wrapper">
+                          <button
+                            type="button"
+                            class="upi-item"
+                            (click)="copyUpi(upi, $event)"
+                            [attr.aria-label]="
+                              'inventory.upi.item' | translate: { upi: upi }
+                            "
+                          >
+                            <span class="upi-code">{{ upi }}</span>
+                            <mat-icon class="copy-icon">content_copy</mat-icon>
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <span class="empty-cell" aria-hidden="true">—</span>
+                  }
+                } @else {
+                  <span class="quantity">{{ cell.quantity }}</span>
+                }
+              </div>
             </td>
           }
           <td
@@ -104,31 +143,33 @@
               'form-inventory-table-cell-' + row.productId + '-outstanding'
             "
           >
-            @if (row.hasUpi && expanded) {
-              @if (row.outstandingCell.upis.length > 0) {
-                <ul class="upi-list">
-                  @for (upi of row.outstandingCell.upis; track upi) {
-                    <li class="upi-item-wrapper">
-                      <button
-                        type="button"
-                        class="upi-item"
-                        (click)="copyUpi(upi, $event)"
-                        [attr.aria-label]="
-                          'inventory.upi.item' | translate: { upi: upi }
-                        "
-                      >
-                        <span class="upi-code">{{ upi }}</span>
-                        <mat-icon class="copy-icon">content_copy</mat-icon>
-                      </button>
-                    </li>
-                  }
-                </ul>
+            <div class="cell-inner cell-inner-centered">
+              @if (row.hasUpi && expanded) {
+                @if (row.outstandingCell.upis.length > 0) {
+                  <ul class="upi-list">
+                    @for (upi of row.outstandingCell.upis; track upi) {
+                      <li class="upi-item-wrapper">
+                        <button
+                          type="button"
+                          class="upi-item"
+                          (click)="copyUpi(upi, $event)"
+                          [attr.aria-label]="
+                            'inventory.upi.item' | translate: { upi: upi }
+                          "
+                        >
+                          <span class="upi-code">{{ upi }}</span>
+                          <mat-icon class="copy-icon">content_copy</mat-icon>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <span class="empty-cell" aria-hidden="true">—</span>
+                }
               } @else {
-                <span class="empty-cell" aria-hidden="true">—</span>
+                <span class="quantity">{{ row.outstandingCell.quantity }}</span>
               }
-            } @else {
-              <span class="quantity">{{ row.outstandingCell.quantity }}</span>
-            }
+            </div>
           </td>
         </tr>
       }
