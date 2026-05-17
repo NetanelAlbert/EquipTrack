@@ -14,7 +14,7 @@ const backendBaseUrl =
 const e2eSecret = process.env['E2E_AUTH_SECRET'] || 'e2e-local-secret';
 
 test.describe('my-forms screen (customer)', () => {
-  test('customer sees their forms with tabs', async ({ page, request }) => {
+  test('customer sees their check-out forms tab', async ({ page, request }) => {
     const token = await mintE2eJwt(request, {
       backendBaseUrl,
       e2eSecret,
@@ -27,8 +27,9 @@ test.describe('my-forms screen (customer)', () => {
     await clickSideNavRoute(page, 'my-forms');
 
     await waitForTestId(page, 'forms-tab-group');
+    // Single tab (check-out only); check-in lives on approved form cards / dialogs.
     await expect(page.getByRole('tab', { name: /Check Out/i })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /Check In/i })).toBeVisible();
+    await expect(page.getByTestId('forms-checkout-content')).toBeVisible();
   });
 
   test('status filter works for customer forms', async ({
