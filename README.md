@@ -242,7 +242,7 @@ The **E2E Deployed Core Regression** workflow can also be triggered manually (`w
 
 ### Nightly full regression
 
-The **E2E LocalStack Full Regression** workflow is scheduled every night at **03:00 UTC**. It runs the complete Playwright suite against LocalStack only when `develop` has new commits or the package version changed since the last **successful** run; otherwise the workflow exits after a quick check. Manual runs (`workflow_dispatch`) always execute the full suite.
+The **E2E LocalStack Full Regression** workflow is scheduled every night at **00:15 UTC**. It runs the complete Playwright suite against LocalStack only when `develop` has new commits or the package version changed since the last **successful** run; otherwise the workflow exits after a quick check. Manual runs (`workflow_dispatch`) always execute the full suite. GitHub may start scheduled runs later than the cron time when Actions load is high.
 
 ### Workflow summary
 
@@ -254,4 +254,4 @@ The **E2E LocalStack Full Regression** workflow is scheduled every night at **03
 | Deploy Full Stack to AWS | Version tag `v*` |
 | E2E Deployed Core After Develop Deploy | After successful dev deploy |
 | E2E Deployed Core Regression | Manual (`workflow_dispatch`) |
-| E2E LocalStack Full Regression | Nightly 03:00 UTC |
+| E2E LocalStack Full Regression | Nightly 00:15 UTC |
