@@ -112,6 +112,12 @@
       "description": "Choose your preferred application language.",
       "english": "English",
       "hebrew": "Hebrew"
+    },
+    "form-items-view": {
+      "label": "Form items view",
+      "description": "Choose how items inside a form card are displayed.",
+      "list": "Vertical list",
+      "table": "Table with check-in events"
     }
   },
   "forms": {
@@ -145,6 +151,14 @@
     "not-returned": "Not returned",
     "returned-events": "Return history",
     "check-in-items": "Check in items",
+    "show-items": "Click to show items",
+    "hide-items": "Click to hide items",
+    "view-event-pdf": "View return PDF ({{date}})",
+    "table": {
+      "item-id": "Item ID",
+      "event-header": "Return #{{index}}",
+      "outstanding": "To be returned"
+    },
     "check-in-dialog": {
       "title": "Record Check-in",
       "subtitle": "Select items to return from outstanding inventory",

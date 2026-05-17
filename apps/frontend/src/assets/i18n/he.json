@@ -111,6 +111,12 @@
       "description": "בחר את שפת הממשק המועדפת עליך.",
       "english": "אנגלית",
       "hebrew": "עברית"
+    },
+    "form-items-view": {
+      "label": "תצוגת פריטי טופס",
+      "description": "בחר/י כיצד יוצגו הפריטים בתוך כרטיס טופס.",
+      "list": "רשימה אנכית",
+      "table": "טבלה עם אירועי החזרה"
     }
   },
   "forms": {
@@ -144,6 +150,14 @@
     "not-returned": "טרם הוחזר",
     "returned-events": "היסטוריית החזרות",
     "check-in-items": "רשום החזרה",
+    "show-items": "לחצו להצגת הפריטים",
+    "hide-items": "לחצו להסתרת הפריטים",
+    "view-event-pdf": "צפייה ב-PDF של החזרה ({{date}})",
+    "table": {
+      "item-id": "מזהה פריט",
+      "event-header": "החזרה #{{index}}",
+      "outstanding": "להחזרה"
+    },
     "check-in-dialog": {
       "title": "רשום החזרה",
       "subtitle": "בחר פריטים להחזיר מהפריטים שטרם הוחזרו",

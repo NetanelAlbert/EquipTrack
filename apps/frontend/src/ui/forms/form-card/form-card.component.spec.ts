@@ -401,8 +401,17 @@ describe('FormCardComponent', () => {
       ).toBeFalsy();
     });
 
-    it('shows check-in event section when events exist', () => {
+    it('shows check-in event section when events exist and the items area is expanded', () => {
       component.form = approvedFormWithEvents;
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="check-in-events-form-approved-1"]'
+        )
+      ).toBeFalsy();
+
+      component.toggleItemsExpanded();
       fixture.detectChanges();
 
       const eventsSection = fixture.nativeElement.querySelector(
@@ -411,8 +420,17 @@ describe('FormCardComponent', () => {
       expect(eventsSection).toBeTruthy();
     });
 
-    it('shows outstanding items section when items are outstanding', () => {
+    it('shows outstanding items section when expanded and items are outstanding', () => {
       component.form = approvedFormWithEvents;
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="outstanding-form-approved-1"]'
+        )
+      ).toBeFalsy();
+
+      component.toggleItemsExpanded();
       fixture.detectChanges();
 
       const outstandingSection = fixture.nativeElement.querySelector(
@@ -431,6 +449,64 @@ describe('FormCardComponent', () => {
     it('isFormFullyReturned returns false when items remain', () => {
       component.form = approvedFormWithEvents;
       expect(component.isFormFullyReturned).toBe(false);
+    });
+  });
+
+  describe('items area collapse / expand', () => {
+    it('hides the items area by default and shows it after clicking the details', () => {
+      component.form = mockCheckOutForm;
+      fixture.detectChanges();
+
+      const formItemsTestId = `form-items-${mockCheckOutForm.formID}`;
+      expect(
+        fixture.nativeElement.querySelector(`[data-testid="${formItemsTestId}"]`)
+      ).toBeFalsy();
+
+      const detailsToggle: HTMLElement = fixture.nativeElement.querySelector(
+        `[data-testid="form-details-toggle-${mockCheckOutForm.formID}"]`
+      );
+      expect(detailsToggle).toBeTruthy();
+      detailsToggle.click();
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(`[data-testid="${formItemsTestId}"]`)
+      ).toBeTruthy();
+    });
+
+    it('toggles back to collapsed on a second click', () => {
+      component.form = mockCheckOutForm;
+      fixture.detectChanges();
+
+      component.toggleItemsExpanded();
+      fixture.detectChanges();
+      expect(component.isItemsExpanded()).toBe(true);
+
+      component.toggleItemsExpanded();
+      fixture.detectChanges();
+      expect(component.isItemsExpanded()).toBe(false);
+
+      expect(
+        fixture.nativeElement.querySelector(
+          `[data-testid="form-items-${mockCheckOutForm.formID}"]`
+        )
+      ).toBeFalsy();
+    });
+
+    it('keeps action buttons visible while the items area is collapsed', () => {
+      component.form = mockCheckOutForm;
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          `[data-testid="form-approve-${mockCheckOutForm.formID}"]`
+        )
+      ).toBeTruthy();
+      expect(
+        fixture.nativeElement.querySelector(
+          `[data-testid="form-reject-${mockCheckOutForm.formID}"]`
+        )
+      ).toBeTruthy();
     });
   });
 });
