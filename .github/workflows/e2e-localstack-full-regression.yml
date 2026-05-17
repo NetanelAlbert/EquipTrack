@@ -3,7 +3,8 @@ name: E2E LocalStack Full Regression
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * *' # Nightly at 03:00 UTC
+    # Earlier than 03:00 UTC; minute 15 avoids the busiest :00 cron boundary (Actions may still delay runs).
+    - cron: '15 0 * * *' # Nightly ~00:15 UTC
 
 concurrency:
   group: e2e-localstack-full-${{ github.ref }}
