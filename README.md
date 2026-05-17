@@ -136,6 +136,8 @@ npx nx test backend    # Node.js (ts-jest)
 npx nx test shared     # Shared library (ts-jest)
 ```
 
+Backend PdfService Hebrew regression specs invoke `pdftotext` when it is on `PATH`. Install **poppler-utils** locally (`sudo apt-get install poppler-utils` on Debian/Ubuntu) so those tests execute instead of being skipped.
+
 Coverage reports are written to `coverage/`.
 
 ### Linting
@@ -199,7 +201,7 @@ Every PR targeting `main` or `develop` runs two parallel jobs:
 
 | Job | What it does |
 |---|---|
-| **Lint & unit tests** | `npx nx run-many -t lint,test --all` |
+| **Lint & unit tests** | Installs **poppler-utils** (`pdftotext`) on the runner, then runs `npx nx run-many -t lint,test --all` (PdfService Hebrew regression specs require `pdftotext`). |
 | **Core regression (LocalStack)** | Spins up LocalStack → seeds data → runs Playwright core suite |
 
 In addition, every PR (and every push to `develop`) runs **SAM API Template** validation, which regenerates `infra/sam/template.yaml` and checks it is committed and passes `sam validate --lint`.

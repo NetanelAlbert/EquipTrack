@@ -2,6 +2,7 @@ import { FormStatus, FormType, UserRole } from '@equip-track/shared';
 
 const mockGetForm = jest.fn();
 const mockGetUserFromDB = jest.fn();
+const mockGetUserInOrganization = jest.fn();
 const mockTransferCheckInEvent = jest.fn();
 const mockUploadCheckInEventPDF = jest.fn();
 const mockAppendCheckInEvent = jest.fn();
@@ -16,6 +17,7 @@ jest.mock('../../../db/tables/forms.adapter', () => ({
 jest.mock('../../../db/tables/users-and-organizations.adapter', () => ({
   UsersAndOrganizationsAdapter: jest.fn().mockImplementation(() => ({
     getUserFromDB: mockGetUserFromDB,
+    getUserInOrganization: mockGetUserInOrganization,
   })),
 }));
 
@@ -79,7 +81,13 @@ describe('check-in record handler', () => {
     jest.clearAllMocks();
     (PdfService.generateCheckInEventPdf as jest.Mock).mockReturnValue(Buffer.from('pdf'));
     mockGetForm.mockResolvedValue(approvedForm);
-    mockGetUserFromDB.mockResolvedValue({ id: 'user-1', name: 'Test User', email: 'test@test.com', phone: '' });
+    mockGetUserFromDB.mockResolvedValue({
+      id: 'user-1',
+      name: 'Test User',
+      email: 'test@test.com',
+      phone: '',
+    });
+    mockGetUserInOrganization.mockResolvedValue(undefined);
     mockTransferCheckInEvent.mockResolvedValue(undefined);
     mockUploadCheckInEventPDF.mockResolvedValue('https://s3.amazonaws.com/key.pdf');
     mockAppendCheckInEvent.mockImplementation((_fId, _uId, _oId, event) => ({

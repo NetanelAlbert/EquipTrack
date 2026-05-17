@@ -5,6 +5,7 @@ import { UsersAndOrganizationsAdapter } from '../../../db/tables/users-and-organ
 import { InventoryAdapter } from '../../../db/tables/inventory.adapter';
 import { InventoryTransferService } from '../../../services/inventory-transfer.service';
 import { PdfService } from '../../../services/pdf.service';
+import { loadPdfUserContext } from '../../../services/pdf-user-context';
 import { loadProductDisplayNamesForPdf } from '../../../services/pdf-product-names';
 import { S3Service } from '../../../services/s3.service';
 import {
@@ -86,11 +87,15 @@ export const handler = async (
       organizationId,
       form.items.map((i) => i.productId)
     );
+    const pdfCtx = await loadPdfUserContext(usersAdapter, organizationId, form.userID, [
+      jwtPayload.sub,
+    ]);
     const pdfBuffer = PdfService.generateFormPDF(
       form,
       user,
       req.signature,
-      productNames
+      productNames,
+      pdfCtx
     );
     console.log('PDF generated successfully');
 
