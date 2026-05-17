@@ -5,3 +5,11 @@
 .full-width {
   width: 100%;
 }
+
+.setting-section {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}

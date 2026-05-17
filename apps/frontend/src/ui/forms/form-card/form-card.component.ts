@@ -4,6 +4,8 @@ import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
 import { InventoryListComponent } from '../../inventory/list/inventory-list.component';
+import { FormInventoryTableComponent } from '../form-inventory-table/form-inventory-table.component';
+import { UserPreferencesService } from '../../../services/user-preferences.service';
 import {
   CheckInEvent,
   getOutstandingItems,
@@ -37,6 +39,7 @@ import { Router } from '@angular/router';
     MatProgressSpinnerModule,
     TranslateModule,
     InventoryListComponent,
+    FormInventoryTableComponent,
     MatTooltipModule,
   ],
   templateUrl: './form-card.component.html',
@@ -47,6 +50,7 @@ export class FormCardComponent {
 
   readonly isPrintPdfLoading = signal(false);
   readonly checkInEventLoadingId = signal<string | null>(null);
+  readonly isItemsExpanded = signal(false);
 
   dateTimeFormat = UI_DATE_TIME_FORMAT;
   organizationStore = inject(OrganizationStore);
@@ -58,6 +62,20 @@ export class FormCardComponent {
   private readonly clipboard = inject(Clipboard);
   private readonly notificationService = inject(NotificationService);
   private readonly router = inject(Router);
+  private readonly userPreferences = inject(UserPreferencesService);
+
+  readonly formItemsView = this.userPreferences.formItemsView;
+
+  toggleItemsExpanded(): void {
+    this.isItemsExpanded.update((expanded) => !expanded);
+  }
+
+  onDetailsKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.toggleItemsExpanded();
+    }
+  }
 
   get outstandingItems() {
     return getOutstandingItems(this.form);

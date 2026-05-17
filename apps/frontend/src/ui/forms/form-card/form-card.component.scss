@@ -11,6 +11,56 @@
     box-shadow: 0 4px 8px var(--color-shadow-medium);
   }
 
+  .form-details {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 4px;
+    margin: -4px;
+    margin-bottom: 8px;
+    transition: background-color 0.15s ease-in-out;
+
+    &:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+  }
+
+  .form-details-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .details-expand-icon {
+    color: var(--color-accent);
+    transition: transform 0.2s ease-in-out;
+
+    &.expanded {
+      transform: rotate(180deg);
+    }
+  }
+
+  .items-toggle-hint {
+    font-size: 0.8rem;
+    margin: 8px 0 0 0;
+    color: var(--color-text-secondary);
+    font-style: italic;
+  }
+
+  .form-items {
+    margin: 12px 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--color-border-light);
+  }
+
+  .events-pdfs {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
   h3 {
     margin: 0 0 8px 0;
     font-size: 1.1rem;

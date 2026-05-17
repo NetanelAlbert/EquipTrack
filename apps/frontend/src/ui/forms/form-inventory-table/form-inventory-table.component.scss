@@ -1,0 +1,238 @@
+@use '../../../shared';
+
+.form-inventory-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-primary);
+}
+
+.form-inventory-table {
+  /** Consistent logical column order and layout even when page `dir="rtl"` (fixes UPI drift). */
+  direction: ltr;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+
+  thead {
+    background: var(--color-bg-hover);
+
+    th {
+      text-align: start;
+      padding: 10px 12px;
+      font-weight: 600;
+      color: var(--color-accent);
+      font-size: 0.85rem;
+      border-bottom: 1px solid var(--color-border-light);
+      white-space: nowrap;
+
+      &.col-product {
+        width: 20%;
+      }
+
+      &.col-product-id {
+        width: 14%;
+      }
+
+      &.col-taken,
+      &.col-event,
+      &.col-outstanding {
+        text-align: center;
+      }
+
+      &.col-taken {
+        width: 12%;
+        min-width: 88px;
+      }
+
+      &.col-event {
+        min-width: 120px;
+        vertical-align: top;
+
+        .event-title {
+          display: block;
+        }
+
+        .event-date {
+          display: block;
+          font-weight: 400;
+          font-size: 0.75rem;
+          color: var(--color-text-secondary);
+        }
+      }
+
+      &.col-outstanding {
+        min-width: 120px;
+      }
+    }
+  }
+
+  tbody {
+    .data-row {
+      transition: background-color 0.15s ease-in-out;
+
+      &.clickable {
+        cursor: pointer;
+      }
+
+      &.clickable:hover,
+      &.clickable:focus-visible {
+        background: var(--color-bg-hover);
+        outline: none;
+      }
+
+      &.expanded {
+        background: var(--color-bg-hover);
+      }
+
+      td {
+        padding: 10px 12px;
+        border-top: 1px solid var(--color-border-light);
+        vertical-align: middle;
+
+        &.col-event,
+        &.col-outstanding,
+        &.col-taken {
+          /** With `table-layout: fixed`, this keeps pills inside the computed column boundary. */
+          min-width: 0;
+          max-width: 0;
+          text-align: center;
+          overflow: hidden;
+        }
+
+        &.col-product {
+          word-break: break-word;
+          overflow-wrap: anywhere;
+        }
+
+        &.col-product-id .product-id {
+          display: inline-block;
+          max-width: 100%;
+        }
+      }
+    }
+  }
+
+  .cell-inner-centered {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .product-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .expand-icon {
+      flex-shrink: 0;
+      transition: transform 0.2s ease-in-out;
+      color: var(--color-accent);
+
+      &.expanded {
+        transform: rotate(180deg);
+      }
+    }
+
+    .product-name {
+      font-weight: 600;
+    }
+  }
+
+  .product-id {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    letter-spacing: 0.5px;
+    overflow-wrap: anywhere;
+  }
+
+  .quantity {
+    font-weight: 600;
+    font-size: 1rem;
+    text-align: center;
+    display: inline-block;
+  }
+
+  .empty-cell {
+    color: var(--color-text-secondary);
+  }
+
+  .upi-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+
+    .upi-item-wrapper {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      box-sizing: border-box;
+      min-width: 0;
+    }
+
+    .upi-item {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--color-bg-primary);
+      border: 1px solid var(--color-border-light);
+      cursor: pointer;
+      font: inherit;
+      color: inherit;
+      transition: background-color 0.15s ease-in-out;
+
+      &:hover,
+      &:focus-visible {
+        background: var(--color-gradient-ultra-light);
+        outline: none;
+      }
+
+      .upi-code {
+        font-family: monospace;
+        font-size: 0.8rem;
+        overflow-wrap: anywhere;
+        text-align: center;
+      }
+
+      .copy-icon {
+        flex-shrink: 0;
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        color: var(--color-text-secondary);
+      }
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .form-inventory-table {
+    font-size: 0.8rem;
+
+    thead th,
+    tbody td {
+      padding: 8px 6px;
+    }
+  }
+}

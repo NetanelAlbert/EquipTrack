@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -10,6 +11,10 @@ import { FormCardComponent } from './form-card.component';
 import { FormsStore } from '../../../store/forms.store';
 import { NotificationService } from '../../../services/notification.service';
 import { UserStore } from '../../../store/user.store';
+import {
+  UserPreferencesService,
+  type FormItemsView,
+} from '../../../services/user-preferences.service';
 import {
   CheckInEvent,
   FormStatus,
@@ -67,6 +72,14 @@ describe('FormCardComponent', () => {
     selectedOrganizationId: jest.fn().mockReturnValue('org-1'),
   };
 
+  const mockUserPreferences: Pick<
+    UserPreferencesService,
+    'formItemsView' | 'availableFormItemsViews'
+  > = {
+    formItemsView: signal<FormItemsView>('list'),
+    availableFormItemsViews: [],
+  };
+
   beforeEach(async () => {
     dialogClosedSubject = new Subject<unknown>();
     const mockDialogRef = {
@@ -104,6 +117,8 @@ describe('FormCardComponent', () => {
         { provide: NotificationService, useValue: mockNotification },
         { provide: Router, useValue: routerSpy },
         { provide: UserStore, useValue: mockUserStore },
+        // List layout asserts on sections that render only when not in table view.
+        { provide: UserPreferencesService, useValue: mockUserPreferences },
       ],
     }).compileComponents();
 
@@ -401,8 +416,17 @@ describe('FormCardComponent', () => {
       ).toBeFalsy();
     });
 
-    it('shows check-in event section when events exist', () => {
+    it('shows check-in event section when events exist and the items area is expanded', () => {
       component.form = approvedFormWithEvents;
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="check-in-events-form-approved-1"]'
+        )
+      ).toBeFalsy();
+
+      component.toggleItemsExpanded();
       fixture.detectChanges();
 
       const eventsSection = fixture.nativeElement.querySelector(
@@ -411,8 +435,17 @@ describe('FormCardComponent', () => {
       expect(eventsSection).toBeTruthy();
     });
 
-    it('shows outstanding items section when items are outstanding', () => {
+    it('shows outstanding items section when expanded and items are outstanding', () => {
       component.form = approvedFormWithEvents;
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="outstanding-form-approved-1"]'
+        )
+      ).toBeFalsy();
+
+      component.toggleItemsExpanded();
       fixture.detectChanges();
 
       const outstandingSection = fixture.nativeElement.querySelector(
@@ -431,6 +464,64 @@ describe('FormCardComponent', () => {
     it('isFormFullyReturned returns false when items remain', () => {
       component.form = approvedFormWithEvents;
       expect(component.isFormFullyReturned).toBe(false);
+    });
+  });
+
+  describe('items area collapse / expand', () => {
+    it('hides the items area by default and shows it after clicking the details', () => {
+      component.form = mockCheckOutForm;
+      fixture.detectChanges();
+
+      const formItemsTestId = `form-items-${mockCheckOutForm.formID}`;
+      expect(
+        fixture.nativeElement.querySelector(`[data-testid="${formItemsTestId}"]`)
+      ).toBeFalsy();
+
+      const detailsToggle: HTMLElement = fixture.nativeElement.querySelector(
+        `[data-testid="form-details-toggle-${mockCheckOutForm.formID}"]`
+      );
+      expect(detailsToggle).toBeTruthy();
+      detailsToggle.click();
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(`[data-testid="${formItemsTestId}"]`)
+      ).toBeTruthy();
+    });
+
+    it('toggles back to collapsed on a second click', () => {
+      component.form = mockCheckOutForm;
+      fixture.detectChanges();
+
+      component.toggleItemsExpanded();
+      fixture.detectChanges();
+      expect(component.isItemsExpanded()).toBe(true);
+
+      component.toggleItemsExpanded();
+      fixture.detectChanges();
+      expect(component.isItemsExpanded()).toBe(false);
+
+      expect(
+        fixture.nativeElement.querySelector(
+          `[data-testid="form-items-${mockCheckOutForm.formID}"]`
+        )
+      ).toBeFalsy();
+    });
+
+    it('keeps action buttons visible while the items area is collapsed', () => {
+      component.form = mockCheckOutForm;
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          `[data-testid="form-approve-${mockCheckOutForm.formID}"]`
+        )
+      ).toBeTruthy();
+      expect(
+        fixture.nativeElement.querySelector(
+          `[data-testid="form-reject-${mockCheckOutForm.formID}"]`
+        )
+      ).toBeTruthy();
     });
   });
 });

@@ -1,92 +1,183 @@
 <div class="form-card" [attr.data-testid]="'form-card-' + form.formID">
-  <h3>{{ 'forms.user-name' | translate }}: {{ userName }}</h3>
-  <h4 [attr.data-testid]="'form-description-' + form.formID">
-    {{ 'forms.description' | translate }}: {{ form.description || 'N/A' }}
-  </h4>
-  <p [ngClass]="[form.status]" [attr.data-testid]="'form-status-' + form.formID">
-    {{ 'forms.status' | translate }}:
-    {{ 'forms.status-' + form.status | translate }}
-  </p>
-  <p>
-    {{ 'forms.created-at' | translate }}:
-    {{ form.createdAtTimestamp | date : dateTimeFormat }}
-    {{ 'forms.by' | translate }}:
-    {{ organizationStore.getUserName(form.createdByUserId) }}
-  </p>
-  @if (form.approvedAtTimestamp) {
-    <p>
-      {{ 'forms.approved-at' | translate }}:
-      {{ form.approvedAtTimestamp | date : dateTimeFormat }}
-      {{ 'forms.by' | translate }}:
-      {{ organizationStore.getUserName(form.approvedByUserId) }}
-    </p>
-  }
-  @if (form.rejectionReason) {
-    <p>
-      {{ 'forms.rejected-at' | translate }}:
-      {{ form.rejectionAtTimestamp | date : dateTimeFormat }}
-      {{ 'forms.by' | translate }}:
-      {{ organizationStore.getUserName(form.rejectionByUserId) }}
-    </p>
-    <p>
-      {{ 'forms.rejection-reason' | translate }}:
-      {{ form.rejectionReason }}
-    </p>
-  }
-  <inventory-list [inventoryItems]="form.items"></inventory-list>
-
-  @if (form.status === 'approved' && form.type === 'check-out') {
-    <div class="return-status" [attr.data-testid]="'return-status-' + form.formID">
-      @if (isFormFullyReturned) {
-        <span class="return-badge fully-returned" data-testid="badge-fully-returned">
-          {{ 'forms.fully-returned' | translate }}
-        </span>
-      } @else if (hasReturnHistory) {
-        <span class="return-badge partially-returned" data-testid="badge-partially-returned">
-          {{ 'forms.partially-returned' | translate }}
-        </span>
-      } @else {
-        <span class="return-badge not-returned" data-testid="badge-not-returned">
-          {{ 'forms.not-returned' | translate }}
-        </span>
-      }
+  <div
+    class="form-details"
+    [class.expanded]="isItemsExpanded()"
+    role="button"
+    tabindex="0"
+    [attr.aria-expanded]="isItemsExpanded()"
+    [attr.aria-controls]="'form-card-items-' + form.formID"
+    [attr.data-testid]="'form-details-toggle-' + form.formID"
+    (click)="toggleItemsExpanded()"
+    (keydown)="onDetailsKeyDown($event)"
+  >
+    <div class="form-details-header">
+      <h3>{{ 'forms.user-name' | translate }}: {{ userName }}</h3>
+      <mat-icon
+        class="details-expand-icon"
+        [class.expanded]="isItemsExpanded()"
+        aria-hidden="true"
+      >
+        expand_more
+      </mat-icon>
     </div>
-
-    @if (outstandingItems.length > 0) {
-      <div class="outstanding-section" [attr.data-testid]="'outstanding-' + form.formID">
-        <h4>{{ 'forms.outstanding-items' | translate }}</h4>
-        <inventory-list [inventoryItems]="outstandingItems"></inventory-list>
-      </div>
+    <h4 [attr.data-testid]="'form-description-' + form.formID">
+      {{ 'forms.description' | translate }}: {{ form.description || 'N/A' }}
+    </h4>
+    <p
+      [ngClass]="[form.status]"
+      [attr.data-testid]="'form-status-' + form.formID"
+    >
+      {{ 'forms.status' | translate }}:
+      {{ 'forms.status-' + form.status | translate }}
+    </p>
+    <p>
+      {{ 'forms.created-at' | translate }}:
+      {{ form.createdAtTimestamp | date : dateTimeFormat }}
+      {{ 'forms.by' | translate }}:
+      {{ organizationStore.getUserName(form.createdByUserId) }}
+    </p>
+    @if (form.approvedAtTimestamp) {
+      <p>
+        {{ 'forms.approved-at' | translate }}:
+        {{ form.approvedAtTimestamp | date : dateTimeFormat }}
+        {{ 'forms.by' | translate }}:
+        {{ organizationStore.getUserName(form.approvedByUserId) }}
+      </p>
+    }
+    @if (form.rejectionReason) {
+      <p>
+        {{ 'forms.rejected-at' | translate }}:
+        {{ form.rejectionAtTimestamp | date : dateTimeFormat }}
+        {{ 'forms.by' | translate }}:
+        {{ organizationStore.getUserName(form.rejectionByUserId) }}
+      </p>
+      <p>
+        {{ 'forms.rejection-reason' | translate }}:
+        {{ form.rejectionReason }}
+      </p>
     }
 
-    @if ((form.checkInEvents ?? []).length > 0) {
-      <div class="events-section" [attr.data-testid]="'check-in-events-' + form.formID">
-        <h4>{{ 'forms.returned-events' | translate }}</h4>
-        @for (event of form.checkInEvents ?? []; track event.checkInEventId) {
-          <div class="event-row" [attr.data-testid]="'check-in-event-' + event.checkInEventId">
-            <span>{{ event.createdAtTimestamp | date: dateTimeFormat }}</span>
-            <span>{{ organizationStore.getUserName(event.createdByUserId) }}</span>
-            <inventory-list [inventoryItems]="event.items"></inventory-list>
-            @if (event.pdfUri) {
-              <button
-                mat-raised-button
-                class="icon-button"
-                [attr.data-testid]="'print-event-' + event.checkInEventId"
-                [disabled]="checkInEventLoadingId() === event.checkInEventId"
-                (click)="onPrintCheckInEventPdf(event)"
-                [matTooltip]="'forms.view-pdf' | translate"
-              >
-                @if (checkInEventLoadingId() === event.checkInEventId) {
-                  <mat-spinner diameter="16"></mat-spinner>
-                } @else {
-                  <mat-icon>print</mat-icon>
-                }
-              </button>
-            }
-          </div>
+    @if (form.status === 'approved' && form.type === 'check-out') {
+      <div class="return-status" [attr.data-testid]="'return-status-' + form.formID">
+        @if (isFormFullyReturned) {
+          <span class="return-badge fully-returned" data-testid="badge-fully-returned">
+            {{ 'forms.fully-returned' | translate }}
+          </span>
+        } @else if (hasReturnHistory) {
+          <span class="return-badge partially-returned" data-testid="badge-partially-returned">
+            {{ 'forms.partially-returned' | translate }}
+          </span>
+        } @else {
+          <span class="return-badge not-returned" data-testid="badge-not-returned">
+            {{ 'forms.not-returned' | translate }}
+          </span>
         }
       </div>
     }
+
+    <p class="items-toggle-hint">
+      @if (isItemsExpanded()) {
+        {{ 'forms.hide-items' | translate }}
+      } @else {
+        {{ 'forms.show-items' | translate }}
+      }
+    </p>
+  </div>
+
+  @if (isItemsExpanded()) {
+    <div
+      class="form-items"
+      [attr.id]="'form-card-items-' + form.formID"
+      [attr.data-testid]="'form-items-' + form.formID"
+    >
+      @if (formItemsView() === 'table' && form.type === 'check-out') {
+        <app-form-inventory-table [form]="form"></app-form-inventory-table>
+      } @else {
+        <inventory-list [inventoryItems]="form.items"></inventory-list>
+
+        @if (form.status === 'approved' && form.type === 'check-out') {
+          @if (outstandingItems.length > 0) {
+            <div
+              class="outstanding-section"
+              [attr.data-testid]="'outstanding-' + form.formID"
+            >
+              <h4>{{ 'forms.outstanding-items' | translate }}</h4>
+              <inventory-list [inventoryItems]="outstandingItems"></inventory-list>
+            </div>
+          }
+
+          @if ((form.checkInEvents ?? []).length > 0) {
+            <div
+              class="events-section"
+              [attr.data-testid]="'check-in-events-' + form.formID"
+            >
+              <h4>{{ 'forms.returned-events' | translate }}</h4>
+              @for (event of form.checkInEvents ?? []; track event.checkInEventId) {
+                <div
+                  class="event-row"
+                  [attr.data-testid]="'check-in-event-' + event.checkInEventId"
+                >
+                  <span>{{ event.createdAtTimestamp | date: dateTimeFormat }}</span>
+                  <span>{{ organizationStore.getUserName(event.createdByUserId) }}</span>
+                  <inventory-list [inventoryItems]="event.items"></inventory-list>
+                  @if (event.pdfUri) {
+                    <button
+                      mat-raised-button
+                      class="icon-button"
+                      [attr.data-testid]="'print-event-' + event.checkInEventId"
+                      [disabled]="checkInEventLoadingId() === event.checkInEventId"
+                      (click)="onPrintCheckInEventPdf(event)"
+                      [matTooltip]="'forms.view-pdf' | translate"
+                    >
+                      @if (checkInEventLoadingId() === event.checkInEventId) {
+                        <mat-spinner diameter="16"></mat-spinner>
+                      } @else {
+                        <mat-icon>print</mat-icon>
+                      }
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        }
+      }
+
+      @if (formItemsView() === 'table' && form.type === 'check-out') {
+        @if ((form.checkInEvents ?? []).length > 0) {
+          <div
+            class="events-pdfs"
+            [attr.data-testid]="'check-in-events-pdfs-' + form.formID"
+          >
+            @for (event of form.checkInEvents ?? []; track event.checkInEventId) {
+              @if (event.pdfUri) {
+                <button
+                  mat-raised-button
+                  class="icon-button"
+                  [attr.data-testid]="'print-event-' + event.checkInEventId"
+                  [disabled]="checkInEventLoadingId() === event.checkInEventId"
+                  (click)="onPrintCheckInEventPdf(event)"
+                  [matTooltip]="
+                    'forms.view-event-pdf'
+                      | translate
+                        : {
+                            date:
+                              event.createdAtTimestamp | date : dateTimeFormat
+                          }
+                  "
+                >
+                  @if (checkInEventLoadingId() === event.checkInEventId) {
+                    <mat-spinner diameter="16"></mat-spinner>
+                  } @else {
+                    <mat-icon>print</mat-icon>
+                  }
+                </button>
+              }
+            }
+          </div>
+        }
+      }
+    </div>
   }
 
   <div class="actions">
@@ -108,7 +199,7 @@
         {{ 'forms.reject' | translate }}
       </button>
     }
-    
+
     @if (showCheckInButton) {
       <button
         mat-raised-button
@@ -121,16 +212,16 @@
     }
 
     <button
-      mat-raised-button 
-      (click)="onCloneForm()" 
+      mat-raised-button
+      (click)="onCloneForm()"
       [attr.data-testid]="'form-clone-' + form.formID"
       class="icon-button first-icon"
       [matTooltip]="'forms.clone-form' | translate">
       <mat-icon>difference</mat-icon>
     </button>
     <button
-      mat-raised-button 
-      class="icon-button" 
+      mat-raised-button
+      class="icon-button"
       [attr.data-testid]="'form-copy-id-' + form.formID"
       (click)="onCopyFormId()"
       [matTooltip]="'forms.copy-form-id' | translate: { formId: form.formID }">
@@ -152,4 +243,4 @@
       </button>
     }
   </div>
-</div> 
+</div>
