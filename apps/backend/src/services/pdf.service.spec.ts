@@ -1,4 +1,7 @@
 import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { execFileSync, execSync } from 'child_process';
 import {
   CheckInEvent,
   FormStatus,
@@ -7,7 +10,36 @@ import {
   User,
   UserState,
 } from '@equip-track/shared';
+import type { PdfUserContext } from './pdf-user-context';
 import { PdfService } from './pdf.service';
+
+function pdftotextAvailable(): boolean {
+  try {
+    execSync('pdftotext -v', { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const pdfTextExtractAvailable = pdftotextAvailable();
+const itPdftotext = pdfTextExtractAvailable ? it : it.skip;
+
+function pdftotextUtf8(buf: Buffer): string {
+  const tmp = path.join(
+    os.tmpdir(),
+    `equiptrack-pdf-${process.pid}-${Date.now()}.pdf`
+  );
+  fs.writeFileSync(tmp, new Uint8Array(buf));
+  try {
+    return execFileSync('pdftotext', ['-layout', tmp, '-'], {
+      encoding: 'utf8',
+      maxBuffer: 10 * 1024 * 1024,
+    });
+  } finally {
+    fs.unlinkSync(tmp);
+  }
+}
 
 describe('PdfService', () => {
   const minimalUser: User = {
@@ -18,9 +50,15 @@ describe('PdfService', () => {
     state: UserState.Active,
   };
 
+  const minimalCtx: PdfUserContext = {
+    userNamesById: {},
+    holderUnitName: undefined,
+  };
+
   const productNames = {
     'prod-bulk-helmet': 'קסדת בטיחות',
     'prod-upi-laptop': 'מחשב נייד',
+    'prod-mixed': 'Helmet קסדה M-15',
   };
 
   const laptopUpis = Array.from(
@@ -51,7 +89,8 @@ describe('PdfService', () => {
       baseForm,
       minimalUser,
       '',
-      productNames
+      productNames,
+      minimalCtx
     );
     expect(buf.subarray(0, 4).toString('utf8')).toBe('%PDF');
     const latin1 = buf.toString('latin1');
@@ -64,7 +103,8 @@ describe('PdfService', () => {
       baseForm,
       minimalUser,
       '',
-      productNames
+      productNames,
+      minimalCtx
     );
     const hasHebrewUtf16Be = buf.some(
       (b, i) =>
@@ -78,7 +118,7 @@ describe('PdfService', () => {
 
   it('generateCheckInEventPdf also registers the Hebrew font', () => {
     const event: CheckInEvent = {
-      checkInEventId: 'cie-1',
+      checkInEventId: 'cie-test-event-full-id-xyz',
       items: [
         { productId: 'prod-bulk-helmet', quantity: 1 },
         {
@@ -95,9 +135,19 @@ describe('PdfService', () => {
       event,
       minimalUser,
       '',
-      productNames
+      productNames,
+      minimalCtx
     );
     expect(buf.toString('latin1')).toContain('NotoSansHebrew');
+  });
+
+  it('does not interpolate dynamic segments inside visual-order helpers', () => {
+    const src = fs.readFileSync(
+      path.join(__dirname, 'pdf.service.ts'),
+      'utf8'
+    );
+    expect(src).not.toMatch(/\bv\s*\(\s*`[^`]*\$\{/);
+    expect(src).not.toContain('toVisualOrder');
   });
 
   it('writes a sample PDF when PDF_VERIFY_OUT is set (for pdftotext manual check)', () => {
@@ -113,8 +163,141 @@ describe('PdfService', () => {
       },
       { ...minimalUser, name: 'בדיקת עברית למסמך' },
       '',
-      productNames
+      productNames,
+      minimalCtx
     );
     fs.writeFileSync(out, new Uint8Array(buf));
+  });
+
+  describe('pdftotext Hebrew regressions (#195)', () => {
+    const phrasesCheckout = [
+      'מאושר על ידי',
+      'מס טופס',
+      'פרטים אישיים',
+      'אישורים',
+      'יחידה',
+      'חתימת מקבל',
+    ];
+
+    const phrasesCheckinExtra = ['מס טופס מקור', 'מס אירוע', 'חתימת מחזיר'];
+
+    itPdftotext('checkout PDF exposes canonical Hebrew fragments (logical order)', () => {
+      const approvedForm: InventoryForm = {
+        ...baseForm,
+        status: FormStatus.Approved,
+        approvedAtTimestamp: Date.now(),
+        approvedByUserId: 'approver-1',
+      };
+      const ctx: PdfUserContext = {
+        holderUnitName: 'מחלקת תפעול',
+        userNamesById: { 'approver-1': 'שרה כהן' },
+      };
+      const buf = PdfService.generateFormPDF(
+        approvedForm,
+        minimalUser,
+        '',
+        productNames,
+        ctx
+      );
+      const txt = pdftotextUtf8(buf);
+      for (const phrase of phrasesCheckout) {
+        expect(txt).toContain(phrase);
+      }
+      expect(txt).not.toContain('רוקמ ספוט סמ');
+      expect(txt).toContain('שרה כהן');
+      expect(txt).toContain('טופס הוצאה');
+      expect(txt).not.toContain('טופס החזרה');
+    });
+
+    itPdftotext('check-in PDF exposes canonical Hebrew fragments (logical order)', () => {
+      const eventId = 'cie-mp9ywzwv-4b8s6a1d';
+      const event: CheckInEvent = {
+        checkInEventId: eventId,
+        items: [{ productId: 'prod-bulk-helmet', quantity: 1 }],
+        createdAtTimestamp: Date.now(),
+        createdByUserId: 'wm-77',
+      };
+      const ctx: PdfUserContext = {
+        holderUnitName: 'יחידה א',
+        userNamesById: { 'wm-77': 'מנהל מחסן' },
+      };
+      const buf = PdfService.generateCheckInEventPdf(
+        baseForm,
+        event,
+        minimalUser,
+        '',
+        productNames,
+        ctx
+      );
+      const txt = pdftotextUtf8(buf);
+      for (const phrase of [...phrasesCheckout, ...phrasesCheckinExtra]) {
+        if (phrase === 'חתימת מקבל') {
+          continue;
+        }
+        expect(txt).toContain(phrase);
+      }
+      expect(txt).toContain('חתימת מחזיר');
+      expect(txt).toContain('מאושר על ידי');
+      expect(txt).toContain('מס טופס מקור');
+      expect(txt).not.toContain('רוקמ ספוט סמ');
+      expect(txt).not.toContain('ידי לע רשואמ');
+      expect(txt).toContain(eventId);
+      expect(txt.match(new RegExp(eventId, 'g'))?.length ?? 0).toBeGreaterThanOrEqual(
+        2
+      );
+      expect(txt).toContain('טופס החזרה');
+    });
+
+    itPdftotext('mixed Hebrew–Latin product descriptions extract logically', () => {
+      const formMixed: InventoryForm = {
+        ...baseForm,
+        items: [{ productId: 'prod-mixed', quantity: 1 }],
+      };
+      const buf = PdfService.generateFormPDF(
+        formMixed,
+        minimalUser,
+        '',
+        productNames,
+        minimalCtx
+      );
+      const txt = pdftotextUtf8(buf);
+      expect(txt).toContain('Helmet');
+      expect(txt).toContain('קסדה');
+      expect(txt).toContain('M-15');
+    });
+
+    itPdftotext('omits טלפון label when phone is unset', () => {
+      const userNoPhone: User = {
+        ...minimalUser,
+        phone: undefined,
+      };
+      const buf = PdfService.generateFormPDF(
+        baseForm,
+        userNoPhone,
+        '',
+        productNames,
+        minimalCtx
+      );
+      const txt = pdftotextUtf8(buf);
+      expect(txt).not.toContain('טלפון');
+    });
+
+    itPdftotext('falls back to raw user id when approver name is unknown', () => {
+      const approvedForm: InventoryForm = {
+        ...baseForm,
+        status: FormStatus.Approved,
+        approvedAtTimestamp: Date.now(),
+        approvedByUserId: 'unknown-id-zzz',
+      };
+      const buf = PdfService.generateFormPDF(
+        approvedForm,
+        minimalUser,
+        '',
+        productNames,
+        { userNamesById: {}, holderUnitName: undefined }
+      );
+      const txt = pdftotextUtf8(buf);
+      expect(txt).toContain('unknown-id-zzz');
+    });
   });
 });

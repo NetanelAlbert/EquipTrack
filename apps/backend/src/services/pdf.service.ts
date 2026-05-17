@@ -1,15 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { jsPDF } from 'jspdf';
-import { CheckInEvent, InventoryForm, InventoryItem, User, toVisualOrder } from '@equip-track/shared';
+import { CheckInEvent, InventoryForm, InventoryItem, User } from '@equip-track/shared';
+import { drawBidiText, measureLogicalTextWidth } from './pdf-bidi-text';
+import { PdfUserContext, pdfResolvedUserName } from './pdf-user-context';
 
 const PDF_FONT_VFS_NAME = 'NotoSansHebrew-Regular.ttf';
 const PDF_FONT_FAMILY = 'NotoSansHebrew';
-
-/** Logical Hebrew / mixed strings → visual order for LTR jsPDF layout (see PR #100 reports PDF). */
-function v(s: string | undefined | null): string {
-  return toVisualOrder(s ?? '');
-}
 
 function resolveHebrewPdfFontPath(): string {
   const candidates = [
@@ -36,39 +33,14 @@ function registerHebrewPdfFont(doc: jsPDF): void {
   doc.setFont(PDF_FONT_FAMILY, 'normal');
 }
 
-/** Renders a Hebrew label (with {@link v}) plus LTR tail, flush to `rightX`. */
-function textHebrewLabelThenLtrFromRight(
-  doc: jsPDF,
-  hebrewLabelLogical: string,
-  ltrRest: string,
-  rightX: number,
-  y: number,
-  gapPt = 2
-): void {
-  const label = v(hebrewLabelLogical);
-  const ltr = ltrRest ?? '';
-  const wLabel = doc.getTextWidth(label);
-  const wLtr = ltr ? doc.getTextWidth(ltr) : 0;
-  const total = wLabel + (ltr ? gapPt + wLtr : 0);
-  let x = rightX - total;
-  doc.text(label, x, y);
-  if (ltr) {
-    x += wLabel + gapPt;
-    doc.text(ltr, x, y);
-  }
-}
-
 /** Form content inner right edge (inside the main frame; aligns with table x = 195). */
 const FORM_INNER_RIGHT = 194;
 
 /** Left inset for footer page counter & similar. */
 const FORM_INNER_LEFT = 17;
 
-/**
- * Hebrew section titles — anchored to the right (RTL block alignment).
- */
 function textSectionTitleRtl(doc: jsPDF, logicalText: string, y: number): void {
-  doc.text(v(logicalText), FORM_INNER_RIGHT, y, { align: 'right' });
+  drawBidiText(doc, logicalText, FORM_INNER_RIGHT, y, { align: 'right' });
 }
 
 /**
@@ -134,12 +106,12 @@ function productNameForPdf(
   return n?.trim() ? n : productId;
 }
 
-/** UPI list for unique items; empty for bulk-only lines (cell left blank). */
+/** UPI list for unique items; em dash placeholder for bulk rows (visual clarity). */
 function serialColumnForPdf(item: InventoryItem): string {
   if (item.upis && item.upis.length > 0) {
     return item.upis.join(', ');
   }
-  return '';
+  return '\u2014';
 }
 
 function formTableCellAt(
@@ -153,24 +125,21 @@ function formTableCellAt(
   return c;
 }
 
-/** Split cell text to wrapped lines (visual order for Hebrew when `visual` is true). */
+/** Split cell text to wrapped lines using logical-order Unicode. */
 function formTableCellLines(
   doc: jsPDF,
   text: string,
-  cell: { left: number; right: number },
-  opts?: { visual?: boolean }
+  cell: { left: number; right: number }
 ): string[] {
   const pad = 1.5;
   const innerW = cell.right - cell.left - 2 * pad;
   if (innerW <= 0 || text === '') {
     return [];
   }
-  const useVisual = opts?.visual !== false;
-  const line = useVisual ? v(text) : text;
-  return doc.splitTextToSize(line, innerW);
+  return doc.splitTextToSize(text, innerW);
 }
 
-/** Draw pre-split lines, right-aligned in an RTL table cell; `rowTopMm` is the row's top Y. */
+/** Draw wrapped lines, right-aligned in an RTL table cell; `rowTopMm` is the row's top Y. */
 function drawFormTableWrappedCell(
   doc: jsPDF,
   cell: { left: number; right: number },
@@ -182,10 +151,11 @@ function drawFormTableWrappedCell(
   }
   const pad = 1.5;
   const firstBaseline = rowTopMm + FORM_TABLE_CELL_FIRST_BASELINE_OFFSET_MM;
-  doc.text(lines, cell.right - pad, firstBaseline, {
-    align: 'right',
-    lineHeightFactor: FORM_TABLE_TEXT_LINE_HEIGHT_FACTOR,
-  });
+  let yLine = firstBaseline;
+  for (const line of lines) {
+    drawBidiText(doc, line, cell.right - pad, yLine, { align: 'right' });
+    yLine += wrappedTableLineStepMm(doc);
+  }
 }
 
 function planFormEquipmentTable(
@@ -205,21 +175,19 @@ function planFormEquipmentTable(
     if (index < items.length) {
       const item = items[index];
       const linesPerCol: string[][] = [
-        formTableCellLines(doc, String(index + 1), formTableCellAt(colBounds, 0), {
-          visual: false,
-        }),
-        formTableCellLines(doc, item.productId.substring(0, 20), formTableCellAt(colBounds, 1)),
+        formTableCellLines(doc, String(index + 1), formTableCellAt(colBounds, 0)),
+        formTableCellLines(
+          doc,
+          item.productId.substring(0, 20),
+          formTableCellAt(colBounds, 1)
+        ),
         formTableCellLines(
           doc,
           productNameForPdf(item.productId, productNamesById),
           formTableCellAt(colBounds, 2)
         ),
-        formTableCellLines(doc, String(item.quantity), formTableCellAt(colBounds, 3), {
-          visual: false,
-        }),
-        formTableCellLines(doc, serialColumnForPdf(item), formTableCellAt(colBounds, 4), {
-          visual: false,
-        }),
+        formTableCellLines(doc, String(item.quantity), formTableCellAt(colBounds, 3)),
+        formTableCellLines(doc, serialColumnForPdf(item), formTableCellAt(colBounds, 4)),
       ];
       const maxLines = Math.max(1, ...linesPerCol.map((l) => l.length));
       rowHeights.push(rowHeightFromWrappedLineCount(doc, maxLines));
@@ -241,28 +209,22 @@ function drawLabeledFieldRtl(
   value: string,
   boxLeft: number,
   boxRight: number,
-  yBase: number,
-  opts?: { valueVisual?: boolean }
+  yBase: number
 ): void {
   const pad = 1;
-  const label = v(labelLogical);
-  const useV = opts?.valueVisual !== false;
-  const valText = useV ? v(value) : value;
   doc.setFont(PDF_FONT_FAMILY, 'normal');
-  doc.text(label, boxRight - pad, yBase, { align: 'right' });
-  const labelW = doc.getTextWidth(label);
+  drawBidiText(doc, labelLogical, boxRight - pad, yBase, { align: 'right' });
+  const labelW = measureLogicalTextWidth(doc, labelLogical);
   const lineEnd = boxRight - pad - labelW - 3;
   doc.line(boxLeft, yBase, lineEnd, yBase);
-  doc.text(valText, lineEnd - 1.5, yBase - 1, {
+  drawBidiText(doc, value || '', lineEnd - 1.5, yBase - 1, {
     align: 'right',
-    maxWidth: Math.max(0, lineEnd - boxLeft - 2),
   });
 }
 
-/** Header strip: three boxes — left & right RTL inside cell; center title centered. */
 function drawForm1008Header(
   doc: jsPDF,
-  formIdLine: string
+  opts: { formIdLine: string; titleLogical: string }
 ): void {
   doc.setFontSize(14);
   doc.setFont(PDF_FONT_FAMILY, 'bold');
@@ -274,45 +236,52 @@ function drawForm1008Header(
   const leftBoxRight = 64;
   doc.setFontSize(10);
   doc.setFont(PDF_FONT_FAMILY, 'normal');
-  doc.text(v('מודפס במ"פ'), leftBoxRight - 1, 22, { align: 'right' });
-  doc.text(v('תאריך'), leftBoxRight - 1, 30, { align: 'right' });
+  const printed = new Date();
+  drawBidiText(
+    doc,
+    `מודפס במ"פ: ${printed.toLocaleString('he-IL')}`,
+    leftBoxRight - 1,
+    22,
+    { align: 'right' }
+  );
+  drawBidiText(
+    doc,
+    `תאריך: ${printed.toLocaleDateString('he-IL')}`,
+    leftBoxRight - 1,
+    30,
+    { align: 'right' }
+  );
 
   doc.setFontSize(12);
   doc.setFont(PDF_FONT_FAMILY, 'bold');
-  doc.text(v('טופס הוצאה/החזרה'), 105, 22, { align: 'center' });
+  drawBidiText(doc, opts.titleLogical, 105, 22, { align: 'center' });
   doc.text('Form 1008', 105, 30, { align: 'center' });
 
   const rightBoxRight = 194;
   doc.setFontSize(10);
   doc.setFont(PDF_FONT_FAMILY, 'normal');
-  doc.text(v('מס טופס'), rightBoxRight - 1, 22, { align: 'right' });
-  doc.text(formIdLine, rightBoxRight - 1, 30, { align: 'right' });
+  drawBidiText(doc, 'מס טופס', rightBoxRight - 1, 22, { align: 'right' });
+  drawBidiText(doc, opts.formIdLine, rightBoxRight - 1, 30, { align: 'right' });
 }
 
 /**
  * סוג הטופס row: title on the right; options read RTL — primary option rightmost with its checkbox
  * immediately to the left of its label (label flush right for each group).
  */
-function drawFormTypeRow(
-  doc: jsPDF,
-  mode: 'checkout' | 'checkin'
-): void {
+function drawFormTypeRow(doc: jsPDF, mode: 'checkout' | 'checkin'): void {
   doc.setFont(PDF_FONT_FAMILY, 'bold');
   doc.setFontSize(10);
-  const title = v('סוג הטופס:');
-  const titleW = doc.getTextWidth(title);
-  doc.text(title, FORM_INNER_RIGHT, 50, { align: 'right' });
+  const title = 'סוג הטופס:';
+  const titleW = measureLogicalTextWidth(doc, title);
+  drawBidiText(doc, title, FORM_INNER_RIGHT, 50, { align: 'right' });
 
   doc.setFont(PDF_FONT_FAMILY, 'normal');
   const gapAfterTitle = 8;
   let anchor = FORM_INNER_RIGHT - titleW - gapAfterTitle;
 
-  const placeOption = (
-    labelLogical: string,
-    checked: boolean
-  ): void => {
-    doc.text(v(labelLogical), anchor, 50, { align: 'right' });
-    const lw = doc.getTextWidth(v(labelLogical));
+  const placeOption = (labelLogical: string, checked: boolean): void => {
+    drawBidiText(doc, labelLogical, anchor, 50, { align: 'right' });
+    const lw = measureLogicalTextWidth(doc, labelLogical);
     const boxLeft = anchor - lw - 3 - 4;
     doc.rect(boxLeft, 46, 4, 4);
     if (checked) {
@@ -330,10 +299,10 @@ function drawFormTypeRow(
   }
 }
 
-/** Personal-details four fields mirrored for RTL (שם / יחידה on the right column). */
 function drawPersonalDetailsBlock(
   doc: jsPDF,
   userData: User,
+  ctx: PdfUserContext,
   titleY: number,
   row1Y: number,
   row2Y: number
@@ -359,32 +328,74 @@ function drawPersonalDetailsBlock(
   );
   drawLabeledFieldRtl(
     doc,
-    'מס אישי:',
-    userData.id || '',
+    'דוא"ל:',
+    userData.email || '',
     leftBlock.left,
     leftBlock.right,
-    row1Y,
-    { valueVisual: false }
+    row1Y
   );
 
   drawLabeledFieldRtl(
     doc,
     'יחידה:',
-    userData.email || '',
+    ctx.holderUnitName ?? '',
     rightBlock.left,
     rightBlock.right,
-    row2Y,
-    { valueVisual: false }
+    row2Y
   );
-  drawLabeledFieldRtl(
-    doc,
-    'טלפון:',
-    userData.phone || '',
-    leftBlock.left,
-    leftBlock.right,
-    row2Y,
-    { valueVisual: false }
-  );
+  const phone = userData.phone?.trim();
+  if (phone) {
+    drawLabeledFieldRtl(
+      doc,
+      'טלפון:',
+      phone,
+      leftBlock.left,
+      leftBlock.right,
+      row2Y
+    );
+  }
+}
+
+function parseSignatureDataUrl(signature: string): {
+  format: string;
+  base64Data: string;
+} | undefined {
+  const dataUrlMatch = signature.match(/^data:image\/([a-zA-Z]*);base64,(.*)$/);
+  if (!dataUrlMatch) {
+    return undefined;
+  }
+  const [, imageFormat, base64Data] = dataUrlMatch;
+  const supportedFormats = ['png', 'jpeg', 'jpg', 'gif', 'webp'];
+  const format = imageFormat.toLowerCase();
+  if (!supportedFormats.includes(format)) {
+    console.warn(
+      `Unsupported image format: ${imageFormat}. Supported formats: ${supportedFormats.join(
+        ', '
+      )}`
+    );
+    return undefined;
+  }
+  const pdfFormat = format === 'jpg' ? 'JPEG' : format.toUpperCase();
+  return { format: pdfFormat, base64Data };
+}
+
+/** Right side of returner/recipient signature box (mm). */
+const SIG_IMAGE_X_RIGHT = 158;
+const SIG_IMAGE_W = 28;
+const SIG_IMAGE_H = 9;
+
+function drawFormFooterTriple(
+  doc: jsPDF,
+  centerLogical: string,
+  rightLogical: string
+): void {
+  doc.setFont(PDF_FONT_FAMILY, 'normal');
+  const longCenter = centerLogical.length > 52;
+  doc.setFontSize(longCenter ? 6.5 : 7);
+  const y = 280;
+  drawBidiText(doc, 'עמוד 1 מתוך 1', FORM_INNER_LEFT, y, { align: 'left' });
+  drawBidiText(doc, centerLogical, 105, y, { align: 'center' });
+  drawBidiText(doc, rightLogical, FORM_INNER_RIGHT, y, { align: 'right' });
 }
 
 export class PdfService {
@@ -396,30 +407,29 @@ export class PdfService {
     form: InventoryForm,
     userData: User,
     signature: string,
-    productNamesById: Readonly<Record<string, string>> = {}
+    productNamesById: Readonly<Record<string, string>>,
+    ctx: PdfUserContext
   ): Buffer {
     const doc = new jsPDF();
     registerHebrewPdfFont(doc);
 
-    // Top border
     doc.rect(10, 10, 190, 277);
 
-    drawForm1008Header(doc, form.formID.toString());
+    drawForm1008Header(doc, {
+      formIdLine: String(form.formID),
+      titleLogical: 'טופס הוצאה',
+    });
 
-    // Form Type Section
     doc.rect(15, 40, 180, 15);
     drawFormTypeRow(doc, 'checkout');
 
-    // Personal Details Section
     doc.rect(15, 60, 180, 40);
-    drawPersonalDetailsBlock(doc, userData, 70, 80, 90);
+    drawPersonalDetailsBlock(doc, userData, ctx, 70, 80, 90);
 
-    // Equipment Table Section
     doc.setFont(PDF_FONT_FAMILY, 'bold');
     doc.setFontSize(10);
     textSectionTitleRtl(doc, 'רשימת ציוד:', 115);
 
-    // Table headers — columns RTL (מס on the right); cell text right-aligned; rows sized for wrapped UPI/product text
     const tableStartY = 120;
     const maxRows = 5;
     const tableHeaders = ['מס', 'קוד פריט', 'תיאור', 'כמות', 'מס סידורי'];
@@ -466,7 +476,6 @@ export class PdfService {
       rowTop += rowH;
     }
 
-    // Approval Section
     const approvalY = tableBottomY + FORM_TABLE_GAP_BEFORE_APPROVAL_MM;
     doc.rect(15, approvalY, 180, 40);
 
@@ -477,154 +486,130 @@ export class PdfService {
     doc.setFont(PDF_FONT_FAMILY, 'normal');
     doc.setFontSize(9);
 
-    // Status information
     if (form.approvedAtTimestamp && form.approvedByUserId) {
-      doc.text(
-        v(`מאושר על ידי: ${form.approvedByUserId}`),
+      drawBidiText(
+        doc,
+        `מאושר על ידי: ${pdfResolvedUserName(form.approvedByUserId, ctx)}`,
         FORM_INNER_RIGHT,
         approvalY + 20,
         { align: 'right' }
       );
-      textHebrewLabelThenLtrFromRight(
+      drawBidiText(
         doc,
-        'תאריך אישור: ',
-        new Date(form.approvedAtTimestamp).toLocaleDateString('he-IL'),
+        `תאריך אישור: ${new Date(form.approvedAtTimestamp).toLocaleDateString(
+          'he-IL'
+        )}`,
         FORM_INNER_RIGHT,
-        approvalY + 30
+        approvalY + 30,
+        { align: 'right' }
       );
     } else if (form.rejectionReason) {
-      doc.text(v('סטטוס: נדחה'), FORM_INNER_RIGHT, approvalY + 20, {
+      drawBidiText(doc, 'סטטוס: נדחה', FORM_INNER_RIGHT, approvalY + 20, {
         align: 'right',
       });
-      doc.text(
-        v(`סיבה: ${form.rejectionReason}`),
+      drawBidiText(
+        doc,
+        `סיבה: ${form.rejectionReason}`,
         FORM_INNER_RIGHT,
         approvalY + 30,
         { align: 'right' }
       );
     } else {
-      doc.text(v('סטטוס: ממתין לאישור'), FORM_INNER_RIGHT, approvalY + 20, {
+      drawBidiText(doc, 'סטטוס: ממתין לאישור', FORM_INNER_RIGHT, approvalY + 20, {
         align: 'right',
       });
     }
 
-    // Signatures: recipient (מקבל) on the right, commander (מפקד) on the left — RTL inside each box
     const sigY = approvalY + 50;
     const leftBoxInnerRight = 98;
     const rightBoxInnerRight = FORM_INNER_RIGHT;
     doc.rect(15, sigY, 85, 30);
     doc.rect(110, sigY, 85, 30);
 
+    const sigParsed = parseSignatureDataUrl(signature);
+
     doc.setFont(PDF_FONT_FAMILY, 'bold');
-    doc.text(v('חתימת מקבל:'), rightBoxInnerRight, sigY + 10, { align: 'right' });
-    doc.text(v('חתימת מפקד:'), leftBoxInnerRight, sigY + 10, { align: 'right' });
+    drawBidiText(doc, 'חתימת מקבל:', rightBoxInnerRight, sigY + 8, {
+      align: 'right',
+    });
+    drawBidiText(doc, 'חתימת מפקד:', leftBoxInnerRight, sigY + 8, { align: 'right' });
 
     doc.setFont(PDF_FONT_FAMILY, 'normal');
+    doc.setFontSize(9);
+    drawBidiText(doc, userData.name || '', rightBoxInnerRight, sigY + 14, {
+      align: 'right',
+    });
 
-    const currentDate = new Date().toLocaleDateString('he-IL');
-    textHebrewLabelThenLtrFromRight(
-      doc,
-      'תאריך: ',
-      currentDate,
-      rightBoxInnerRight,
-      sigY + 25
-    );
-    textHebrewLabelThenLtrFromRight(doc, 'תאריך: ', '', leftBoxInnerRight, sigY + 25);
-
-    // Add signature if provided
-
-    try {
-      // Parse the data URL to extract format and base64 data
-      const dataUrlMatch = signature.match(
-        /^data:image\/([a-zA-Z]*);base64,(.*)$/
-      );
-
-      if (!dataUrlMatch) {
-        console.warn(
-          'Invalid signature format - expected data:image/[format];base64,[data]'
+    if (sigParsed) {
+      try {
+        doc.addImage(
+          sigParsed.base64Data,
+          sigParsed.format,
+          SIG_IMAGE_X_RIGHT,
+          sigY + 18,
+          SIG_IMAGE_W,
+          SIG_IMAGE_H
         );
-      } else {
-        const [, imageFormat, base64Data] = dataUrlMatch;
-
-        // Validate supported formats
-        const supportedFormats = ['png', 'jpeg', 'jpg', 'gif', 'webp'];
-        const format = imageFormat.toLowerCase();
-
-        if (!supportedFormats.includes(format)) {
-          console.warn(
-            `Unsupported image format: ${imageFormat}. Supported formats: ${supportedFormats.join(
-              ', '
-            )}`
-          );
-        } else {
-          // Convert format for jsPDF (it expects 'JPEG' not 'JPG')
-          const pdfFormat = format === 'jpg' ? 'JPEG' : format.toUpperCase();
-
-          doc.addImage(base64Data, pdfFormat, 125, sigY + 12, 30, 10);
-
-          console.log(`Successfully added ${imageFormat} signature to PDF`);
-        }
+      } catch (error) {
+        console.warn('Failed to add signature to PDF:', error);
       }
-    } catch (error) {
-      console.warn('Failed to add signature to PDF:', error);
-      // Optionally, you could add a text placeholder instead
-      // doc.setFontSize(8);
-      // doc.text('[Signature could not be rendered]', 45, sigY + 17);
     }
 
-    // Footer: page left, form id center, generated-at right (no overlap)
-    doc.setFontSize(7);
-    doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.text(v('עמוד 1 מתוך 1'), FORM_INNER_LEFT, 280, { align: 'left' });
-    doc.text(v(`מס טופס: ${form.formID}`), 105, 280, { align: 'center' });
-    textHebrewLabelThenLtrFromRight(
+    const currentDate = new Date().toLocaleDateString('he-IL');
+    if (sigParsed) {
+      drawBidiText(
+        doc,
+        `תאריך: ${currentDate}`,
+        rightBoxInnerRight,
+        sigY + 28,
+        { align: 'right' }
+      );
+    }
+    drawBidiText(doc, 'תאריך: ', leftBoxInnerRight, sigY + 28, { align: 'right' });
+
+    drawFormFooterTriple(
       doc,
-      'נוצר בתאריך: ',
-      new Date().toLocaleString('he-IL'),
-      FORM_INNER_RIGHT,
-      280
+      `מס טופס: ${form.formID}`,
+      `נוצר בתאריך: ${new Date().toLocaleString('he-IL')}`
     );
 
-    // Return PDF as buffer
     return Buffer.from(doc.output('arraybuffer'));
   }
 
   /**
    * Generates a check-in event PDF (return / החזרה).
-   * Matches the same 1008-style Hebrew form with "החזרה" checked and a reference to the source check-out form.
    */
   static generateCheckInEventPdf(
     form: InventoryForm,
     event: CheckInEvent,
     userData: User,
     signature: string,
-    productNamesById: Readonly<Record<string, string>> = {}
+    productNamesById: Readonly<Record<string, string>>,
+    ctx: PdfUserContext
   ): Buffer {
     const doc = new jsPDF();
     registerHebrewPdfFont(doc);
 
-    // Top border
     doc.rect(10, 10, 190, 277);
 
-    drawForm1008Header(doc, event.checkInEventId.substring(0, 15));
+    drawForm1008Header(doc, {
+      formIdLine: event.checkInEventId,
+      titleLogical: 'טופס החזרה',
+    });
 
-    // Form type — mark החזרה (return)
     doc.rect(15, 40, 180, 15);
     drawFormTypeRow(doc, 'checkin');
 
-    // Source form reference
     doc.rect(15, 58, 180, 10);
     doc.setFontSize(9);
     doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.text(v(`מס טופס מקור: ${form.formID}`), FORM_INNER_RIGHT, 65, {
+    drawBidiText(doc, `מס טופס מקור: ${form.formID}`, FORM_INNER_RIGHT, 65, {
       align: 'right',
     });
 
-    // Personal Details
     doc.rect(15, 72, 180, 40);
-    drawPersonalDetailsBlock(doc, userData, 82, 92, 102);
+    drawPersonalDetailsBlock(doc, userData, ctx, 82, 92, 102);
 
-    // Equipment table (same RTL columns as checkout PDF)
     doc.setFont(PDF_FONT_FAMILY, 'bold');
     doc.setFontSize(10);
     textSectionTitleRtl(doc, 'רשימת ציוד המוחזר:', 128);
@@ -675,7 +660,6 @@ export class PdfService {
       rowTop += rowH;
     }
 
-    // Approval section
     const approvalY = tableBottomY + FORM_TABLE_GAP_BEFORE_APPROVAL_MM;
     doc.rect(15, approvalY, 180, 30);
     doc.setFont(PDF_FONT_FAMILY, 'bold');
@@ -683,69 +667,76 @@ export class PdfService {
     textSectionTitleRtl(doc, 'אישורים:', approvalY + 10);
     doc.setFont(PDF_FONT_FAMILY, 'normal');
     doc.setFontSize(9);
-    doc.text(
-      v(`מאושר על ידי: ${event.createdByUserId}`),
+    drawBidiText(
+      doc,
+      `מאושר על ידי: ${pdfResolvedUserName(event.createdByUserId, ctx)}`,
       FORM_INNER_RIGHT,
       approvalY + 20,
       { align: 'right' }
     );
-    textHebrewLabelThenLtrFromRight(
+    drawBidiText(
       doc,
-      'תאריך: ',
-      new Date(event.createdAtTimestamp).toLocaleDateString('he-IL'),
+      `תאריך אישור: ${new Date(event.createdAtTimestamp).toLocaleDateString(
+        'he-IL'
+      )}`,
       FORM_INNER_RIGHT,
-      approvalY + 28
+      approvalY + 28,
+      { align: 'right' }
     );
 
-    // Signature — מחזיר (right), מחסנאי (left)
     const sigY = approvalY + 40;
     const leftBoxInnerRight = 98;
     const rightBoxInnerRight = FORM_INNER_RIGHT;
     doc.rect(15, sigY, 85, 30);
     doc.rect(110, sigY, 85, 30);
-    doc.setFont(PDF_FONT_FAMILY, 'bold');
-    doc.text(v('חתימת מחזיר:'), rightBoxInnerRight, sigY + 10, { align: 'right' });
-    doc.text(v('חתימת מחסנאי:'), leftBoxInnerRight, sigY + 10, { align: 'right' });
-    doc.setFont(PDF_FONT_FAMILY, 'normal');
-    const nowDate = new Date().toLocaleDateString('he-IL');
-    textHebrewLabelThenLtrFromRight(
-      doc,
-      'תאריך: ',
-      nowDate,
-      rightBoxInnerRight,
-      sigY + 25
-    );
-    textHebrewLabelThenLtrFromRight(doc, 'תאריך: ', '', leftBoxInnerRight, sigY + 25);
 
-    try {
-      const dataUrlMatch = signature.match(/^data:image\/([a-zA-Z]*);base64,(.*)$/);
-      if (dataUrlMatch) {
-        const [, imageFormat, base64Data] = dataUrlMatch;
-        const supportedFormats = ['png', 'jpeg', 'jpg', 'gif', 'webp'];
-        const format = imageFormat.toLowerCase();
-        if (supportedFormats.includes(format)) {
-          const pdfFormat = format === 'jpg' ? 'JPEG' : format.toUpperCase();
-          doc.addImage(base64Data, pdfFormat, 125, sigY + 12, 30, 10);
-        }
+    const sigParsed = parseSignatureDataUrl(signature);
+
+    doc.setFont(PDF_FONT_FAMILY, 'bold');
+    drawBidiText(doc, 'חתימת מחזיר:', rightBoxInnerRight, sigY + 8, {
+      align: 'right',
+    });
+    drawBidiText(doc, 'חתימת מחסנאי:', leftBoxInnerRight, sigY + 8, {
+      align: 'right',
+    });
+    doc.setFont(PDF_FONT_FAMILY, 'normal');
+    doc.setFontSize(9);
+    drawBidiText(doc, userData.name || '', rightBoxInnerRight, sigY + 14, {
+      align: 'right',
+    });
+
+    if (sigParsed) {
+      try {
+        doc.addImage(
+          sigParsed.base64Data,
+          sigParsed.format,
+          SIG_IMAGE_X_RIGHT,
+          sigY + 18,
+          SIG_IMAGE_W,
+          SIG_IMAGE_H
+        );
+      } catch (error) {
+        console.warn('Failed to add signature to check-in PDF:', error);
       }
-    } catch (error) {
-      console.warn('Failed to add signature to check-in PDF:', error);
     }
 
-    // Footer
-    doc.setFontSize(7);
-    doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.text(v('עמוד 1 מתוך 1'), FORM_INNER_LEFT, 280, { align: 'left' });
-    doc.text(v(`מס אירוע: ${event.checkInEventId}`), 105, 280, { align: 'center' });
-    textHebrewLabelThenLtrFromRight(
+    if (sigParsed) {
+      drawBidiText(
+        doc,
+        `תאריך: ${new Date().toLocaleDateString('he-IL')}`,
+        rightBoxInnerRight,
+        sigY + 28,
+        { align: 'right' }
+      );
+    }
+    drawBidiText(doc, 'תאריך: ', leftBoxInnerRight, sigY + 28, { align: 'right' });
+
+    drawFormFooterTriple(
       doc,
-      'נוצר בתאריך: ',
-      new Date().toLocaleString('he-IL'),
-      FORM_INNER_RIGHT,
-      280
+      `מס אירוע: ${event.checkInEventId}`,
+      `נוצר בתאריך: ${new Date().toLocaleString('he-IL')}`
     );
 
     return Buffer.from(doc.output('arraybuffer'));
   }
 }
-

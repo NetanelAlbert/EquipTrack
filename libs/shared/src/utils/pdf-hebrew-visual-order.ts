@@ -5,19 +5,20 @@ const isLtrChar = (c: number) =>
   (c >= 0x61 && c <= 0x7a) ||
   (c >= 0x30 && c <= 0x39);
 
+export type LogicalBidiRunDir = 'R' | 'L';
+
+export interface LogicalBidiRun {
+  text: string;
+  dir: LogicalBidiRunDir;
+}
+
 /**
- * Convert logical-order text to visual order for a left-to-right PDF
- * renderer. Hebrew (RTL) runs are character-reversed so they display
- * correctly when the PDF engine lays out glyphs left-to-right.
- * LTR runs (Latin / digits) are kept as-is. Overall run order is
- * reversed to reflect an RTL base direction.
- *
- * Use with jsPDF {@code setR2L(false)} for table cells and positioned
- * text (same approach as reports PDF export).
+ * Split logical-order text into directional runs after neutral-codepoint resolution.
+ * Same classification rules as {@link toVisualOrder}; runs stay in storage order.
  */
-export function toVisualOrder(text: string): string {
+export function splitLogicalBidiRuns(text: string): LogicalBidiRun[] {
   if (!text) {
-    return text;
+    return [];
   }
 
   const chars = Array.from(text);
@@ -29,7 +30,7 @@ export function toVisualOrder(text: string): string {
     }
   }
   if (!hasRtl) {
-    return text;
+    return [{ text, dir: 'L' }];
   }
 
   type Dir = 'R' | 'L' | 'N';
@@ -65,22 +66,46 @@ export function toVisualOrder(text: string): string {
     types[i] = prev === 'L' && next === 'L' ? 'L' : 'R';
   }
 
-  const runs: { text: string; type: Dir }[] = [];
+  const runs: LogicalBidiRun[] = [];
   let runStart = 0;
   for (let i = 1; i <= types.length; i++) {
     if (i === types.length || types[i] !== types[runStart]) {
+      const dir: LogicalBidiRunDir = types[runStart] === 'R' ? 'R' : 'L';
       runs.push({
         text: chars.slice(runStart, i).join(''),
-        type: types[runStart],
+        dir,
       });
       runStart = i;
     }
   }
+  return runs;
+}
+
+/**
+ * Convert logical-order text to visual order for a left-to-right PDF
+ * renderer. Hebrew (RTL) runs are character-reversed so they display
+ * correctly when the PDF engine lays out glyphs left-to-right.
+ * LTR runs (Latin / digits) are kept as-is. Overall run order is
+ * reversed to reflect an RTL base direction.
+ *
+ * Use with jsPDF {@code setR2L(false)} for table cells and positioned
+ * text (same approach as reports PDF export).
+ */
+export function toVisualOrder(text: string): string {
+  if (!text) {
+    return text;
+  }
+
+  const runs = splitLogicalBidiRuns(text);
+  if (!runs.some((r) => r.dir === 'R')) {
+    return text;
+  }
 
   return runs
+    .slice()
     .reverse()
     .map((r) =>
-      r.type === 'R' ? r.text.split('').reverse().join('') : r.text
+      r.dir === 'R' ? r.text.split('').reverse().join('') : r.text
     )
     .join('');
 }

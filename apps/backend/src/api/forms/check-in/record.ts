@@ -14,6 +14,7 @@ import { InventoryAdapter } from '../../../db/tables/inventory.adapter';
 import { UsersAndOrganizationsAdapter } from '../../../db/tables/users-and-organizations.adapter';
 import { InventoryTransferService } from '../../../services/inventory-transfer.service';
 import { PdfService } from '../../../services/pdf.service';
+import { loadPdfUserContext } from '../../../services/pdf-user-context';
 import { loadProductDisplayNamesForPdf } from '../../../services/pdf-product-names';
 import { S3Service } from '../../../services/s3.service';
 import {
@@ -121,12 +122,22 @@ export const handler = async (
       organizationId,
       event.items.map((i) => i.productId)
     );
+    const extraIds = [jwtPayload.sub, form.approvedByUserId].filter(
+      (id): id is string => Boolean(id)
+    );
+    const pdfCtx = await loadPdfUserContext(
+      usersAdapter,
+      organizationId,
+      userId,
+      extraIds
+    );
     const pdfBuffer = PdfService.generateCheckInEventPdf(
       form,
       event,
       user,
       req.signature,
-      productNames
+      productNames,
+      pdfCtx
     );
     const pdfUri = await s3Service.uploadCheckInEventPDF(
       pdfBuffer,
